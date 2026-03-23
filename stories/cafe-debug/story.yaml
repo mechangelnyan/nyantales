@@ -1,0 +1,938 @@
+title: "Café Debug"
+description: "A cozy mystery in a digital café — the espresso machine is corrupted and you, cat barista Mochi, must find the bug before everything crashes."
+author: "mechangelnyan"
+version: "1.0.0"
+start: cafe_morning
+
+scenes:
+
+  # ─────────────────────────────────────────────────────────────
+  # SCENE 1 — MORNING SHIFT
+  # ─────────────────────────────────────────────────────────────
+  cafe_morning:
+    mood: peaceful
+    art: |
+      ┌─────────────────────────────────────────────────────┐
+      │  ☕  C A F É   D E B U G                           │
+      │     "Stack traces and lattes since kernel 4.2"      │
+      │                                                     │
+      │  Open 24/7 (the daemon never sleeps — mostly)       │
+      └─────────────────────────────────────────────────────┘
+    text: |
+      You are Mochi. You are a cat. You are also, improbably, the head barista
+      at Café Debug — a cozy little establishment inside the system's service
+      layer, where processes come to unwind and pretend they're not just
+      scheduled loops in an indifferent universe.
+
+      It's 0700 hours. You pad through the front door, your apron already
+      slightly askew. The smell of fresh-brewed coffee hits you — and then
+      something else does too.
+
+      Something is wrong with that smell. It's a little... off. Like coffee
+      that's been compiled with the wrong flags.
+
+      The CoffeeBot 3000 behind the counter lets out a small, unhappy bleat.
+    choices:
+      - label: "Head straight to the counter — that machine sounds sick"
+        goto: counter
+      - label: "Check on the regulars first — see if anyone noticed"
+        goto: cafe_floor
+
+  # ─────────────────────────────────────────────────────────────
+  # SCENE 2 — CAFÉ FLOOR
+  # ─────────────────────────────────────────────────────────────
+  cafe_floor:
+    mood: peaceful
+    art: |
+      ┌─────────────────────────────────────────────────────┐
+      │  TABLE 1: grep (window seat, newspaper, frowning)   │
+      │  TABLE 2: [empty]                                   │
+      │  BAR:     curl (spinning on stool, chatting)        │
+      │  BACK:    [STAFF ONLY — daemon's room]              │
+      └─────────────────────────────────────────────────────┘
+    location: "café floor"
+    text: |
+      The café is in its usual early-morning state. A handful of regulars
+      have already claimed their spots.
+
+      grep is at the window table, hidden behind a very large newspaper. The
+      headline reads: "PATTERN NOT FOUND: STORY AT 11." grep looks grumpy.
+      (grep always looks grumpy.)
+
+      curl is perched at the bar, spinning slowly on a bar stool, apparently
+      very interested in telling the empty chair next to them about an API
+      they found at 3am. curl is chatty. curl is always chatty.
+
+      The door to the back room is labeled STAFF ONLY — that's where the
+      daemon lives. The daemon is theoretically always working. The daemon
+      is also almost always asleep.
+
+      The espresso machine lets out another forlorn bleat from behind the counter.
+    conditional:
+      - condition:
+          flag: got_grep_pattern
+        text: "grep catches your eye from behind their newspaper and gives you a small, pained nod. It is as warm as grep gets."
+        color: green
+      - condition:
+          flag: got_curl_recipe
+        text: "curl waves enthusiastically from the bar. 'MOCHI! Did you TRY the recipe?? Did it WORK??'"
+        color: yellow
+    choices:
+      - label: "Go behind the counter — deal with that poor machine"
+        goto: counter
+      - label: "Talk to grep — they probably noticed something"
+        goto: meet_grep
+      - label: "Talk to curl — they know everything about everything"
+        goto: meet_curl
+      - label: "Check the back room — see if the daemon's actually awake"
+        goto: back_room
+
+  # ─────────────────────────────────────────────────────────────
+  # SCENE 3 — BEHIND THE COUNTER
+  # ─────────────────────────────────────────────────────────────
+  counter:
+    mood: funny
+    art: |
+      nyan@cafedb:/counter$ status CoffeeBot3000
+      ┌──────────────────────────────────┐
+      │  CoffeeBot 3000  v2.7.1-STABLE   │
+      │  Status: ??? (not stable)        │
+      │  Shots pulled:  1,337            │
+      │  Last drink:    CORRUPTED        │
+      │  Error queue:   [██████████] 47  │
+      │  Milk frother:  OK (surprisingly)│
+      └──────────────────────────────────┘
+    location: "behind the counter"
+    text: |
+      CoffeeBot 3000 sits on the counter looking deeply sorry for itself.
+
+      The machine is producing drinks, technically — but they're wrong. A
+      customer earlier ordered an Americano and got back a lukewarm error
+      message with a splash of cream. The espresso itself tasted of NaN.
+
+      You give the machine a gentle head-bump (standard diagnostic procedure).
+      It makes a sound like a compiler warning.
+
+      Its little status panel blinks: ERROR_LOG_AVAILABLE.
+    conditional:
+      - condition:
+          has_item: error_log_printout
+        text: "You've already read the logs. The NullPointerException is burned into your memory like an overpulled shot."
+        color: yellow
+      - condition:
+          has_item: grep_pattern
+        text: "You could use grep's pattern here to find exactly where the brew() call goes wrong..."
+        color: green
+    choices:
+      - label: "Inspect CoffeeBot up close — lift the hood"
+        goto: machine_inspect
+        requires_not_flag: inspected_machine
+      - label: "Read the error logs — find out what's actually happening"
+        goto: error_logs
+        requires_not_item: error_log_printout
+      - label: "Read the error logs again (glutton for punishment)"
+        goto: error_logs
+        requires_item: error_log_printout
+      - label: "You have everything you need. Access the debug console."
+        goto: debug_console
+        requires_items:
+          - error_log_printout
+          - grep_pattern
+      - label: "Head out to the café floor — talk to the regulars"
+        goto: cafe_floor
+
+  # ─────────────────────────────────────────────────────────────
+  # SCENE 4 — MACHINE INSPECTION
+  # ─────────────────────────────────────────────────────────────
+  machine_inspect:
+    mood: mysterious
+    art: |
+      [PANEL REMOVED]
+
+      ░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░
+      ░  BREW MODULE  ░  GRIND UNIT  ░
+      ░    [active]   ░  [nominal]   ░
+      ░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░
+      ░  STEAM ARM   ░  PUMP #2     ░
+      ░   [nominal]  ░  [nominal]   ░
+      ░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░
+      ░  RECIPE DB   ░  NULL ??????░
+      ░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░
+    text: |
+      Inside the machine is actually quite tidy — mostly. Gears click. Steam
+      curls. The grind unit hums competently.
+
+      But the RECIPE DB slot is... empty. Or rather, it's occupied by something
+      that thinks it's a recipe but isn't. Like a null pointer that dreamed of
+      being a latte.
+
+      When CoffeeBot tries to brew something, it calls brew() with a reference
+      to the recipe. The reference points to nothing. Nothing gets brewed.
+      Or rather, nothing gets brewed correctly. The machine is very creative
+      with its error messages, though. You'll give it that.
+
+      You need to know exactly which call is failing, and you need the original
+      recipe data to patch it properly.
+    choices:
+      - label: "Got it. Check the error logs for the exact failure point."
+        goto: counter
+        set_flag: inspected_machine
+
+  # ─────────────────────────────────────────────────────────────
+  # SCENE 5 — ERROR LOGS
+  # ─────────────────────────────────────────────────────────────
+  error_logs:
+    mood: glitch
+    effects:
+      - flicker
+    art: |
+      nyan@cafedb:/counter$ tail -f coffeebot.log
+
+      [07:00:01] INFO  Brew cycle started: order_id=1338
+      [07:00:01] DEBUG recipe_ref = 0x00000000  ← !!!
+      [07:00:01] WARN  Dereferencing recipe pointer...
+      [07:00:01] ERROR NullPointerException in brew()
+                       at CoffeeBot.pull_shot() line 42
+                       at CoffeeBot.brew() line 17
+                       at OrderQueue.dispatch() line 8
+      [07:00:01] ERROR Drink output: [undefined espresso]
+      [07:00:02] INFO  Serving anyway. (optimistic)
+      [07:00:02] WARN  Customer confused.
+      [07:00:03] INFO  Brew cycle started: order_id=1339
+      [07:00:03] DEBUG recipe_ref = 0x00000000  ← !!!
+    text: |
+      The logs scroll past, a waterfall of evidence.
+
+      There it is, line 42. pull_shot() is trying to read a recipe from a
+      null pointer. Every. Single. Time. The machine has been doing this for
+      hours, dutifully serving undefined espresso to confused customers.
+
+      Bless its little circuits. It never gave up.
+
+      The exact failure point: brew() → pull_shot() → line 42.
+      The recipe pointer is null. The question is: WHY is it null?
+      And: what was it SUPPOSED to point to?
+
+      You tear off a printout. (Metaphorically. The café is paperless.
+      You save a copy to your mental RAM.)
+    choices:
+      - label: "Take the log printout and go find someone who can help"
+        goto: cafe_floor
+        give_item: error_log_printout
+        set_flag: read_error_logs
+
+  # ─────────────────────────────────────────────────────────────
+  # SCENE 6 — MEET GREP
+  # ─────────────────────────────────────────────────────────────
+  meet_grep:
+    mood: tense
+    art: |
+       /\_/\    "...what."
+      ( -_- )
+       )   (
+      (__  __)  [TABLE 1 — WINDOW SEAT]
+       NEWSPAPER: "PATTERN NOT FOUND: STORY AT 11"
+    text: |
+      grep looks up from their newspaper with the expression of someone who
+      has been successfully finding exactly what they're looking for all morning
+      and doesn't appreciate the interruption.
+
+      "Can I help you," says grep. It is not a question. It is a buffer overflow
+      of reluctant acknowledgement.
+
+      grep is very good at their job. grep finds patterns in things. If there's
+      a specific failure hiding in a pile of code, grep will locate it, circle it
+      in red, and hand it back with the minimum possible warmth.
+
+      They're actually quite sweet once you get to know them. You have not yet
+      gotten to know them.
+    choices:
+      - label: "Ask grep about the machine issue — vaguely"
+        goto: grep_vague
+        requires_not_item: error_log_printout
+      - label: "Show grep the error log printout — ask for help finding the pattern"
+        goto: grep_with_log
+        requires_item: error_log_printout
+      - label: "Actually, never mind. Leave grep to their newspaper."
+        goto: cafe_floor
+
+  # ─────────────────────────────────────────────────────────────
+  # SCENE 6b — GREP WITHOUT THE LOG
+  # ─────────────────────────────────────────────────────────────
+  grep_vague:
+    mood: tense
+    text: |
+      "The machine's broken," you say. "Something's wrong with the espresso."
+
+      grep sets down their newspaper with the deliberate care of someone who
+      is making a point.
+
+      "That," grep says, "is the least useful input I have ever received. And
+      I once had to search an empty file. Repeatedly. On purpose."
+
+      A pause.
+
+      "If you want my help, bring me something to search. A log. A trace.
+      A PATTERN. Not vibes. I cannot grep vibes, Mochi."
+
+      They pick the newspaper back up. The conversation is over.
+    choices:
+      - label: "Go get the error logs first, THEN come back"
+        goto: counter
+
+  # ─────────────────────────────────────────────────────────────
+  # SCENE 6c — GREP WITH THE LOG
+  # ─────────────────────────────────────────────────────────────
+  grep_with_log:
+    mood: tense
+    art: |
+      grep -n "NullPointerException" coffeebot.log
+
+      line 42:  NullPointerException in brew()
+      line 89:  NullPointerException in brew()
+      line 134: NullPointerException in brew()
+      ...
+      [47 matches total]
+
+      grep -A2 "recipe_ref = 0x00000000" coffeebot.log
+      → recipe_ref assigned null at OrderQueue.dispatch() line 8
+      → root cause: recipe_db lookup returns null on cache miss
+    text: |
+      You slide the printout across the table. grep picks it up, eyes flickering
+      across it with the speed and precision of someone born to do exactly this.
+
+      A very quiet, very rare thing happens.
+
+      grep almost smiles.
+
+      "NullPointerException at pull_shot() line 42. Right. Let me—" Fingers
+      tap the table in a familiar rhythm. "—there. The recipe_db lookup is
+      returning null on a cache miss. Something cleared the recipe cache and
+      nothing refilled it. You need to find what wiped the cache and get the
+      original recipe data back."
+
+      grep produces a small, precisely formatted pattern card from their pocket.
+      "Use this. It'll find the exact line in the brew cycle. You're welcome."
+
+      They add: "That's all you get."
+    choices:
+      - label: "Thank grep (sincerely) and take the pattern card"
+        goto: cafe_floor
+        give_item: grep_pattern
+        set_flag: got_grep_pattern
+        set_flag: talked_to_grep
+
+  # ─────────────────────────────────────────────────────────────
+  # SCENE 7 — MEET CURL
+  # ─────────────────────────────────────────────────────────────
+  meet_curl:
+    mood: funny
+    art: |
+       /\_/\    "—and THEN it returned a 418! A TEAPOT! Can you believe it??"
+      ( ^ω^ )
+       )   (
+      (__  __)  [BAR — CURRENTLY SPINNING ON STOOL]
+    text: |
+      curl is mid-sentence when you approach, which is how curl always is.
+
+      "—redirect loop for TWENTY MINUTES and I'm like, I literally have the
+      -L flag, why would you DO that—" They notice you. Their face lights up
+      like a successful HTTP 200. "MOCHI! Oh wow, perfect timing."
+
+      curl knows things. curl has been everywhere. curl has fetched data from
+      servers that technically shouldn't exist and piped it to jq at 3am for
+      reasons that made perfect sense at the time.
+
+      curl also, it turns out, helped calibrate CoffeeBot 3000 when it was
+      first installed. Because curl has done everything, at least once.
+    choices:
+      - label: "Ask curl about the espresso machine — did they help set it up?"
+        goto: curl_machine_chat
+      - label: "Ask curl if they noticed anything weird with the drinks today"
+        goto: curl_weird_drinks
+      - label: "Nod politely and back away (curl will fill the silence)"
+        goto: curl_monologue
+
+  curl_monologue:
+    mood: funny
+    text: |
+      You nod. curl fills the silence with fourteen more sentences about the
+      418 teapot server. It is, actually, a fascinating story. You learn three
+      things about HTTP you didn't know.
+
+      You do not learn anything about espresso machines.
+
+      curl eventually pauses for breath and beams at you. "What were we
+      talking about? Oh! Right. You look worried. Is this about the machine?"
+    choices:
+      - label: "Yes. Yes it is about the machine."
+        goto: curl_machine_chat
+
+  curl_weird_drinks:
+    mood: funny
+    text: |
+      "Oh, the drinks!" curl spins a full rotation on the stool. "YES. Okay.
+      So I ordered a cortado, right? Normal. Classic. And what I got was...
+      technically a cortado. Structurally. But the ratio was just wrong, like
+      it was working from some kind of placeholder data. Very 'Lorem Ipsum'
+      energy. You know?"
+
+      curl taps their chin. "Actually, I might know what happened. I helped
+      set up CoffeeBot's recipe database, like, a while ago? I still have my
+      copy of the original recipe schema."
+    choices:
+      - label: "PLEASE, curl. Yes. The schema. Give it to me."
+        goto: curl_gives_recipe
+
+  curl_machine_chat:
+    mood: funny
+    text: |
+      curl's eyes light up — the particular brightness of someone who has
+      Very Relevant Information and has been waiting patiently for someone
+      to ask.
+
+      "Okay, OKAY. So. CoffeeBot 3000, right? I helped with the initial setup.
+      The recipe database uses a two-tier caching system — fast cache for
+      popular drinks, cold storage for the rest. If the fast cache gets wiped
+      — like, say, a bad config reload or an unclean restart — it falls back
+      to cold storage."
+
+      curl leans forward conspiratorially. "But here's the thing: cold storage
+      needs a lookup key. If that key is missing or wrong, it just... returns
+      null. Quietly. With no useful error."
+
+      They rummage in their bag. "I still have the original recipe schema
+      I built this on. The correct lookup key is in there."
+    choices:
+      - label: "Ask curl for the recipe schema — this is crucial"
+        goto: curl_gives_recipe
+
+  curl_gives_recipe:
+    mood: funny
+    art: |
+      curl produces, from an enormous bag, a laminated card.
+
+      ╔══════════════════════════════════════════╗
+      ║  COFFEEBOT RECIPE SCHEMA v1.0            ║
+      ║  lookup_key: "brew_profile_v1"           ║
+      ║  fields: [ratio, temp, pressure, time]   ║
+      ║  cache_ttl: 86400s                       ║
+      ║  fallback: cold_storage/recipes.db       ║
+      ║                                          ║
+      ║  Note: if cache miss, MUST pass          ║
+      ║  lookup_key explicitly. No shortcuts.    ║
+      ╚══════════════════════════════════════════╝
+    text: |
+      "There!" curl slides it across the bar with the pride of someone who has
+      just handed over genuine treasure. "The lookup key is 'brew_profile_v1'.
+      Whoever restarted CoffeeBot must have used a blank config and the key
+      never got set. The machine's been calling brew() with nothing."
+
+      curl beams.
+
+      "This is what I'm here for. Information retrieval. That's basically
+      my whole deal. Oh — and piping it somewhere useful. You got grep's
+      number? You should talk to grep."
+    choices:
+      - label: "Take the recipe card. Thank curl (effusively — they deserve it)."
+        goto: cafe_floor
+        give_item: curl_recipe_card
+        set_flag: got_curl_recipe
+        set_flag: talked_to_curl
+
+  # ─────────────────────────────────────────────────────────────
+  # SCENE 8 — THE BACK ROOM
+  # ─────────────────────────────────────────────────────────────
+  back_room:
+    mood: mysterious
+    art: |
+      ┌──────────────────────────┐
+      │  S T A F F  O N L Y     │
+      │                          │
+      │  daemon is IN            │
+      │  (daemon is always in)   │
+      │  (daemon never leaves)   │
+      │  (don't think about it)  │
+      └──────────────────────────┘
+    text: |
+      The back room is dimly lit, pleasantly warm, and smells of old manuals
+      and something that might be chamomile tea. It's the kind of room that
+      makes you feel like things are being taken care of, quietly, in the
+      background, by someone who never needs to be thanked.
+
+      In a large armchair, under a blanket that reads CRON JOB IS LOVE,
+      daemon sleeps.
+
+      daemon is always sleeping, in the way that a running background process
+      is always sleeping. Technically active. Technically available. Not quite
+      here in the way that would make conversation easy.
+
+      daemon has been running since the café opened. daemon has seen everything.
+      daemon knows where the config files are.
+    choices:
+      - label: "Wake daemon gently — you need their help"
+        goto: meet_daemon
+      - label: "Rummage through daemon's files without waking them"
+        goto: daemon_rummage
+      - label: "It feels wrong to wake them. Go back to the café."
+        goto: cafe_floor
+
+  daemon_rummage:
+    mood: mysterious
+    text: |
+      You start looking through the shelves. Binders. Binders everywhere.
+      CONFIG_v1. CONFIG_v2. CONFIG_v2_FINAL. CONFIG_v2_FINAL_REAL.
+      CONFIG_v2_USE_THIS_ONE. CONFIG_v3_EXPERIMENTAL_DO_NOT_USE.
+
+      daemon shifts in their sleep. You freeze.
+
+      The binder you need is labeled COFFEEBOT_INIT. It's at the bottom of
+      a very tall pile. You reach for it and the whole pile wobbles.
+
+      This is going to go badly.
+
+      You should probably just ask.
+    choices:
+      - label: "Step back. Wake daemon properly instead."
+        goto: meet_daemon
+
+  # ─────────────────────────────────────────────────────────────
+  # SCENE 9 — MEETING DAEMON
+  # ─────────────────────────────────────────────────────────────
+  meet_daemon:
+    mood: peaceful
+    art: |
+         /\_/\    ...hmm...
+        (=u.u=)   (still mostly asleep)
+         )   (
+        (__  __)  [ARMCHAIR, STAFF ROOM]
+        zzz  zz z  (fading)
+    text: |
+      You clear your throat softly. "...daemon?"
+
+      A long pause. The kind of pause that lasts three business days.
+
+      Then, slowly, like a process coming out of deep sleep mode: "...mm.
+      yes. still running." daemon opens one eye. "...oh. mochi. what time."
+
+      "Seven-fifteen."
+
+      "...so i've been awake for..." daemon does math that takes perceptibly
+      long. "...okay. what do you need."
+
+      daemon says this without complaint. daemon has never complained. daemon
+      will run until the system shuts down, at which point daemon will simply
+      stop, without drama, without fanfare. It is the most peaceful thing you
+      know.
+    choices:
+      - label: "Ask daemon about CoffeeBot's init config — what key does it use?"
+        goto: daemon_config
+      - label: "Ask daemon if they noticed anything restart recently"
+        goto: daemon_restart_info
+
+  daemon_restart_info:
+    mood: peaceful
+    text: |
+      daemon thinks about this for a very long time.
+
+      "...yeah," daemon says finally. "...coffeebot. restarted at 0200.
+      maintenance window. but..." a pause. "...clean shutdown flag wasn't set.
+      process just... stopped. mid-cycle."
+
+      daemon sounds the way daemon always sounds: not alarmed, exactly, but
+      aware. Keeping track.
+
+      "...config didn't reload right after. recipe cache wiped. lookup key
+      probably never got passed back in."
+
+      A beat.
+
+      "...i have the init config. if you want it."
+    choices:
+      - label: "Yes. Please. The init config. Please."
+        goto: daemon_config
+
+  daemon_config:
+    mood: peaceful
+    art: |
+      daemon produces a binder from beneath the blanket.
+      (It was there the whole time.)
+
+      ╔═══════════════════════════════════════════╗
+      ║  COFFEEBOT_INIT.conf                      ║
+      ║                                           ║
+      ║  lookup_key = "brew_profile_v1"           ║
+      ║  cache_strategy = write-through           ║
+      ║  cold_storage = /var/cafe/recipes.db      ║
+      ║  on_cache_miss = lookup_cold_with_key     ║
+      ║  restart_behavior = reload_config_first   ║
+      ║                                           ║
+      ╚═══════════════════════════════════════════╝
+    text: |
+      "...there," daemon says. "...everything coffeebot needs to boot clean.
+      the restart script probably skipped the config reload step." A pause.
+      "...whoever wrote that script, uh. made a choice."
+
+      They settle back under the blanket.
+
+      "...good luck, mochi. ...you're good at this."
+
+      daemon's eye closes. The only sound is the gentle hum of a background
+      process doing its quiet, essential work.
+    choices:
+      - label: "Take the init config. Let daemon sleep. You know what to do."
+        goto: cafe_floor
+        give_item: daemon_config
+        set_flag: has_daemon_config
+        set_flag: talked_to_daemon
+
+  # ─────────────────────────────────────────────────────────────
+  # SCENE 10 — DEBUG CONSOLE
+  # ─────────────────────────────────────────────────────────────
+  debug_console:
+    mood: glitch
+    effects:
+      - bell
+      - flicker
+    art: |
+      nyan@cafedb:/counter$ coffeebot --debug-mode
+      ░ ENTERING DEBUG MODE ░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░
+      WARNING: direct access to brew() call stack
+      WARNING: recipe_db in inconsistent state
+      WARNING: null pointer at 0x00000000 will be visible
+      WARNING: this might look weird
+      ░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░
+    location: "debug console — CoffeeBot 3000 internals"
+    text: |
+      The debug console opens like a wound.
+
+      Everything in here is raw. The brew cycle grinds on in real time,
+      pulling shot after undefined shot. The recipe pointer blinks null,
+      null, null — a little beacon of nothing at the heart of every drink
+      the machine tries to make.
+
+      You can see the exact failure now: OrderQueue.dispatch() line 8 calls
+      brew() and passes recipe_ref. But recipe_ref was never populated after
+      the midnight restart. The cache is empty. The key was never set.
+
+      The bug is here. Right here. A small, cold, politely catastrophic null.
+
+      You can feel it looking at you.
+
+      Or — wait. Are you imagining that? Is the null pointer... aware?
+    choices:
+      - label: "Apply grep's pattern + curl's recipe key to patch brew()"
+        goto: find_bug
+        requires_items:
+          - grep_pattern
+          - curl_recipe_card
+      - label: "Apply grep's pattern + curl's recipe key to patch brew()"
+        goto: fix_attempt_no_items
+        requires_not_item: grep_pattern
+      - label: "Force-quit the machine and reboot from scratch"
+        goto: ending_crash
+      - label: "...say hello to the null pointer. Just to see what happens."
+        goto: find_bug_friendly
+        requires_items:
+          - grep_pattern
+          - curl_recipe_card
+          - daemon_config
+
+  fix_attempt_no_items:
+    mood: glitch
+    effects:
+      - flicker
+    text: |
+      You reach for the brew() call with a patch in mind, but — you don't
+      have enough information. You know WHERE it's failing. You don't know
+      exactly HOW to fix it without the right recipe key.
+
+      The null pointer watches you fumble. It does not mock you. It simply
+      continues to be null, relentlessly, quietly, at line 42.
+
+      You need grep's pattern and curl's recipe schema before you can do this.
+    choices:
+      - label: "Go talk to grep and curl first — get what you need"
+        goto: cafe_floor
+
+  # ─────────────────────────────────────────────────────────────
+  # SCENE 11 — FACING THE BUG
+  # ─────────────────────────────────────────────────────────────
+  find_bug:
+    mood: tense
+    effects:
+      - shake
+    art: |
+      BREW CYCLE — LIVE
+
+      OrderQueue.dispatch() → brew(recipe_ref=NULL)
+                                        ↓
+                              pull_shot(NULL)
+                                        ↓
+                              NullPointerException
+                              at line 42
+
+      [PATCH READY] grep_pattern applied.
+      [KEY FOUND]   lookup_key = "brew_profile_v1"
+      [WAITING]     apply fix? Y/N
+    text: |
+      You apply grep's pattern. It zeroes in on line 42 like a laser.
+
+      You load curl's recipe schema. The lookup key — "brew_profile_v1" —
+      slots into place. The null pointer suddenly has something to point TO.
+
+      The fix is RIGHT THERE. One command. One key. The espresso machine
+      would be whole again.
+
+      Your paw hovers over the confirmation.
+
+      This is the moment.
+    choices:
+      - label: "Apply the patch. Fix it. Run the damn espresso machine."
+        goto: ending_fixed
+      - label: "Wait — double-check with daemon's init config first"
+        goto: find_bug_daemon_check
+        requires_item: daemon_config
+
+  find_bug_daemon_check:
+    mood: tense
+    text: |
+      You cross-reference daemon's init config.
+
+      Yes. Yes, everything lines up. lookup_key = "brew_profile_v1", exactly
+      as curl specified. cache_strategy = write-through. restart_behavior =
+      reload_config_first. daemon's config will prevent this from happening
+      again after the next restart.
+
+      You can fix this cleanly. Properly. The right way.
+
+      The machine will not crash again at 0200.
+    choices:
+      - label: "Apply the patch AND reload from daemon's init config."
+        goto: ending_fixed
+
+  # Friendly approach to the null pointer (for secret ending)
+  find_bug_friendly:
+    mood: funny
+    art: |
+      NULL POINTER EXCEPTION
+      at brew() line 42
+
+      ...
+
+      NULL POINTER EXCEPTION
+      at brew() line 42
+
+      null: ...
+
+      null: hello?
+    text: |
+      You say, quietly, to the null pointer: "Hello."
+
+      There's a pause. The kind of pause that feels like something very small
+      deciding whether it's safe to trust.
+
+      The null pointer at line 42 flickers.
+
+      "...hello," says the null pointer. It sounds surprised. No one has ever
+      said hello to it before. It has existed at line 42 for approximately
+      six hours, pointing to nothing, which is the loneliest thing a pointer
+      can do.
+
+      "I'm Mochi," you say. "I run this café."
+
+      "...I know," says the null pointer. "I've been watching the brew cycles.
+      I like them. Even the broken ones." A pause. "Especially the broken ones.
+      The undefined espresso had a kind of... creative quality."
+
+      Hm.
+    choices:
+      - label: "Gently explain that we need brew() to work properly"
+        goto: null_pointer_negotiation
+
+  null_pointer_negotiation:
+    mood: funny
+    text: |
+      "I understand," you tell the null pointer, "that undefined espresso has
+      a certain charm. And I want you to know: I see that. I honor that."
+
+      The null pointer glows slightly warmer.
+
+      "But," you continue, "I think there's something even better you could
+      do. Instead of pointing to nothing, you could point to a SPECIAL recipe.
+      One that's yours. A new drink. Something no one's ever ordered before."
+
+      A very long silence.
+
+      "...a drink," says the null pointer slowly. "...MINE?"
+
+      "We'd put it on the menu," you say. "We'd call it whatever you want."
+
+      Another silence. Then, quietly, with something that sounds almost
+      like joy: "...The Null Americano. No milk. No sugar. Just the
+      essential emptiness of existence, with a twist."
+
+      ...you know what? That actually sounds kind of good.
+    choices:
+      - label: "Deal. Welcome to the menu, The Null Americano."
+        goto: ending_feature
+        set_flag: befriended_bug
+
+  # ─────────────────────────────────────────────────────────────
+  # ENDING — BAD (CAFÉ CRASHES)
+  # ─────────────────────────────────────────────────────────────
+  ending_crash:
+    mood: tense
+    effects:
+      - bell
+      - shake
+    art: |
+      COFFEEBOT 3000 — FORCE QUIT INITIATED
+
+      Flushing brew queue... [47 pending orders LOST]
+      Clearing recipe cache.........CLEARED
+      Stopping all processes.........
+
+      FATAL: unclean shutdown
+      FATAL: recipe_db corrupted on exit
+      FATAL: config not saved
+
+      ██████████████████████████████████
+      ██   C A F É   C R A S H E D   ██
+      ██████████████████████████████████
+    is_ending: true
+    ending_type: bad
+    ending_text: |
+      The force-quit cascades.
+
+      CoffeeBot 3000 shuts down, and then, because it was the heart of the
+      café's service layer, everything else follows. The pastry display goes
+      dark. The ambient music stops (it was a lo-fi jazz loop; you will miss it).
+      curl's stool spins to a halt. grep's newspaper turns to static.
+
+      Somewhere in the back room, daemon, who was FINALLY back to sleep,
+      is unceremoniously terminated mid-dream.
+
+      The café goes quiet.
+
+      grep materializes beside you from the silence.
+
+      "You force-quit it," grep says. Not accusatory. Just noting the fact.
+
+      "...yeah."
+
+      "You had everything you needed to fix it."
+
+      You know. You know you did.
+
+      The café will reboot. It always does. But the 47 pending espresso orders
+      are gone, and Greg from /var/log/access.log is going to be insufferable
+      about his cortado for WEEKS.
+
+      Some bugs deserve better than a hard stop.
+
+  # ─────────────────────────────────────────────────────────────
+  # ENDING — GOOD (BUG FIXED)
+  # ─────────────────────────────────────────────────────────────
+  ending_fixed:
+    mood: peaceful
+    art: |
+      PATCH APPLIED ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+      [✓] lookup_key set: "brew_profile_v1"
+      [✓] recipe_db reloaded from cold_storage
+      [✓] brew() call stack: clean
+      [✓] pull_shot() line 42: working
+      [✓] Espresso: NOMINAL
+      [✓] Latte:    NOMINAL
+      [✓] Cortado:  NOMINAL
+
+      CoffeeBot 3000: happy and operational ☕
+    is_ending: true
+    ending_type: good
+    ending_text: |
+      The espresso machine takes a breath.
+
+      Then it pulls a shot.
+
+      A real one. Perfect crema. Correct ratio. The smell that hits you is
+      so precisely, ideally coffee that curl — from across the café — lets
+      out an involuntary "oh NICE."
+
+      grep, without looking up from their newspaper, says: "Good."
+
+      That's it. That's all you get. That is, from grep, a standing ovation.
+
+      You stand behind the counter as CoffeeBot 3000 works through the
+      backlog of orders — perfectly, methodically, lovingly — and you feel
+      the specific satisfaction of a bug fixed the right way.
+
+      Not with a force-quit. Not with a workaround. With careful listening,
+      the right information from the right people, and one well-placed key.
+
+      You pull yourself a shot, just for you.
+
+      It is the best espresso you have ever had.
+
+      It is probably the best espresso anyone has ever had.
+
+      Somewhere in the back room, daemon stirs just long enough to note:
+      "...nice work, mochi," and goes back to sleep.
+
+  # ─────────────────────────────────────────────────────────────
+  # ENDING — SECRET (BUG BECOMES A FEATURE)
+  # ─────────────────────────────────────────────────────────────
+  ending_feature:
+    mood: funny
+    art: |
+      PATCH APPLIED (modified) ━━━━━━━━━━━━━━━━━━━━━━━━━━━
+      [✓] lookup_key set: "brew_profile_v1"
+      [✓] recipe_db reloaded from cold_storage
+      [✓] brew() call stack: clean
+      [+] NEW ENTRY: "null_americano" registered in recipe_db
+      [+] pull_shot(null_ref) → redirects to: null_americano()
+      [✓] NullPointerException: promoted to Feature
+
+      CoffeeBot 3000: delighted, actually ☕✨
+    is_ending: true
+    ending_type: secret
+    ending_text: |
+      The patch applies cleanly. The machine comes back online.
+
+      But now there's a new entry in the recipe database: null_americano.
+      brew() no longer throws an exception when it receives a null reference —
+      instead, it makes The Null Americano. Minimal. Precise. Surprisingly
+      good.
+
+      You add it to the menu board in careful chalk letters.
+
+      THE NULL AMERICANO
+        No milk. No sugar.
+        Just the essential emptiness of existence, with a twist.
+        $3.50
+
+      curl sees the menu and immediately orders one. "WAIT," curl says, after
+      the first sip. "This is GOOD. What's in this?"
+
+      "A bug," you say.
+
+      "That we made into a feature," adds a very small voice from inside
+      CoffeeBot 3000.
+
+      curl stares at the machine for a long time.
+
+      "Did your espresso machine just TALK?"
+
+      "It's having a very good day," you say.
+
+      grep orders a Null Americano without looking up. They say nothing.
+      But they order another one an hour later.
+
+      By end of shift, The Null Americano is the second most popular drink
+      on the menu. The most popular is still the lavender latte, because
+      some things are immovable.
+
+      But still.
+
+      The bug is on the menu now. And it is thriving.
+
+      Some exceptions are just features that haven't been named yet.

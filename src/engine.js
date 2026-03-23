@@ -11,6 +11,20 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const DEFAULT_TYPEWRITER_SPEED = 18; // ms per character
 
 // ─────────────────────────────────────────────────────────────
+// Mood system
+// ─────────────────────────────────────────────────────────────
+
+const MOOD_CONFIG = {
+  tense:      { color: 'red',      icon: '⚡', label: 'tense',       speedMult: 0.55 },
+  peaceful:   { color: 'green',    icon: '☮',  label: 'peaceful',    speedMult: 1.9  },
+  mysterious: { color: 'magenta',  icon: '✦',  label: 'mysterious',  speedMult: 1.4  },
+  funny:      { color: 'yellow',   icon: '★',  label: 'funny',       speedMult: 1.0  },
+  glitch:     { color: 'cyan',     icon: '▒',  label: 'glitch',      speedMult: null },
+};
+
+const GLITCH_COLORS = ['red', 'yellow', 'cyan', 'magenta', 'white', 'greenBright'];
+
+// ─────────────────────────────────────────────────────────────
 // GameState
 // ─────────────────────────────────────────────────────────────
 
@@ -47,6 +61,7 @@ export class Engine {
     this.speed = options.speed ?? DEFAULT_TYPEWRITER_SPEED;
     this.skipAnimation = options.skipAnimation ?? false;
     this.debug = options.debug ?? false;
+    this._glitchMode = false;
   }
 
   // ── Loading ──────────────────────────────────────────────
@@ -58,20 +73,43 @@ export class Engine {
 
   // ── Output helpers ───────────────────────────────────────
 
-  async typewrite(text, color) {
+  async typewrite(text, color, opts = {}) {
     if (!text) return;
     const str = String(text);
-    const painted = color && chalk[color] ? chalk[color](str) : str;
+    const { flicker = false } = opts;
 
     if (this.skipAnimation) {
+      const painted = color && color !== 'glitch' && chalk[color] ? chalk[color](str) : str;
       process.stdout.write(painted + '\n');
       return;
     }
 
-    for (const char of painted) {
-      process.stdout.write(char);
-      // Newlines land instantly; spaces are slightly faster
-      const delay = char === '\n' ? 0 : char === ' ' ? this.speed * 0.4 : this.speed;
+    for (const char of str) {
+      let painted;
+      if (color === 'glitch') {
+        const rc = GLITCH_COLORS[Math.floor(Math.random() * GLITCH_COLORS.length)];
+        painted = chalk[rc](char);
+      } else if (color && chalk[color]) {
+        painted = (flicker && Math.random() < 0.12) ? chalk.dim(char) : chalk[color](char);
+      } else {
+        painted = (flicker && Math.random() < 0.12) ? chalk.dim(char) : char;
+      }
+
+      process.stdout.write(painted);
+
+      let delay;
+      if (char === '\n') {
+        delay = 0;
+      } else if (char === ' ') {
+        delay = this.speed * 0.4;
+      } else if (this._glitchMode) {
+        // Erratic timing for glitch mood
+        const r = Math.random();
+        delay = r < 0.04 ? this.speed * 10 : r < 0.12 ? 0 : this.speed;
+      } else {
+        delay = this.speed;
+      }
+
       if (delay > 0) await new Promise(r => setTimeout(r, delay));
     }
     process.stdout.write('\n');
@@ -79,6 +117,16 @@ export class Engine {
 
   async sleep(ms) {
     return new Promise(r => setTimeout(r, ms));
+  }
+
+  async applyShake() {
+    if (this.skipAnimation) return;
+    for (let i = 0; i < 5; i++) {
+      const pad = i % 2 === 0 ? '' : '   ';
+      process.stdout.write(`\r${pad}${chalk.dim('≋'.repeat(28))}    `);
+      await this.sleep(80);
+    }
+    process.stdout.write('\r' + ' '.repeat(35) + '\n');
   }
 
   displayArt(art) {
@@ -123,6 +171,11 @@ export class Engine {
     if (choice.requires_item && !this.state.hasItem(choice.requires_item)) return false;
     if (choice.requires_no_item && this.state.hasItem(choice.requires_no_item)) return false;
     if (choice.requires_visited && !this.state.hasVisited(choice.requires_visited)) return false;
+    // requires_items: list variant for requiring multiple items
+    if (choice.requires_items) {
+      const items = Array.isArray(choice.requires_items) ? choice.requires_items : [choice.requires_items];
+      if (items.some(i => !this.state.hasItem(i))) return false;
+    }
     if (choice.condition && !this.checkCondition(choice.condition)) return false;
     return true;
   }
@@ -151,6 +204,29 @@ export class Engine {
     this.state.currentScene = sceneId;
     this.state.turnCount++;
 
+    // ── Mood setup ────────────────────────────────────────────
+    const mood = scene.mood || null;
+    const moodCfg = mood ? (MOOD_CONFIG[mood] || null) : null;
+    const savedSpeed = this.speed;
+
+    if (moodCfg && !this.skipAnimation) {
+      if (mood === 'glitch') {
+        this._glitchMode = true;
+        this.speed = DEFAULT_TYPEWRITER_SPEED;
+      } else if (moodCfg.speedMult != null) {
+        this.speed = Math.round(DEFAULT_TYPEWRITER_SPEED * moodCfg.speedMult);
+      }
+    }
+
+    // ── Scene effects ─────────────────────────────────────────
+    const effects = Array.isArray(scene.effects) ? scene.effects : [];
+    const hasFlicker = effects.includes('flicker');
+    const hasShake   = effects.includes('shake');
+
+    // Bell and pause trigger at scene start
+    if (effects.includes('bell'))  process.stdout.write('\x07');
+    if (effects.includes('pause')) await this.sleep(2000);
+
     console.log('\n' + chalk.dim('─'.repeat(60)) + '\n');
 
     // ASCII art
@@ -165,17 +241,20 @@ export class Engine {
       console.log();
     }
 
-    // Main narrative text
-    if (scene.text) {
-      await this.typewrite(scene.text, 'white');
+    // Mood indicator
+    if (moodCfg) {
+      console.log(chalk[moodCfg.color](`  ${moodCfg.icon} ${moodCfg.label}`));
       console.log();
     }
 
-    // Second-visit text
-    if (scene.revisit_text && this.state.hasVisited(sceneId) && this.state.turnCount > 1) {
-      // Already marked visited above, so just check turnCount proxy
-      // Actually we need to track if THIS specific scene was visited before this turn
-      // We'll use a pre-visit check below instead
+    // Shake effect just before text
+    if (hasShake) await this.applyShake();
+
+    // Main narrative text
+    const textColor = moodCfg ? moodCfg.color : 'white';
+    if (scene.text) {
+      await this.typewrite(scene.text, textColor, { flicker: hasFlicker });
+      console.log();
     }
 
     // Conditional text blocks
@@ -193,9 +272,13 @@ export class Engine {
 
     // Debug info
     if (this.debug) {
-      console.log(chalk.dim(`  [scene: ${sceneId} | flags: ${[...this.state.flags].join(',')} | items: ${this.state.inventory.join(',')}]`));
+      console.log(chalk.dim(`  [scene: ${sceneId} | mood: ${mood || 'none'} | flags: ${[...this.state.flags].join(',')} | items: ${this.state.inventory.join(',')}]`));
       console.log();
     }
+
+    // Restore mood/speed before choices or ending
+    this.speed = savedSpeed;
+    this._glitchMode = false;
 
     // Ending scene
     if (scene.is_ending) {
