@@ -1,0 +1,665 @@
+title: "The Terminal Cat"
+description: "A cat wakes up inside a computer and must navigate the filesystem to find home."
+author: "mechangelnyan"
+version: "1.0.0"
+start: boot_screen
+
+scenes:
+
+  # ─────────────────────────────────────────────────────────────
+  # SCENE 1 - BOOT SCREEN
+  # ─────────────────────────────────────────────────────────────
+  boot_screen:
+    art: |
+      ╔══════════════════════════════════════════════════╗
+      ║         BIOS v2.41 — PAWStudio Systems           ║
+      ║  Memory test: 16384 MB OK ... (mostly tuna)      ║
+      ║  Detecting devices...                            ║
+      ║    Primary paw: DETECTED                         ║
+      ║    Tail module: WIGGLING                         ║
+      ║    Curiosity drive: DANGEROUSLY HIGH             ║
+      ║                                                  ║
+      ║        > Press any key to continue <             ║
+      ║          (or knock it off the desk)              ║
+      ╚══════════════════════════════════════════════════╝
+    text: |
+      You open your eyes to an unsettling lack of sunbeam.
+
+      Your last memory: chasing a small red dot across your human's keyboard.
+      The satisfying click of many keys at once. Then... this.
+
+      You are Nyan. Extremely fluffy. Highly intelligent (self-assessed). You are
+      also, against every law of physics and good taste, INSIDE A COMPUTER.
+
+      The terminal blinks at you. Patiently. Judgmentally.
+    choices:
+      - label: "Run `ls` — see what's around"
+        goto: root_prompt
+        set_flag: knows_ls
+      - label: "Meow as loudly as possible"
+        goto: meow_scene
+
+  # ─────────────────────────────────────────────────────────────
+  # SCENE 1b - MEOW
+  # ─────────────────────────────────────────────────────────────
+  meow_scene:
+    art: |
+         /\_/\
+        ( >ω< )   << MRRROWWW!! >>
+         )   (
+        (__ __)
+    text: |
+      "MRRROWWWW!!"
+
+      Your meow echoes across empty memory addresses. A lone process wakes up,
+      looks around in confusion, then immediately goes back to sleep. Typical.
+
+      The terminal continues to blink. It does not care about your feelings.
+      It never has. It never will.
+
+      You'll have to do this the old-fashioned way.
+    choices:
+      - label: "Fine. Run `ls`."
+        goto: root_prompt
+        set_flag: knows_ls
+
+  # ─────────────────────────────────────────────────────────────
+  # SCENE 2 - ROOT DIRECTORY
+  # ─────────────────────────────────────────────────────────────
+  root_prompt:
+    art: |
+      nyan@kernel:/$ ls -la
+      total 0
+      drwxr-xr-x   1 root root    /
+      drwxr-xr-x   2 root root    bin/
+      drwxr-xr-x   2 root root    etc/
+      drwxr-xr-x   3 root root    home/
+      dr-xr-xr-x 128 root root    proc/     [DANGER]
+      drwxrwxrwt   2 root root    tmp/
+      drwxr-xr-x   4 root root    usr/
+      drwxr-xr-x   2 root root    var/
+    location: "nyan@kernel:/$"
+    text: |
+      You stand at the root of the filesystem. The directories stretch before you
+      like hallways in a very organized haunted house.
+
+      /home looks warm and familiar. /usr/bin smells of commands and opportunity.
+      /proc hums with an energy that makes your fur stand on end.
+      /tmp is labeled "SAFE FOR NAPPING" in your imagination alone.
+    conditional:
+      - condition:
+          visited: proc_entrance
+        text: "The /proc directory hums louder now. Something in there noticed you."
+        color: red
+      - condition:
+          flag: has_wisdom
+        text: "The cat command's words echo in your head: 'sudo is the way, tiny friend.'"
+        color: cyan
+    choices:
+      - label: "cd /home — it smells like humans (comforting)"
+        goto: home_directory
+      - label: "cd /usr/bin — where commands are born"
+        goto: usr_bin
+      - label: "cd /proc — face the unknown (scary hum)"
+        goto: proc_entrance
+        requires_visited: home_directory
+      - label: "cd /proc — face the unknown (scary hum) [explore /home first]"
+        goto: proc_too_soon
+        requires_not_visited: home_directory
+        requires_not_flag: never_show_this_hack
+      - label: "curl up in /tmp and take a nap"
+        goto: ending_nap
+
+  # Small redirect when player tries /proc too early
+  proc_too_soon:
+    text: |
+      You pad toward /proc and immediately feel a deep wrongness. Your whiskers
+      bristle. Your tail goes ramrod straight. Every feline instinct screams:
+      NOT YET.
+
+      Maybe explore a bit more first. You've barely sniffed the place.
+    choices:
+      - label: "You're right, whiskers. Back to the root."
+        goto: root_prompt
+
+  # ─────────────────────────────────────────────────────────────
+  # SCENE 3 - /home
+  # ─────────────────────────────────────────────────────────────
+  home_directory:
+    art: |
+      nyan@kernel:/home/human$ ls -la
+      total 48
+      drwxr-xr-x  .
+      drwxr-xr-x  ..
+      -rw-r--r--  .bash_history
+      -rw-r--r--  .bashrc
+      drwxr-xr-x  Documents/
+      drwxr-xr-x  Downloads/
+      -rw-r--r--  fish.txt          <--- !!
+      drwx------  .ssh/
+      -rw-r--r--  todo.txt
+    location: "nyan@kernel:/home/human$"
+    text: |
+      Ahh. /home/human. This feels... right. There are digital crumbs everywhere.
+      Half-finished shell scripts. A Downloads folder that hasn't been cleaned
+      since 2019. The comforting smell of someone who also doesn't always know
+      what they're doing.
+
+      Your eye catches something immediately: fish.txt
+      Your other eye catches it too. Both eyes agree this is important.
+    conditional:
+      - condition:
+          has_item: fish_treat
+        text: "The fish.txt you're carrying radiates warmth. It is, objectively, perfect."
+        color: yellow
+    choices:
+      - label: "cat fish.txt — this is CRITICAL"
+        goto: fish_discovery
+        requires_no_item: fish_treat
+      - label: "cat fish.txt — read it AGAIN"
+        goto: fish_reread
+        requires_item: fish_treat
+      - label: "cat .bash_history — read the human's secrets"
+        goto: bash_history_scene
+        requires_not_flag: read_history
+      - label: "cat todo.txt"
+        goto: todo_scene
+      - label: "cd .. — back to root"
+        goto: root_prompt
+
+  # ─────────────────────────────────────────────────────────────
+  # SCENE 4a - fish.txt
+  # ─────────────────────────────────────────────────────────────
+  fish_discovery:
+    art: |
+         >))'>
+        >)))'> >))'>
+      (  >))'>   )
+       '-----------'
+          fish.txt
+    text: |
+      fish.txt contains exactly one line:
+
+          "In case of emergency, offer the kernel a fish."
+
+      Beneath that, in smaller text:
+
+          "No, seriously. The kernel loves fish. Don't ask why.
+           We lost three interns finding this out."
+
+      This is clearly vital information. You pick up the fish.txt.
+      It transforms, in your paws, into an actual digital fish treat.
+      Your mouth immediately begins watering in hexadecimal.
+    choices:
+      - label: "Take the fish_treat! This will definitely be important."
+        goto: home_directory
+        give_item: fish_treat
+        set_flag: knows_fish_secret
+
+  fish_reread:
+    text: |
+      You read fish.txt again. The fish is still there. It is still perfect.
+
+      >))'>
+    choices:
+      - label: "Okay. Back to exploring."
+        goto: home_directory
+
+  # ─────────────────────────────────────────────────────────────
+  # SCENE 4b - .bash_history
+  # ─────────────────────────────────────────────────────────────
+  bash_history_scene:
+    art: |
+      nyan@kernel:/home/human$ cat .bash_history
+      cd ~/projects
+      git commit -m "fix: stop the cat from sitting on keyboard"
+      git commit -m "fix: ACTUALLY stop the cat"
+      git commit -m "fix: keyboard now in cat-proof box (she opened it)"
+      sudo rm -rf /tmp/nyan_mess
+      echo "why does the segfault keep appearing at 3am"
+      sudo journalctl -xe | grep SIGSEGV
+      man 7 signal
+      # note to self: the segfault comes from proc/sys/kernel/ and it is ANGRY
+      # it has been there for years. do not wake it.
+      # if something goes in there, use sudo. the password is 'meow'. yes really.
+      logout
+    text: |
+      Oh. Oh no.
+
+      Your human has been struggling with something in /proc/sys/kernel/. Something
+      that causes SIGSEGV errors at 3am. Something ANGRY.
+
+      More importantly: the sudo password is 'meow'.
+
+      You file this away in the part of your brain normally reserved for
+      'good places to nap' and 'birds I have seen through windows'.
+    choices:
+      - label: "This is a lot of information. Back to /home."
+        goto: home_directory
+        set_flag: knows_danger
+        set_flag: knows_sudo_password
+        set_flag: read_history
+
+  # ─────────────────────────────────────────────────────────────
+  # SCENE 4c - todo.txt
+  # ─────────────────────────────────────────────────────────────
+  todo_scene:
+    art: |
+      nyan@kernel:/home/human$ cat todo.txt
+      ┌─────────────────────────────────┐
+      │ TODO                            │
+      ├─────────────────────────────────┤
+      │ [x] Feed the cat                │
+      │ [ ] Fix the SIGSEGV thing       │
+      │ [ ] Clean Downloads/            │
+      │ [ ] Call mom                    │
+      │ [x] Pet the cat                 │
+      │ [ ] Fix the SIGSEGV thing (2)   │
+      │ [x] Let cat sit on laptop       │
+      │ [ ] Figure out why cat IN laptop│
+      └─────────────────────────────────┘
+    text: |
+      Your human has been fed and petted according to their own records.
+      The SIGSEGV appears twice, both unchecked.
+
+      The last item — "Figure out why cat IN laptop" — was added recently.
+      The ink (metaphorically) is still wet.
+
+      They noticed. They're looking for you.
+    choices:
+      - label: "You have to get out of here. Back to /home."
+        goto: home_directory
+        set_flag: knows_human_worried
+
+  # ─────────────────────────────────────────────────────────────
+  # SCENE 5 - /usr/bin
+  # ─────────────────────────────────────────────────────────────
+  usr_bin:
+    art: |
+      nyan@kernel:/usr/bin$ ls | head -20
+      awk       bash      cat       chmod
+      cp        curl      diff      find
+      grep      head      kill      less
+      ls        man       mkdir     mv
+      ping      ps        rm        sed
+      sort      ssh       sudo      tail
+      tar       top       touch     wc
+                 ... and 847 more
+    location: "nyan@kernel:/usr/bin$"
+    text: |
+      /usr/bin is overwhelming. Commands line the shelves like soldiers.
+      They're all business, all purpose, all utterly indifferent to your situation.
+
+      But then you see it.
+
+      In the corner, curled up in a patch of virtual sunlight:
+
+          cat
+
+      Another cat. A DIGITAL cat. It looks up at you with knowing eyes.
+    choices:
+      - label: "Approach the cat command cautiously (nose first)"
+        goto: cat_encounter
+      - label: "Inspect the `sudo` command — it seems powerful"
+        goto: sudo_inspect
+      - label: "cd .. — back to root"
+        goto: root_prompt
+
+  sudo_inspect:
+    art: |
+         ┌──────────────┐
+         │   S U D O    │
+         │  superuser   │
+         │   do-it      │
+         └──────────────┘
+          ⚡ POWER ⚡
+    text: |
+      sudo sits there looking EXTREMELY official. It radiates authority.
+      A small plaque reads: "With great power comes great responsibility.
+      Also you need a password."
+
+      You don't know the password. Yet.
+    choices:
+      - label: "Back to /usr/bin"
+        goto: usr_bin
+
+  # ─────────────────────────────────────────────────────────────
+  # SCENE 6 - THE CAT COMMAND
+  # ─────────────────────────────────────────────────────────────
+  cat_encounter:
+    art: |
+       /\_/\   /\_/\
+      ( o.o ) ( ^.^ )  "oh. another one."
+       > ^ <   > ^ <
+      [you]   [cat v8]
+    text: |
+      The cat command looks you up and down.
+
+      "A biological," it says. Not unkindly. "You're the one who sat on the keyboard."
+
+      "I was chasing the dot," you say, defensively.
+
+      "They all say that." It stretches, perfectly. "You need to get out before
+      the SEGFAULT wakes up properly. It's been getting restless."
+
+      "How do I get out?"
+
+      "sudo," it says. "The password is 'meow'. I know, I know. Your human set it."
+      It looks almost sympathetic. "There's a kernel exit hatch in /proc/sys/kernel/.
+      Use sudo to open it. Don't go in there empty-pawed."
+    conditional:
+      - condition:
+          has_item: fish_treat
+        text: |
+          The cat command's eyes go WIDE at the fish_treat in your possession.
+          "Oh. You found the fish. That changes things. The kernel... it has a
+          weakness for fish. A profound, embarrassing weakness. If you offer it
+          the fish, it might just let you out for FREE."
+        color: magenta
+    choices:
+      - label: "Thank the cat command and commit this to memory"
+        goto: root_prompt
+        set_flag: has_wisdom
+        set_flag: knows_sudo_password
+
+  # ─────────────────────────────────────────────────────────────
+  # SCENE 7 - /proc ENTRANCE
+  # ─────────────────────────────────────────────────────────────
+  proc_entrance:
+    art: |
+      nyan@kernel:/proc$ ls
+      1       1337    2048    4096    9999
+      10001   22222   31337   65535   sys/
+      tty     uptime  version meminfo cpuinfo
+                 [processes humming]
+    location: "nyan@kernel:/proc$"
+    text: |
+      /proc is alive.
+
+      Not metaphorically. The directory BREATHES. Numbered entries flicker in and out
+      of existence — processes being born and dying between your blinks.
+      Something smells like burnt memory and ozone.
+
+      In the distance, deeper in, you can hear a rhythmic THUD. THUD. THUD.
+      Like something very large knocking against its cage.
+
+      The /proc/sys/ subdirectory pulses with a sickly red glow.
+    conditional:
+      - condition:
+          flag: knows_danger
+        text: "Your human's .bash_history plays back in your head: 'it is ANGRY. do not wake it.'"
+        color: red
+      - condition:
+          flag: has_wisdom
+        text: "The cat command's instructions are clear in your mind. You know what to do."
+        color: cyan
+    choices:
+      - label: "Investigate the numbered processes — what ARE these?"
+        goto: zombie_processes
+      - label: "Go deeper to /proc/sys/kernel/ — face the source"
+        goto: segfault_approach
+      - label: "cd .. — this was a mistake, nope, leaving"
+        goto: root_prompt
+
+  # ─────────────────────────────────────────────────────────────
+  # SCENE 8 - ZOMBIE PROCESSES
+  # ─────────────────────────────────────────────────────────────
+  zombie_processes:
+    art: |
+      nyan@kernel:/proc$ ps aux | grep Z
+      USER  PID  STAT  COMMAND
+      root  1337  Z    [haunted_daemon] <defunct>
+      root  2048  Z    [lost_packet]   <defunct>
+      root  4096  Z    [broken_dream]  <defunct>
+      root  9999  Z    [leftover_loop] <defunct>
+                  Z = Zombie (waiting to be reaped)
+    text: |
+      The zombie processes drift past you like digital ghosts.
+      They can't do anything anymore — they're just waiting for their parent
+      process to acknowledge them. To call wait(). To let them go.
+
+      One of them, [haunted_daemon], pauses near you.
+
+      "psst," it whispers. "you don't want to go to sys/kernel. SEGFAULT is in there.
+       been there for three years. corrupts everything it touches."
+
+      "How do I stop it?" you ask.
+
+      The zombie shudders. "You can't fight it directly. You need sudo, or..." it
+      glances at your inventory. "...something it WANTS."
+
+      Then it dissipates, unceremoniously, into freed memory.
+    choices:
+      - label: "Head deeper to /proc/sys/kernel/"
+        goto: segfault_approach
+        set_flag: got_zombie_warning
+      - label: "Back to /proc entrance"
+        goto: proc_entrance
+
+  # ─────────────────────────────────────────────────────────────
+  # SCENE 9 - APPROACHING THE BOSS
+  # ─────────────────────────────────────────────────────────────
+  segfault_approach:
+    art: |
+      nyan@kernel:/proc/sys/kernel$ ls
+      core_pattern     hostname         osrelease
+      panic            pid_max          printk
+      sysrq            ████████         ████████
+      ████████         SIGSEGV_LAIR/    ████████
+    location: "nyan@kernel:/proc/sys/kernel$"
+    text: |
+      The directory is corrupted at the edges. Files flicker. The air (if air existed
+      here, which it doesn't, but metaphorically) crackles.
+
+      SIGSEGV_LAIR/ pulses. Red. Angry. Very, very large.
+
+      A sign on the door reads:
+
+          ⚠  SEGMENTATION FAULT
+             CORE WILL BE DUMPED
+             YOU HAVE BEEN WARNED
+             (seriously why are you here)
+             (go home)
+             (... oh wait, that's the problem)
+
+      You take a deep breath. This is it.
+    choices:
+      - label: "sudo ./escape — use the password you know"
+        goto: ending_escape
+        requires_flag: knows_sudo_password
+      - label: "Offer the fish_treat — bribe the kernel"
+        goto: ending_fish_king
+        requires_item: fish_treat
+      - label: "Hiss and charge in bare-pawed"
+        goto: boss_fight_bad
+      - label: "sudo ./escape [you don't know the password yet]"
+        goto: no_password_hint
+        requires_not_flag: knows_sudo_password
+        requires_not_item: fish_treat
+
+  no_password_hint:
+    text: |
+      You place your paws on the keyboard and try to type sudo but you don't
+      know the password.
+
+      You try:
+        - "fishfish" (no)
+        - "meowmeow" (no, but warm)
+        - "tuna1234" (absolutely not)
+        - one of those button combos that just opens the browser (how)
+
+      The terminal sighs. Maybe someone in this filesystem knows the password.
+    choices:
+      - label: "Go back and explore more first"
+        goto: proc_entrance
+
+  # ─────────────────────────────────────────────────────────────
+  # SCENE 10 - BAD FIGHT
+  # ─────────────────────────────────────────────────────────────
+  boss_fight_bad:
+    art: |
+      ╔═══════════════════════════════════════╗
+      ║                                       ║
+      ║    S I G S E G V                      ║
+      ║    signal 11  ████████████████  11    ║
+      ║                                       ║
+      ║     Segmentation fault (core dumped)  ║
+      ║                                       ║
+      ╚═══════════════════════════════════════╝
+           YOU: /\_/\          BOSS: ██████
+               (>o<)                ██████
+               )   (               ██████
+              (__ __)              ERROR
+    text: |
+      You charge in, fur bristling, claws extended, making your fiercest battle cry:
+
+          "MRRROWWW—"
+
+      SIGSEGV does not negotiate with biological processes.
+
+      It notices you the way a brick wall notices a housefly.
+      There is a sound like a book of RAM being closed very firmly.
+
+      Then there is nothing.
+      Then there is a core dump.
+      Then even the core dump gets segfaulted.
+    is_ending: true
+    ending_type: bad
+    ending_text: |
+      SIGSEGV has claimed another victim.
+
+      Somewhere in /var/log, a line appears:
+        [ERROR] Process 'nyan' terminated: signal 11 (SIGSEGV)
+        [ERROR] Core dumped to /dev/null
+        [ERROR] Cat remains unlocated. Human getting worried.
+
+      Your human will find you eventually — drooling peacefully
+      on their actual keyboard, the red dot long since forgotten.
+
+      The terminal blinks on. Patiently. Judgmentally.
+
+      Better luck next life.
+
+  # ─────────────────────────────────────────────────────────────
+  # ENDING - THE NAP
+  # ─────────────────────────────────────────────────────────────
+  ending_nap:
+    art: |
+      /tmp$ ls
+      total 1
+      drwxrwxrwt  nyan_cozy_spot/
+
+         /\_/\   zzz
+        (=^.^=)  zz
+         )   (   z
+        (__  __)
+    is_ending: true
+    ending_type: neutral
+    ending_text: |
+      /tmp is world-writable. Warm. Temporary by design, which suits you fine.
+
+      You find a soft patch between two uncleaned tempfiles and curl into a
+      perfect spiral of floof. Your tail wraps around your nose.
+
+      The filesystem continues to operate around you. Processes spawn and die.
+      The segfault thumps in /proc. Someone in /var/log records an anomaly.
+
+      You do not care.
+
+      You are asleep in seven seconds.
+
+      Your human finds you an hour later, apparently napping on the mousepad,
+      making small dream-chirps at invisible birds.
+
+      They take seventeen photos.
+
+      You have not escaped. But honestly? You're fine.
+
+  # ─────────────────────────────────────────────────────────────
+  # ENDING - SUDO ESCAPE (GOOD)
+  # ─────────────────────────────────────────────────────────────
+  ending_escape:
+    art: |
+      nyan@kernel:/proc/sys/kernel$ sudo ./escape
+      [sudo] password for nyan: ****
+                                 (meow)
+
+      Verifying credentials...........OK
+      Locating kernel exit hatch......FOUND
+      Initiating biological transfer..
+
+        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+        >  CAT EJECTED FROM SYSTEM   <
+        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+      Connection closed.
+      Have a nice day.
+    is_ending: true
+    ending_type: good
+    ending_text: |
+      The sudo command runs with the authority of a thousand root permissions.
+
+      SIGSEGV howls as the exit hatch blows open. A beam of actual real-world
+      light pours through — warm, golden, smelling of kibble and that specific
+      patch of carpet by the radiator.
+
+      You leap through without looking back.
+
+      You land on your human's keyboard with a THWACK that types:
+        "gjjjjjjjjjjjjjjjjjjjj  [[[[[[[ "
+
+      Your human stares at you.
+      You stare back.
+      You slowly, deliberately, push their coffee mug two inches to the left.
+
+      Some things are eternal.
+
+      You are home.
+
+  # ─────────────────────────────────────────────────────────────
+  # ENDING - FISH KING (SECRET)
+  # ─────────────────────────────────────────────────────────────
+  ending_fish_king:
+    art: |
+      /proc/sys/kernel$ offer fish_treat
+
+      SIGSEGV:  ██████ ...sniff... ████
+                ██████  >))'>  ████
+                ████████████████████
+                ████....purring?...█
+
+      [KERNEL BRIBE ACCEPTED]
+      [NEGOTIATED RELEASE INITIATED]
+      [THIS HAS NEVER WORKED BEFORE]
+    is_ending: true
+    ending_type: secret
+    ending_text: |
+      You extend the fish_treat toward the seething mass of memory errors.
+
+      SIGSEGV goes very, very still.
+
+      Then — slowly — impossibly — the corruption recedes. The red glow softens
+      to a gentle amber. What was a wall of runtime errors becomes, somehow,
+      something almost embarrassed-looking.
+
+      A voice like grinding sectors says:
+
+          "...I didn't think anyone would ever..."
+          "...it's been so long since..."
+          "...FINE. GO. And thank you for the fish."
+
+      The kernel opens, like a flower made of pure logic, and deposits you
+      gently back into the physical world.
+
+      You land on your human's desk next to an empty tuna can.
+      You look at the can. You look at the computer screen.
+      The screen displays: "core_dump_avoided: 1 fish"
+
+      Somewhere, the SEGFAULT is telling all the zombie processes about the time
+      a cat gave it a fish and it just... let them go.
+
+      No one believes it.
+
+      You know the truth.
+
+      The fish was worth it.

@@ -1,0 +1,33 @@
+{
+  "name": "nyantales",
+  "version": "1.0.0",
+  "description": "A terminal-based interactive fiction engine with ASCII art",
+  "type": "module",
+  "bin": {
+    "nyantales": "./src/cli.js"
+  },
+  "main": "./src/engine.js",
+  "scripts": {
+    "start": "node src/cli.js",
+    "play": "node src/cli.js play the-terminal-cat"
+  },
+  "author": "mechangelnyan",
+  "license": "MIT",
+  "keywords": [
+    "interactive-fiction",
+    "cli",
+    "ascii-art",
+    "cat",
+    "terminal",
+    "game"
+  ],
+  "dependencies": {
+    "chalk": "^5.3.0",
+    "inquirer": "^9.2.0",
+    "ora": "^7.0.0",
+    "yaml": "^2.4.0"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}
