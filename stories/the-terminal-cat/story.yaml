@@ -45,9 +45,9 @@ scenes:
   meow_scene:
     art: |
          /\_/\
-        ( >ω< )   << MRRROWWW!! >>
+         ( >ω< )   << MRRROWWW!! >>
          )   (
-        (__ __)
+         (__ __)
     text: |
       "MRRROWWWW!!"
 
@@ -173,9 +173,9 @@ scenes:
   fish_discovery:
     art: |
          >))'>
-        >)))'> >))'>
-      (  >))'>   )
-       '-----------'
+         >)))'> >))'>
+         (  >))'>   )
+         '-----------'
           fish.txt
     text: |
       fish.txt contains exactly one line:
@@ -236,9 +236,10 @@ scenes:
     choices:
       - label: "This is a lot of information. Back to /home."
         goto: home_directory
-        set_flag: knows_danger
-        set_flag: knows_sudo_password
-        set_flag: read_history
+        set_flags:
+          - knows_danger
+          - knows_sudo_password
+          - read_history
 
   # ─────────────────────────────────────────────────────────────
   # SCENE 4c - todo.txt
@@ -329,9 +330,9 @@ scenes:
   cat_encounter:
     art: |
        /\_/\   /\_/\
-      ( o.o ) ( ^.^ )  "oh. another one."
+       ( o.o ) ( ^.^ )  "oh. another one."
        > ^ <   > ^ <
-      [you]   [cat v8]
+       [you]   [cat v8]
     text: |
       The cat command looks you up and down.
 
@@ -355,12 +356,13 @@ scenes:
           "Oh. You found the fish. That changes things. The kernel... it has a
           weakness for fish. A profound, embarrassing weakness. If you offer it
           the fish, it might just let you out for FREE."
-        color: magenta
+          color: magenta
     choices:
       - label: "Thank the cat command and commit this to memory"
         goto: root_prompt
-        set_flag: has_wisdom
-        set_flag: knows_sudo_password
+        set_flags:
+          - has_wisdom
+          - knows_sudo_password
 
   # ─────────────────────────────────────────────────────────────
   # SCENE 7 - /proc ENTRANCE

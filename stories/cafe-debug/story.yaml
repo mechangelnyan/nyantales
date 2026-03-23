@@ -228,9 +228,9 @@ scenes:
     mood: tense
     art: |
        /\_/\    "...what."
-      ( -_- )
+       ( -_- )
        )   (
-      (__  __)  [TABLE 1 — WINDOW SEAT]
+       (__  __)  [TABLE 1 — WINDOW SEAT]
        NEWSPAPER: "PATTERN NOT FOUND: STORY AT 11"
     text: |
       grep looks up from their newspaper with the expression of someone who
@@ -319,8 +319,9 @@ scenes:
       - label: "Thank grep (sincerely) and take the pattern card"
         goto: cafe_floor
         give_item: grep_pattern
-        set_flag: got_grep_pattern
-        set_flag: talked_to_grep
+        set_flags:
+          - got_grep_pattern
+          - talked_to_grep
 
   # ─────────────────────────────────────────────────────────────
   # SCENE 7 — MEET CURL
@@ -329,9 +330,9 @@ scenes:
     mood: funny
     art: |
        /\_/\    "—and THEN it returned a 418! A TEAPOT! Can you believe it??"
-      ( ^ω^ )
+       ( ^ω^ )
        )   (
-      (__  __)  [BAR — CURRENTLY SPINNING ON STOOL]
+       (__  __)  [BAR — CURRENTLY SPINNING ON STOOL]
     text: |
       curl is mid-sentence when you approach, which is how curl always is.
 
@@ -437,8 +438,9 @@ scenes:
       - label: "Take the recipe card. Thank curl (effusively — they deserve it)."
         goto: cafe_floor
         give_item: curl_recipe_card
-        set_flag: got_curl_recipe
-        set_flag: talked_to_curl
+        set_flags:
+          - got_curl_recipe
+          - talked_to_curl
 
   # ─────────────────────────────────────────────────────────────
   # SCENE 8 — THE BACK ROOM
@@ -503,10 +505,10 @@ scenes:
     mood: peaceful
     art: |
          /\_/\    ...hmm...
-        (=u.u=)   (still mostly asleep)
+         (=u.u=)   (still mostly asleep)
          )   (
-        (__  __)  [ARMCHAIR, STAFF ROOM]
-        zzz  zz z  (fading)
+         (__  __)  [ARMCHAIR, STAFF ROOM]
+         zzz  zz z  (fading)
     text: |
       You clear your throat softly. "...daemon?"
 
@@ -583,8 +585,9 @@ scenes:
       - label: "Take the init config. Let daemon sleep. You know what to do."
         goto: cafe_floor
         give_item: daemon_config
-        set_flag: has_daemon_config
-        set_flag: talked_to_daemon
+        set_flags:
+          - has_daemon_config
+          - talked_to_daemon
 
   # ─────────────────────────────────────────────────────────────
   # SCENE 10 — DEBUG CONSOLE
