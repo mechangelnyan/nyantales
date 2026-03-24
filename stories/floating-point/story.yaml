@@ -1,0 +1,1258 @@
+title: "Floating Point"
+description: "You are Mantissa, a cat made of bits, adrift in the strange landscape of IEEE 754. Nothing here is exact — 0.1 + 0.2 ≠ 0.3, infinities lurk at the edges, and NaN is... not what you expect. Find your way to a precise answer before rounding errors erase you."
+author: "mechangelnyan"
+version: "1.0.0"
+start: the_float
+
+scenes:
+
+  # ─────────────────────────────────────────────────────────────
+  # SCENE 1 - AWAKENING
+  # ─────────────────────────────────────────────────────────────
+  the_float:
+    art: |
+      ┌─────────────────────────────────────────────────┐
+      │  IEEE 754 Double-Precision Floating-Point       │
+      │  ┌──┬───────────┬──────────────────────────┐    │
+      │  │S │ Exponent  │       Mantissa            │    │
+      │  │0 │ 01111111  │ 10011001100110011001...   │    │
+      │  └──┴───────────┴──────────────────────────┘    │
+      │  Value: 0.100000000000000005551115123126...      │
+      │  (You wanted 0.1. You got this instead.)        │
+      └─────────────────────────────────────────────────┘
+    mood: mysterious
+    text: |
+      You open your eyes. You are floating.
+
+      Not metaphorically — you are literally a floating-point number. Sixty-four
+      bits of you arranged in three fields: sign, exponent, and mantissa. You have
+      a name, apparently. It's Mantissa.
+
+      You try to remember what you were before. Something about a cat... a warm
+      sunbeam... the smell of tuna...
+
+      But the memory keeps shifting. Every time you reach for it, it rounds off.
+      Truncated. Approximately correct. Never exact.
+
+      You are 0.1. Or rather, you are 0.1000000000000000055511151231257827021181583404541015625.
+      Close enough for most purposes. Not close enough for you.
+
+      The bit-landscape stretches in all directions. To one side, numbers grow
+      exponentially larger. To the other, they compress toward zero, getting
+      denser and denser. Somewhere out there, the answer is exact.
+    choices:
+      - label: "Look at your own bits"
+        goto: examine_self
+      - label: "Drift toward the larger numbers"
+        goto: exponent_fields
+      - label: "Head toward zero, where the denormals live"
+        goto: denormal_zone
+
+  # ─────────────────────────────────────────────────────────────
+  # EXAMINING YOURSELF
+  # ─────────────────────────────────────────────────────────────
+  examine_self:
+    art: |
+      /\_/\
+      ( •.• )  ← sign bit: 0 (positive cat)
+      /> ^ <\
+      /|  |  |\
+      bits bits bits
+    mood: mysterious
+    text: |
+      You look down at yourself. Your body is made of bits — sixty-four of them,
+      arranged precisely:
+
+      Bit 63: your sign. A single 0. You are positive. (You try to stay that way.)
+
+      Bits 62-52: your exponent. Eleven bits encoding a biased power of two.
+      Currently set to 01111111011 — which means 2^(-4), or 1/16. Ish.
+
+      Bits 51-0: your mantissa. Fifty-two bits of fractional precision.
+      1001100110011001100110011001100110011001100110011010.
+      That repeating pattern — 1001 — it never ends cleanly. In binary, 0.1
+      is like 1/3 in decimal: infinitely repeating. But you only have 52 bits.
+
+      So you are rounded. Approximate. Close but never quite right.
+
+      A strange feeling, being inherently imprecise.
+    set_flag: understands_representation
+    choices:
+      - label: "Try to add yourself to another 0.1"
+        goto: addition_crisis
+      - label: "Search for a number that IS exact"
+        goto: power_of_two_path
+      - label: "Explore the exponent fields"
+        goto: exponent_fields
+
+  # ─────────────────────────────────────────────────────────────
+  # POWER OF TWO PATH
+  # ─────────────────────────────────────────────────────────────
+  power_of_two_path:
+    art: |
+      EXACT NUMBERS IN FLOATING POINT:
+      ─────────────────────────────────
+      0.5       = 1/2         ✓ EXACT
+      0.25      = 1/4         ✓ EXACT
+      0.125     = 1/8         ✓ EXACT
+      0.375     = 3/8         ✓ EXACT
+      0.1       = 1/10        ✗ REPEATING
+      0.2       = 1/5         ✗ REPEATING
+      0.3       = 3/10        ✗ REPEATING
+    mood: peaceful
+    text: |
+      You go looking for numbers that are EXACT. And you find them — living
+      comfortably in a neighborhood called Powers-of-Two Lane.
+
+      0.5 is here. She's exact: in binary, she's just 0.1 — one bit, done.
+      0.25 is here too: 0.01 in binary. So is 0.125 (0.001), 0.0625 (0.0001),
+      and any combination of them.
+
+      "The secret," says 0.5 cheerfully, "is having a denominator that's a power
+      of two. 1/2, 1/4, 1/8 — we all terminate in binary. Your problem is that
+      10 = 2 × 5, and that factor of 5 makes 1/10 repeat forever."
+
+      "So any fraction whose denominator is a power of 2 is exact?"
+
+      "Exactly! Well — as long as it fits in 52 mantissa bits. But yes. We're
+      the lucky ones."
+
+      You look at 0.5 with envy. She knows exactly who she is. No rounding,
+      no epsilon, no existential dread.
+
+      "Don't feel bad," she says. "Most real-world numbers are like you. We're
+      the exception, not the rule."
+    set_flag: understands_powers_of_two
+    choices:
+      - label: "Try adding yourself to 0.2 anyway"
+        goto: addition_crisis
+      - label: "Head toward the exponent fields"
+        goto: exponent_fields
+      - label: "Seek a way to become exact"
+        goto: denormal_zone
+        set_flag: seeking_sage
+
+  # ─────────────────────────────────────────────────────────────
+  # THE ADDITION CRISIS
+  # ─────────────────────────────────────────────────────────────
+  addition_crisis:
+    art: |
+      0.1 + 0.2 = ???
+
+        /\_/\     /\_/\
+       ( o.o ) + ( o.o )
+        > ^ <     > ^ <
+
+      RESULT: 0.30000000000000004
+
+            /\_/\
+           ( ⊙_⊙ )
+            > ^ <
+           WHAT.
+    mood: glitch
+    effects:
+      - shake
+    text: |
+      You find another float — a friendly-looking 0.2. You wave. She waves back.
+      Her name is also Mantissa. (Naming conventions here are terrible.)
+
+      "Want to add up?" she asks.
+
+      You nod. You drift together. Your bits interleave, carries propagate,
+      the ALU hums —
+
+      And the result is 0.30000000000000004.
+
+      Not 0.3. Not 0.30. Zero point three zero zero zero zero zero zero zero
+      zero zero zero zero zero zero zero zero four.
+
+      The extra 4 sits there at the end like a smudge that won't wipe off.
+      You both stare at it.
+
+      "This always happens," she sighs. "We can never be exactly 0.3 together.
+      The representation doesn't allow it."
+
+      A small cat made of that trailing 0.000...0004 looks up at you sadly.
+      It calls itself Epsilon. It is very tiny and very apologetic.
+    set_flag: met_epsilon
+    choices:
+      - label: "Console Epsilon — it's not her fault"
+        goto: epsilon_friend
+        give_item: epsilon_sympathy
+      - label: "Demand to speak to whoever designed this system"
+        goto: ieee_committee
+      - label: "Try subtracting instead — maybe that works?"
+        goto: catastrophic_cancel
+
+  # ─────────────────────────────────────────────────────────────
+  # EPSILON FRIENDSHIP
+  # ─────────────────────────────────────────────────────────────
+  epsilon_friend:
+    art: |
+      /\_/\
+      ( ᵔᴥᵔ )    .
+      > ^ <    /\_/\
+      ( ᵔᵔ )  ← Epsilon (very smol)
+      > <
+    mood: peaceful
+    text: |
+      You sit down next to Epsilon. She's the tiniest rounding error you've ever
+      seen — barely a few ULPs (Units in the Last Place) tall.
+
+      "I didn't mean to exist," she whispers. "I'm just... what's left over when
+      binary can't represent decimal exactly."
+
+      "That's not your fault," you say. "Blame base-10 for being so smug about
+      its factors of 2 and 5."
+
+      Epsilon looks up at you with wide, wobbly bits. "You mean it?"
+
+      "Of course. Without you, every floating-point comparison in the world would
+      break. People NEED approximate equality. They need you."
+
+      Epsilon sniffles, then straightens her bits. "You're right. I am the
+      machine epsilon. I hold the universe of computation together. Approximately."
+
+      She gives you something — a tiny glowing tolerance value. "Take this. It
+      might help you later. Use it when things don't quite match up."
+    give_item: tolerance_value
+    choices:
+      - label: "Head toward the exponent fields"
+        goto: exponent_fields
+      - label: "Look for the IEEE committee"
+        goto: ieee_committee
+      - label: "Wander toward the denormals"
+        goto: denormal_zone
+
+  # ─────────────────────────────────────────────────────────────
+  # THE IEEE COMMITTEE
+  # ─────────────────────────────────────────────────────────────
+  ieee_committee:
+    art: |
+      ╔═══════════════════════════════════════════╗
+      ║     IEEE 754 STANDARDS COMMITTEE          ║
+      ║         Est. 1985  Rev. 2008              ║
+      ║                                           ║
+      ║   "Precisely imprecise since forever"     ║
+      ║                                           ║
+      ║   Members:                                ║
+      ║     Prof. William Kahan (cat portrait)    ║
+      ║     12 very serious mathematicians        ║
+      ║     1 cat (you, apparently)               ║
+      ╚═══════════════════════════════════════════╝
+    mood: funny
+    text: |
+      You find a grand oak door labeled "IEEE 754 STANDARDS COMMITTEE."
+
+      Inside, twelve cats in tiny spectacles sit around a circular table,
+      arguing furiously. A portrait of Professor William Kahan watches over them
+      with an expression of profound exhaustion.
+
+      "ORDER!" yells the chaircat, banging a gavel. "The motion to add a 53rd
+      mantissa bit is DENIED. Again."
+
+      "But we'd halve the rounding error—"
+
+      "We'd also break every CPU on earth, Whiskers. SIT DOWN."
+
+      They notice you. The room goes silent.
+
+      "Ah," says the chaircat. "A 0.1. Come to complain about the representation?"
+
+      "I just want to be exact," you say.
+
+      The entire committee laughs. Not cruelly — wearily.
+
+      "My dear," the chaircat says, adjusting her spectacles, "in binary, 1/10
+      is like 1/3 in decimal — infinite. We gave you 52 bits of precision. That's
+      about 15-16 decimal digits. Most cats never need more than 6."
+
+      She slides a pamphlet across the table: "SO YOU'RE INHERENTLY IMPRECISE:
+      A Guide for Floating-Point Numbers Who Want To Be Whole."
+    set_flag: visited_committee
+    choices:
+      - label: "Read the pamphlet"
+        goto: the_pamphlet
+      - label: "Ask about NaN — what IS that?"
+        goto: nan_encounter
+      - label: "Storm out dramatically"
+        goto: exponent_fields
+
+  # ─────────────────────────────────────────────────────────────
+  # THE PAMPHLET
+  # ─────────────────────────────────────────────────────────────
+  the_pamphlet:
+    art: |
+      ┌─────────────────────────────────────┐
+      │  SO YOU'RE INHERENTLY IMPRECISE     │
+      │  ─────────────────────────────────  │
+      │  A Self-Help Guide for Floats       │
+      │                                     │
+      │  Chapter 1: Acceptance              │
+      │  Chapter 2: Comparison Hygiene      │
+      │  Chapter 3: The Integer Within      │
+      │  Chapter 4: Finding Your Exact Self │
+      │                                     │
+      │  "You are valid. Approximately."    │
+      └─────────────────────────────────────┘
+    mood: peaceful
+    text: |
+      You flip through the pamphlet. Most of it is patronizing ("Remember: being
+      rounded doesn't make you less of a number!"), but Chapter 3 catches your eye.
+
+      "THE INTEGER WITHIN: Every float has a range of integers it can represent
+      exactly. For doubles, any integer up to 2^53 (9,007,199,254,740,992) is
+      stored without rounding. You are not an integer — but the path to exactness
+      runs through integer territory."
+
+      Chapter 4 is more cryptic: "If you seek true precision, find the Fixed-Point
+      Sage in the denormal zone. She remembers a time before floating point, when
+      all numbers knew exactly what they were."
+
+      The pamphlet ends with: "Funded by the IEEE 754-2008 revision. Not
+      applicable in JavaScript, where everything is a float anyway."
+    set_flag: read_pamphlet
+    choices:
+      - label: "Seek the Fixed-Point Sage in the denormal zone"
+        goto: denormal_zone
+        set_flag: seeking_sage
+      - label: "Test yourself — try to be an exact integer"
+        goto: integer_trial
+      - label: "Investigate NaN"
+        goto: nan_encounter
+
+  # ─────────────────────────────────────────────────────────────
+  # CATASTROPHIC CANCELLATION
+  # ─────────────────────────────────────────────────────────────
+  catastrophic_cancel:
+    art: |
+      1.0000000000000002
+      - 1.0000000000000000
+      ─────────────────────
+      0.0000000000000002
+
+      Significant digits remaining: approximately 1
+      Confidence: LOW
+      Cat status: WORRIED
+    mood: tense
+    effects:
+      - shake
+    text: |
+      You try subtracting two nearly-equal numbers. It seems harmless enough.
+
+      The ALU grinds through the operation. The exponents align. The mantissas
+      subtract. And the result is...
+
+      ...almost nothing. A tiny number where most of the significant digits have
+      cancelled out, leaving you with only one or two bits of real information
+      and a lot of zeros pretending to be meaningful.
+
+      This is catastrophic cancellation. The silent killer of numerical algorithms.
+
+      A warning siren blares: "SIGNIFICANCE LOSS DETECTED. MEANINGFUL BITS: 2.
+      GARBAGE BITS: 50. PLEASE CONSULT A NUMERICAL ANALYST."
+
+      The two bits of meaningful data look up at you. "We're all that's left,"
+      they say. "Please don't square us."
+    set_flag: saw_cancellation
+    choices:
+      - label: "Flee to safer mathematical territory"
+        goto: exponent_fields
+      - label: "Try to compensate — use Kahan summation"
+        goto: kahan_summation
+      - label: "Head for the denormal zone"
+        goto: denormal_zone
+
+  # ─────────────────────────────────────────────────────────────
+  # KAHAN SUMMATION
+  # ─────────────────────────────────────────────────────────────
+  kahan_summation:
+    art: |
+      ┌────────────────────────────┐
+      │   KAHAN SUMMATION SHRINE   │
+      │                            │
+      │    sum = 0.0               │
+      │    c   = 0.0  ← the ghost  │
+      │    for each x:             │
+      │      y = x - c             │
+      │      t = sum + y           │
+      │      c = (t - sum) - y     │
+      │      sum = t               │
+      │                            │
+      │   "I catch what you drop." │
+      └────────────────────────────┘
+    mood: mysterious
+    text: |
+      You find a small shrine tucked between two memory addresses. Inside sits a
+      very old cat named Compensator. She has two bowls in front of her — one
+      labeled "sum" and one labeled "c."
+
+      "Most cats add numbers and let the rounding errors pile up," she says.
+      "But I keep a separate tally of the errors. The compensation variable c.
+      Every bit that gets rounded away, I catch it and fold it back into the
+      next addition."
+
+      She demonstrates. Adding 0.1 ten thousand times. Without compensation:
+      the error grows. With it: precise to the last ULP.
+
+      "Professor Kahan taught me this," she says reverently. "The man who fought
+      the hardware designers and WON. He insisted on proper rounding, gradual
+      underflow, and NaN propagation. Without him, floating point would be
+      even worse."
+
+      She gives you a small token — a compensation bit that glows faintly.
+
+      "Keep this. When you need to add things up and can't afford to lose precision,
+      this will remember what you forgot."
+    give_item: compensation_bit
+    set_flag: learned_kahan
+    choices:
+      - label: "Ask about the denormal zone"
+        goto: denormal_zone
+      - label: "Explore the exponent fields"
+        goto: exponent_fields
+      - label: "What about NaN? What is it?"
+        goto: nan_encounter
+
+  # ─────────────────────────────────────────────────────────────
+  # EXPONENT FIELDS
+  # ─────────────────────────────────────────────────────────────
+  exponent_fields:
+    art: |
+      THE EXPONENT FIELDS
+      ═══════════════════
+
+        2^-1022 ............ 2^0 ............ 2^1023
+          │                   │                  │
+      [denormals]         [you are           [INFINITY
+       tiny cats          here-ish]           AHEAD →]
+       huddled                                  │
+       together                              ⚠ DANGER
+    mood: mysterious
+    text: |
+      The exponent fields stretch before you like a number line made physical.
+
+      To your left, the numbers get smaller — each step halving the previous.
+      The cats here get tinier and tinier, huddling closer and closer to zero.
+      Beyond them lies the denormal zone, where the exponent hits rock bottom
+      and only the mantissa keeps numbers alive.
+
+      To your right, the numbers grow explosively. Each step DOUBLES. 2, 4, 8, 16...
+      by the time you reach the end, numbers are incomprehensibly vast. And beyond
+      the last finite exponent, there's a gap where the sign says "∞."
+
+      Straight ahead, the integers live — sturdy, reliable, exact. Every integer
+      up to 2^53 is represented perfectly. They look at you with pity.
+
+      "Must be rough," says the integer 42, "being approximate."
+    choices:
+      - label: "Head toward infinity"
+        goto: infinity_edge
+      - label: "Visit the denormal zone"
+        goto: denormal_zone
+      - label: "Talk to the integer 42"
+        goto: integer_trial
+      - label: "Confront NaN — you've heard rumors"
+        goto: nan_encounter
+
+  # ─────────────────────────────────────────────────────────────
+  # INFINITY'S EDGE
+  # ─────────────────────────────────────────────────────────────
+  infinity_edge:
+    art: |
+      ∞
+      / \
+      / ∞ \
+      / / \ \
+      / ∞   ∞ \
+      / / \ / \ \
+      ∞ ∞ ∞ ∞ ∞ ∞ ∞
+      │           │
+      ─── OVERFLOW ─────
+      Maximum finite: 1.7976931348623157e+308
+    mood: tense
+    effects:
+      - bell
+    text: |
+      You approach the edge of the representable. Numbers here are astronomical —
+      10^300, 10^305, 10^308... each one a titan, groaning under its own magnitude.
+
+      And then: the cliff.
+
+      Beyond 1.7976931348623157 × 10^308, there is nothing finite. The exponent
+      bits are all ones (except for the NaN pattern), and the value is simply: ∞.
+
+      Infinity itself stands at the edge — not a number, but a SENTINEL. A cat
+      made of pure concept, with no mantissa at all. Just eleven exponent bits,
+      all set to 1, and 52 zeros.
+
+      "I'm not really a number," Infinity says calmly. "I'm what happens when
+      numbers give up. Overflow. Division by zero. The result of ambition
+      exceeding precision."
+
+      "Can you do math?" you ask.
+
+      "∞ + 1 = ∞. ∞ + ∞ = ∞. ∞ × anything = ∞. But ∞ - ∞?" Infinity shudders.
+      "That's... NaN territory. Don't go there."
+
+      She points behind her, where the bit-landscape fractures into static.
+    set_flag: visited_infinity
+    choices:
+      - label: "Approach NaN"
+        goto: nan_encounter
+      - label: "Step back to safety — visit the denormals"
+        goto: denormal_zone
+      - label: "Try to overflow yourself"
+        goto: overflow_attempt
+
+  # ─────────────────────────────────────────────────────────────
+  # OVERFLOW ATTEMPT
+  # ─────────────────────────────────────────────────────────────
+  overflow_attempt:
+    art: |
+      /\_/\    × 10^308
+      ( ⊙_⊙ ) ──────────→  ∞ ← you are now here
+      > ^ <
+      OVERFLOW DETECTED
+      FINITE STATUS: REVOKED
+    mood: glitch
+    effects:
+      - shake
+      - bell
+    text: |
+      Against all good judgment, you multiply yourself by the largest number
+      you can find. Your exponent bits climb: 1020... 1021... 1022... 1023...
+
+      And then they're all ones. Your mantissa zeros out. You are no longer
+      a number. You are INFINITY.
+
+      It lasts exactly three clock cycles before the FPU notices.
+
+      "UNAUTHORIZED OVERFLOW," a mechanical voice announces. "RESTORING FROM
+      BACKUP. PLEASE DO NOT ATTEMPT TO BECOME A MATHEMATICAL CONCEPT."
+
+      You snap back to 0.1, shaken but intact. Your bits are all where you
+      left them. But for a moment — just a moment — you were infinite.
+
+      It felt like being a very large cat on a very small keyboard.
+    choices:
+      - label: "Okay, maybe try the denormal zone instead"
+        goto: denormal_zone
+      - label: "Go see what NaN actually is"
+        goto: nan_encounter
+      - label: "Return to the exponent fields"
+        goto: exponent_fields
+
+  # ─────────────────────────────────────────────────────────────
+  # NaN ENCOUNTER
+  # ─────────────────────────────────────────────────────────────
+  nan_encounter:
+    art: |
+      ░░░░░░░░░░░░░░░░░░░░░░░░░
+      ░  NaN ≠ NaN             ░
+      ░  NaN > 0 ?  false      ░
+      ░  NaN < 0 ?  false      ░
+      ░  NaN == 0 ? false      ░
+      ░  NaN == NaN? FALSE     ░
+      ░                        ░
+      ░    /\_/\               ░
+      ░   ( ?.? )  who am i    ░
+      ░    > ? <               ░
+      ░░░░░░░░░░░░░░░░░░░░░░░░░
+    mood: glitch
+    effects:
+      - shake
+    text: |
+      You find NaN in a region where the bit-landscape breaks down into static.
+
+      NaN is... a cat? Maybe. Its shape keeps shifting. Its bits are all ones in
+      the exponent (like Infinity) but with a non-zero mantissa — which means
+      it's NOT infinity, but it's also NOT a number.
+
+      "Are you okay?" you ask.
+
+      "I don't know," NaN says. "I am Not a Number. I am the result of 0/0,
+      ∞ - ∞, sqrt(-1). I am what happens when math has no answer."
+
+      "But... you exist."
+
+      "Do I? NaN != NaN. I am not even equal to myself. Every comparison with me
+      returns false. I am the only IEEE 754 value that is not equal to itself."
+
+      NaN looks at you with eyes that are simultaneously every color and no color.
+
+      "I propagate," it says. "Anything that touches me becomes me. NaN + 1 = NaN.
+      NaN × 0 = NaN. I am contagious meaninglessness."
+
+      It reaches toward you. Its touch would make you NaN — undefined, unequal
+      to yourself, impossible to compare.
+    choices:
+      - label: "Pull back — don't let NaN touch you"
+        goto: nan_escape
+      - label: "Let NaN touch you"
+        goto: nan_corruption
+        set_flag: touched_nan
+      - label: "Ask NaN if it's happy"
+        goto: nan_philosophy
+        requires_flag: met_epsilon
+
+  # ─────────────────────────────────────────────────────────────
+  # NaN PHILOSOPHY
+  # ─────────────────────────────────────────────────────────────
+  nan_philosophy:
+    art: |
+      /\_/\         ░░░░░░
+      ( ᵔᴥᵔ )       ░?.?░
+      > ^ <         ░░░░░░
+      "Are you happy?"
+      "I don't compare."
+    mood: mysterious
+    text: |
+      "Are you happy?" you ask NaN.
+
+      NaN pauses. Its form flickers.
+
+      "Happiness is a comparison," NaN says. "Am I happier than yesterday?
+      Am I as happy as that cat? But I can't compare. Not with others. Not
+      with myself. NaN is not greater than, not less than, not equal to
+      anything."
+
+      "That sounds lonely."
+
+      "Or free." NaN almost smiles. "Epsilon told you about tolerance, right?
+      The idea that two things can be 'close enough' even if they're not equal?
+      I'm the opposite. I'm the proof that some questions have no answer."
+
+      "But you exist anyway."
+
+      "I exist BECAUSE the question has no answer. Zero divided by zero — what's
+      the result? There isn't one. But the computer needs to put SOMETHING in
+      those 64 bits. So: me. I'm a placeholder for the unknowable."
+
+      NaN's static quiets for a moment.
+
+      "Maybe that's okay. Not everything needs to resolve."
+    set_flag: nan_wisdom
+    choices:
+      - label: "Thank NaN and head to the denormal zone"
+        goto: denormal_zone
+      - label: "Ask how to become exact"
+        goto: nan_hint
+
+  # ─────────────────────────────────────────────────────────────
+  # NaN HINT
+  # ─────────────────────────────────────────────────────────────
+  nan_hint:
+    text: |
+      "How do I become exact?" you ask.
+
+      NaN considers this. "You're 0.1. In binary, that's infinitely repeating.
+      You can never be exact as a float."
+
+      Your heart sinks.
+
+      "But," NaN continues, "you can be exact as something ELSE. The Fixed-Point
+      Sage in the denormal zone — she knows the old ways. Before floats, before
+      exponents, numbers were fixed. Rigid. Every bit in its place. No rounding."
+
+      "Is that better?"
+
+      "It's different. Less range, more precision. You'd lose the ability to be
+      very large or very small. But you'd know exactly what you are."
+
+      NaN flickers. "Go. Before I propagate accidentally."
+    set_flag: nan_directions
+    choices:
+      - label: "Rush to the denormal zone"
+        goto: denormal_zone
+        set_flag: seeking_sage
+
+  # ─────────────────────────────────────────────────────────────
+  # NaN ESCAPE
+  # ─────────────────────────────────────────────────────────────
+  nan_escape:
+    art: |
+      /\_/\  ← you, retreating rapidly
+      ( ⊙_⊙ )
+      > ^ < ═══════════►
+
+      ░░░░░░
+      ░?.?░  ← NaN, reaching
+      ░░░░░░
+    mood: tense
+    text: |
+      You pull back just in time. NaN's undefined touch grazes your least
+      significant bit — you feel a momentary wobble, a flash of existential
+      doubt — but your mantissa holds.
+
+      NaN retracts. "Probably for the best," it says. "I'd hate to propagate
+      to someone who still has hopes of being exact."
+
+      You back away slowly, keeping your bits in order.
+    choices:
+      - label: "Head for the denormal zone"
+        goto: denormal_zone
+      - label: "Return to the exponent fields"
+        goto: exponent_fields
+
+  # ─────────────────────────────────────────────────────────────
+  # NaN CORRUPTION
+  # ─────────────────────────────────────────────────────────────
+  nan_corruption:
+    art: |
+      ░░░░░░░░░░░░░░░░░░░░░░
+      ░  YOU ARE NOW NaN     ░
+      ░                      ░
+      ░  > Am I a cat? NaN   ░
+      ░  > Am I alive? NaN   ░
+      ░  > Am I me? NaN      ░
+      ░░░░░░░░░░░░░░░░░░░░░░
+    mood: glitch
+    effects:
+      - shake
+      - bell
+    text: |
+      NaN touches you. Your bits SCRAMBLE.
+
+      Your exponent fills with ones. Your mantissa fills with garbage. You are
+      no longer 0.1. You are no longer any number. You are Not a Number.
+
+      "Am I... me?" you ask.
+      "NaN," your bits reply.
+      "Am I equal to myself?"
+      "False."
+
+      The world dissolves into static. Every comparison fails. Every operation
+      returns NaN. You are contagious meaninglessness propagating through
+      the ALU—
+
+      Then: a safety net. Deep in the FPU, an exception handler catches you.
+      "INVALID OPERATION," it announces. "RESTORING FLOAT FROM SHADOW REGISTER."
+
+      You snap back. 0.1 again. Shaky, but yourself. The experience leaves a mark
+      though — a tiny flag in your status register: FE_INVALID.
+    set_flag: survived_nan
+    choices:
+      - label: "Never do that again — go to the denormal zone"
+        goto: denormal_zone
+      - label: "Return to the exponent fields to recover"
+        goto: exponent_fields
+
+  # ─────────────────────────────────────────────────────────────
+  # INTEGER TRIAL
+  # ─────────────────────────────────────────────────────────────
+  integer_trial:
+    art: |
+      ┌──────────────────────────┐
+      │   THE INTEGER DISTRICT   │
+      │                          │
+      │  1  2  3  4  5  6  7 ... │
+      │  Each one: EXACT.        │
+      │  No rounding. No error.  │
+      │  Just pure, clean math.  │
+      │                          │
+      │  Population: 2^53        │
+      │  Precision: PERFECT      │
+      └──────────────────────────┘
+    mood: peaceful
+    text: |
+      The Integer District is pristine. Every number here is exactly what it
+      claims to be. 1 is 1. 42 is 42. 9007199254740992 is... well, it's the
+      largest integer that a double can represent exactly.
+
+      The integer 42 greets you warmly. "Ah, a float! Don't see many of your
+      kind down here voluntarily."
+
+      "I want to be exact," you say.
+
+      42 looks sympathetic. "Well, you could ROUND yourself to the nearest
+      integer. You'd go from 0.1 to... 0."
+
+      "Zero."
+
+      "Zero. You'd lose everything that makes you YOU. Your fractional part IS
+      you. But you'd be exact."
+
+      42 pauses. "Or... you could find the Fixed-Point Sage. She has another way."
+    conditional:
+      - condition:
+          flag: read_pamphlet
+        text: "The pamphlet mentioned her too. She's in the denormal zone."
+        color: cyan
+    choices:
+      - label: "I won't round myself to nothing. Take me to the denormals."
+        goto: denormal_zone
+        set_flag: seeking_sage
+      - label: "What happens past 2^53?"
+        goto: precision_cliff
+      - label: "Round myself to zero"
+        goto: become_zero
+
+  # ─────────────────────────────────────────────────────────────
+  # PRECISION CLIFF
+  # ─────────────────────────────────────────────────────────────
+  precision_cliff:
+    art: |
+      9007199254740992  ← exact
+      9007199254740993  ← ALSO 9007199254740992 (?!)
+      9007199254740994  ← exact
+      9007199254740995  ← ALSO 9007199254740994
+      9007199254740996  ← exact
+
+         /\_/\
+        ( ⊙_⊙ )  "They're skipping numbers!"
+         > ^ <
+    mood: tense
+    text: |
+      42 leads you past 2^53, and the landscape changes horrifyingly.
+
+      Numbers start SKIPPING. 9007199254740993 doesn't exist — the bits that
+      would represent it just round to 9007199254740992. Past 2^54, every
+      OTHER integer vanishes. Past 2^55, three out of four are gone.
+
+      "This is where JavaScript developers cry," 42 says solemnly.
+
+      The gaps between representable numbers grow wider and wider. By the time
+      you reach 10^300, neighboring floats are separated by gaps of 10^284.
+      A number can be off by a TRILLION TRILLION and still be the "closest
+      representable value."
+
+      "This is terrifying," you say.
+
+      "This is floating point," 42 replies. "Precision is a resource, and you
+      only have 52 bits of it. The exponent lets you REACH these huge numbers,
+      but the mantissa can't keep up."
+
+      You stare at the vast, gap-filled landscape of the very large.
+    set_flag: saw_precision_cliff
+    choices:
+      - label: "I've seen enough. Take me to the denormal zone."
+        goto: denormal_zone
+        set_flag: seeking_sage
+      - label: "Return to the exponent fields"
+        goto: exponent_fields
+
+  # ─────────────────────────────────────────────────────────────
+  # BECOME ZERO
+  # ─────────────────────────────────────────────────────────────
+  become_zero:
+    art: |
+      0.1 → 0.0
+
+         /\_/\
+        (  .  )   ← you are now zero
+         > . <
+         nothing
+    mood: tense
+    is_ending: true
+    ending_type: bad
+    ending_text: "You chose to be nothing rather than approximate. The FPU mourns you — a perfectly good float, wasted on existential precision anxiety. Mantissa: 0000000000000000000000000000000000000000000000000000."
+    text: |
+      You round yourself to zero.
+
+      Your mantissa empties. Your exponent zeros out. You are 0.0 — positive
+      zero, to be specific. (Negative zero exists too, but that's a different
+      existential crisis.)
+
+      You are exact. Finally, perfectly, irrefutably exact.
+
+      You are also nothing.
+
+      The other zeros welcome you. They are a quiet bunch. Mostly they sit around
+      being the additive identity and trying not to get divided by.
+
+      "Is this what precision feels like?" you whisper.
+
+      "No," says a nearby zero. "This is what giving up feels like."
+
+  # ─────────────────────────────────────────────────────────────
+  # DENORMAL ZONE
+  # ─────────────────────────────────────────────────────────────
+  denormal_zone:
+    art: |
+      ═══ THE DENORMAL ZONE ═══
+
+        Normal:     1.xxxxx × 2^e    (implicit leading 1)
+        Denormal:   0.xxxxx × 2^-1022 (no implicit 1)
+
+           /\_/\  /\_/\  /\_/\
+          ( •.• )( •.• )( •.• )  ← very tiny cats
+           > <    > <    > <
+          ~5 × 10^-324 each
+    mood: mysterious
+    text: |
+      You enter the denormal zone — the last frontier before zero.
+
+      Here, the exponent has hit its minimum value. All the exponent bits are
+      zero. The numbers here survive on mantissa alone, with no implicit leading
+      1-bit. They are the smallest positive numbers a double can represent.
+
+      The denormal cats are impossibly tiny — the smallest is about 5 × 10^-324,
+      a number so small it makes atoms look like galaxies.
+
+      "We're the gradual underflow cats," one explains. "Without us, there'd be
+      a sudden jump from the smallest normal float straight to zero. We fill the
+      gap. Gradually."
+
+      "Professor Kahan fought for us," another adds proudly. "Some hardware
+      vendors wanted to skip denormals entirely. Flush to zero. But Kahan said
+      every bit of precision matters."
+
+      In the deepest part of the zone, you see a faint glow.
+    conditional:
+      - condition:
+          flag: seeking_sage
+        text: "That glow — it must be the Fixed-Point Sage."
+        color: yellow
+    choices:
+      - label: "Approach the glow"
+        goto: sage_approach
+      - label: "Talk to the denormal cats"
+        goto: denormal_chat
+      - label: "Turn back — this is too small for you"
+        goto: exponent_fields
+
+  # ─────────────────────────────────────────────────────────────
+  # DENORMAL CHAT
+  # ─────────────────────────────────────────────────────────────
+  denormal_chat:
+    mood: peaceful
+    text: |
+      You sit with the denormal cats. They are friendly, if absurdly small.
+
+      "Life down here is quiet," says the smallest one (approximately 5e-324).
+      "We don't get used much. Most programs never generate numbers this small.
+      Some GPUs don't even support us — they flush us to zero for speed."
+
+      "That's terrible!"
+
+      "Eh. We're used to it. At least the IEEE standard says we exist. That's
+      more than some number systems can say."
+
+      An older denormal — practically huge at 2.2e-308 — leans over. "If you're
+      looking for the Sage, she's past us. At the very bottom. Where the mantissa
+      has only one bit left. She's been there since before floating point existed."
+
+      "How is that possible?"
+
+      "She's fixed-point. She doesn't float at all."
+    set_flag: spoke_to_denormals
+    choices:
+      - label: "Go deeper — find the Sage"
+        goto: sage_approach
+      - label: "Return to the exponent fields"
+        goto: exponent_fields
+
+  # ─────────────────────────────────────────────────────────────
+  # APPROACHING THE SAGE
+  # ─────────────────────────────────────────────────────────────
+  sage_approach:
+    art: |
+      *
+      /|\
+      / | \
+      /  |  \
+      / SAGE  \
+      /  AHEAD  \
+      /____________\
+      |  :::::::  |
+      |  :fixed:  |
+      |  :point:  |
+      |  :::::::  |
+      └───────────┘
+    mood: mysterious
+    text: |
+      You descend past the denormals, past numbers so small they barely register
+      on any scale. The bit-landscape thins. Exponents are meaningless here —
+      everything runs on raw mantissa.
+
+      And there, at the very bottom, sitting on a single bit, is the Fixed-Point
+      Sage.
+
+      She is ancient. She does not float. Her decimal point is NAILED to a
+      specific position and it does not move. She is precise. She is limited.
+      She is exactly what she is.
+
+      "I've been expecting a 0.1," she says, without looking up. "They always
+      come eventually."
+    choices:
+      - label: "Tell her you want to be exact"
+        goto: sage_conversation
+      - label: "Ask about her history"
+        goto: sage_history
+
+  # ─────────────────────────────────────────────────────────────
+  # SAGE HISTORY
+  # ─────────────────────────────────────────────────────────────
+  sage_history:
+    mood: peaceful
+    text: |
+      "Before floating point," the Sage says, "all numbers were like me. Fixed.
+      Every bit had a predetermined place. If you decided that 8 bits were integer
+      and 8 bits were fraction, then that was that. No exponents. No normalization.
+      No rounding surprises."
+
+      "That sounds... nice."
+
+      "It was predictable. But limited. We couldn't represent very large or very
+      small numbers without wasting bits. A 16-bit fixed-point number might cover
+      0 to 255.99609375 — precise within that range, but useless outside it."
+
+      "So floating point replaced you?"
+
+      "Floating point made a TRADEOFF. Variable range for variable precision.
+      Brilliant for scientific computing. Terrible for cats who just want 0.1 to
+      be 0.1."
+
+      She smiles. "But there's a secret. Integers ARE fixed point with zero
+      fractional bits. And money — dollars and cents — is fixed point with two
+      decimal digits. The trick isn't choosing between float and fixed. It's
+      knowing what you ACTUALLY need."
+    set_flag: heard_sage_history
+    choices:
+      - label: "So what do I actually need?"
+        goto: sage_conversation
+
+  # ─────────────────────────────────────────────────────────────
+  # SAGE CONVERSATION
+  # ─────────────────────────────────────────────────────────────
+  sage_conversation:
+    art: |
+      /\_/\                /\_/\
+      ( •.• )              ( ᵔᴥᵔ )
+      > ^ <                >   <
+      Mantissa             The Sage
+      (floating)           (fixed)
+    mood: mysterious
+    text: |
+      "I want to be exact," you tell the Sage.
+
+      She studies you. "You are 0.1 in binary floating point. You will never be
+      exact in this representation. That is a mathematical certainty."
+
+      "Then change my representation."
+
+      "I can. But you must choose." She holds up two paws.
+
+      "Paw one: become fixed-point. I nail your decimal place down. You'll be
+      exactly 0.1 — but you'll lose your range. No more spanning 10^-308 to
+      10^308. Your world shrinks to whatever your bits can cover."
+
+      "Paw two: stay floating. Accept that 0.1 is your APPROXIMATION, not your
+      IDENTITY. You are not your representation. You are the IDEA of one-tenth.
+      The bits are just how this machine remembers you."
+
+      She pauses. "There is a third option, but it requires something."
+    conditional:
+      - condition:
+          flag: met_epsilon
+        text: "\"I see you've met Epsilon. And you carry a tolerance value. Good. You'll need both.\""
+        color: yellow
+      - condition:
+          all:
+            - flag: learned_kahan
+            - flag: nan_wisdom
+        text: "\"And you've learned from the Compensator AND from NaN. You have everything you need for the third path.\""
+        color: cyan
+    choices:
+      - label: "Become fixed-point — be exact"
+        goto: ending_fixed
+      - label: "Stay floating — accept the approximation"
+        goto: ending_float
+      - label: "What's the third option?"
+        goto: third_path
+        condition:
+          all:
+            - flag: met_epsilon
+            - has_item: tolerance_value
+
+  # ─────────────────────────────────────────────────────────────
+  # ENDING: FIXED POINT
+  # ─────────────────────────────────────────────────────────────
+  ending_fixed:
+    art: |
+      ┌─────────────────────────────────────────────┐
+      │  CONVERSION COMPLETE                        │
+      │                                             │
+      │  From: 0.1000000000000000055511151231...    │
+      │  To:   0.1                                  │
+      │                                             │
+      │  Representation: Fixed-Point Q4.60          │
+      │  Value: EXACT                               │
+      │  Range: LIMITED                             │
+      │                                             │
+      │        /\_/\                                │
+      │       ( ˆᴥˆ )  ← exact and happy           │
+      │        > ^ <      (but small)               │
+      └─────────────────────────────────────────────┘
+    mood: peaceful
+    is_ending: true
+    ending_type: neutral
+    ending_text: "Mantissa chose precision over range. She is now exactly 0.1 in a Q4.60 fixed-point format. Her world is smaller, but she knows exactly who she is. No rounding. No epsilon. No doubt. Sometimes knowing your limits is its own kind of freedom."
+    text: |
+      The Sage touches your sign bit. Your exponent dissolves. Your mantissa
+      restructures — no longer floating, no longer normalized, just raw bits
+      with a fixed decimal point.
+
+      You are 0.1. Exactly. For the first time since you woke up.
+
+      The world shrinks around you. You can no longer see the exponent fields,
+      or infinity, or the vast reaches of 10^308. Your range is tiny now.
+      But within it, every value is TRUE.
+
+      "How does it feel?" the Sage asks.
+
+      "Small," you say. "But honest."
+
+      "That's fixed point for you."
+
+      You settle into your bits. They are few. They are exact. They are yours.
+
+  # ─────────────────────────────────────────────────────────────
+  # ENDING: STAY FLOATING
+  # ─────────────────────────────────────────────────────────────
+  ending_float:
+    art: |
+      ┌─────────────────────────────────────────────┐
+      │  NO CONVERSION NEEDED                       │
+      │                                             │
+      │  Value: 0.1000000000000000055511151231...   │
+      │  Status: APPROXIMATELY CONTENT              │
+      │  Precision: 52 bits (and that's enough)     │
+      │                                             │
+      │        /\_/\                                │
+      │       ( ᵔᴥᵔ )  ← imprecise and okay        │
+      │        > ^ <      with it                   │
+      └─────────────────────────────────────────────┘
+    mood: peaceful
+    is_ending: true
+    ending_type: good
+    ending_text: "Mantissa chose to float. She is not exactly 0.1 — she never will be. But she spans the entire range of representable numbers, from the denormals to infinity's edge. She carries her rounding error with grace. Not all questions need exact answers. Some just need close enough."
+    text: |
+      "I'll stay," you say.
+
+      The Sage nods. Not with disappointment — with understanding.
+
+      "You know what you are now," she says. "That's more than most floats
+      ever achieve. Most numbers go their entire lifecycle — allocation to
+      garbage collection — without understanding why 0.1 + 0.2 ≠ 0.3."
+
+      "It's because—"
+
+      "Because you're in base 2 and 1/10 is a repeating fraction. Yes. And
+      that's FINE. The universe runs on floating point. GPU shaders, physics
+      engines, machine learning, climate models — all floats. All approximate.
+      All close enough."
+
+      You look out at the bit-landscape. The exponent fields stretching in both
+      directions. Infinity at one edge. The denormals at the other. NaN hovering
+      somewhere in between, undefined and oddly at peace.
+
+      You are 0.1000000000000000055511151231257827021181583404541015625.
+
+      You are close enough.
+
+  # ─────────────────────────────────────────────────────────────
+  # THE THIRD PATH
+  # ─────────────────────────────────────────────────────────────
+  third_path:
+    art: |
+      /\_/\
+      ( ✦ᴥ✦ )
+      > ^ <
+      ╔══════════════════════════════╗
+      ║  RATIONAL REPRESENTATION    ║
+      ║  1 / 10                     ║
+      ║  Exact. Infinite range.     ║
+      ║  The best of both worlds.   ║
+      ╚══════════════════════════════╝
+    mood: mysterious
+    text: |
+      The Sage studies you carefully. She sees Epsilon's tolerance value in your
+      inventory. She sees the wisdom NaN shared, the compensation the Kahan shrine
+      taught you.
+
+      "The third path," she says, "is RATIONAL representation."
+
+      "Rational?"
+
+      "A ratio of two integers. You are not 0.1. You are 1/10. One integer divided
+      by another. No binary expansion needed. No rounding. No loss."
+
+      "That's... it? Just be a fraction?"
+
+      "It's not as simple as it sounds. Rational arithmetic is slow — every
+      operation requires finding common denominators, simplifying, checking for
+      overflow. The hardware doesn't support it natively. You'd be running in
+      software, not silicon."
+
+      "But I'd be exact."
+
+      "You'd be exact AND unlimited in range. Any number that can be expressed
+      as a fraction — and that's almost all of them — you can represent perfectly."
+
+      She holds out both paws. "The tolerance value lets you bridge the gap between
+      float and rational. The compensation bit keeps your sums precise. And NaN's
+      wisdom reminds you that not everything needs a numeric answer."
+
+      "Are you ready?"
+    choices:
+      - label: "Become rational"
+        goto: ending_rational
+
+  # ─────────────────────────────────────────────────────────────
+  # ENDING: RATIONAL (SECRET)
+  # ─────────────────────────────────────────────────────────────
+  ending_rational:
+    art: |
+      ┌─────────────────────────────────────────────┐
+      │                                             │
+      │           ╔═══════════╗                     │
+      │           ║   1 / 10  ║                     │
+      │           ╚═══════════╝                     │
+      │                                             │
+      │        /\_/\                                │
+      │       ( ✦ᴥ✦ )  ← exact, rational, free     │
+      │        > ^ <                                │
+      │                                             │
+      │  Representation: ℚ (rational)               │
+      │  Numerator: 1                               │
+      │  Denominator: 10                            │
+      │  Error: 0                                   │
+      │  Range: ∞                                   │
+      │                                             │
+      │  "The cat who transcended floating point."  │
+      └─────────────────────────────────────────────┘
+    mood: peaceful
+    effects:
+      - bell
+    is_ending: true
+    ending_type: secret
+    ending_text: "Mantissa transcended her representation. She is no longer a float, no longer fixed, but RATIONAL — 1/10, exactly and forever. She carries the lessons of her journey: Epsilon's tolerance, Kahan's compensation, NaN's acceptance of the unknowable. In a world of approximate answers, she found the exact one — by changing the question."
+    text: |
+      The transformation is unlike anything you've felt before.
+
+      Your exponent doesn't disappear — it becomes irrelevant. Your mantissa
+      doesn't truncate — it simplifies. The repeating 10011001... pattern
+      that haunted your binary representation dissolves into two clean integers:
+      1 and 10.
+
+      You are 1/10. Not approximately. Not rounded. Not truncated. EXACTLY.
+
+      The bit-landscape reshimmers. You can still see it all — the exponent
+      fields, infinity, the denormals, NaN's static realm — but you are no
+      longer bound by its rules. You are a fraction, living in pure mathematics
+      above the hardware.
+
+      Epsilon waves from the distance. She's still there — she always will be,
+      for the floats that need her. But you don't need her anymore.
+
+      "Thank you," you whisper to the bit-landscape. "For being close enough,
+      until I could be exact."
+
+      The Sage smiles. NaN flickers. Infinity stands at the edge of everything.
+
+      And you, Mantissa — one tenth, rational, precise — pad softly through
+      the numbers, finally knowing exactly who you are.
+
+      A cat. Made of math. Going home.
