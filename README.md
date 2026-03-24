@@ -66,6 +66,12 @@ nyantales achievements
 # Player statistics dashboard
 nyantales stats
 
+# Play a random story
+nyantales random
+
+# Detailed story info card (scenes, choices, endings, items, moods)
+nyantales info the-terminal-cat
+
 # Options
 nyantales play the-terminal-cat --fast    # skip typewriter animation
 nyantales play the-terminal-cat --debug   # show scene/flag debug info

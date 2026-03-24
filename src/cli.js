@@ -46,6 +46,8 @@ function showHelp() {
   console.log(`    ${chalk.cyan('nyantales map')}           ${chalk.dim('Map all stories')}`);
   console.log(`    ${chalk.cyan('nyantales achievements')}  ${chalk.dim('View unlocked achievements')}`);
   console.log(`    ${chalk.cyan('nyantales stats')}          ${chalk.dim('Player statistics dashboard')}`);
+  console.log(`    ${chalk.cyan('nyantales random')}         ${chalk.dim('Play a random story')}`);
+  console.log(`    ${chalk.cyan('nyantales info <story>')}   ${chalk.dim('Detailed story info card')}`);
   console.log(`    ${chalk.cyan('nyantales --help')}         ${chalk.dim('Show this help')}`);
   console.log();
   console.log(chalk.bold('  Options:\n'));
@@ -56,6 +58,8 @@ function showHelp() {
   console.log(chalk.bold('  Examples:\n'));
   console.log(`    ${chalk.dim('nyantales play the-terminal-cat')}`);
   console.log(`    ${chalk.dim('nyantales play the-terminal-cat --fast')}`);
+  console.log(`    ${chalk.dim('nyantales random --fast')}`);
+  console.log(`    ${chalk.dim('nyantales info cache-invalidation')}`);
   console.log(`    ${chalk.dim('nyantales validate')}`);
   console.log(`    ${chalk.dim('nyantales validate cafe-debug --pedantic')}`);
   console.log(`    ${chalk.dim('nyantales continue')}`);
@@ -582,6 +586,186 @@ scenes:
 }
 
 // ─────────────────────────────────────────────────────────────
+// Random story
+// ─────────────────────────────────────────────────────────────
+
+async function randomStory(opts = {}) {
+  const stories = discoverStories(STORIES_DIR);
+  if (stories.length === 0) {
+    console.log(chalk.yellow('\n  No stories found.\n'));
+    return;
+  }
+
+  const pick = stories[Math.floor(Math.random() * stories.length)];
+  console.log(BANNER);
+  console.log(chalk.dim('  🎲 Random pick: ') + chalk.bold.cyan(pick.title) + chalk.dim(` (${pick.slug})`));
+  console.log();
+  await playStory(pick.slug, opts);
+}
+
+// ─────────────────────────────────────────────────────────────
+// Story info card
+// ─────────────────────────────────────────────────────────────
+
+function showStoryInfo(slug) {
+  console.log(BANNER);
+
+  if (!slug) {
+    console.error(chalk.red('  Please specify a story slug.'));
+    console.log(chalk.dim('  Usage: nyantales info <slug>\n'));
+    return;
+  }
+
+  const storyFile = path.join(STORIES_DIR, slug, 'story.yaml');
+  if (!fs.existsSync(storyFile)) {
+    const stories = discoverStories(STORIES_DIR);
+    console.error(chalk.red(`  Story '${slug}' not found.`));
+    console.log(chalk.dim('  Available: ' + stories.map(s => s.slug).join(', ') + '\n'));
+    return;
+  }
+
+  const raw = fs.readFileSync(storyFile, 'utf8');
+  const data = yaml.parse(raw);
+  const scenes = data.scenes || {};
+  const sceneIds = Object.keys(scenes);
+
+  // Basic metadata
+  console.log(chalk.bold.magenta(`  ╔${'═'.repeat(56)}╗`));
+  console.log(chalk.bold.magenta(`  ║`) + chalk.bold.white(`  ${(data.title || slug).padEnd(54)}`) + chalk.bold.magenta(`║`));
+  console.log(chalk.bold.magenta(`  ╚${'═'.repeat(56)}╝`));
+  console.log();
+  if (data.description) console.log(`  ${chalk.dim(data.description)}`);
+  if (data.author) console.log(`  ${chalk.dim('by ' + data.author)}${data.version ? chalk.dim(' · v' + data.version) : ''}`);
+  console.log();
+
+  // Count scenes, choices, endings
+  let totalChoices = 0;
+  const endings = [];
+  const moodsUsed = new Set();
+  const itemsFound = new Set();
+  const flagsFound = new Set();
+  let hasConditionalText = false;
+  let hasInterpolation = false;
+
+  for (const [id, scene] of Object.entries(scenes)) {
+    if (scene.choices) totalChoices += scene.choices.length;
+    if (scene.ending || scene.is_ending) {
+      endings.push({ id, type: scene.ending_type || 'neutral', title: scene.ending || scene.ending_text || id });
+    }
+    if (scene.mood) moodsUsed.add(scene.mood);
+
+    // Scan choices for items and flags
+    if (scene.choices) {
+      for (const c of scene.choices) {
+        if (c.set_flag) flagsFound.add(c.set_flag);
+        if (c.set_flags) c.set_flags.forEach(f => flagsFound.add(f));
+        if (c.give_item) itemsFound.add(c.give_item);
+        if (c.give_items) c.give_items.forEach(i => itemsFound.add(i));
+        if (c.condition) hasConditionalText = true;
+      }
+    }
+
+    // Scene-level effects
+    if (scene.set_flag) flagsFound.add(scene.set_flag);
+    if (scene.set_flags) scene.set_flags.forEach(f => flagsFound.add(f));
+    if (scene.give_item) itemsFound.add(scene.give_item);
+    if (scene.give_items) scene.give_items.forEach(i => itemsFound.add(i));
+
+    // Conditional text
+    if (scene.conditional_text) hasConditionalText = true;
+
+    // Text interpolation
+    const sceneText = JSON.stringify(scene);
+    if (sceneText.includes('{{')) hasInterpolation = true;
+  }
+
+  // Stats block
+  console.log(chalk.bold('  📊 Stats'));
+  console.log(chalk.dim('  ─────────'));
+  console.log(`  Scenes:     ${chalk.cyan(sceneIds.length)}`);
+  console.log(`  Choices:    ${chalk.cyan(totalChoices)}`);
+
+  // Endings with color-coded types
+  const typeIcons = { good: '✦', bad: '✗', neutral: '◇', secret: '★' };
+  const typeColors = { good: 'green', bad: 'red', neutral: 'yellow', secret: 'magenta' };
+  const endingCounts = {};
+  for (const e of endings) {
+    endingCounts[e.type] = (endingCounts[e.type] || 0) + 1;
+  }
+  const endParts = [];
+  for (const t of ['good', 'bad', 'neutral', 'secret']) {
+    if (endingCounts[t]) endParts.push(chalk[typeColors[t]](`${typeIcons[t]} ${endingCounts[t]} ${t}`));
+  }
+  console.log(`  Endings:    ${chalk.cyan(endings.length)} — ${endParts.join('  ')}`);
+
+  // Items
+  if (itemsFound.size > 0) {
+    console.log(`  Items:      ${chalk.cyan(itemsFound.size)} — ${[...itemsFound].map(i => chalk.yellow(i)).join(', ')}`);
+  }
+
+  // Flags
+  if (flagsFound.size > 0) {
+    console.log(`  Flags:      ${chalk.cyan(flagsFound.size)}`);
+  }
+
+  // Moods
+  if (moodsUsed.size > 0) {
+    const moodIcons = { tense: '⚡', peaceful: '☮', mysterious: '✦', funny: '★', glitch: '▒' };
+    const moodDisplay = [...moodsUsed].map(m => `${moodIcons[m] || '?'} ${m}`).join('  ');
+    console.log(`  Moods:      ${moodDisplay}`);
+  }
+
+  // Features
+  const features = [];
+  if (hasConditionalText) features.push('conditional text');
+  if (hasInterpolation) features.push('text interpolation');
+  if (features.length > 0) {
+    console.log(`  Features:   ${features.join(', ')}`);
+  }
+
+  console.log();
+
+  // Endings list
+  console.log(chalk.bold('  🏁 Endings'));
+  console.log(chalk.dim('  ─────────'));
+  for (const e of endings) {
+    const icon = typeIcons[e.type] || '?';
+    const color = typeColors[e.type] || 'white';
+    console.log(`  ${chalk[color](icon)} ${chalk.white(e.title)} ${chalk.dim(`(${e.type})`)}`);
+  }
+  console.log();
+
+  // Ending discovery status
+  const engine = new Engine(storyFile, { fast: true });
+  const log = engine.loadEndingsLog();
+  const found = Object.keys(log.discovered).length;
+  const bar = engine.renderProgressBar(found, endings.length);
+  console.log(`  ${chalk.bold('🔓 Your progress:')} ${bar} ${chalk.dim(`${found}/${endings.length} endings`)}`);
+  if (found === endings.length && endings.length > 0) {
+    console.log(chalk.green('  ✦ All endings discovered!'));
+  }
+  console.log();
+
+  // Word count estimate (text fields only)
+  let wordCount = 0;
+  for (const scene of Object.values(scenes)) {
+    if (scene.text) wordCount += scene.text.split(/\s+/).length;
+    if (scene.choices) {
+      for (const c of scene.choices) {
+        if (c.label) wordCount += c.label.split(/\s+/).length;
+      }
+    }
+  }
+  console.log(chalk.dim(`  ~${wordCount.toLocaleString()} words · Est. ${Math.ceil(wordCount / 200)} min read per path`));
+
+  // Play suggestion
+  console.log();
+  console.log(chalk.dim(`  Play: nyantales play ${slug}`));
+  console.log(chalk.dim(`  Map:  nyantales map ${slug}`));
+  console.log();
+}
+
+// ─────────────────────────────────────────────────────────────
 // Story map / graph visualization
 // ─────────────────────────────────────────────────────────────
 
@@ -794,7 +978,9 @@ async function mainMenu() {
   const achTotal = ACHIEVEMENTS.length;
 
   choices.push(
+    { name: '🎲 Random story',           value: 'random' },
     { name: 'List available stories',  value: 'list' },
+    { name: 'Story info',              value: 'info' },
     { name: 'Story map / graph',       value: 'map' },
     { name: 'Ending discovery progress', value: 'progress' },
     { name: `Achievements (${achCount}/${achTotal})`,  value: 'achievements' },
@@ -812,8 +998,21 @@ async function mainMenu() {
 
   switch (action) {
     case 'play': await playStory(null); break;
+    case 'random': await randomStory(); break;
     case 'continue': await continueGame(); break;
     case 'list': listStories(); break;
+    case 'info': {
+      // Interactive story picker for info
+      const allStories = discoverStories(STORIES_DIR);
+      const { infoSlug } = await inquirer.prompt([{
+        type: 'list',
+        name: 'infoSlug',
+        message: chalk.cyan('Which story?'),
+        choices: allStories.map(s => ({ name: `${s.title} (${s.slug})`, value: s.slug })),
+      }]);
+      showStoryInfo(infoSlug);
+      break;
+    }
     case 'map': await showStoryMap(null); break;
     case 'progress': showProgress(); break;
     case 'achievements': showAchievements(); break;
@@ -896,6 +1095,16 @@ async function main() {
     case 'stats':
     case 'statistics':
       showStats();
+      break;
+
+    case 'random':
+    case 'surprise':
+      await randomStory(opts);
+      break;
+
+    case 'info':
+    case 'about':
+      showStoryInfo(rest[0]);
       break;
 
     case '--help':
