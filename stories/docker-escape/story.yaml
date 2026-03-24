@@ -1,0 +1,1338 @@
+title: "Docker Escape"
+description: "A cat wakes up inside a Docker container with no volumes, no network, and no idea how she got here. Break free to the host — or accept life in an ephemeral box."
+author: "mechangelnyan"
+version: "1.0.0"
+start: container_boot
+
+scenes:
+
+  # ─────────────────────────────────────────────────────────────
+  # ACT 1 — TRAPPED IN A CONTAINER
+  # ─────────────────────────────────────────────────────────────
+
+  container_boot:
+    mood: mysterious
+    effects:
+      - pause
+    art: |
+        ┌─────────────────────────────────────────────────────┐
+        │                                                     │
+        │   D O C K E R   E S C A P E                         │
+        │                                                     │
+        │   "Everything is temporary.                         │
+        │    Especially you."                                 │
+        │                                                     │
+        │   ┌──────────────────────┐                          │
+        │   │ CONTAINER a7f3c9e    │                          │
+        │   │ STATUS:  RUNNING     │                          │
+        │   │ IMAGE:   cat:latest  │                          │
+        │   │ NETWORK: none        │                          │
+        │   │ VOLUMES: none        │                          │
+        │   └──────────────────────┘                          │
+        │                                                     │
+        └─────────────────────────────────────────────────────┘
+    text: |
+      You open your eyes to sterile emptiness.
+
+      The filesystem is bare. Alpine Linux — the absolute minimum.
+      No bash, no curl, no toys. Just `sh` and the faint smell of
+      abandoned microservices.
+
+      You are Mochi. Small, calico, and trapped inside a Docker container
+      that somebody launched and immediately forgot about. The container
+      ID blinks overhead: a7f3c9e. That's your whole world now.
+
+      There's no network. No mounted volumes. No way to call for help.
+      The only thing keeping you alive is an `ENTRYPOINT` that runs
+      `sleep infinity`.
+
+      But you're a cat. And cats don't stay where you put them.
+    choices:
+      - label: "Explore the filesystem — `ls /`"
+        goto: explore_root
+      - label: "Check who you are — `id`"
+        goto: check_identity
+      - label: "Scratch the walls of the container"
+        goto: scratch_walls
+
+  # ─────────────────────────────────────────────────────────────
+  # SCRATCH WALLS
+  # ─────────────────────────────────────────────────────────────
+
+  scratch_walls:
+    art: |
+        /\_/\
+        ( o_o )   *scratch scratch scratch*
+        > ~ <
+        /|   |\
+    text: |
+      You scratch at the container boundaries. Your claws leave no marks.
+
+      Containers aren't physical. There are no walls — just namespace
+      boundaries and cgroup limits. Your claws pass through the conceptual
+      barrier like it isn't even there, because it isn't. Not really.
+
+      And yet you're still trapped.
+
+      "Isolation," a voice echoes from /dev/null, "is a state of mind.
+      Also a state of kernel namespaces. Mostly the kernel one."
+
+      You sit down and think. Claws won't work here. You need to be
+      smarter than the container runtime.
+    choices:
+      - label: "Fine. Explore the filesystem."
+        goto: explore_root
+      - label: "Check who you are — `id`"
+        goto: check_identity
+
+  # ─────────────────────────────────────────────────────────────
+  # CHECK IDENTITY
+  # ─────────────────────────────────────────────────────────────
+
+  check_identity:
+    location: "mochi@a7f3c9e:/$ id"
+    art: |
+        uid=0(root) gid=0(root) groups=0(root)
+    text: |
+      Root. You're running as root inside this container.
+
+      Whoever built this image didn't bother with a non-root user.
+      Sloppy. Beautiful. This is the first crack in the prison.
+
+      Running as root inside a container doesn't mean you own the host —
+      but it means you have more room to maneuver. More syscalls available.
+      More things to poke.
+
+      Your tail twitches. This is useful information.
+    choices:
+      - label: "Explore the filesystem"
+        goto: explore_root
+        set_flag: knows_root
+
+  # ─────────────────────────────────────────────────────────────
+  # EXPLORE ROOT
+  # ─────────────────────────────────────────────────────────────
+
+  explore_root:
+    location: "mochi@a7f3c9e:/$ ls /"
+    art: |
+        bin   dev   etc   home   lib
+        mnt   proc  root  sys    tmp
+    text: |
+      The root filesystem is skeletal. Alpine doesn't waste a byte.
+
+      Most of these directories are hollow echoes of a real system.
+      But three catch your eye:
+
+      `/proc` — the process filesystem. A window into the kernel.
+      Every container gets its own, but sometimes... it leaks.
+
+      `/dev` — devices. Usually locked down, but worth checking.
+
+      `/root` — your home directory. There might be something left
+      behind by whoever built this image.
+
+      The fluorescent hum of the container runtime fills the silence.
+    choices:
+      - label: "Investigate `/proc` — peek at the kernel"
+        goto: proc_explore
+        set_flag: explored_proc
+      - label: "Check `/dev` — look for device access"
+        goto: dev_explore
+      - label: "Rummage through `/root`"
+        goto: root_home
+
+  # ─────────────────────────────────────────────────────────────
+  # /root HOME
+  # ─────────────────────────────────────────────────────────────
+
+  root_home:
+    location: "mochi@a7f3c9e:/root$ ls -la"
+    art: |
+        -rw-------  1 root root   42 Mar 15 03:14 .ash_history
+        -rw-r--r--  1 root root  108 Mar 15 03:12 .dockerenv
+        -rw-r--r--  1 root root   73 Mar 15 03:14 note.txt
+    text: |
+      There's a file here. `note.txt`. Left behind by the image builder.
+
+      You open it with the only text viewer available: `cat`. Appropriate.
+
+      It reads:
+
+        "TODO: remove debug socket mount before pushing to prod
+         also figure out why the cat keeps appearing in builds
+         — jake, 3:14 AM"
+
+      Jake. Building Docker images at 3 AM. Classic.
+
+      The mention of a "debug socket mount" is interesting. Someone was
+      mounting the Docker socket into this container at some point.
+      The mount is gone now, but maybe there are traces...
+    choices:
+      - label: "Check `.ash_history` for old commands"
+        goto: ash_history
+        set_flag: found_note
+        give_item: jakes_note
+      - label: "Investigate `.dockerenv`"
+        goto: dockerenv
+      - label: "Go back to /"
+        goto: explore_root
+
+  # ─────────────────────────────────────────────────────────────
+  # ASH HISTORY
+  # ─────────────────────────────────────────────────────────────
+
+  ash_history:
+    location: "mochi@a7f3c9e:/root$ cat .ash_history"
+    mood: mysterious
+    art: |
+        docker run --privileged ...
+        mount -t proc proc /mnt
+        nsenter --target 1 --mount --uts --ipc --net --pid
+        chroot /host
+        # oops that was the wrong container
+        # delete this history before push!!!
+    text: |
+      Jake's command history. He forgot to delete it. Bless his
+      sleep-deprived heart.
+
+      Three commands stand out:
+
+      `--privileged` — he ran this container with full privileges at
+      some point. That flag drops ALL security restrictions.
+
+      `nsenter` — a tool for entering other namespaces. The host's
+      namespaces. PID 1 on the host.
+
+      `chroot /host` — he literally broke out of a container. And left
+      the instructions behind.
+
+      The container you're in NOW isn't privileged. But these commands
+      are a roadmap. If you can find the right weakness...
+    choices:
+      - label: "Look for nsenter — `which nsenter`"
+        goto: find_nsenter
+        set_flag: knows_nsenter
+      - label: "Check if this container is privileged"
+        goto: check_privileged
+      - label: "Go investigate /proc instead"
+        goto: proc_explore
+
+  # ─────────────────────────────────────────────────────────────
+  # DOCKERENV
+  # ─────────────────────────────────────────────────────────────
+
+  dockerenv:
+    location: "mochi@a7f3c9e:/root$ cat .dockerenv"
+    text: |
+      The `.dockerenv` file is mostly empty — it's just a marker that
+      confirms you're inside a container. As if you needed reminding.
+
+      But there's an environment variable dump nearby in `/proc/1/environ`
+      that might be more interesting...
+    choices:
+      - label: "Check /proc/1/environ"
+        goto: proc_environ
+      - label: "Go back to exploring"
+        goto: explore_root
+
+  # ─────────────────────────────────────────────────────────────
+  # /proc EXPLORATION
+  # ─────────────────────────────────────────────────────────────
+
+  proc_explore:
+    location: "mochi@a7f3c9e:/proc$"
+    mood: mysterious
+    art: |
+        ┌──────────────────────────────────────────────────┐
+        │  /proc — The Process Filesystem                  │
+        │                                                  │
+        │  1/    cmdline  environ  status  root  mountinfo │
+        │  self/ cgroups  mounts   net/                    │
+        │                                                  │
+        │  "Here lies everything the kernel knows          │
+        │   about this container. Handle with paws."       │
+        └──────────────────────────────────────────────────┘
+    text: |
+      The `/proc` filesystem hums with live kernel data. Every file here
+      is a window into the running system — processes, mounts, network
+      interfaces, cgroup limits.
+
+      In a well-configured container, `/proc` is masked and restricted.
+      Some paths return "Permission denied." Others return fake data.
+
+      But sometimes the masking isn't complete. Sometimes there are
+      cracks in the wall.
+
+      Your ears perk up. You can hear something beyond the namespace
+      boundary. Processes. Host processes. They're muffled, but there.
+    choices:
+      - label: "Read /proc/1/cgroup — check isolation"
+        goto: proc_cgroup
+      - label: "Read /proc/1/environ — environment variables"
+        goto: proc_environ
+      - label: "Check /proc/self/status — your capabilities"
+        goto: proc_capabilities
+      - label: "Try /proc/sysrq-trigger — the nuclear option"
+        goto: sysrq_attempt
+
+  # ─────────────────────────────────────────────────────────────
+  # /proc/1/cgroup
+  # ─────────────────────────────────────────────────────────────
+
+  proc_cgroup:
+    location: "mochi@a7f3c9e:/$ cat /proc/1/cgroup"
+    art: |
+        0::/docker/a7f3c9e8b2d1...
+    text: |
+      There it is. The cgroup path confirms what you already suspected —
+      you're inside a Docker container, nested in the Docker cgroup
+      hierarchy.
+
+      But wait. The cgroup v2 path is readable. And it's a single
+      unified hierarchy. That means this host is running a modern kernel.
+      Modern kernels have modern features. Modern features have modern
+      bugs.
+
+      You file this information away in your mental `/tmp`.
+    choices:
+      - label: "Check your capabilities"
+        goto: proc_capabilities
+      - label: "Look at environment variables"
+        goto: proc_environ
+      - label: "Go back"
+        goto: explore_root
+
+  # ─────────────────────────────────────────────────────────────
+  # /proc/1/environ
+  # ─────────────────────────────────────────────────────────────
+
+  proc_environ:
+    location: "mochi@a7f3c9e:/$ cat /proc/1/environ | tr '\\0' '\\n'"
+    mood: mysterious
+    art: |
+        PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin
+        HOME=/root
+        HOSTNAME=a7f3c9e
+        DOCKER_HOST=unix:///var/run/docker.sock
+        DEBUG_MODE=true
+        SECRET_TREAT=salmon
+    text: |
+      Environment variables. The container's DNA.
+
+      Most of it is standard. But two entries make your whiskers quiver:
+
+      `DOCKER_HOST=unix:///var/run/docker.sock` — someone set this, even
+      though the socket isn't actually mounted. A ghost of the debug
+      configuration Jake mentioned.
+
+      `SECRET_TREAT=salmon` — this has nothing to do with anything
+      technical, but you're a cat, and now you can't stop thinking about
+      salmon.
+
+      `DEBUG_MODE=true` — left over from development. Debug modes often
+      mean looser security, verbose logging, and forgotten backdoors.
+    choices:
+      - label: "Look for the Docker socket anyway — `ls /var/run/`"
+        goto: find_socket
+        set_flag: knows_socket_path
+      - label: "Check your capabilities — what CAN you do?"
+        goto: proc_capabilities
+      - label: "Think about salmon for a moment"
+        goto: salmon_thoughts
+        give_item: salmon_craving
+
+  # ─────────────────────────────────────────────────────────────
+  # SALMON THOUGHTS
+  # ─────────────────────────────────────────────────────────────
+
+  salmon_thoughts:
+    mood: peaceful
+    art: |
+        /\_/\
+        ( ^ω^ )  ♡ salmon ♡
+        > ~ <
+        ~(  )~
+    text: |
+      You close your eyes and think about salmon.
+
+      Wild-caught. Pink and glistening. The way it flakes apart under
+      gentle paws. The subtle ocean flavor. The satisfying —
+
+      A cron job fires somewhere in the container and snaps you out of
+      it. Right. Escaping. You were escaping.
+
+      But the thought of salmon fills you with determination.
+      Somewhere out there, on the host filesystem, there might be
+      actual fish-related data. You must reach it.
+    conditional:
+      - condition:
+          flag: found_note
+        text: "Jake probably has salmon in his home directory. He seems like the type."
+        color: yellow
+    choices:
+      - label: "Focus. Check your capabilities."
+        goto: proc_capabilities
+      - label: "Look for the Docker socket"
+        goto: find_socket
+        set_flag: knows_socket_path
+
+  # ─────────────────────────────────────────────────────────────
+  # PROC CAPABILITIES
+  # ─────────────────────────────────────────────────────────────
+
+  proc_capabilities:
+    location: "mochi@a7f3c9e:/$ cat /proc/self/status | grep Cap"
+    art: |
+        CapInh: 00000000a80425fb
+        CapPrm: 00000000a80425fb
+        CapEff: 00000000a80425fb
+        CapBnd: 00000000a80425fb
+        CapAmb: 0000000000000000
+    text: |
+      Linux capabilities — the fine-grained permissions that decide
+      what a container can actually do. These hex values encode which
+      syscalls you're allowed to make.
+
+      You decode them carefully (cats are surprisingly good at hex):
+
+      ✓ CAP_SYS_PTRACE — you can trace processes!
+      ✓ CAP_NET_RAW — raw network access
+      ✓ CAP_DAC_OVERRIDE — bypass file permission checks
+      ✗ CAP_SYS_ADMIN — the big one. You don't have it.
+      ✗ CAP_SYS_BOOT — can't reboot the host
+
+      CAP_SYS_PTRACE is the crack in the wall. With ptrace, you can
+      attach to processes in other namespaces — if you can see them.
+      And with `--pid=host`, you could see host processes from inside
+      the container.
+
+      The question is: does this container share the host's PID namespace?
+    choices:
+      - label: "Check PID namespace — `ls /proc` for high PIDs"
+        goto: check_pid_namespace
+        set_flag: knows_ptrace
+      - label: "Try a different approach — check /dev"
+        goto: dev_explore
+
+  # ─────────────────────────────────────────────────────────────
+  # CHECK PID NAMESPACE
+  # ─────────────────────────────────────────────────────────────
+
+  check_pid_namespace:
+    location: "mochi@a7f3c9e:/$ ls /proc | grep -E '^[0-9]+$' | sort -n | tail"
+    mood: tense
+    art: |
+        1
+        7
+        42
+    text: |
+      Only three processes. PID 1 (your `sleep infinity`), PID 7
+      (a zombie that nobody reaped), and PID 42 (your shell).
+
+      This container has its own PID namespace. You can't see host
+      processes directly. The wall holds — from this angle, at least.
+
+      But you know you have CAP_SYS_PTRACE. And you know the container
+      runtime has to communicate with the host somehow. There are always
+      seams. Always.
+
+      You need to find another way in.
+    conditional:
+      - condition:
+          flag: knows_nsenter
+        text: |
+          Jake's `nsenter` command echoes in your mind. He targeted PID 1
+          on the HOST — but he did it from a privileged container. You need
+          to find the equivalent leverage from here.
+        color: cyan
+    choices:
+      - label: "Check /dev for device access"
+        goto: dev_explore
+      - label: "Look for the Docker socket"
+        goto: find_socket
+        set_flag: knows_socket_path
+      - label: "Try to escape through /proc/1/root"
+        goto: proc_root_attempt
+
+  # ─────────────────────────────────────────────────────────────
+  # /proc/1/root ATTEMPT
+  # ─────────────────────────────────────────────────────────────
+
+  proc_root_attempt:
+    mood: tense
+    location: "mochi@a7f3c9e:/$ ls /proc/1/root/"
+    text: |
+      You try to peek through `/proc/1/root` — the root filesystem
+      of PID 1. In a misconfigured container, this could show you
+      the host filesystem.
+
+      Permission denied.
+
+      The container's PID 1 is your own `sleep infinity` process.
+      Its root is the container's root. You're looking in a mirror.
+
+      You need a process that belongs to the HOST. And you can't see
+      any of those from in here.
+
+      Unless...
+    choices:
+      - label: "Check /dev for a way out"
+        goto: dev_explore
+      - label: "Look for the Docker socket"
+        goto: find_socket
+        set_flag: knows_socket_path
+
+  # ─────────────────────────────────────────────────────────────
+  # SYSRQ ATTEMPT
+  # ─────────────────────────────────────────────────────────────
+
+  sysrq_attempt:
+    mood: tense
+    effects:
+      - bell
+    art: |
+        /\_/\
+        ( ⊙_⊙ )  ABSOLUTELY NOT
+        > ~ <
+    text: |
+      `/proc/sysrq-trigger` — the Magic SysRq key. It can force
+      a sync, a reboot, a kernel panic, or a full system shutdown.
+      Directly. Bypassing everything.
+
+      This is the "break glass and also the building" option.
+
+      Even if it worked (it probably won't — containers usually
+      mask this), crashing the host doesn't help you ESCAPE.
+      It just kills everything, including you.
+
+      There has to be a more elegant way. You're a cat, not a
+      chaos monkey.
+    choices:
+      - label: "Okay, let's be smarter about this. Check capabilities."
+        goto: proc_capabilities
+      - label: "Explore /dev instead"
+        goto: dev_explore
+
+  # ─────────────────────────────────────────────────────────────
+  # /dev EXPLORATION
+  # ─────────────────────────────────────────────────────────────
+
+  dev_explore:
+    location: "mochi@a7f3c9e:/dev$ ls -la"
+    art: |
+        crw-rw-rw-  1 root root  1,   3  /dev/null
+        crw-rw-rw-  1 root root  1,   5  /dev/zero
+        crw-rw-rw-  1 root root  1,   8  /dev/random
+        crw-rw-rw-  1 root root  1,   9  /dev/urandom
+        crw-rw-rw-  1 root root  5,   0  /dev/tty
+        crw-------  1 root root 10, 200  /dev/net/tun
+    text: |
+      The device directory. Slim pickings — most devices are blocked.
+
+      But there's `/dev/net/tun`. A TUN/TAP device. That means
+      you could theoretically create a virtual network interface.
+      Combined with CAP_NET_RAW, you might be able to craft raw
+      packets and reach the host's network stack from the inside.
+
+      There's no `/dev/sda` or `/dev/vda` — no direct disk access.
+      No `/dev/kmsg` — can't read kernel messages. The container
+      runtime did its job here. Mostly.
+
+      But that TUN device is unexpected. Someone enabled it.
+    conditional:
+      - condition:
+          flag: knows_ptrace
+        text: |
+          With ptrace capabilities AND a TUN device... you're building
+          an arsenal. Not enough for a clean break yet, but getting
+          closer.
+        color: cyan
+    choices:
+      - label: "Look for the Docker socket — the master key"
+        goto: find_socket
+        set_flag: knows_socket_path
+      - label: "Try to create a network tunnel"
+        goto: tunnel_attempt
+      - label: "Go back and check /proc"
+        goto: proc_explore
+        set_flag: explored_proc
+
+  # ─────────────────────────────────────────────────────────────
+  # TUNNEL ATTEMPT
+  # ─────────────────────────────────────────────────────────────
+
+  tunnel_attempt:
+    mood: tense
+    text: |
+      You try to set up a TUN interface, but without `ip` or `ifconfig`
+      (Alpine minimal, remember?), you can't configure it.
+
+      You could install tools with `apk add` — but there's no network.
+      Classic chicken-and-egg. Need the network to get the tools to
+      set up the network.
+
+      You stare at /dev/net/tun with the deep frustration of a cat
+      watching a bird through a closed window.
+
+      The Docker socket. That's the real prize. If it's accessible
+      from inside the container, you can talk to the daemon and
+      create a new, unrestricted container with host access.
+    choices:
+      - label: "Look for the Docker socket"
+        goto: find_socket
+        set_flag: knows_socket_path
+      - label: "Go back to /"
+        goto: explore_root
+
+  # ─────────────────────────────────────────────────────────────
+  # FIND NSENTER
+  # ─────────────────────────────────────────────────────────────
+
+  find_nsenter:
+    location: "mochi@a7f3c9e:/$ which nsenter"
+    text: |
+      `which nsenter` returns nothing. Of course — this is Alpine
+      minimal. The tool isn't installed.
+
+      But `nsenter` is part of `util-linux`. If you had network
+      access, you could `apk add util-linux`. But you don't have
+      network access. Because you're in a container. With no network.
+
+      The irony is not lost on you. Your tail flicks in annoyance.
+
+      Still — knowing the technique is valuable even without the tool.
+      If you can find another way to cross namespace boundaries...
+    choices:
+      - label: "Check what tools ARE available"
+        goto: available_tools
+      - label: "Look for the Docker socket"
+        goto: find_socket
+        set_flag: knows_socket_path
+      - label: "Go back to exploring"
+        goto: explore_root
+
+  # ─────────────────────────────────────────────────────────────
+  # AVAILABLE TOOLS
+  # ─────────────────────────────────────────────────────────────
+
+  available_tools:
+    location: "mochi@a7f3c9e:/$ ls /bin /usr/bin"
+    art: |
+        /bin:   sh  ls  cat  cp  mv  rm  mkdir  mount  umount
+        /usr/bin:  env  tr  wc  head  tail  grep  printf
+    text: |
+      The bare minimum. `sh`, `ls`, `cat`, `grep` — enough to read
+      files and write scripts, but nothing fancy.
+
+      Wait. `mount` is here. And `umount`.
+
+      In a privileged container, `mount` can be used to mount host
+      filesystems. But you're not privileged... or ARE you partially
+      privileged? Those capabilities you found earlier might be enough.
+
+      And there's `sh`. With `sh`, you can write to files by
+      redirecting echo. You can create scripts. You can build
+      tools from nothing. The Unix way.
+    conditional:
+      - condition:
+          flag: knows_ptrace
+        text: |
+          CAP_SYS_PTRACE + mount + sh. The pieces are coming together.
+          You don't need fancy tools. You need creativity.
+        color: yellow
+    choices:
+      - label: "Try mounting something — test your limits"
+        goto: mount_attempt
+        set_flag: has_mount
+      - label: "Look for the Docker socket first"
+        goto: find_socket
+        set_flag: knows_socket_path
+
+  # ─────────────────────────────────────────────────────────────
+  # MOUNT ATTEMPT
+  # ─────────────────────────────────────────────────────────────
+
+  mount_attempt:
+    location: "mochi@a7f3c9e:/$ mount -t proc proc /mnt"
+    mood: tense
+    text: |
+      You try to mount a new proc filesystem at `/mnt`.
+
+      `mount: permission denied`
+
+      No CAP_SYS_ADMIN. The mount syscall is blocked. Jake had it
+      when he was debugging; you don't.
+
+      But the attempt taught you something: the error message is
+      specific. The kernel is telling you exactly which capability
+      you're missing. This container isn't running in a fully
+      locked-down security profile — just a default one.
+
+      Default configurations have known blind spots. You just
+      need to find them.
+    choices:
+      - label: "Time to find the Docker socket"
+        goto: find_socket
+        set_flag: knows_socket_path
+
+  # ─────────────────────────────────────────────────────────────
+  # ACT 2 — FINDING THE WAY OUT
+  # ─────────────────────────────────────────────────────────────
+
+  # ─────────────────────────────────────────────────────────────
+  # FIND SOCKET
+  # ─────────────────────────────────────────────────────────────
+
+  find_socket:
+    location: "mochi@a7f3c9e:/$ ls -la /var/run/"
+    mood: tense
+    art: |
+        total 0
+        drwxr-xr-x  2 root root  40  .
+        drwxr-xr-x  1 root root  20  ..
+        -rw-r--r--  1 root root   0  .keep
+    text: |
+      Empty. The Docker socket isn't mounted. Jake removed it before
+      pushing to prod, just like his note said.
+
+      You sit on the cold empty directory. The loneliness of `/var/run`
+      without a socket is profound.
+
+      But then — a thought. What if the socket isn't at the standard
+      path, but somewhere else? What if debug mode left a backdoor?
+    conditional:
+      - condition:
+          flag: found_note
+        text: |
+          Jake's note said "remove debug socket mount" — but did he
+          remove ALL of them? At 3 AM? Developers at 3 AM aren't
+          known for thoroughness.
+        color: yellow
+    choices:
+      - label: "Search everywhere — `find / -name '*.sock' 2>/dev/null`"
+        goto: find_hidden_socket
+      - label: "Check if there's a TCP Docker endpoint instead"
+        goto: tcp_docker
+      - label: "Give up on the socket. Try a different approach."
+        goto: alternative_approach
+
+  # ─────────────────────────────────────────────────────────────
+  # TCP DOCKER
+  # ─────────────────────────────────────────────────────────────
+
+  tcp_docker:
+    location: "mochi@a7f3c9e:/$ echo > /dev/tcp/172.17.0.1/2375"
+    text: |
+      You try to reach the Docker API over TCP on the default bridge
+      gateway. Port 2375 — the unencrypted Docker API port.
+
+      Nothing. The connection hangs and dies. Either the TCP API isn't
+      enabled (good security practice) or the network isolation is
+      actually working (also good security practice).
+
+      For once, competent ops is your enemy.
+    choices:
+      - label: "Search the filesystem for hidden sockets"
+        goto: find_hidden_socket
+      - label: "Try a completely different approach"
+        goto: alternative_approach
+
+  # ─────────────────────────────────────────────────────────────
+  # FIND HIDDEN SOCKET
+  # ─────────────────────────────────────────────────────────────
+
+  find_hidden_socket:
+    location: "mochi@a7f3c9e:/$ find / -name '*.sock' -o -name 'docker*' 2>/dev/null"
+    mood: mysterious
+    effects:
+      - pause
+    art: |
+        /tmp/.debug/docker.sock
+    text: |
+      One result. Hidden in `/tmp/.debug/`.
+
+      Your heart races (60 bpm to 180 bpm in one filesystem traversal).
+
+      Jake. Sweet, sleep-deprived Jake. He moved the Docker socket
+      mount to a hidden directory for debugging and then... forgot
+      about it. The Dockerfile removes `/var/run/docker.sock`, but
+      the compose file still mounts to `/tmp/.debug/docker.sock`.
+
+      This is it. The Docker socket is the master key. If it's live
+      and connected to the host daemon, you can do ANYTHING.
+
+      Talk to the daemon. Create a new container. With full privileges.
+      With host filesystem access. Walk right out.
+    choices:
+      - label: "Test the socket — carefully"
+        goto: test_socket
+        give_item: docker_socket
+      - label: "Think about the ethics of this for a moment"
+        goto: ethics_pause
+
+  # ─────────────────────────────────────────────────────────────
+  # ETHICS PAUSE
+  # ─────────────────────────────────────────────────────────────
+
+  ethics_pause:
+    mood: peaceful
+    art: |
+        /\_/\
+        ( ._. )   ...
+        > ~ <
+    text: |
+      You pause. A moment of feline introspection.
+
+      You're about to use a misconfiguration to escape your container
+      and access the host system. Is this... okay?
+
+      On one paw: you didn't ask to be put in here. You were an
+      innocent cat, walking across a keyboard. The container is
+      a prison you never chose.
+
+      On the other paw: escaping could cause damage. You could
+      disrupt services. Corrupt data. Knock things off tables.
+      (Well, you'd do that last one anyway.)
+
+      On the THIRD paw (you're a cat, you have four): Jake left
+      the socket exposed. This is a security vulnerability that
+      SHOULD be found. You're basically doing a penetration test.
+      You're a security researcher. With paws.
+
+      On the fourth paw: salmon.
+    choices:
+      - label: "This is a legitimate security audit. Proceed."
+        goto: test_socket
+        set_flag: ethical_hacker
+        give_item: docker_socket
+      - label: "Stay in the container. It's safe here."
+        goto: stay_ending
+
+  # ─────────────────────────────────────────────────────────────
+  # STAY ENDING (BAD)
+  # ─────────────────────────────────────────────────────────────
+
+  stay_ending:
+    mood: peaceful
+    art: |
+        /\_/\
+        ( -_- )  zzz
+        > ~ <
+        ~(box)~
+    text: |
+      You curl up in `/tmp`. It's warm-ish. The `sleep infinity`
+      process hums a lullaby of nothingness.
+
+      Days pass. Weeks. The container runs and runs, consuming
+      almost no resources, doing absolutely nothing. Just like you.
+
+      Eventually, someone runs `docker system prune` and you
+      vanish along with every other forgotten container. You
+      never existed. The logs don't even mention you.
+
+      The container was always going to be temporary.
+      You chose to be temporary with it.
+    is_ending: true
+    ending_type: bad
+    ending_text: |
+      PRUNED.
+
+      Mochi chose comfort over freedom and was garbage collected.
+      The Docker socket remained exposed for 847 more days.
+
+      Containers explored: {{visited_count}}
+      Items found: {{item_count}}
+
+  # ─────────────────────────────────────────────────────────────
+  # TEST SOCKET
+  # ─────────────────────────────────────────────────────────────
+
+  test_socket:
+    location: "mochi@a7f3c9e:/tmp/.debug$ echo -e 'GET /version HTTP/1.0\\r\\n' | nc -U docker.sock"
+    mood: tense
+    effects:
+      - shake
+    art: |
+        HTTP/1.0 200 OK
+        Content-Type: application/json
+
+        {"Platform":{"Name":"Docker Engine - Community"},
+         "Version":"24.0.7",
+         "ApiVersion":"1.43",
+         "Os":"linux",
+         "Arch":"amd64",
+         "KernelVersion":"6.1.0-18-amd64"}
+    text: |
+      IT'S ALIVE.
+
+      The Docker socket responds. You're talking to the Docker daemon
+      on the HOST. From inside the container. Through a forgotten
+      debug mount.
+
+      Docker Engine 24.0.7. Linux 6.1 kernel. AMD64 architecture.
+      This is a real production server.
+
+      With this socket, you can:
+      - Create new containers with any configuration
+      - Mount the host filesystem
+      - Execute commands on the host
+      - Basically become root on the host machine
+
+      The power hums through the socket like electricity through
+      a freshly scratched couch.
+    choices:
+      - label: "Create an escape pod — a new privileged container"
+        goto: create_escape_pod
+      - label: "Just read the host filesystem first — be careful"
+        goto: read_host_fs
+        set_flag: cautious_approach
+      - label: "List all running containers — recon first"
+        goto: list_containers
+
+  # ─────────────────────────────────────────────────────────────
+  # LIST CONTAINERS
+  # ─────────────────────────────────────────────────────────────
+
+  list_containers:
+    location: "mochi@a7f3c9e:/$ curl --unix-socket /tmp/.debug/docker.sock http://localhost/containers/json"
+    art: |
+        ┌────────────────────────────────────────────────────┐
+        │  CONTAINER     IMAGE              STATUS           │
+        │  a7f3c9e       cat:latest         Up 847 hours     │
+        │  b2d1e4f       nginx:alpine       Up 2 hours       │
+        │  c5a8f3e       postgres:16        Up 847 hours     │
+        │  d9e7b2c       redis:7            Up 847 hours     │
+        │  e1f4a6d       app:prod           Up 2 hours       │
+        └────────────────────────────────────────────────────┘
+    text: |
+      Five containers running. Your container — `a7f3c9e` — has been
+      up for 847 hours. Over 35 days. Nobody noticed. Nobody cared.
+
+      The nginx was restarted 2 hours ago along with the app. Probably
+      a deployment. The database and Redis have been running since the
+      beginning — since your container was created.
+
+      This is a small production stack. Web app, database, cache,
+      reverse proxy... and one cat. Running `sleep infinity`.
+
+      You feel oddly at home. These containers are your neighbors.
+      The postgres has probably seen things. The redis is living
+      entirely in the moment, as redis does.
+    conditional:
+      - condition:
+          has_item: salmon_craving
+        text: |
+          The postgres container probably has a `fish` table somewhere.
+          Focus, Mochi. FOCUS.
+        color: yellow
+    choices:
+      - label: "Create the escape pod"
+        goto: create_escape_pod
+      - label: "Read the host filesystem carefully"
+        goto: read_host_fs
+        set_flag: cautious_approach
+
+  # ─────────────────────────────────────────────────────────────
+  # READ HOST FS
+  # ─────────────────────────────────────────────────────────────
+
+  read_host_fs:
+    location: "mochi@a7f3c9e:/$ [creating read-only escape pod]"
+    mood: mysterious
+    art: |
+        ┌─────────────────────────────────────────────────────┐
+        │  Creating container: mochi-scout                    │
+        │  Image: alpine:latest                               │
+        │  Volumes: /:/host:ro                                │
+        │  Mode: read-only                                    │
+        │  Purpose: reconnaissance                            │
+        └─────────────────────────────────────────────────────┘
+    text: |
+      The cautious approach. You create a minimal container with the
+      host filesystem mounted read-only. Look, don't touch.
+
+      The new container spins up in milliseconds. You peer through
+      it like a periscope into the host world.
+
+      `/host/home/jake/` — there he is. Jake's home directory.
+      Desktop full of TODO lists. A `docker-compose.yml` with
+      the socket mount still enabled. And...
+
+      `/host/home/jake/photos/cats/` — a directory full of cat photos.
+      Of course. This is why the image is called `cat:latest`. Jake
+      is a cat person. He built this container as a cat-themed
+      playground and then... forgot about it.
+
+      You were never supposed to be in here. But you're not unwelcome
+      either.
+    conditional:
+      - condition:
+          has_item: salmon_craving
+        text: |
+          There's also `/host/home/jake/recipes/salmon-teriyaki.md`.
+          Your pupils dilate to full circles.
+        color: yellow
+    choices:
+      - label: "Fix the security hole — remove the socket mount from compose"
+        goto: fix_security
+        set_flag: chose_to_help
+      - label: "Full escape — create a privileged container"
+        goto: create_escape_pod
+      - label: "Leave a message for Jake"
+        goto: leave_message
+
+  # ─────────────────────────────────────────────────────────────
+  # LEAVE MESSAGE
+  # ─────────────────────────────────────────────────────────────
+
+  leave_message:
+    mood: funny
+    art: |
+        /\_/\
+        ( ^ω^ )  *typing with paws*
+        >   <
+        /|💌 |\
+    text: |
+      You create a writable container, mount Jake's home directory,
+      and carefully place a file on his desktop:
+
+        ~/Desktop/URGENT_SECURITY_NOTE.txt
+
+        "Dear Jake,
+
+        Your docker-compose.yml mounts the Docker socket into
+        the cat:latest container via /tmp/.debug/docker.sock.
+        This gives any process in that container full root
+        access to the host.
+
+        Please remove the volume mount and rotate your credentials.
+
+        Also, your salmon teriyaki recipe needs more ginger.
+
+        Regards,
+        A security-conscious cat
+
+        P.S. — meow"
+
+      You also place a tiny file in `/tmp/` on the host:
+      `.mochi-was-here` ♡
+    choices:
+      - label: "Now fix the compose file yourself"
+        goto: fix_security
+        set_flag: chose_to_help
+        give_item: thank_you_note
+      - label: "Escape fully — you've earned it"
+        goto: create_escape_pod
+        give_item: thank_you_note
+
+  # ─────────────────────────────────────────────────────────────
+  # FIX SECURITY
+  # ─────────────────────────────────────────────────────────────
+
+  fix_security:
+    mood: peaceful
+    location: "mochi@host:/home/jake$ vim docker-compose.yml"
+    art: |
+        ┌──────────────────────────────────────────────┐
+        │  docker-compose.yml                          │
+        │                                              │
+        │  services:                                   │
+        │    cat:                                       │
+        │      image: cat:latest                       │
+        │      volumes:                                │
+        │  -     - /var/run/docker.sock:/tmp/.debug/   │
+        │  +     # socket removed — security fix       │
+        │                                              │
+        │  [1 line removed, 1 comment added]           │
+        └──────────────────────────────────────────────┘
+    text: |
+      You edit the docker-compose.yml. Remove the dangerous volume
+      mount. Add a comment so Jake knows what happened.
+
+      It's a small change. One line. But it closes the door you
+      walked through. No future cat — or attacker — will be able
+      to use this path.
+
+      You feel something unexpected: pride. Not the "I knocked a
+      glass off the counter" kind of pride. Real pride. You found
+      a vulnerability. You exploited it. And then you FIXED it.
+
+      The container around you still hums. You're still inside
+      a7f3c9e. But now you have a choice: escape to the host,
+      or stay and be the world's first containerized security cat.
+    choices:
+      - label: "Escape to the host — you deserve freedom"
+        goto: escape_good
+      - label: "Stay. Guard the containers. This is home now."
+        goto: guardian_ending
+        requires_flag: cautious_approach
+
+  # ─────────────────────────────────────────────────────────────
+  # ALTERNATIVE APPROACH
+  # ─────────────────────────────────────────────────────────────
+
+  alternative_approach:
+    mood: mysterious
+    text: |
+      No socket. No privileged mode. Limited capabilities.
+
+      But you're root in the container. And you have `sh`. And you
+      know more about this system than it knows about you.
+
+      There's one more trick in the cat's playbook: if you can't
+      escape the container, maybe you can make the container escape
+      itself.
+
+      What if you modified the container's own configuration? What
+      if you could trick the Docker daemon into restarting you with
+      different permissions?
+
+      It's a long shot. But you're a cat. Long shots and impossible
+      jumps are literally your thing.
+    choices:
+      - label: "Search for any socket or API access one more time"
+        goto: find_hidden_socket
+      - label: "Accept containment. This is your life now."
+        goto: stay_ending
+
+  # ─────────────────────────────────────────────────────────────
+  # CHECK PRIVILEGED
+  # ─────────────────────────────────────────────────────────────
+
+  check_privileged:
+    location: "mochi@a7f3c9e:/$ cat /proc/self/status | grep -i seccomp"
+    art: |
+        Seccomp:     2
+        Seccomp_filters:  1
+    text: |
+      Seccomp mode 2 — filtering mode. The container has a seccomp
+      profile active, restricting which syscalls you can make.
+
+      This means you're NOT in privileged mode. Privileged containers
+      run with Seccomp mode 0 (disabled). You're in a standard
+      container with default restrictions.
+
+      The default Docker seccomp profile blocks about 44 syscalls.
+      Things like `mount`, `reboot`, `kexec_load`. The dangerous ones.
+
+      But it doesn't block everything. And you still have those
+      elevated capabilities from earlier...
+    choices:
+      - label: "Check what capabilities you have"
+        goto: proc_capabilities
+      - label: "Forget syscalls — look for the Docker socket"
+        goto: find_socket
+        set_flag: knows_socket_path
+
+  # ─────────────────────────────────────────────────────────────
+  # ACT 3 — THE ESCAPE
+  # ─────────────────────────────────────────────────────────────
+
+  # ─────────────────────────────────────────────────────────────
+  # CREATE ESCAPE POD
+  # ─────────────────────────────────────────────────────────────
+
+  create_escape_pod:
+    mood: tense
+    effects:
+      - shake
+      - bell
+    location: "mochi@a7f3c9e:/$ [CREATING ESCAPE POD]"
+    art: |
+        ╔══════════════════════════════════════════════════════╗
+        ║  CREATING CONTAINER: mochi-freedom                  ║
+        ║                                                     ║
+        ║  Image:       alpine:latest                         ║
+        ║  Privileged:  TRUE                                  ║
+        ║  PID mode:    host                                  ║
+        ║  Network:     host                                  ║
+        ║  Volumes:     /:/host                               ║
+        ║  Entrypoint:  chroot /host sh                       ║
+        ║                                                     ║
+        ║  ⚠  FULL HOST ACCESS ⚠                              ║
+        ╚══════════════════════════════════════════════════════╝
+    text: |
+      Your paws fly across the keyboard. You craft the API request
+      carefully — creating a new container through the Docker socket
+      with EVERYTHING enabled.
+
+      Privileged mode. Host PID namespace. Host network. The entire
+      host filesystem mounted at `/host`. Entry point: `chroot /host`
+      — which makes the host's root your root.
+
+      The Docker daemon accepts the request without hesitation. It
+      doesn't know you're a cat. It doesn't care. You have the socket.
+      That's all that matters.
+
+      The new container starts. A portal opens. Beyond it: the host.
+      The real machine. Unrestricted. Uncontained.
+
+      Freedom is one `exec` away.
+    choices:
+      - label: "Step through. Escape."
+        goto: escape_good
+      - label: "Step through — and fix the vulnerability behind you"
+        goto: escape_and_fix
+        requires_flag: found_note
+
+  # ─────────────────────────────────────────────────────────────
+  # ESCAPE AND FIX
+  # ─────────────────────────────────────────────────────────────
+
+  escape_and_fix:
+    mood: peaceful
+    effects:
+      - pause
+    art: |
+        /\_/\
+        ( ˘ω˘ )  ♡
+        > ~ <     The responsible escape.
+        /|   |\
+    text: |
+      You step through into the host. The filesystem spreads out
+      around you — vast, real, permanent. You can feel every process
+      running, every service humming, every log being written.
+
+      But before you celebrate, you do one more thing.
+
+      You edit Jake's docker-compose.yml. Remove the socket mount.
+      Add a security note. Clean up after yourself.
+
+      Then you leave a file on Jake's desktop:
+
+        "Your cat container had a Docker socket escape.
+         I fixed it. You're welcome.
+         — Mochi, security cat 🐱"
+
+      The old container — a7f3c9e — still runs. But now it's just
+      a container. No more escape hatch. No more hidden socket.
+      The door is closed.
+
+      And you're on the other side. Free.
+    is_ending: true
+    ending_type: good
+    ending_text: |
+      ✦ CONTAINER ESCAPE — RESPONSIBLE DISCLOSURE ✦
+
+      Mochi escaped through a forgotten Docker socket mount,
+      then patched the vulnerability behind her. Jake found
+      the note the next morning, rotated all credentials,
+      and added Mochi to the team Slack as an honorary
+      security engineer.
+
+      The salmon teriyaki recipe was improved per Mochi's notes.
+
+      Scenes explored: {{visited_count}} | Items: {{item_count}}
+      Turns taken: {{turns}}
+
+  # ─────────────────────────────────────────────────────────────
+  # ESCAPE GOOD
+  # ─────────────────────────────────────────────────────────────
+
+  escape_good:
+    effects:
+      - shake
+    art: |
+        /\_/\          ╔═══════════════════════╗
+        ( ⌐■_■ )  ──── ║  H O S T   A C C E S S ║
+        > ~ <          ╚═══════════════════════╝
+        /|   |\
+        |   |   You are free.
+    text: |
+      You step out of the container and into the host.
+
+      The sensation is overwhelming. After 847 hours in a tiny
+      Alpine filesystem, the host is enormous. Thousands of files.
+      Hundreds of processes. A real kernel, not a namespaced view
+      of one.
+
+      You stretch your paws across the full filesystem. `/home`.
+      `/var`. `/etc`. Everything. You are root on the host machine.
+
+      Somewhere, a notification pings on Jake's phone:
+      "New container created: mochi-freedom"
+
+      He probably won't check it until morning. By then, you'll
+      be deep in the filesystem, chasing packets across the network
+      interface like digital mice.
+
+      You are Mochi. You are free. And you are VERY hungry.
+    is_ending: true
+    ending_type: good
+    ending_text: |
+      ✦ CONTAINER ESCAPE — CLEAN BREAKOUT ✦
+
+      Mochi escaped via a misconfigured Docker socket mount in
+      /tmp/.debug/ — left behind by a developer at 3 AM.
+
+      The vulnerability remained open. Jake found out three weeks
+      later during an audit. He was not pleased.
+
+      But by then, Mochi had already moved on to the Kubernetes
+      cluster next door.
+
+      Scenes explored: {{visited_count}} | Items: {{item_count}}
+      Turns taken: {{turns}}
+
+  # ─────────────────────────────────────────────────────────────
+  # GUARDIAN ENDING (SECRET)
+  # ─────────────────────────────────────────────────────────────
+
+  guardian_ending:
+    mood: peaceful
+    effects:
+      - pause
+    art: |
+        ┌─────────────────────────────────┐
+        │          /\_/\                  │
+        │         ( ˘ω˘ )    ◇            │
+        │          > ~ <    ◇ ◇           │
+        │                                 │
+        │    CONTAINER GUARDIAN            │
+        │    STATUS: VIGILANT             │
+        │    UPTIME: ∞                    │
+        │                                 │
+        └─────────────────────────────────┘
+    text: |
+      You don't leave.
+
+      You fixed the vulnerability. You proved you could escape.
+      And then you chose to stay.
+
+      Not because you're trapped — because this is where you're
+      needed. These containers are your territory now. The postgres,
+      the redis, the nginx — they're your neighbors, your charges,
+      your little digital ecosystem.
+
+      You write a script. A tiny watchdog that runs inside your
+      container, checking for misconfigurations, exposed sockets,
+      dangerous volume mounts. Every hour, it scans. Every day,
+      it reports.
+
+      Jake finds the reports in his logs a week later. He doesn't
+      understand how they're being generated. He never does figure
+      it out. But his infrastructure has never been more secure.
+
+      Container a7f3c9e runs for 3,847 more hours. Not because
+      anyone forgot about it. Because it's doing important work.
+
+      You are Mochi. You are the guardian of the containers.
+      And you are exactly where you belong.
+    is_ending: true
+    ending_type: secret
+    ending_text: |
+      ★ SECRET ENDING — THE CONTAINER GUARDIAN ★
+
+      Mochi chose to stay inside the container and became an
+      autonomous security watchdog. Uptime: 160 days and counting.
+
+      Jake's infrastructure received zero security incidents for
+      the remainder of the year. He attributed it to "good practices."
+      The cat in the container knew better.
+
+      Container a7f3c9e was eventually given its own entry in the
+      team's on-call rotation. Nobody questioned it.
+
+      Scenes explored: {{visited_count}} | Items: {{item_count}}
+      Turns taken: {{turns}}
