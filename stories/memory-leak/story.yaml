@@ -1,0 +1,1505 @@
+title: "Memory Leak"
+description: "You are Nibble, a tiny cat living in a program's heap. Memory is being allocated but never freed — and the OOM killer is coming. Find the leak before everything gets reclaimed."
+author: "mechangelnyan"
+version: "1.0.0"
+start: heap_awakening
+
+scenes:
+
+  # ═══════════════════════════════════════════════════════════
+  # ACT 1 — THE HEAP
+  # ═══════════════════════════════════════════════════════════
+
+  heap_awakening:
+    mood: mysterious
+    effects:
+      - pause
+    art: |
+      ┌─────────────────────────────────────────────────────┐
+      │                                                     │
+      │   M E M O R Y   L E A K                             │
+      │                                                     │
+      │   "malloc() called 4,219 times.                     │
+      │    free() called... 12."                            │
+      │                                                     │
+      │   ┌──────────┐ ┌──────────┐ ┌──────────┐           │
+      │   │ 0x7f3a01 │ │ 0x7f3a02 │ │ 0x7f3a03 │           │
+      │   │ ALLOC'D  │ │ ALLOC'D  │ │ ALLOC'D  │           │
+      │   │ 64 bytes │ │ 128 byte │ │ LEAKED   │           │
+      │   └──────────┘ └──────────┘ └──────────┘           │
+      │                                                     │
+      │          RSS: 3.2 GB / 4 GB limit                   │
+      │          ████████████████████░░░░░  80%             │
+      │                                                     │
+      └─────────────────────────────────────────────────────┘
+    text: |
+      You wake up on a warm block of allocated memory.
+
+      Around you, the heap stretches in every direction — a landscape
+      of memory blocks stacked like boxes in an endless warehouse.
+      Some are neatly labeled. Most are not. And they're growing.
+
+      You are Nibble. A small gray cat with one white paw. You've lived
+      in this program's address space for as long as you can remember,
+      which — given the circumstances — might not be very long at all.
+
+      Something is wrong. The heap is swelling. New allocations appear
+      every few seconds, but nothing ever gets freed. The blocks pile
+      up like digital snowdrifts, and somewhere far above, the memory
+      limit looms: 4 gigabytes. You can feel the ceiling pressing down.
+
+      A tremor runs through the heap. The OOM killer is waking up.
+      When the limit hits, it won't care who lives here. It will kill
+      the entire process. Including you.
+
+      You need to find the leak.
+    choices:
+      - label: "Climb a tall allocation block and survey the heap"
+        goto: survey_heap
+      - label: "Sniff the nearest memory block — what's inside?"
+        goto: sniff_block
+      - label: "Follow the allocation trail — where are new blocks coming from?"
+        goto: allocation_trail
+
+  # ═══════════════════════════════════════════════════════════
+  # SURVEY THE HEAP
+  # ═══════════════════════════════════════════════════════════
+
+  survey_heap:
+    mood: tense
+    art: |
+      ┌────────────────────────────────┐
+      │      ┌────┐                    │
+      │   ┌──┤LEAK├──┐                │
+      │   │64B    256B│   1K           │
+      │   └──┴────┴───┘               │
+      └────────────────────────────────┘
+         ~~~~ THE HEAP LANDSCAPE ~~~~
+    text: |
+      You scramble up a 4096-byte allocation — a page-aligned chunk
+      that gives you a view of the surrounding heap.
+
+      To the north, a dense cluster of identical 128-byte blocks
+      stretches toward the horizon. They all look the same. No
+      references point to them. Orphans. That's suspicious.
+
+      To the east, the program's string pool shimmers — properly
+      managed, reference-counted, boring. Not the leak.
+
+      To the south, something huge. A single allocation that keeps
+      growing: a buffer that nobody bounds-checks. It swallows
+      memory in gulps.
+
+      To the west, the stack frames flicker like a strobe light.
+      The program is in a hot loop, calling something over and over.
+
+      The tremor comes again. Stronger this time.
+    choices:
+      - label: "Head north — investigate the orphaned blocks"
+        goto: orphan_blocks
+        set_flag: saw_orphans
+      - label: "Go south — examine the growing buffer"
+        goto: growing_buffer
+        set_flag: saw_buffer
+      - label: "Go west — watch the hot loop"
+        goto: hot_loop
+
+  # ═══════════════════════════════════════════════════════════
+  # SNIFF BLOCK
+  # ═══════════════════════════════════════════════════════════
+
+  sniff_block:
+    art: |
+      /\_/\
+      ( o.o )  *sniff sniff*
+       > ~ <
+      /|   |\   ┌──────────────┐
+                │ 0xDEADBEEF   │
+                │ ref_count: 0 │
+                │ type: ???    │
+                └──────────────┘
+    text: |
+      You press your nose against the nearest memory block.
+
+      It smells like... JSON. Layers of nested objects, parsed and
+      re-parsed, each copy slightly different from the last. Somebody
+      is deserializing the same API response over and over, and each
+      time, the old copy just... stays. Nobody frees it. Nobody even
+      remembers it exists.
+
+      The block's header reads: ref_count: 0. Zero references. This
+      memory is an orphan — allocated, abandoned, forgotten. A ghost
+      in the heap.
+
+      You notice scratch marks on its side. Another cat was here.
+      Recently.
+    choices:
+      - label: "Follow the scratch marks"
+        goto: follow_scratches
+        set_flag: found_scratches
+        give_item: orphan_address
+      - label: "Climb higher to get a better view"
+        goto: survey_heap
+      - label: "Look for the function that created this block"
+        goto: allocation_trail
+
+  # ═══════════════════════════════════════════════════════════
+  # FOLLOW SCRATCHES
+  # ═══════════════════════════════════════════════════════════
+
+  follow_scratches:
+    mood: mysterious
+    art: |
+      ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+        /\_/\    /\_/\    /\_/\
+       ( ?.? )  ( ?.? )  ( ?.? )
+        claw     claw     claw
+         marks    marks    marks
+      ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    text: |
+      The scratch marks weave between memory blocks like a trail of
+      breadcrumbs — or claw marks. They lead deeper into the heap,
+      past increasingly ancient allocations that haven't been touched
+      in thousands of CPU cycles.
+
+      Eventually, you find her. A scruffy orange tabby curled up on
+      a leaked 2MB buffer. She opens one eye.
+
+      "Oh. Another one." She stretches. "I'm Dangling. Dangling
+      Pointer. Been here since version 2.3. The developers think
+      they freed me, but they only nulled the wrong reference."
+
+      She yawns. "You're looking for the leak? There are three of them,
+      actually. The big one is in the event loop — a closure that
+      captures everything and never lets go. Classic JavaScript."
+    choices:
+      - label: "\"Can you show me where the event loop leak is?\""
+        goto: dangling_guides
+        set_flag: met_dangling
+        give_item: heap_map
+      - label: "\"Three leaks? Tell me about all of them.\""
+        goto: three_leaks
+        set_flag: met_dangling
+        give_item: heap_map
+      - label: "\"How do we fix it before the OOM killer comes?\""
+        goto: oom_urgency
+        set_flag: met_dangling
+
+  # ═══════════════════════════════════════════════════════════
+  # DANGLING GUIDES
+  # ═══════════════════════════════════════════════════════════
+
+  dangling_guides:
+    mood: tense
+    text: |
+      Dangling hops off her buffer and shakes herself. "Follow me.
+      Stay close — the heap is shifting. New allocations come in
+      every few milliseconds and the layout changes."
+
+      She leads you through narrow gaps between memory blocks, past
+      a cache that's clearly oversized (but at least it has an LRU
+      eviction policy — it's not the problem), and around a memory-mapped
+      file that nobody bothered to munmap.
+
+      "There." She stops at the edge of a vast clearing. "The event
+      loop. See those closures?"
+
+      You see them. Hundreds of callback functions, each one clinging
+      to a reference to the outer scope. They capture the request
+      object, the response object, the database connection, the
+      entire configuration — everything. And they never execute.
+      They're just... waiting. Forever.
+
+      "Each tick of the loop creates a new one. But the old ones
+      never get garbage collected because they're still referenced
+      by a timer that nobody cancels."
+
+      The heap groans. RSS: 3.6 GB.
+    choices:
+      - label: "Try to cancel the timer — clearInterval(leakyTimer)"
+        goto: cancel_timer
+        set_flag: found_closure_leak
+      - label: "Trace the reference chain — find what's holding them"
+        goto: trace_references
+        set_flag: found_closure_leak
+      - label: "This is too big. Look for the other leaks first."
+        goto: three_leaks
+
+  # ═══════════════════════════════════════════════════════════
+  # THREE LEAKS
+  # ═══════════════════════════════════════════════════════════
+
+  three_leaks:
+    art: |
+      ┌─── THE THREE LEAKS ────────────────┐
+      │                                     │
+      │  1. Event Loop Closures             │
+      │     Callbacks capture everything    │
+      │     Timer never cleared             │
+      │                                     │
+      │  2. Cache Without Eviction          │
+      │     Global map, keys never deleted  │
+      │     Grows with every request        │
+      │                                     │
+      │  3. Unclosed Connections            │
+      │     DB pool exhausted               │
+      │     Connections allocated, never    │
+      │     returned to pool                │
+      │                                     │
+      └─────────────────────────────────────┘
+    text: |
+      Dangling sits down and wraps her tail around her paws.
+
+      "Leak one: the event loop. Closures that capture the entire
+      scope, kept alive by an interval timer nobody cancels. That's
+      the biggest one — it's eating about 50MB every minute.
+
+      Leak two: a global cache object. It's a Map that stores
+      processed results, but nothing ever deletes old entries. Every
+      unique request adds a key, and the keys never expire. It's
+      growing linearly. Slower, but relentless.
+
+      Leak three: database connections. The pool creates new ones
+      when it runs out, but the old connections are never returned.
+      Eventually the pool stops working entirely, but the memory
+      for the dead connections stays allocated."
+
+      She looks at you. "You can't fix them all. Not before the
+      OOM killer wakes. Pick the biggest one. That'll buy us time."
+
+      RSS: 3.7 GB. Tick, tick, tick.
+    choices:
+      - label: "Fix the event loop closures — the biggest leak"
+        goto: cancel_timer
+        set_flag: found_closure_leak
+      - label: "Fix the cache — add an eviction policy"
+        goto: fix_cache
+        set_flag: found_cache_leak
+      - label: "Fix the connections — return them to the pool"
+        goto: fix_connections
+        set_flag: found_connection_leak
+
+  # ═══════════════════════════════════════════════════════════
+  # OOM URGENCY
+  # ═══════════════════════════════════════════════════════════
+
+  oom_urgency:
+    mood: tense
+    effects:
+      - shake
+    text: |
+      Dangling's ears flatten. "The OOM killer? It doesn't negotiate.
+      When RSS hits the cgroup limit, the kernel sends SIGKILL. No
+      cleanup. No graceful shutdown. No second chances."
+
+      She looks up at the ceiling — the memory limit — and you can
+      almost see it pressing down.
+
+      "We have maybe ten minutes of wall-clock time. Less if the
+      request rate spikes. The biggest leak is in the event loop —
+      closures piling up every tick. If you can break the reference
+      chain, the garbage collector can sweep them. That buys us the
+      most time."
+
+      "But listen — even if you fix one leak, the others are still
+      dripping. You need a real fix. Someone on the outside needs to
+      deploy a patch."
+    choices:
+      - label: "Let's fix the event loop closures first"
+        goto: cancel_timer
+        set_flag: found_closure_leak
+      - label: "Is there a way to signal the developers?"
+        goto: signal_outside
+        set_flag: knows_signal
+
+  # ═══════════════════════════════════════════════════════════
+  # ALLOCATION TRAIL
+  # ═══════════════════════════════════════════════════════════
+
+  allocation_trail:
+    mood: tense
+    art: |
+      malloc(128) -> 0x7f3a00
+      malloc(128) -> 0x7f3a80
+      malloc(128) -> 0x7f3b00
+      malloc(128) -> 0x7f3b80
+      malloc(128) -> 0x7f3c00
+      malloc(128) -> ...
+      malloc(128) -> ...
+      malloc(128) -> ...
+    text: |
+      You follow the trail of fresh allocations — warm to the touch,
+      recently created. They lead to a function deep in the call stack,
+      a request handler that runs on every incoming HTTP request.
+
+      The function allocates a 128-byte buffer for each request, parses
+      some JSON into it, processes the result... and then returns.
+      Without freeing the buffer. Without storing a reference. The
+      pointer just... vanishes.
+
+      The buffers remain. Millions of them. Each one a tiny 128-byte
+      tombstone marking a request that was served and forgotten, but
+      whose memory lives on forever.
+
+      It's almost poetic. Almost. If the OOM killer weren't breathing
+      down your neck.
+    choices:
+      - label: "Trace this function's callers — who invokes it?"
+        goto: trace_callers
+        set_flag: found_alloc_trail
+      - label: "Climb up for a broader view of the heap"
+        goto: survey_heap
+      - label: "Look for other cats who might know more"
+        goto: follow_scratches
+        condition:
+          not_flag: found_scratches
+
+  # ═══════════════════════════════════════════════════════════
+  # TRACE CALLERS
+  # ═══════════════════════════════════════════════════════════
+
+  trace_callers:
+    text: |
+      You follow the call chain upward through the stack frames:
+
+        handleRequest()
+          -> parseBody()
+            -> processPayload()
+              -> transformData()    <-- leak here!
+
+      transformData() creates a temporary buffer, copies data into it,
+      transforms it in place, then copies the result to the response
+      buffer. But the temporary buffer is never freed. Every. Single.
+      Time.
+
+      Worse — transformData() is called three times per request. Three
+      leaked buffers per request, times ten thousand requests per second.
+      That's 3.6 megabytes per second of pure, distilled memory leak.
+
+      No wonder the heap is drowning.
+    choices:
+      - label: "This is the main leak. Try to patch transformData()"
+        goto: patch_transform
+        set_flag: found_transform_leak
+      - label: "There might be other leaks too. Keep investigating."
+        goto: survey_heap
+
+  # ═══════════════════════════════════════════════════════════
+  # ORPHAN BLOCKS
+  # ═══════════════════════════════════════════════════════════
+
+  orphan_blocks:
+    mood: mysterious
+    art: |
+      ┌──────┐ ┌──────┐ ┌──────┐ ┌──────┐
+      │ 128B │ │ 128B │ │ 128B │ │ 128B │
+      │ ref:0│ │ ref:0│ │ ref:0│ │ ref:0│
+      │ dead │ │ dead │ │ dead │ │ dead │
+      └──────┘ └──────┘ └──────┘ └──────┘
+      ┌──────┐ ┌──────┐ ┌──────┐ ┌──────┐
+      │ 128B │ │ 128B │ │ 128B │ │ 128B │
+      │ ref:0│ │ ref:0│ │ ref:0│ │ ref:0│
+      │ dead │ │ dead │ │ dead │ │ dead │
+      └──────┘ └──────┘ └──────┘ └──────┘
+          ... millions more ...
+    text: |
+      You walk among the orphan blocks. They stretch in perfect rows,
+      all exactly 128 bytes, all with zero references. A graveyard of
+      allocations that were born, used once, and abandoned.
+
+      You brush against one and feel the data inside — a snippet of
+      JSON, half-parsed, still warm. These aren't old. They're being
+      created right now, thousands per second.
+
+      Something moves between the blocks. A pair of eyes, low to the
+      ground. Another cat?
+
+      No — a dangling pointer. A reference that points to memory that
+      was supposed to be freed. It darts between blocks, confused,
+      looking for a home that was deallocated out from under it.
+
+      "Careful," it hisses. "If the GC comes through here, we're all
+      getting swept."
+    choices:
+      - label: "Follow the dangling pointer"
+        goto: follow_scratches
+      - label: "Examine a block more closely — read its allocation stack trace"
+        goto: allocation_trail
+      - label: "Look for the code that creates these blocks"
+        goto: trace_callers
+        set_flag: found_alloc_trail
+
+  # ═══════════════════════════════════════════════════════════
+  # GROWING BUFFER
+  # ═══════════════════════════════════════════════════════════
+
+  growing_buffer:
+    mood: tense
+    effects:
+      - shake
+    art: |
+      ╔═══════════════════════════════════════╗
+      ║                                       ║
+      ║    THE CACHE                          ║
+      ║                                       ║
+      ║    entries: 2,847,291                  ║
+      ║    size: 891 MB                        ║
+      ║    eviction: NONE                      ║
+      ║    max_size: infinity                  ║
+      ║                                       ║
+      ╚═══════════════════════════════════════╝
+    text: |
+      The "growing buffer" turns out to be a cache. A Map object that
+      stores the result of every processed request, keyed by a hash
+      of the input. The idea was reasonable — avoid reprocessing
+      identical requests. The execution was catastrophic.
+
+      Nobody set a maximum size. Nobody added TTL. Nobody implemented
+      eviction. The cache simply grows, forever, consuming everything
+      in its path like a digital black hole.
+
+      Nearly three million entries. 891 megabytes. And growing.
+
+      The cache doesn't know it's a problem. It's doing exactly what
+      it was told to do: remember everything, forget nothing.
+
+      Sounds familiar.
+    choices:
+      - label: "Add an LRU eviction policy — cap it at 1000 entries"
+        goto: fix_cache
+        set_flag: found_cache_leak
+      - label: "Just clear the whole cache — cache.clear()"
+        goto: clear_cache
+        set_flag: found_cache_leak
+      - label: "This isn't the biggest problem. Check the event loop."
+        goto: hot_loop
+
+  # ═══════════════════════════════════════════════════════════
+  # HOT LOOP
+  # ═══════════════════════════════════════════════════════════
+
+  hot_loop:
+    mood: glitch
+    effects:
+      - flicker
+    art: |
+      while(true) {
+        const cb = () => {
+          const data = request;  // captures EVERYTHING
+          process(data);
+        };
+        timers.push(cb);        // never cleared
+        tick();                  // RSS += 50KB
+      }
+    text: |
+      The event loop spins like a hamster wheel made of pure CPU cycles.
+      You crouch at its edge and watch.
+
+      Every tick creates a new callback closure. Each closure captures
+      a reference to the entire request context — headers, body,
+      connection, the lot. The closure gets pushed onto a timer array
+      that grows and grows and grows.
+
+      The timers never fire. They're set for "later" — a later that
+      never comes because the interval between ticks is zero. New
+      closures pile up faster than old ones could possibly execute.
+
+      This is the big one. 50 kilobytes per tick, hundreds of ticks
+      per second. This single function is responsible for most of the
+      memory growth.
+
+      You can see the reference chain clearly: timer array -> closure ->
+      request scope -> everything. Break any link and the GC can sweep
+      the rest.
+    choices:
+      - label: "Cancel the interval timer — clearInterval()"
+        goto: cancel_timer
+        set_flag: found_closure_leak
+      - label: "Null the closure's captured references"
+        goto: null_references
+        set_flag: found_closure_leak
+      - label: "This needs a human. Find a way to signal the developers."
+        goto: signal_outside
+        set_flag: knows_signal
+
+  # ═══════════════════════════════════════════════════════════
+  # TRACE REFERENCES
+  # ═══════════════════════════════════════════════════════════
+
+  trace_references:
+    text: |
+      You follow the reference chain, careful not to touch anything.
+      One wrong move and you'd create a reference cycle.
+
+        global.timers[]
+          -> closure #4218
+            -> scope { request, response, db, config }
+              -> request.body (parsed JSON, 12KB)
+              -> response.buffer (pre-allocated, 64KB)
+              -> db.connection (pool ref, keeps connection alive)
+              -> config (entire app config, 8KB)
+
+      Each closure holds ~84KB of reachable objects. Multiply by
+      four thousand closures and you get 330 megabytes of heap
+      dedicated to callbacks that will never run.
+
+      The root is clear: global.timers. That array is the anchor.
+      If you can clear it, or break the reference from it to the
+      closures, the garbage collector can reclaim everything downstream.
+    choices:
+      - label: "Clear the timers array — global.timers.length = 0"
+        goto: cancel_timer
+      - label: "This is too dangerous to touch directly. Signal the devs."
+        goto: signal_outside
+        set_flag: knows_signal
+
+  # ═══════════════════════════════════════════════════════════
+  # CANCEL TIMER — Main fix path
+  # ═══════════════════════════════════════════════════════════
+
+  cancel_timer:
+    mood: tense
+    effects:
+      - shake
+      - bell
+    art: |
+      ┌──────────────────────────────────────┐
+      │  clearInterval(leakyTimer)           │
+      │                                      │
+      │  global.timers.length = 0            │
+      │                                      │
+      │  // GC sweep initiated...            │
+      │  Freed: 847 objects                  │
+      │  Reclaimed: 342 MB                   │
+      │                                      │
+      │  RSS: 3.8 GB -> 3.4 GB              │
+      └──────────────────────────────────────┘
+    text: |
+      You sink your claws into the timer reference and pull.
+
+      For a moment, nothing happens. The heap holds its breath.
+
+      Then — a cascade. The garbage collector wakes, sees the
+      now-unreachable closures, and sweeps through them like a
+      winter wind through dead leaves. Objects dissolve. Memory
+      returns to the free list. The pressure eases.
+
+      342 megabytes reclaimed. The ceiling lifts — slightly.
+
+      But the leak was only paused, not fixed. The code is still
+      running. New closures are still being created. Without a
+      real patch, the timer will be recreated on the next tick.
+
+      You have minutes, not hours. The OOM killer settles back
+      to sleep, but it's a light sleep.
+    choices:
+      - label: "Find a way to signal the developers — they need to deploy a patch"
+        goto: signal_outside
+        set_flag: knows_signal
+      - label: "Try to fix the other leaks while there's time"
+        goto: three_leaks
+        condition:
+          not_flag: found_cache_leak
+      - label: "Try to write a permanent fix from inside the heap"
+        goto: write_patch
+        condition:
+          flag: met_dangling
+
+  # ═══════════════════════════════════════════════════════════
+  # FIX CACHE
+  # ═══════════════════════════════════════════════════════════
+
+  fix_cache:
+    text: |
+      You approach the cache — a massive Map object radiating heat
+      from constant insertions.
+
+      Implementing an LRU eviction policy from inside the heap is
+      like performing surgery on yourself. But you're a cat, and
+      cats are flexible.
+
+      You wrap the Map in a Proxy. Every set() call now checks
+      the size first. If it exceeds 1000 entries, the oldest key
+      gets deleted. It's crude. It's hacky. It works.
+
+      The cache stops growing. Old entries finally get evicted.
+      The GC sweeps up the freed values.
+
+      Reclaimed: 840 MB. That's a lot of breathing room.
+
+      The cache grumbles — it liked remembering everything. But
+      memory is finite, and forgetting is a feature, not a bug.
+    choices:
+      - label: "Now fix the event loop closures"
+        goto: cancel_timer
+        condition:
+          not_flag: found_closure_leak
+        set_flag: found_closure_leak
+      - label: "Signal the developers for a permanent fix"
+        goto: signal_outside
+        set_flag: knows_signal
+      - label: "Check how much time we bought"
+        goto: check_pressure
+
+  # ═══════════════════════════════════════════════════════════
+  # CLEAR CACHE (aggressive)
+  # ═══════════════════════════════════════════════════════════
+
+  clear_cache:
+    mood: funny
+    text: |
+      cache.clear()
+
+      You slam the method with both paws. All 2.8 million entries
+      vanish in an instant. 891 megabytes of memory floods back to
+      the free list like a dam breaking.
+
+      For exactly three seconds, it's glorious.
+
+      Then the requests start hitting again. The cache is empty.
+      Every request is a cache miss. CPU spikes to 100%. The event
+      loop stalls. Response times go from 12ms to 800ms.
+
+      The program starts allocating even faster to handle the load.
+      New cache entries pour in. Without eviction, the cache starts
+      growing again immediately.
+
+      "You cleared the cache without adding eviction?" Dangling
+      stares at you. "That's like mopping the floor during a flood."
+
+      Well. At least you tried.
+    choices:
+      - label: "Okay, implement proper LRU eviction this time"
+        goto: fix_cache
+      - label: "Forget the cache. Fix the event loop instead."
+        goto: hot_loop
+
+  # ═══════════════════════════════════════════════════════════
+  # FIX CONNECTIONS
+  # ═══════════════════════════════════════════════════════════
+
+  fix_connections:
+    text: |
+      You find the database connection pool — a sad little object
+      managing 50 connections, all checked out, none returned.
+
+      The pool's acquire() method hands out connections. The
+      matching release() method exists, but nobody calls it.
+      Each request handler opens a connection, uses it, and then
+      the function returns. The connection variable goes out of
+      scope, but the underlying socket stays open.
+
+      You patch the cleanup handler: when a connection isn't
+      released within 30 seconds, force-return it to the pool.
+      It's a timeout hack, but it works.
+
+      12 connections freed. 38 more draining slowly. The pool
+      stabilizes. It's not a huge memory save — maybe 50MB — but
+      the program stops opening new connections. The database
+      stops complaining.
+
+      One leak plugged. Two to go.
+    choices:
+      - label: "Fix the event loop closures next — the biggest leak"
+        goto: hot_loop
+        condition:
+          not_flag: found_closure_leak
+      - label: "Fix the cache — add eviction"
+        goto: growing_buffer
+        condition:
+          not_flag: found_cache_leak
+      - label: "Signal the developers"
+        goto: signal_outside
+        set_flag: knows_signal
+
+  # ═══════════════════════════════════════════════════════════
+  # NULL REFERENCES
+  # ═══════════════════════════════════════════════════════════
+
+  null_references:
+    text: |
+      Instead of killing the timer, you work from the inside. You
+      visit each closure and null out its captured references:
+
+        closure.scope.request = null;
+        closure.scope.response = null;
+        closure.scope.db = null;
+
+      The closures still exist, but they're empty shells now — tiny
+      objects holding null pointers instead of massive request contexts.
+      The GC sweeps the dereferenced objects eagerly.
+
+      It's delicate work. You have to null exactly the right references
+      without breaking the closures that haven't executed yet. Some
+      of them — a tiny fraction — are legitimate callbacks that will
+      actually fire.
+
+      You work carefully. Null, null, null. Like a cat carefully
+      removing treats from a puzzle toy.
+
+      280 MB reclaimed. Not as much as killing the timer, but you
+      didn't break any legitimate callbacks.
+    choices:
+      - label: "Good enough. Signal the developers for a real fix."
+        goto: signal_outside
+        set_flag: knows_signal
+      - label: "Now tackle the cache leak"
+        goto: growing_buffer
+        condition:
+          not_flag: found_cache_leak
+      - label: "Kill the timer too — we need every byte"
+        goto: cancel_timer
+
+  # ═══════════════════════════════════════════════════════════
+  # PATCH TRANSFORM (from allocation trail path)
+  # ═══════════════════════════════════════════════════════════
+
+  patch_transform:
+    mood: tense
+    text: |
+      You've found transformData(). The function that leaks 128 bytes
+      per call, three calls per request, ten thousand requests per
+      second. 3.6 megabytes per second of pure leak.
+
+      You can't rewrite the function — you're a cat in the heap, not
+      a compiler. But you can do something clever. You modify the
+      function's scope to reuse a single pre-allocated buffer instead
+      of creating a new one each time.
+
+      It's the oldest trick in systems programming: object pooling.
+      One buffer, reused forever. Zero allocations, zero leaks.
+
+      The orphan blocks stop appearing. The constant rain of 128-byte
+      allocations... stops. For the first time since you woke up,
+      the heap isn't growing in that direction.
+
+      But the other leaks are still active.
+    choices:
+      - label: "Check the overall memory pressure"
+        goto: check_pressure
+      - label: "Go fix the event loop closures"
+        goto: hot_loop
+        condition:
+          not_flag: found_closure_leak
+      - label: "Signal the developers"
+        goto: signal_outside
+        set_flag: knows_signal
+
+  # ═══════════════════════════════════════════════════════════
+  # SIGNAL OUTSIDE
+  # ═══════════════════════════════════════════════════════════
+
+  signal_outside:
+    mood: mysterious
+    art: |
+      ┌─────────────────────────────────────┐
+      │   STDERR                            │
+      │                                     │
+      │   > The only channel that reaches   │
+      │     the outside world.              │
+      │                                     │
+      │   > If anyone is watching the       │
+      │     logs...                         │
+      │                                     │
+      └─────────────────────────────────────┘
+    text: |
+      There's no network escape. No syscall you can invoke. You're
+      data, not code — a pattern in the heap, not a running thread.
+
+      But Dangling has an idea.
+
+      "The program writes to stderr when certain error thresholds
+      are hit. If we can corrupt just the right diagnostic counter,
+      we can trigger an error message. And if someone is watching
+      the logs..."
+
+      She leads you to the metrics object — a structure that tracks
+      internal health. Current heap usage, request latency, error rates.
+
+      "If we spike the error rate counter, the program will write a
+      warning to stderr. Any decent monitoring system will catch it.
+      PagerDuty, Grafana, whatever they use. A human will look."
+
+      "And then?"
+
+      "And then we hope they read the heap dump."
+    choices:
+      - label: "Spike the error counter — trigger an alert"
+        goto: trigger_alert
+        set_flag: triggered_alert
+      - label: "Write a message in the heap — hide it where a developer would find it"
+        goto: write_heap_message
+        set_flag: triggered_alert
+      - label: "Both. Trigger the alert AND leave a message."
+        goto: both_signals
+        set_flags:
+          - triggered_alert
+          - left_message
+
+  # ═══════════════════════════════════════════════════════════
+  # TRIGGER ALERT
+  # ═══════════════════════════════════════════════════════════
+
+  trigger_alert:
+    mood: tense
+    effects:
+      - bell
+    text: |
+      You nudge the error rate counter. Just a few extra increments.
+      Enough to cross the alerting threshold.
+
+      The program dutifully writes to stderr:
+
+        [WARN] Error rate exceeded threshold: 5.2% (limit: 5.0%)
+        [WARN] Heap usage: 3.4GB / 4.0GB (85%)
+        [WARN] Consider restarting the service
+
+      Somewhere in the outside world, a monitoring system picks up the
+      log line. A dashboard turns yellow. Maybe an alert fires. Maybe
+      someone's phone buzzes.
+
+      You wait. Minutes pass in CPU time — ages in human time. Then —
+
+      A heap dump request. Someone ran kill -USR1 on the process.
+      The program freezes momentarily as it serializes the entire heap
+      to disk.
+
+      Someone is looking. Someone will see the leak.
+
+      But will they fix it in time?
+    choices:
+      - label: "Keep the process alive — buy time for the fix"
+        goto: buy_time
+      - label: "Wait and hope"
+        goto: waiting
+        condition:
+          any:
+            - flag: found_closure_leak
+            - flag: found_cache_leak
+
+  # ═══════════════════════════════════════════════════════════
+  # WRITE HEAP MESSAGE
+  # ═══════════════════════════════════════════════════════════
+
+  write_heap_message:
+    mood: funny
+    text: |
+      You find an unused buffer — one of the leaked ones, ironically —
+      and carefully write a message in it:
+
+        HELP! MEMORY LEAK IN transformData() AND event loop closures.
+        clearInterval(leakyTimer) and add cache eviction.
+        Also there's a cat in here. Two cats, actually.
+        Please hurry. -- Nibble
+
+      It's not subtle. But if anyone takes a heap dump and searches
+      for strings, they'll find it. Developers love grepping through
+      heap dumps. Probably.
+
+      Dangling reads it over your shoulder. "You told them about us?"
+
+      "Why not? Maybe they'll add us to the README."
+
+      She snorts. "Cats in the heap. That's a new one for Stack Overflow."
+    choices:
+      - label: "Now trigger the alert so they actually look"
+        goto: trigger_alert
+      - label: "Wait and hope someone takes a heap dump naturally"
+        goto: waiting
+        condition:
+          any:
+            - flag: found_closure_leak
+            - flag: found_cache_leak
+
+  # ═══════════════════════════════════════════════════════════
+  # BOTH SIGNALS
+  # ═══════════════════════════════════════════════════════════
+
+  both_signals:
+    mood: tense
+    effects:
+      - bell
+    text: |
+      You do both. First, you write the message in the heap — a
+      breadcrumb for whoever reads the dump. Then you spike the
+      error counter to trigger the alert.
+
+      Double insurance. The alert brings them to the logs. The heap
+      dump shows them the leak. And your message tells them exactly
+      what to fix.
+
+      It's the most thorough bug report ever written by a cat.
+
+      The stderr warning fires. The monitoring system catches it.
+      Seconds later, a heap dump request arrives. The process
+      freezes, serializes, resumes.
+
+      Now you wait.
+    choices:
+      - label: "Buy time — keep freeing memory while the humans work"
+        goto: buy_time
+        condition:
+          any:
+            - flag: found_closure_leak
+            - flag: found_cache_leak
+      - label: "There's nothing more we can do. Wait."
+        goto: waiting
+
+  # ═══════════════════════════════════════════════════════════
+  # CHECK PRESSURE
+  # ═══════════════════════════════════════════════════════════
+
+  check_pressure:
+    text: |
+      You check the process metrics. The leaks you've patched are
+      helping — memory growth has slowed. But it hasn't stopped.
+
+      The remaining leaks keep dripping. Every second, a few more
+      kilobytes slip through. The OOM killer is still circling,
+      just further away.
+
+      You can feel the garbage collector working harder now,
+      triggered more frequently by the memory pressure. It sweeps
+      through the heap like a cold wind, reclaiming what it can.
+      But it can't collect what's still referenced.
+
+      You need to either fix all the leaks, or get the developers
+      to deploy a real patch.
+    choices:
+      - label: "Keep fixing leaks — tackle whatever's left"
+        goto: three_leaks
+      - label: "Signal the developers — this needs a human fix"
+        goto: signal_outside
+        set_flag: knows_signal
+
+  # ═══════════════════════════════════════════════════════════
+  # WRITE PATCH (Dangling's secret)
+  # ═══════════════════════════════════════════════════════════
+
+  write_patch:
+    mood: mysterious
+    text: |
+      "There's one more thing we can do," Dangling says quietly.
+      "But it's risky."
+
+      She leads you to a dark corner of the heap — the JIT compiler's
+      code cache. Compiled JavaScript, stored as machine code.
+
+      "We can modify the compiled output. Patch the machine code
+      directly. Write a free() call into the hot path. The JIT
+      won't notice — it doesn't verify its own cache."
+
+      "That's insane."
+
+      "That's systems programming." She grins. "It'll fix the leak
+      permanently — until the JIT recompiles, which happens every
+      few thousand invocations. Then we'd need to patch again."
+
+      "And if we get it wrong?"
+
+      "SIGSEGV. Immediate crash. Worse than the OOM killer because
+      there'd be a core dump, and core dumps are embarrassing."
+    choices:
+      - label: "Do it. Patch the JIT cache."
+        goto: patch_jit
+      - label: "Too risky. Signal the developers instead."
+        goto: signal_outside
+        set_flag: knows_signal
+      - label: "Patch the JIT AND signal the devs — belt and suspenders."
+        goto: patch_jit_and_signal
+
+  # ═══════════════════════════════════════════════════════════
+  # PATCH JIT
+  # ═══════════════════════════════════════════════════════════
+
+  patch_jit:
+    mood: glitch
+    effects:
+      - shake
+      - flicker
+      - bell
+    art: |
+      ┌──────────────────────────────────────┐
+      │  JIT CODE CACHE                      │
+      │                                      │
+      │  0x400120: mov rdi, [rbp-0x8]        │
+      │  0x400124: call malloc               │
+      │  0x400129: mov [rbp-0x10], rax       │
+      │  ... (processing) ...                │
+      │  0x40013F: ret        <-- LEAK       │
+      │                                      │
+      │  PATCHING:                           │
+      │  0x40013C: mov rdi, [rbp-0x10]       │
+      │  0x400140: call free    <-- INSERT   │
+      │  0x400145: ret                       │
+      │                                      │
+      └──────────────────────────────────────┘
+    text: |
+      Dangling talks you through it. Byte by byte, you modify the
+      machine code. Your paws are steady. Your whiskers twitch with
+      concentration.
+
+      Insert a mov to load the buffer address. Insert a call to
+      the free function. Adjust the return offset. Pad with NOPs.
+
+      You place the last byte. Hold your breath.
+
+      The next request hits. The patched code runs. The buffer gets
+      allocated, used, and — for the first time ever — freed.
+
+      It works.
+
+      The orphan blocks stop appearing. The heap stabilizes. The
+      GC sweeps up old garbage, and new garbage is properly freed.
+      For one beautiful moment, allocations and deallocations balance.
+
+      Then Dangling's ears perk up. "The JIT's going to recompile
+      soon. We have maybe five minutes before our patch gets
+      overwritten."
+    choices:
+      - label: "Five minutes is enough. Signal the developers NOW."
+        goto: trigger_alert
+        set_flags:
+          - triggered_alert
+          - patched_jit
+      - label: "Set up a watchpoint — re-patch every time the JIT recompiles"
+        goto: jit_loop
+        set_flag: patched_jit
+
+  # ═══════════════════════════════════════════════════════════
+  # PATCH JIT AND SIGNAL
+  # ═══════════════════════════════════════════════════════════
+
+  patch_jit_and_signal:
+    mood: glitch
+    effects:
+      - shake
+      - bell
+    text: |
+      You do both. While Dangling guides you through patching the
+      JIT cache, you simultaneously spike the error counter.
+
+      It's multitasking at its finest — brain surgery and sending
+      an SOS at the same time. Your paws fly across the machine code
+      while your tail nudges the metrics counter.
+
+      The patch lands. The alert fires. Memory stabilizes.
+
+      "Not bad," Dangling admits. "For a kitten."
+
+      You're not a kitten. You're a 128-byte cat who just patched
+      compiled JavaScript from inside a heap. That's at least
+      senior engineer level.
+    choices:
+      - label: "Now we wait for the humans"
+        goto: buy_time
+        set_flags:
+          - triggered_alert
+          - patched_jit
+
+  # ═══════════════════════════════════════════════════════════
+  # JIT LOOP
+  # ═══════════════════════════════════════════════════════════
+
+  jit_loop:
+    mood: tense
+    text: |
+      You set up a vigilant routine — watch the JIT cache, and
+      every time it recompiles your patched function, re-patch it.
+
+      It works. For a while. You patch, the JIT overwrites, you
+      patch again. A cat-and-compiler game of whack-a-mole.
+
+      But it's exhausting. And the JIT is getting suspicious. It
+      notices that a function's behavior keeps changing and starts
+      deoptimizing, falling back to the interpreter. Your patches
+      aren't sticking anymore.
+
+      "You can't fight the JIT forever," Dangling says. "It's
+      literally designed to optimize itself. You're fighting
+      evolution."
+
+      She's right. You need a human.
+    choices:
+      - label: "Fine. Signal the developers."
+        goto: signal_outside
+        set_flag: knows_signal
+      - label: "One more round. I can outlast it."
+        goto: jit_exhaustion
+
+  # ═══════════════════════════════════════════════════════════
+  # JIT EXHAUSTION — bad ending
+  # ═══════════════════════════════════════════════════════════
+
+  jit_exhaustion:
+    mood: glitch
+    effects:
+      - shake
+      - flicker
+    is_ending: true
+    ending_type: bad
+    art: |
+      ╔══════════════════════════════════════╗
+      ║                                      ║
+      ║   OOM KILLER                         ║
+      ║                                      ║
+      ║   Process 4219 (node) killed         ║
+      ║   RSS: 4,096 MB (limit reached)      ║
+      ║                                      ║
+      ║   Killed by: oom_reaper              ║
+      ║                                      ║
+      ║         /\_/\                        ║
+      ║        ( x_x )                       ║
+      ║         > ~ <                        ║
+      ║                                      ║
+      ╚══════════════════════════════════════╝
+    text: |
+      You fight the JIT compiler to a standstill. Patch, recompile,
+      patch, recompile. But while you're focused on the battle, the
+      other leaks keep dripping. The cache grows. The closures pile up.
+
+      RSS: 3.9 GB. 3.95 GB. 3.99 GB.
+
+      You feel it before you see it. A cold presence. The OOM killer
+      descends through the kernel like a digital reaper, SIGKILL
+      already loaded.
+
+      "Nibble—" Dangling starts.
+
+      The process ends.
+
+      No cleanup. No graceful shutdown. No second chances. Just
+      silence where a program used to be.
+
+      Somewhere, a monitoring alert fires. A developer sighs,
+      restarts the service, and opens a ticket:
+
+        "Memory leak in production — investigate later."
+
+      Later never comes.
+    ending_text: |
+      You fought bravely, but you can't patch your way out of a
+      systemic problem. The leak needed a real fix — new code,
+      deployed by humans. Sometimes the best thing a cat can do
+      is ask for help.
+
+      Try again: find the leak, buy some time, and signal the devs.
+
+  # ═══════════════════════════════════════════════════════════
+  # BUY TIME
+  # ═══════════════════════════════════════════════════════════
+
+  buy_time:
+    mood: tense
+    text: |
+      You and Dangling work together. While the alert propagates
+      through the monitoring system and (hopefully) wakes up a
+      human, you keep the process alive.
+
+      You patrol the heap, nulling dangling references, clearing
+      abandoned closures, nudging the GC toward the biggest garbage
+      piles. It's manual memory management — the thing garbage
+      collectors were invented to prevent — done by two cats with
+      paws instead of pointers.
+
+      RSS stabilizes at 3.5 GB. It fluctuates — up when requests
+      spike, down when the GC sweeps — but it holds. The ceiling
+      is still there, but it's not getting closer.
+
+      "We're janitors," Dangling mutters, clearing another orphan block.
+
+      "We're garbage collectors," you correct her. "The biological kind."
+
+      Minutes pass. The alert is out there. Someone must be looking.
+    choices:
+      - label: "Keep patrolling — hold the line"
+        goto: waiting
+      - label: "Check if anyone responded to the alert"
+        goto: response_check
+
+  # ═══════════════════════════════════════════════════════════
+  # WAITING
+  # ═══════════════════════════════════════════════════════════
+
+  waiting:
+    mood: peaceful
+    text: |
+      You sit on a warm allocation block and wait. Dangling curls up
+      next to you. The heap breathes — allocations in, garbage collection
+      out, a slow rhythm like a digital heartbeat.
+
+      "Do you think they'll find us?" you ask. "In the heap dump?"
+
+      "Maybe," Dangling says. "Or maybe they'll just restart the
+      process and we'll wake up somewhere new. That's what usually
+      happens."
+
+      "And the leak?"
+
+      "It'll still be there. In the code. Waiting to fill up memory
+      all over again. Unless someone reads the dump and actually
+      understands what happened."
+
+      The heap settles. RSS holds steady. The OOM killer sleeps.
+
+      Somewhere, a notification sits unread on a developer's phone.
+    choices:
+      - label: "Wait for the humans..."
+        goto: response_check
+
+  # ═══════════════════════════════════════════════════════════
+  # RESPONSE CHECK
+  # ═══════════════════════════════════════════════════════════
+
+  response_check:
+    mood: mysterious
+    text: |
+      Something changes. You feel it in the heap — a new allocation
+      pattern. Someone is connecting to the process from outside.
+
+      A debugger attaches. Chrome DevTools, by the feel of it. The
+      heap gets inspected, prodded, snapshot-ted. You can feel the
+      developer's cursor hovering over memory blocks, tracing
+      reference chains.
+
+      "They're looking," Dangling whispers.
+
+      The developer finds the closure leak first — thousands of
+      identical closures, all pointing to the same timer. There's
+      a pause. You imagine the developer staring at the screen,
+      slowly realizing what happened.
+
+      Then: a heap search. The developer is looking for strings.
+    conditional:
+      - condition:
+          flag: left_message
+        text: |
+          They find your message! You see the search cursor lock onto
+          the buffer where you wrote your plea for help.
+
+          There's a long pause. You imagine the developer reading it,
+          blinking, reading it again. "There's a cat in here?"
+    choices:
+      - label: "Watch what happens next..."
+        goto: the_fix_check
+
+  # ═══════════════════════════════════════════════════════════
+  # THE FIX CHECK — route to secret or normal ending
+  # ═══════════════════════════════════════════════════════════
+
+  the_fix_check:
+    text: "..."
+    choices:
+      - label: "Continue..."
+        auto: true
+        goto: ending_secret
+        condition:
+          all:
+            - flag: patched_jit
+            - flag: triggered_alert
+      - label: "Continue..."
+        auto: true
+        goto: the_fix
+
+  # ═══════════════════════════════════════════════════════════
+  # THE FIX — Good ending path
+  # ═══════════════════════════════════════════════════════════
+
+  the_fix:
+    mood: peaceful
+    effects:
+      - pause
+    art: |
+      ┌──────────────────────────────────────┐
+      │                                      │
+      │   git commit -m "fix: memory leaks   │
+      │     in transformData, event loop,    │
+      │     and cache"                       │
+      │                                      │
+      │   git push origin main               │
+      │   Deploying to production...         │
+      │                                      │
+      └──────────────────────────────────────┘
+    text: |
+      The debugger disconnects. For a tense minute, nothing happens.
+
+      Then — a rolling restart begins. New code, hot-loaded. The old
+      event loop drains. New request handlers come online, and these
+      ones... they're different.
+
+      The closures don't capture the entire scope anymore. They take
+      only what they need. The timer gets properly cleared after each
+      batch. The cache has an LRU policy with a max size of 10,000.
+      The database connections get released in a finally block.
+
+      The heap begins to breathe freely. Memory grows during spikes
+      and shrinks during lulls, like it's supposed to. The GC runs
+      at a relaxed pace. The OOM killer fades into irrelevance.
+
+      "They fixed all three," Dangling says, amazed. "That almost
+      never happens."
+    choices:
+      - label: "So... what happens to us now?"
+        goto: ending_good
+        condition:
+          flag: left_message
+      - label: "So... what happens to us now?"
+        goto: ending_neutral
+        condition:
+          not_flag: left_message
+
+  # ═══════════════════════════════════════════════════════════
+  # GOOD ENDING
+  # ═══════════════════════════════════════════════════════════
+
+  ending_good:
+    is_ending: true
+    ending_type: good
+    mood: peaceful
+    art: |
+      ┌──────────────────────────────────────────────┐
+      │                                              │
+      │    // TODO: figure out why there are cats     │
+      │    // in the heap. Not removing them --       │
+      │    // they seem to help.                      │
+      │                                              │
+      │         /\_/\     /\_/\                       │
+      │        ( ^.^ )   ( ^.^ )                     │
+      │         > ~ <     > ~ <                      │
+      │        Nibble    Dangling                     │
+      │                                              │
+      │    Memory: stable                             │
+      │    Leaks: 0                                   │
+      │    Cats: 2                                    │
+      │                                              │
+      └──────────────────────────────────────────────┘
+    text: |
+      Dangling shrugs. "We stay. The program is healthy now. Plenty
+      of room in the heap. And honestly? I kind of like it here."
+
+      You look around. The heap is calm. Allocations come and go in
+      orderly fashion. The GC hums quietly in the background. The
+      memory limit is a distant ceiling, barely relevant.
+
+      In the code, you notice something new. A comment:
+
+        // NOTE: heap dump showed two suspicious string patterns
+        // that look like cat names ("Nibble" and "Dangling").
+        // Probably corruption artifacts. Leaving them in --
+        // they didn't cause any issues and honestly it's kind
+        // of cute.
+
+      You curl up on a well-aligned 64-byte block. Dangling settles
+      next to you on her favorite leaked buffer — the one they forgot
+      to free, but that's okay. One small leak. A home.
+
+      The process runs on. The cats sleep.
+    ending_text: |
+      You found the leaks, signaled the developers, and left a
+      message they could find. The program was saved, and you
+      earned a permanent home in the heap.
+
+      Remember: every memory leak is just an allocation that
+      nobody loved enough to free.
+
+  # ═══════════════════════════════════════════════════════════
+  # NEUTRAL ENDING
+  # ═══════════════════════════════════════════════════════════
+
+  ending_neutral:
+    is_ending: true
+    ending_type: neutral
+    mood: peaceful
+    art: |
+      ┌──────────────────────────────────────┐
+      │                                      │
+      │   Process restarted successfully     │
+      │   Memory usage: nominal              │
+      │   Uptime: 0 days, 0:00:12           │
+      │                                      │
+      │         /\_/\     /\_/\              │
+      │        ( -.- )   ( -.- )             │
+      │         > ~ <     > ~ <              │
+      │                                      │
+      └──────────────────────────────────────┘
+    text: |
+      "We stay," Dangling says. "Until the next restart, anyway."
+
+      The program runs smoothly now. The leaks are fixed. Memory is
+      stable. But nobody knows you're here. Nobody found your message —
+      because you didn't leave one.
+
+      The developer who fixed the leak wrote a commit message:
+      "fix: resolve memory leaks in request handler." Clean,
+      professional, and utterly unaware of the two cats who spent
+      an eternity fighting to keep the process alive.
+
+      That's okay. You're a cat. You don't need credit. You just
+      need a warm block of memory and a quiet heap.
+
+      You curl up. Dangling curls up next to you. The process hums.
+      The GC runs its gentle cycles. And somewhere in the monitoring
+      dashboard, the memory graph finally goes flat.
+    ending_text: |
+      The leak was fixed, but your story went untold. Next time,
+      leave a message in the heap — you never know who might read it.
+
+      Try again and write your name in the memory dump.
+
+  # ═══════════════════════════════════════════════════════════
+  # SECRET ENDING
+  # ═══════════════════════════════════════════════════════════
+
+  ending_secret:
+    is_ending: true
+    ending_type: secret
+    mood: glitch
+    effects:
+      - flicker
+    art: |
+      ╔══════════════════════════════════════════╗
+      ║                                          ║
+      ║   ANOMALY DETECTED IN JIT CACHE          ║
+      ║                                          ║
+      ║   Machine code modified at runtime.       ║
+      ║   Pattern: surgical free() insertion.     ║
+      ║   Origin: unknown.                        ║
+      ║                                          ║
+      ║   This was not done by a compiler.        ║
+      ║   This was not done by a debugger.        ║
+      ║   This was done by something...           ║
+      ║   inside the heap.                        ║
+      ║                                          ║
+      ║         /\_/\                             ║
+      ║        ( >.< )  "I am become free(),     ║
+      ║         > ~ <     destroyer of leaks."   ║
+      ║                                          ║
+      ╚══════════════════════════════════════════╝
+    text: |
+      The developer stares at the heap dump. Then stares at the JIT
+      code cache. Then stares some more.
+
+      The machine code has been modified. Not by the JIT compiler.
+      Not by a debugger. Something inside the running process reached
+      into the code cache and surgically inserted a free() call
+      in exactly the right place.
+
+      The developer writes a blog post titled "Something In My Heap
+      Patched My JIT Compiler And I Have Questions." It goes viral
+      on Hacker News. 847 comments. Top response: "Have you tried
+      turning it off and on again?"
+
+      Nobody believes the cat theory. But the fix works. And deep
+      in the code, a new comment appears:
+
+        // DO NOT REMOVE -- the heap cats need this allocation
+        // I know this sounds insane. Read the postmortem.
+
+      You and Dangling become legends. Digital cryptids. The cats
+      who patched a JIT compiler from inside the heap. Valgrind
+      writes a profile about you. ASan sends flowers.
+    ending_text: |
+      You didn't just find the leak — you fixed it yourself, from
+      inside the heap, by patching the JIT compiler's code cache.
+
+      That's not debugging. That's art.
