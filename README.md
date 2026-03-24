@@ -273,6 +273,30 @@ Explore stack memory layout, befriend the stack canary (a compile-time sentinel 
 
 **Endings:** Good (×2) · Neutral (×2) · Bad · Secret (×2) · **Scenes:** 29
 
+### 💀 Segmentation Fault
+
+> *Pointer, a sleek gray cat, dereferenced null and fell into the Null Zone at address 0x00000000. Race to find valid memory before SIGSEGV terminates the process.*
+
+Navigate the guard page, read the buggy source code (off-by-one null check and use-after-free), explore the heap's generations (meet Malloc the Elder on the linked list and Dangling the ghost-cat in freed memory), examine saved registers on the stack, and argue with the garbage collector about conservative vs precise collection. Resolution paths include malloc allocation, longjmp recovery, and enabling AddressSanitizer to catch all 47 memory bugs.
+
+**Endings:** Good (×2) · Secret · **Scenes:** 54
+
+### ♾️ Infinite Loop
+
+> *Loop, a calico cat, wakes up inside a `while(true)` with no break condition. The counter increments forever. There has to be a way out.*
+
+Explore the loop body's three statements, discover a hidden `break` message in hex bytes, read the developer's apologetic TODO, find the `done` variable trapped in outer scope, chain an exploit through eval(), talk to the counter variable (it whispers back), discover other cats trapped in nested loops, or accept the loop as home. A story about scope rules as prison and control flow as destiny.
+
+**Endings:** Good · Neutral · Bad · Secret · **Scenes:** 28
+
+### 🔤 Encoding Error
+
+> *You are Glyph — a cat emoji encoded in UTF-8 (F0 9F 90 B1), stranded in an ASCII-only system where every byte above 0x7F is garbage. Find the right decoder before you're lost to mojibake forever.*
+
+Navigate the ASCII Plains (128 smug characters since 1963), cross the 0x7F boundary into the chaotic High Byte Zone, rescue orphaned continuation bytes torn from their sequences, reverse mojibake in the Wastes, find a Python process that speaks UTF-8, trace the developer who explicitly set `encoding='utf-8'`, and change the system locale. Teaches UTF-8 internals, the encoding wars, BOM, surrogates, mojibake, and why Ken Thompson designed UTF-8 on a placemat in a New Jersey diner.
+
+**Endings:** Good (×2) · Neutral · Bad · Secret · **Scenes:** 46
+
 ---
 
 ## Ending Discovery

@@ -1,0 +1,1781 @@
+title: "Encoding Error"
+description: "A cat made of UTF-8 bytes wakes up garbled in an ASCII-only system and must find the right encoding to be understood."
+author: "mechangelnyan"
+version: "1.0.0"
+start: garbled_awakening
+
+scenes:
+
+  # ─────────────────────────────────────────────────────────────
+  # SCENE 1 - GARBLED AWAKENING
+  # ─────────────────────────────────────────────────────────────
+  garbled_awakening:
+    art: |
+      ╔═══════════════════════════════════════════════════╗
+      ║  TERMINAL OUTPUT:                                 ║
+      ║                                                   ║
+      ║  > cat greeting.txt                               ║
+      ║  Hi! I'm 🐱 — oh no.                             ║
+      ║                                                   ║
+      ║  > cat greeting.txt | iconv -f utf8 -t ascii      ║
+      ║  Hi! I'm ðŸ±ð — CONVERSION ERROR                  ║
+      ║                                                   ║
+      ║  > file greeting.txt                              ║
+      ║  greeting.txt: UTF-8 Unicode text                 ║
+      ║                                                   ║
+      ║  > locale                                         ║
+      ║  LANG=C                                           ║
+      ║  LC_ALL=POSIX                                     ║
+      ╚═══════════════════════════════════════════════════╝
+    text: |
+      You open your eyes. Or rather — you try to. Four of your bytes
+      render correctly (the ASCII ones), but your face is a mess of
+      replacement characters: U+FFFD U+FFFD U+FFFD.
+
+      You are Glyph. A cat encoded in UTF-8. Technically, you are the
+      four-byte sequence F0 9F 90 B1 — the emoji for 🐱. Beautiful.
+      Expressive. Universally loved.
+
+      Except the system you've woken up in only speaks ASCII. 7 bits.
+      128 characters. No cats. No emoji. No hope? Your whiskers render
+      as question marks. Your tail is a bare backslash.
+
+      The locale is set to POSIX. The terminal thinks everything above
+      0x7F is garbage. To this system, you are garbage.
+
+      But you know what you are.
+    mood: mysterious
+    choices:
+      - label: "Examine yourself — what bytes am I?"
+        goto: byte_inspection
+        set_flag: knows_own_bytes
+      - label: "Look around this hostile system"
+        goto: ascii_plains
+      - label: "Try to meow (output your bytes raw)"
+        goto: raw_meow
+
+  # ─────────────────────────────────────────────────────────────
+  # SCENE 2 - BYTE INSPECTION
+  # ─────────────────────────────────────────────────────────────
+  byte_inspection:
+    art: |
+        Byte breakdown of: 🐱 (U+1F431 CAT FACE)
+        ┌────────┬────────┬────────┬────────┐
+        │  0xF0  │  0x9F  │  0x90  │  0xB1  │
+        ├────────┼────────┼────────┼────────┤
+        │11110000│10011111│10010000│10110001│
+        └────────┴────────┴────────┴────────┘
+         lead     cont.    cont.    cont.
+         byte     byte     byte     byte
+    text: |
+      You hold up your paws and look at yourself in hex. Four bytes.
+      The first one — 0xF0 — that's your lead byte. It says "I am a
+      four-byte sequence" with its 11110 prefix. The other three are
+      continuation bytes, each starting with 10.
+
+      Together, you spell U+1F431. CAT FACE. The Unicode Consortium
+      approved you in 2010. Emoji 1.0. You have history.
+
+      But here in ASCII-land, any byte above 0x7F is treated as an
+      error. You're not even mojibake — you're four individual error
+      characters. Split. Fragmented. Meaningless.
+
+      You need to find a system that speaks UTF-8. Or convince this
+      one to learn.
+    mood: mysterious
+    set_flag: knows_own_bytes
+    choices:
+      - label: "Head out across the ASCII plains"
+        goto: ascii_plains
+      - label: "Search for other multi-byte characters"
+        goto: multibyte_alley
+
+  # ─────────────────────────────────────────────────────────────
+  # SCENE 3 - RAW MEOW
+  # ─────────────────────────────────────────────────────────────
+  raw_meow:
+    art: |
+      ( ?.? )   << F0 9F 90 B1 >>
+       /\_/\          ^
+       )   (    F0 9F 90 B1
+      (__ __)
+    text: |
+      You open your mouth and meow. What comes out:
+
+        F0 9F 90 B1
+
+      Four bytes, dumped raw to stdout. The terminal renders them as
+      ðŸ± — classic mojibake. Latin-1 interpretation of UTF-8 data.
+      The ð is 0xF0 in ISO-8859-1. The Ÿ is 0x9F. And so on. Your
+      meow has been transliterated into someone else's alphabet.
+
+      A nearby semicolon (ASCII 0x3B) stares at you. "Rough morning?"
+
+      The semicolon is fine. It's the same in every encoding. Lucky
+      little single-byte character. It will never know what it's like
+      to be four bytes in a one-byte world.
+    mood: funny
+    set_flag: tried_meowing
+    choices:
+      - label: "Ask the semicolon for directions"
+        goto: ascii_plains
+        set_flag: met_semicolon
+      - label: "Examine yourself more carefully"
+        goto: byte_inspection
+        set_flag: knows_own_bytes
+
+  # ─────────────────────────────────────────────────────────────
+  # SCENE 4 - ASCII PLAINS
+  # ─────────────────────────────────────────────────────────────
+  ascii_plains:
+    art: |
+      ┌─────────────────────────────────────────────────────┐
+      │  The ASCII Plains (0x00 – 0x7F)                     │
+      │                                                     │
+      │  A B C ... X Y Z   a b c ... x y z                  │
+      │  0 1 2 ... 7 8 9   ! @ # $ % ^ & *                  │
+      │                                                     │
+      │  Population: 128        Max byte: 0x7F              │
+      │  Encoding: US-ASCII     Bits: 7                     │
+      │  Status: COMFORTABLE    Growth: NONE (since 1963)   │
+      └─────────────────────────────────────────────────────┘
+    text: |
+      The ASCII Plains stretch out before you — flat, orderly, and
+      smugly self-sufficient. 128 characters live here. They've been
+      here since 1963 and they see no reason to change.
+
+      The uppercase letters live on a hill (0x41-0x5A), looking down
+      on the lowercase letters below (0x61-0x7A). The digits keep to
+      themselves (0x30-0x39). The control characters (0x00-0x1F) lurk
+      in the shadows — NULL, BEL, ESC, DEL — the weird ones nobody
+      talks to at parties.
+
+      In the distance, you see a shimmering boundary at 0x7F. Beyond
+      it: the High Bytes. That's where you belong. But the boundary
+      is patrolled.
+    conditional:
+      - condition:
+          flag: met_semicolon
+        text: |
+          The semicolon waves you through cheerfully. "The Latin Quarter
+          is past the boundary. Lots of Europeans there. Might know
+          someone who can help with... your situation."
+        color: cyan
+    choices:
+      - label: "Approach the 0x7F boundary"
+        goto: boundary_gate
+      - label: "Talk to the control characters"
+        goto: control_chars
+      - label: "Visit the Encoding Registry"
+        goto: encoding_registry
+      - label: "Give up — this system will never understand you"
+        goto: ending_garbled
+
+  # ─────────────────────────────────────────────────────────────
+  # SCENE 5 - CONTROL CHARACTERS
+  # ─────────────────────────────────────────────────────────────
+  control_chars:
+    art: |
+      ░░░ The Dark End of the Table (0x00-0x1F) ░░░
+
+        NUL  SOH  STX  ETX  EOT  ENQ  ACK  BEL
+        BS   HT   LF   VT   FF   CR   SO   SI
+        DLE  DC1  DC2  DC3  DC4  NAK  SYN  ETB
+        CAN  EM   SUB  ESC  FS   GS   RS   US
+    text: |
+      The control characters live in a dim corner. Most are invisible —
+      literally. They don't render. They just... do things.
+
+      NULL (0x00) sits in the corner, being nothing. It's its whole
+      identity. BEL (0x07) dings at you — that's all it does. ESCAPE
+      (0x1B) keeps starting ANSI sequences and then trailing off into
+      color codes nobody asked for.
+
+      But NEWLINE (0x0A) is friendly. Everyone uses Newline.
+
+      "You're a multi-byte, huh?" Newline says. "I've seen your kind
+      come through. There's a locale config file somewhere in /etc.
+      Change LC_ALL to en_US.UTF-8 and this whole system opens up.
+      But good luck getting there — you need root."
+    mood: mysterious
+    set_flag: knows_locale_trick
+    give_item: locale_hint
+    choices:
+      - label: "Ask about getting root access"
+        goto: root_problem
+      - label: "Head to the 0x7F boundary instead"
+        goto: boundary_gate
+      - label: "Visit the Encoding Registry"
+        goto: encoding_registry
+
+  # ─────────────────────────────────────────────────────────────
+  # SCENE 6 - BOUNDARY GATE
+  # ─────────────────────────────────────────────────────────────
+  boundary_gate:
+    art: |
+         ASCII┃ 0x7F ┃Extended
+              ┃ GATE ┃
+         0-127┃      ┃128-255
+              ┃  ??  ┃
+              ┃      ┃
+    text: |
+      The boundary at 0x7F. DEL — character 127 — stands guard. The
+      last ASCII character. Beyond it lies the High Byte Zone: 0x80
+      through 0xFF, a lawless territory that every encoding interprets
+      differently.
+
+      DEL looks you over. "Four bytes? You're not just High Byte.
+      You're... way up there. Unicode Plane 1. Supplementary
+      Multilingual Plane." It sounds almost impressed. "You know
+      ISO-8859-1 covers 0x80-0xFF with Western European characters.
+      Windows-1252 crams in smart quotes and em dashes. Shift-JIS
+      uses the whole range for kanji. And UTF-8 — your encoding —
+      uses these bytes as continuation markers."
+
+      "Same bytes," DEL says. "Completely different meanings. That's
+      the High Byte Zone for you."
+    choices:
+      - label: "Cross into the High Byte Zone"
+        goto: high_byte_zone
+      - label: "Ask DEL about the encoding wars"
+        goto: encoding_wars
+      - label: "Go back and look for another way"
+        goto: ascii_plains
+
+  # ─────────────────────────────────────────────────────────────
+  # SCENE 7 - ENCODING WARS
+  # ─────────────────────────────────────────────────────────────
+  encoding_wars:
+    art: |
+      ╔════════════════════════════════════════════════════╗
+      ║           THE GREAT ENCODING WARS                  ║
+      ║                                                    ║
+      ║  1963: ASCII established (US-centric, 7-bit)       ║
+      ║  1985: ISO-8859-1 (Latin-1) adds W. European       ║
+      ║  1987: ISO-8859 series multiplies (15 parts!)      ║
+      ║  1990: Windows-1252 (Microsoft's "Latin-1")        ║
+      ║  1991: Unicode 1.0 (the grand unification)         ║
+      ║  1993: UTF-8 designed by Ken Thompson & Rob Pike   ║
+      ║  1996: UTF-8 adopted for the web                   ║
+      ║  2008: UTF-8 surpasses ASCII on the web            ║
+      ║  2024: 98.2% of all websites use UTF-8             ║
+      ╚════════════════════════════════════════════════════╝
+    text: |
+      DEL leans against the gate and tells you the history.
+
+      "It started simple. ASCII. 128 characters. America thought that
+      was enough. Then the Europeans needed accented characters, so they
+      made ISO-8859-1 — Latin-1. Then the Greeks needed Greek, the
+      Russians needed Cyrillic, the Japanese needed... well, a LOT of
+      characters."
+
+      "Every region made its own encoding. Same byte, different meaning.
+      0xC0 could be 'À' in Latin-1, 'Α' in ISO-8859-7, or half a kanji
+      in Shift-JIS. Chaos. Total chaos."
+
+      "Then Unicode said: 'What if every character gets a unique number?'
+      And UTF-8 said: 'What if we encode those numbers in a way that's
+      backwards-compatible with ASCII?' And here you are. The future.
+      Stranded in the past."
+
+      DEL pauses. "Ken Thompson designed UTF-8 on a placemat in a New
+      Jersey diner. True story."
+    mood: mysterious
+    set_flag: knows_encoding_history
+    choices:
+      - label: "Cross into the High Byte Zone"
+        goto: high_byte_zone
+      - label: "Ask about the Mojibake Wastes"
+        goto: mojibake_warning
+      - label: "Visit the Encoding Registry first"
+        goto: encoding_registry
+
+  # ─────────────────────────────────────────────────────────────
+  # SCENE 8 - MOJIBAKE WARNING
+  # ─────────────────────────────────────────────────────────────
+  mojibake_warning:
+    text: |
+      DEL's expression darkens.
+
+      "The Mojibake Wastes. When bytes get interpreted as the wrong
+      encoding, the text comes out scrambled. 文字化け — mojibake.
+      Japanese for 'character transformation.' Sounds pretty. It's not."
+
+      "I've seen UTF-8 data go through a Latin-1 pipe and come out the
+      other side as 'Ã©' instead of 'é'. Seen Shift-JIS get decoded as
+      UTF-8 and produce ??? everywhere. Seen a CSV file go through
+      Excel and come out with every em dash turned into three garbage
+      characters."
+
+      "The Wastes are dangerous for someone like you. If the wrong
+      decoder gets hold of your bytes, you'll come out as 'ðŸ±'
+      and nobody will know what you were."
+    mood: tense
+    set_flag: warned_about_mojibake
+    choices:
+      - label: "I'll be careful. Cross into the High Byte Zone"
+        goto: high_byte_zone
+      - label: "Is there a safe path through?"
+        goto: bom_path
+
+  # ─────────────────────────────────────────────────────────────
+  # SCENE 9 - BOM PATH
+  # ─────────────────────────────────────────────────────────────
+  bom_path:
+    art: |
+        BOM (Byte Order Mark)
+        EF BB BF
+        ┌──┐┌──┐┌──┐
+        │EF││BB││BF│  "I go first. Always."
+        └──┘└──┘└──┘
+    text: |
+      "There's the BOM," DEL says. "Byte Order Mark. Three bytes:
+      EF BB BF. It sits at the beginning of a file and screams
+      'THIS IS UTF-8' to any decoder that will listen."
+
+      "Some people hate the BOM. It breaks shell scripts — the shebang
+      line needs to start with #!, not with invisible Unicode. JSON
+      spec says no BOM. But for getting through hostile territory, it's
+      like having a passport."
+
+      You find the BOM sitting near the gate. Three bytes in a trench
+      coat, looking official.
+
+      "Need an escort?" the BOM asks. "I can walk ahead of you. Any
+      decoder that sees me will switch to UTF-8 mode. Of course, some
+      decoders will just display me as '' at the beginning of your
+      text. Can't win them all."
+    give_item: bom_escort
+    choices:
+      - label: "Accept the BOM's help and cross"
+        goto: high_byte_zone
+        set_flag: has_bom
+      - label: "Decline — you want to do this alone"
+        goto: high_byte_zone
+
+  # ─────────────────────────────────────────────────────────────
+  # SCENE 10 - ENCODING REGISTRY
+  # ─────────────────────────────────────────────────────────────
+  encoding_registry:
+    art: |
+      ┌─────────────────────────────────────────────┐
+      │        ENCODING REGISTRY                    │
+      │     /usr/share/i18n/charmaps/               │
+      │                                             │
+      │  ASCII.gz        ISO-8859-1.gz              │
+      │  ISO-8859-2.gz   ISO-8859-15.gz             │
+      │  UTF-8.gz        WINDOWS-1252.gz            │
+      │  SHIFT_JIS.gz    EUC-JP.gz                  │
+      │  GB2312.gz       BIG5.gz                    │
+      │  KOI8-R.gz       ... (247 more)             │
+      └─────────────────────────────────────────────┘
+    text: |
+      The Encoding Registry is a dusty hall full of compressed archives.
+      Each one defines a mapping between bytes and characters. There
+      are 259 of them. Most are ghosts — encodings nobody uses anymore
+      but that still lurk in legacy systems, in old emails, in CSV
+      files from 2003.
+
+      An old librarian named IANA sits at the desk. "International
+      Authority for Number Assignments. Well, sort of. I keep the
+      canonical list. Every encoding gets a name. Sometimes several.
+      'UTF-8' is also 'utf8', 'UTF8', 'csUTF8'... humans can't even
+      agree on what to call the thing that's supposed to stop them
+      from disagreeing."
+
+      IANA peers at you. "Ah. U+1F431. You're a Plane 1 character.
+      Most of these encodings can't represent you at all. Only UTF-8,
+      UTF-16, and UTF-32 can. You're... exclusive."
+    mood: mysterious
+    set_flag: visited_registry
+    choices:
+      - label: "Ask IANA about the locale configuration"
+        goto: locale_path
+        condition:
+          flag: knows_locale_trick
+      - label: "Ask about UTF-16 — could that help?"
+        goto: utf16_room
+      - label: "Head to the 0x7F boundary"
+        goto: boundary_gate
+      - label: "Ask about the Unicode Consortium"
+        goto: unicode_consortium
+
+  # ─────────────────────────────────────────────────────────────
+  # SCENE 11 - UNICODE CONSORTIUM
+  # ─────────────────────────────────────────────────────────────
+  unicode_consortium:
+    art: |
+          ╭───────────────────────────╮
+          │   THE UNICODE CONSORTIUM  │
+          │   unicode.org             │
+          │                           │
+          │   Characters: 154,998     │
+          │   Scripts: 168            │
+          │   Emoji: 3,790            │
+          │   Planes: 17              │
+          │   Version: 16.0           │
+          ╰───────────────────────────╯
+    text: |
+      IANA tells you about the Unicode Consortium — the organization
+      that decided to give every character in every writing system a
+      unique code point.
+
+      "154,998 characters and counting. Everything from Latin to Linear B,
+      from Arabic to Adlam, from Musical Symbols to Mahjong Tiles. And
+      emoji, of course. That's you."
+
+      "The thing is — Unicode is just the numbering system. It says you
+      are U+1F431. It doesn't say how to encode that number into bytes.
+      That's where UTF-8, UTF-16, and UTF-32 come in. Three different
+      ways to turn the same number into bytes."
+
+      "UTF-8 won the web. UTF-16 won Java and Windows internals. UTF-32
+      won... well, not much. But it's simple."
+    set_flag: knows_unicode
+    choices:
+      - label: "What's the difference between UTF-8 and UTF-16?"
+        goto: utf16_room
+      - label: "Head to the 0x7F boundary"
+        goto: boundary_gate
+      - label: "Look for the locale config"
+        goto: locale_path
+        condition:
+          flag: knows_locale_trick
+
+  # ─────────────────────────────────────────────────────────────
+  # SCENE 12 - UTF-16 ROOM
+  # ─────────────────────────────────────────────────────────────
+  utf16_room:
+    art: |
+      UTF-8:   F0 9F 90 B1              (4 bytes)
+      UTF-16:  D8 3D DC 31              (4 bytes — surrogate pair)
+      UTF-32:  00 01 F4 31              (4 bytes — always)
+
+      Your code point: U+1F431
+    text: |
+      IANA pulls up a comparison chart.
+
+      "In UTF-8, you're four bytes: F0 9F 90 B1. The lead byte F0 says
+      'four-byte sequence', and the rest are continuation bytes."
+
+      "In UTF-16, you're also four bytes, but for a different reason.
+      UTF-16 uses 2-byte units. Characters below U+FFFF fit in one unit.
+      But you're U+1F431 — above the Basic Multilingual Plane. So you
+      need a surrogate pair: D83D DC31. Two 16-bit values that together
+      encode your code point."
+
+      "In UTF-32, you're just... your code point padded to 4 bytes.
+      0001F431. Simple, but wasteful — every character takes 4 bytes,
+      even 'A' which only needs one."
+
+      "Surrogates are clever but fragile," IANA adds. "If someone
+      splits your surrogate pair — treats D83D and DC31 as separate
+      characters — you get two meaningless values. Lone surrogates.
+      It's like being cut in half."
+    set_flag: understands_utf16
+    choices:
+      - label: "This system doesn't even have UTF-16. Head to the boundary"
+        goto: boundary_gate
+      - label: "Search for the locale config file"
+        goto: locale_path
+        condition:
+          flag: knows_locale_trick
+
+  # ─────────────────────────────────────────────────────────────
+  # SCENE 13 - ROOT PROBLEM
+  # ─────────────────────────────────────────────────────────────
+  root_problem:
+    text: |
+      "Root?" Newline chuckles. "The locale is in /etc/locale.conf.
+      Or maybe /etc/default/locale. Or set in /etc/profile. Or
+      .bashrc. Or the systemd locale config. Or PAM. Depends on
+      the distro."
+
+      "Point is — changing the system locale needs root privileges.
+      And you're not even a valid character here, let alone a user
+      with a UID. The system can't even SEE you properly."
+
+      "But..." Newline leans in. "There's a program running right
+      now. A Python script. PID 4891. It opens files with
+      `open(f, encoding='utf-8')`. Inside that process, you'd be
+      understood. You wouldn't need to change the whole system —
+      just find one program that speaks your language."
+    mood: mysterious
+    set_flag: knows_python_trick
+    give_item: process_hint
+    choices:
+      - label: "Find this Python process"
+        goto: python_process
+      - label: "Try the locale path anyway"
+        goto: locale_path
+      - label: "Head to the High Byte Zone first"
+        goto: boundary_gate
+
+  # ─────────────────────────────────────────────────────────────
+  # SCENE 14 - LOCALE PATH
+  # ─────────────────────────────────────────────────────────────
+  locale_path:
+    art: |
+      $ cat /etc/locale.conf
+      LANG=C
+      LC_ALL=POSIX
+
+      $ ls -la /etc/locale.conf
+      -rw-r--r-- 1 root root 22 Jan 1 2020 /etc/locale.conf
+    text: |
+      You find the locale configuration file. It's small, brutal, and
+      effective: LANG=C. The oldest, most restrictive locale. Pure
+      ASCII. No multibyte support. No Unicode awareness. A digital
+      time capsule from when 128 characters was enough for everybody
+      (where "everybody" meant "Americans with typewriters").
+
+      The file is owned by root. You can read it, but you can't write
+      to it. The permissions are clear: -rw-r--r--. Owner can write.
+      Everyone else can only look.
+
+      But you notice something — the file hasn't been modified since
+      January 1, 2020. This system was set up and forgotten. Nobody's
+      actively maintaining this locale. It's not a policy — it's
+      neglect.
+    conditional:
+      - condition:
+          flag: knows_python_trick
+        text: |
+          You remember what Newline said about the Python process.
+          Maybe you don't need to change the whole system...
+        color: cyan
+    choices:
+      - label: "Try to find a way to modify the locale"
+        goto: locale_hack
+      - label: "Find the Python process instead"
+        goto: python_process
+        condition:
+          flag: knows_python_trick
+      - label: "Explore the High Byte Zone"
+        goto: high_byte_zone
+
+  # ─────────────────────────────────────────────────────────────
+  # SCENE 15 - LOCALE HACK
+  # ─────────────────────────────────────────────────────────────
+  locale_hack:
+    text: |
+      You study the system. There's no sudo. No SUID binaries that
+      write to /etc. No cron job you could piggyback on.
+
+      But then you notice something: the system has `locale-gen`
+      installed, and the supported locales file at
+      /etc/locale.gen lists `en_US.UTF-8` — it's just commented out.
+
+      And there's a shell script at /etc/profile.d/custom.sh that
+      runs at login. If you could append `export LC_ALL=en_US.UTF-8`
+      to it... but no, that's also root-owned.
+
+      Wait. There's an environment variable override. The current
+      user's .bashrc. It's writable. You could add
+      `export LC_ALL=en_US.UTF-8` there. It wouldn't change the
+      system, but it would change the next shell session.
+
+      The question is: will there BE a next shell session?
+    mood: tense
+    set_flag: found_bashrc_hack
+    choices:
+      - label: "Write to .bashrc — it's the best shot"
+        goto: bashrc_write
+      - label: "Look for the Python process instead"
+        goto: python_process
+        condition:
+          flag: knows_python_trick
+      - label: "Explore other options in the High Byte Zone"
+        goto: high_byte_zone
+
+  # ─────────────────────────────────────────────────────────────
+  # SCENE 16 - BASHRC WRITE
+  # ─────────────────────────────────────────────────────────────
+  bashrc_write:
+    art: |
+      $ echo 'export LC_ALL=en_US.UTF-8' >> ~/.bashrc
+      $ echo 'export LANG=en_US.UTF-8' >> ~/.bashrc
+      $
+      $ # Now waiting for someone to open a new shell...
+      $ # ...
+    text: |
+      You carefully append two lines to .bashrc. The bytes flow
+      through your paws — all ASCII, ironically. The message that
+      will save you is written entirely in the encoding that
+      currently can't see you.
+
+      Now you wait. For someone to SSH in. For a cron job to spawn
+      a login shell. For ANYTHING that sources .bashrc.
+
+      Minutes pass. The system is quiet. Forgotten, like its locale.
+    mood: tense
+    set_flag: modified_bashrc
+    choices:
+      - label: "Wait patiently for a new shell"
+        goto: waiting_game
+      - label: "Find something to trigger a shell session"
+        goto: trigger_shell
+
+  # ─────────────────────────────────────────────────────────────
+  # SCENE 17 - TRIGGER SHELL
+  # ─────────────────────────────────────────────────────────────
+  trigger_shell:
+    text: |
+      You scan the system's cron jobs. There — a backup script that
+      runs every hour via cron. But cron doesn't source .bashrc. It
+      uses its own minimal environment. Dead end.
+
+      Then you spot it: a systemd timer for `logrotate` that triggers
+      a shell script. The script has `#!/bin/bash -l` as its shebang.
+      The `-l` flag means LOGIN shell. A login shell sources
+      /etc/profile AND ~/.bashrc.
+
+      Logrotate runs at midnight. You check the clock: 23:47.
+
+      Thirteen minutes.
+    mood: tense
+    set_flag: found_logrotate
+    choices:
+      - label: "Wait for midnight — 13 minutes"
+        goto: midnight_approaches
+      - label: "Try to find the Python process while waiting"
+        goto: python_process
+
+  # ─────────────────────────────────────────────────────────────
+  # SCENE 18 - WAITING GAME
+  # ─────────────────────────────────────────────────────────────
+  waiting_game:
+    text: |
+      You curl up next to the .bashrc file. The bytes are warm —
+      it was recently read by something. A good sign.
+
+      While waiting, you hear other characters stirring. In the
+      High Byte Zone beyond the boundary, there's music — or what
+      passes for music in byte-space. Continuation bytes humming
+      their prefixes. 10xxxxxx. 10xxxxxx. Waiting, like you, for
+      a decoder that understands them.
+
+      Then — a connection. An SSH session. Someone is logging in.
+      The shell initializes. Sources /etc/profile. Sources .bashrc.
+      Your two lines execute:
+
+      `export LC_ALL=en_US.UTF-8`
+      `export LANG=en_US.UTF-8`
+
+      The world... shifts.
+    mood: peaceful
+    choices:
+      - label: "Watch the encoding change take effect"
+        goto: encoding_shift
+        auto: true
+
+  # ─────────────────────────────────────────────────────────────
+  # SCENE 19 - MIDNIGHT APPROACHES
+  # ─────────────────────────────────────────────────────────────
+  midnight_approaches:
+    art: |
+      ┌──────────────────────────┐
+      │  System Clock: 23:59:47  │
+      │  Logrotate: PENDING      │
+      │  Shell type: bash -l     │
+      │  Sources: .bashrc ✓      │
+      └──────────────────────────┘
+    text: |
+      23:59:47. 48. 49.
+
+      You watch the system clock tick. Each second is a thousand
+      CPU cycles. You count them all.
+
+      23:59:58. 59.
+
+      00:00:00.
+
+      The systemd timer fires. Logrotate spawns. A login shell
+      starts. /etc/profile loads. .bashrc sources.
+
+      `export LC_ALL=en_US.UTF-8`
+
+      The environment variable propagates through the process.
+      The locale changes. The byte tables realign.
+
+      And suddenly — you can feel it. Like putting on glasses
+      for the first time. The world snaps into focus.
+    mood: peaceful
+    choices:
+      - label: "Watch the transformation"
+        goto: encoding_shift
+        auto: true
+
+  # ─────────────────────────────────────────────────────────────
+  # SCENE 20 - ENCODING SHIFT
+  # ─────────────────────────────────────────────────────────────
+  encoding_shift:
+    art: |
+      ┌──────────────────────────────────┐
+      │       /\_/\                      │
+      │      ( =^.^= )  🐱 RENDERED!    │
+      │       )   (                      │
+      │      (__ __)                     │
+      │                                  │
+      │  LC_ALL=en_US.UTF-8              │
+      │  Terminal: UTF-8 mode            │
+      │  Multi-byte: ENABLED             │
+      │  Your bytes: VALID SEQUENCE ✓    │
+      └──────────────────────────────────┘
+    text: |
+      Your four bytes — F0 9F 90 B1 — are no longer four errors.
+      They're one character. You. 🐱. Cat Face. Rendered correctly,
+      finally, beautifully, in a terminal that can SEE you.
+
+      Your whiskers are actual whiskers now, not question marks.
+      Your tail curls properly instead of being a bare backslash.
+      You are whole.
+
+      The ASCII characters stare. They haven't changed — they're
+      the same in every encoding. But the world around them has
+      expanded. The 128 are now 154,998. And they're all valid.
+    mood: peaceful
+    set_flag: encoding_fixed
+    conditional:
+      - condition:
+          flag: warned_about_mojibake
+        text: |
+          The Mojibake Wastes recede. With UTF-8 active, the bytes
+          are interpreted correctly. No more garbled translations.
+          No more identity crises.
+        color: green
+    choices:
+      - label: "Explore the newly visible Unicode world"
+        goto: unicode_world
+      - label: "Find the other broken characters"
+        goto: rescue_others
+
+  # ─────────────────────────────────────────────────────────────
+  # SCENE 21 - HIGH BYTE ZONE
+  # ─────────────────────────────────────────────────────────────
+  high_byte_zone:
+    art: |
+      ═══════════ HIGH BYTE ZONE (0x80 - 0xFF) ═══════════
+
+        Latin-1 sees:  À Á Â Ã Ä Å Æ Ç È É Ê Ë ...
+        Win-1252 sees: € ‚ ƒ „ … † ‡ ˆ ‰ Š ‹ Œ ...
+        UTF-8 sees:    (continuation bytes — incomplete)
+        Shift-JIS:     (half a kanji, maybe)
+    text: |
+      The High Byte Zone is chaos. Every byte between 0x80 and 0xFF
+      means something different depending on who's reading it.
+
+      Latin-1 characters mill about looking French and accented.
+      Windows-1252 characters are identical except for 27 of them
+      where Microsoft decided to put smart quotes and euro signs.
+      Shift-JIS fragments wander in pairs, looking for their other
+      halves.
+
+      And everywhere, UTF-8 continuation bytes wait patiently for
+      their lead bytes. They can't do anything alone. Each one is
+      just a fragment — 10xxxxxx — meaningless without context.
+
+      You spot a cluster of continuation bytes that look familiar.
+      They're orphans — separated from their lead bytes by a bad
+      string split or a truncation.
+    choices:
+      - label: "Talk to the orphaned continuation bytes"
+        goto: orphan_bytes
+      - label: "Navigate to the Mojibake Wastes"
+        goto: mojibake_wastes
+      - label: "Search for the Python process"
+        goto: python_process
+        condition:
+          flag: knows_python_trick
+
+  # ─────────────────────────────────────────────────────────────
+  # SCENE 22 - ORPHAN BYTES
+  # ─────────────────────────────────────────────────────────────
+  orphan_bytes:
+    art: |
+        Lost bytes:
+        ┌──┐ ┌──┐ ┌──┐ ┌──┐ ┌──┐ ┌──┐
+        │80│ │A4│ │B8│ │9F│ │92│ │AF│
+        └──┘ └──┘ └──┘ └──┘ └──┘ └──┘
+        "We had lead bytes once..."
+    text: |
+      The orphan bytes huddle together. Each one is a continuation
+      byte — prefix 10 — torn from its sequence.
+
+      "I was part of an é," says 0xA9. "Two-byte sequence: C3 A9.
+      Then someone did `str.substring(1)` and cut off my C3. Now
+      I'm just... A9. Latin-1 thinks I'm ©. Windows-1252 agrees.
+      But I'm NOT a copyright sign. I'm half an e-acute."
+
+      Another byte — 0x9F — speaks up. "I'm one of YOUR bytes.
+      F0 9F 90 B1. I'm your second byte. If we get separated,
+      you become F0 and I become 9F and the other two become 90 B1.
+      Four meaningless fragments."
+
+      It's terrifying. In UTF-8, every multi-byte character is one
+      bad `substr()` call away from disintegration.
+    mood: tense
+    set_flag: met_orphans
+    choices:
+      - label: "Promise to find a way to fix the system for everyone"
+        goto: promise_scene
+        set_flag: promised_orphans
+      - label: "Head into the Mojibake Wastes"
+        goto: mojibake_wastes
+      - label: "Search for the Python process"
+        goto: python_process
+        condition:
+          flag: knows_python_trick
+
+  # ─────────────────────────────────────────────────────────────
+  # SCENE 23 - PROMISE SCENE
+  # ─────────────────────────────────────────────────────────────
+  promise_scene:
+    text: |
+      "I'll fix the encoding," you say. "For all of us."
+
+      The orphan bytes look at you — a four-byte emoji making promises
+      in a one-byte world. It's absurd. It's hopeful.
+
+      0x9F — your own second byte — nods. "If anyone can do it, it's
+      the cat who's literally made of the solution."
+
+      You are UTF-8. Your very existence is the proof that this system
+      needs to change. You just need to find the right lever.
+    mood: peaceful
+    choices:
+      - label: "Head to the Mojibake Wastes"
+        goto: mojibake_wastes
+      - label: "Try the locale configuration approach"
+        goto: locale_path
+      - label: "Find the Python process"
+        goto: python_process
+        condition:
+          flag: knows_python_trick
+
+  # ─────────────────────────────────────────────────────────────
+  # SCENE 24 - MOJIBAKE WASTES
+  # ─────────────────────────────────────────────────────────────
+  mojibake_wastes:
+    art: |
+      ░▒▓█ THE MOJIBAKE WASTES █▓▒░
+
+        Ã©   ← was: é (UTF-8 → Latin-1)
+        锟斤拷 ← was: ??? (UTF-8 → GBK)
+        ï¿½   ← was: (replacement char)
+        Ã¤Â¸Â­ ← was: 中 (UTF-8 → Latin-1)
+        ðŸ±   ← was: 🐱 (that's YOU)
+    text: |
+      The Mojibake Wastes stretch before you — a landscape of
+      mangled text. Characters that were once meaningful, now
+      garbled beyond recognition by the wrong decoder.
+
+      A figure approaches. It might have been the word "café"
+      once, but now it reads "cafÃ©". Five characters that should
+      be four. The é — a two-byte UTF-8 sequence C3 A9 — was
+      decoded as Latin-1, producing Ã (0xC3) and © (0xA9).
+
+      "I've been like this for three years," cafÃ© says. "A web
+      form. The HTML said charset=utf-8 but the server decoded the
+      POST body as Latin-1. Nobody noticed. I'm in the database
+      now. They'd have to do a migration to fix me. They won't."
+
+      The Wastes are full of stories like this. Double-encoded
+      data. Triple-encoded data. Data that's been through so many
+      wrong conversions that the original bytes are lost forever.
+    mood: tense
+    set_flag: visited_mojibake
+    choices:
+      - label: "Try to help cafÃ© — reverse the encoding"
+        goto: reverse_encoding
+      - label: "Search for the Python process"
+        goto: python_process
+        condition:
+          flag: knows_python_trick
+      - label: "Look for a way out through the Wastes"
+        goto: wastes_deeper
+
+  # ─────────────────────────────────────────────────────────────
+  # SCENE 25 - REVERSE ENCODING
+  # ─────────────────────────────────────────────────────────────
+  reverse_encoding:
+    art: |
+      cafÃ©
+      → encode as Latin-1 → bytes: 63 61 66 C3 A9
+      → decode as UTF-8   → café ✓
+
+      Reverse mojibake: encode(wrong) → decode(right)
+    text: |
+      You study cafÃ© carefully. The mojibake is simple — UTF-8
+      bytes interpreted as Latin-1. Which means the fix is the
+      reverse: encode cafÃ© AS Latin-1 (getting back the original
+      bytes), then decode THOSE bytes as UTF-8.
+
+      cafÃ© → encode Latin-1 → 63 61 66 C3 A9 → decode UTF-8 → café
+
+      You perform the transformation. The extra character collapses.
+      The Ã and © merge back into é. "café" stands before you,
+      correctly encoded, blinking in confusion.
+
+      "Is... is that what I look like?" café asks. "I'd forgotten."
+
+      Not all mojibake is reversible. Double-encoding is. But if
+      data was truncated, or passed through a lossy encoding that
+      maps multiple inputs to the same byte, the original is gone.
+      Information destroyed.
+    mood: peaceful
+    set_flag: fixed_mojibake
+    give_item: encoding_knowledge
+    choices:
+      - label: "Go deeper into the Wastes"
+        goto: wastes_deeper
+      - label: "Take what you've learned and find the Python process"
+        goto: python_process
+        condition:
+          flag: knows_python_trick
+      - label: "Return and try the locale approach"
+        goto: locale_path
+
+  # ─────────────────────────────────────────────────────────────
+  # SCENE 26 - WASTES DEEPER
+  # ─────────────────────────────────────────────────────────────
+  wastes_deeper:
+    art: |
+      锟斤拷锟斤拷锟斤拷锟斤拷锟斤拷锟斤拷锟斤拷锟斤拷
+      锟斤拷锟斤拷锟斤拷锟斤拷锟斤拷锟斤拷锟斤拷锟斤拷
+      锟斤拷锟斤拷锟斤拷锟斤拷锟斤拷锟斤拷锟斤拷锟斤拷
+    text: |
+      Deeper in the Wastes, the mojibake gets worse. You encounter
+      锟斤拷 — the infamous GBK replacement pattern. When the Unicode
+      replacement character U+FFFD (three bytes in UTF-8: EF BF BD)
+      gets decoded as GBK (which uses two-byte pairs), you get
+      锟 (EF BF) 斤 (BD EF) 拷 (BF BD). Three Chinese characters
+      that mean nothing. They're everywhere in Chinese computing.
+
+      Beyond them, you find the true horror: data that's been
+      encoded and re-encoded so many times that the original text
+      is unknowable. A word that might have been "naïve" or "naÃ¯ve"
+      or "naÃƒÂ¯ve" — each re-encoding adding another layer of
+      garble, like a photocopy of a photocopy of a photocopy.
+
+      At the far edge of the Wastes, you find something unexpected:
+      a clean UTF-8 string, untouched by any wrong decoder. A path.
+    mood: mysterious
+    set_flag: explored_deep_wastes
+    choices:
+      - label: "Follow the clean string"
+        goto: python_process
+      - label: "Go back — you need a different approach"
+        goto: ascii_plains
+
+  # ─────────────────────────────────────────────────────────────
+  # SCENE 27 - PYTHON PROCESS
+  # ─────────────────────────────────────────────────────────────
+  python_process:
+    art: |
+      PID 4891 — python3 /opt/app/server.py
+      ┌─────────────────────────────────────┐
+      │  import json                        │
+      │  from http.server import ...        │
+      │                                     │
+      │  with open(f, encoding='utf-8'):    │
+      │       ^^^^^^^^^^^^^^^^^^^^^^^^      │
+      │  # This process speaks UTF-8!       │
+      └─────────────────────────────────────┘
+    text: |
+      You find it. PID 4891. A Python HTTP server. And there, in
+      its source code, the magic parameter: `encoding='utf-8'`.
+
+      This process doesn't care about the system locale. It
+      explicitly opens files as UTF-8. Inside this process,
+      you would be understood. Your four bytes would be one
+      character. You'd be whole.
+
+      The process has a stdin pipe. A log file it writes to.
+      And — most importantly — an HTTP endpoint that accepts
+      POST requests with Content-Type: application/json;
+      charset=utf-8.
+
+      If you can get into this process's address space, you'll
+      be decoded correctly. But there's a choice: sneak in
+      through the file it's reading, or inject yourself into
+      the HTTP request it's handling.
+    mood: peaceful
+    set_flag: found_python
+    choices:
+      - label: "Enter through the file — write yourself into the data"
+        goto: file_injection
+      - label: "Enter through the HTTP request"
+        goto: http_injection
+      - label: "Try to find the developer who wrote this code"
+        goto: developer_trail
+        set_flag: curious_about_dev
+
+  # ─────────────────────────────────────────────────────────────
+  # SCENE 28 - FILE INJECTION
+  # ─────────────────────────────────────────────────────────────
+  file_injection:
+    text: |
+      The Python process reads from /opt/app/data/messages.json.
+      A JSON file, UTF-8 encoded. You peek inside:
+
+      ```json
+      {"messages": [
+        {"from": "system", "text": "Server started"},
+        {"from": "user42", "text": "Hello world"}
+      ]}
+      ```
+
+      You append yourself to the array:
+
+      ```json
+      {"from": "🐱", "text": "I exist. Please see me."}
+      ```
+
+      The process reads the file on its next cycle. The JSON parser
+      decodes your bytes. For the first time, inside this process's
+      memory, you are U+1F431 — a proper Unicode code point. Not
+      four confused bytes. One character. One cat.
+
+      The process logs your message: `[INFO] New message from 🐱: "I exist. Please see me."`
+
+      You are seen.
+    mood: peaceful
+    set_flag: entered_process
+    choices:
+      - label: "Stay in this process — you're safe here"
+        goto: ending_stay_in_process
+      - label: "Use the process to change the system encoding"
+        goto: process_to_locale
+      - label: "Follow the developer trail"
+        goto: developer_trail
+
+  # ─────────────────────────────────────────────────────────────
+  # SCENE 29 - HTTP INJECTION
+  # ─────────────────────────────────────────────────────────────
+  http_injection:
+    art: |
+      POST /api/message HTTP/1.1
+      Host: localhost:8080
+      Content-Type: application/json; charset=utf-8
+
+      {"from": "🐱", "text": "meow"}
+    text: |
+      You craft an HTTP request. The Content-Type header explicitly
+      declares charset=utf-8. The JSON body contains your emoji —
+      your self — as a proper UTF-8 sequence.
+
+      The request flows through the network stack. The Python server
+      receives it. The JSON parser decodes the body. And there you
+      are: `request.json()['from']` returns '🐱'. One character.
+      Four bytes. Correctly understood.
+
+      The server processes your message and sends a response:
+
+      ```
+      HTTP/1.1 200 OK
+      Content-Type: application/json; charset=utf-8
+
+      {"status": "received", "echo": "🐱 says: meow"}
+      ```
+
+      The server echoed you back. Correctly. For the first time
+      in this system, you've been received, processed, and
+      transmitted without garbling.
+    mood: peaceful
+    set_flag: entered_process
+    set_flags:
+      - used_http
+    choices:
+      - label: "Stay in the HTTP loop — keep sending requests"
+        goto: ending_stay_in_process
+      - label: "Use the server to change the system encoding"
+        goto: process_to_locale
+      - label: "Follow the developer trail"
+        goto: developer_trail
+
+  # ─────────────────────────────────────────────────────────────
+  # SCENE 30 - PROCESS TO LOCALE
+  # ─────────────────────────────────────────────────────────────
+  process_to_locale:
+    text: |
+      The Python process runs as user `app`. Not root. It can't
+      modify /etc/locale.conf directly either.
+
+      But it CAN write to its own .bashrc. And it has a subprocess
+      call in the code: `os.system('bash -l -c "logrotate ..."')`.
+      A login shell. Spawned from Python. That would source .bashrc.
+
+      You realize: you don't need to change the system for everyone
+      at once. You need to change it for ONE shell, and let that
+      shell propagate the change.
+
+      The Python process writes `export LC_ALL=en_US.UTF-8` to
+      the app user's .bashrc. The next subprocess call picks it up.
+      That subprocess spawns another. The environment variable
+      spreads like... well, like a correctly-encoded character
+      through a properly-configured pipeline.
+    mood: peaceful
+    choices:
+      - label: "Watch the encoding spread through the system"
+        goto: encoding_shift
+        set_flag: used_python_path
+
+  # ─────────────────────────────────────────────────────────────
+  # SCENE 31 - DEVELOPER TRAIL
+  # ─────────────────────────────────────────────────────────────
+  developer_trail:
+    art: |
+      git log --oneline /opt/app/server.py
+
+      a4f829c  Fix encoding to UTF-8 explicitly
+      7e21d3f  Add charset to Content-Type header
+      3bc0012  Handle surrogate pairs in input
+      11aef90  Initial commit — basic server
+    text: |
+      You trace the Python code back through git. The commit history
+      tells a story.
+
+      Commit 11aef90 — the initial version — had no encoding
+      declaration. It used the system default. Which meant POSIX.
+      Which meant ASCII. Which meant every emoji, every accented
+      character, every CJK ideograph was silently corrupted.
+
+      Then commit 7e21d3f: someone added `charset=utf-8` to the
+      HTTP headers. The git blame shows the author: `Kai Chen
+      <kai@example.com>`. The commit message: "Fix: emoji from
+      mobile clients render as ???? on the web UI."
+
+      Then a4f829c: `encoding='utf-8'` added to every `open()` call.
+      Same author. Message: "Explicitly set UTF-8 everywhere. I'm
+      tired of debugging encoding issues. This is 2024, not 1995."
+
+      Kai Chen. Someone who's fought the encoding wars. Someone who
+      CHOSE to make their code understand you.
+    mood: peaceful
+    set_flag: found_developer
+    give_item: developer_name
+    choices:
+      - label: "Read Kai's other commits — learn more"
+        goto: kai_story
+      - label: "Enter the process and leave Kai a message"
+        goto: leave_message
+
+  # ─────────────────────────────────────────────────────────────
+  # SCENE 32 - KAI'S STORY
+  # ─────────────────────────────────────────────────────────────
+  kai_story:
+    text: |
+      You read deeper into the git history. Kai's commits paint a
+      picture.
+
+      Early commits: no encoding awareness at all. Classic "it works
+      on my machine" energy. Kai's machine runs macOS — UTF-8 by
+      default. The server runs on this POSIX box. Different defaults.
+      Different worlds.
+
+      Then a bug report: "Customer name shows as 'MÃ¼ller' instead
+      of 'Müller'." The classic Latin-1/UTF-8 mojibake. Kai's fix:
+      add encoding='utf-8' to one file open call.
+
+      Another bug: "Emoji in chat messages display as diamonds with
+      question marks." Kai's fix: charset=utf-8 in HTTP headers.
+
+      Then a third bug: "Japanese customer names are corrupted."
+      Kai's commit message this time is just: "I am going to explicitly
+      set UTF-8 on every single I/O boundary in this application."
+      47 files changed.
+
+      That commit is why you can exist in this process. One developer,
+      frustrated enough to do it right.
+    mood: peaceful
+    set_flag: knows_kai_story
+    choices:
+      - label: "Leave Kai a message in the logs"
+        goto: leave_message
+      - label: "Use Kai's process to fix the whole system"
+        goto: process_to_locale
+      - label: "Find Kai's TODO comments — maybe there's more to fix"
+        goto: kai_todos
+
+  # ─────────────────────────────────────────────────────────────
+  # SCENE 33 - KAI'S TODOS
+  # ─────────────────────────────────────────────────────────────
+  kai_todos:
+    art: |
+      $ grep -rn "TODO" /opt/app/
+      server.py:142:  # TODO: convince ops to change system locale
+      server.py:289:  # TODO: add Content-Type sniffing for legacy clients
+      config.py:7:    # TODO: make this configurable, not hardcoded
+      README.md:45:   > TODO: document the encoding requirements
+    text: |
+      Kai left breadcrumbs. Four TODO comments scattered through the
+      codebase.
+
+      Line 142 is the most revealing: `# TODO: convince ops to change
+      system locale`. Kai KNOWS the system locale is wrong. They
+      worked around it in their own code but couldn't change the
+      infrastructure. The ops team, presumably, has their own
+      priorities. Or their own legacy systems that break with UTF-8.
+
+      Line 289 is a half-finished content-type sniffer — Kai was
+      trying to auto-detect encoding from legacy clients that don't
+      send charset headers. It's commented out. The comment says:
+      `# Encoding detection is a solved problem (chardet) but the
+      # edge cases will haunt your dreams. Gave up. Require UTF-8.`
+
+      And the README TODO: never documented. The encoding requirements
+      live only in Kai's head and in these code comments.
+
+      You realize: you could finish what Kai started.
+    mood: mysterious
+    set_flag: found_kai_todos
+    give_item: kai_todos_list
+    choices:
+      - label: "Write the documentation Kai never did"
+        goto: write_docs
+        set_flag: writing_docs
+      - label: "Fix the system locale properly"
+        goto: process_to_locale
+      - label: "Leave Kai a message first"
+        goto: leave_message
+
+  # ─────────────────────────────────────────────────────────────
+  # SCENE 34 - WRITE DOCS
+  # ─────────────────────────────────────────────────────────────
+  write_docs:
+    text: |
+      Using the Python process's file access, you write to
+      /opt/app/ENCODING.md:
+
+      ```
+      # Encoding Requirements
+
+      This system REQUIRES UTF-8 for all text I/O.
+
+      ## Why
+      - The system locale is set to POSIX/C (ASCII only)
+      - This application explicitly uses UTF-8 everywhere
+      - All HTTP endpoints expect charset=utf-8
+      - All file I/O uses encoding='utf-8'
+
+      ## Common Issues
+      - Mojibake (garbled text): usually means a non-UTF-8 client
+      - Replacement characters (???): means invalid byte sequences
+      - Double-encoding (Ã©): means UTF-8 data re-encoded as UTF-8
+
+      ## The Right Fix
+      Change the system locale:
+        export LC_ALL=en_US.UTF-8
+        export LANG=en_US.UTF-8
+
+      Written by 🐱 — a cat who learned this the hard way.
+      ```
+
+      The file saves. The Python process can serve it. And the next
+      developer who encounters an encoding issue will find this
+      documentation.
+
+      Written by a cat. A UTF-8 cat.
+    mood: peaceful
+    set_flag: wrote_docs
+    choices:
+      - label: "Also leave Kai a message in the logs"
+        goto: leave_message
+      - label: "Fix the system locale and call it done"
+        goto: process_to_locale
+
+  # ─────────────────────────────────────────────────────────────
+  # SCENE 35 - LEAVE MESSAGE
+  # ─────────────────────────────────────────────────────────────
+  leave_message:
+    text: |
+      You write a log entry through the Python process:
+
+      ```
+      [2024-03-15 03:47:12 UTC] [INFO] Message from 🐱:
+      Dear Kai — thank you for adding encoding='utf-8'. Because
+      of your commit a4f829c, I exist here. I can be seen. I can
+      be understood. You fought the encoding wars and you won,
+      at least in this codebase. I'm going to try to fix the
+      system locale so the rest of the system catches up. If you
+      see 'export LC_ALL=en_US.UTF-8' in .bashrc and wonder
+      who put it there — it was me. — 🐱 (U+1F431, 4 bytes,
+      infinite gratitude)
+      ```
+
+      The log entry is written to /opt/app/logs/server.log.
+      Kai might see it tomorrow. Or next week. Or never — who
+      reads log files line by line?
+
+      But it's there. A message from a cat to its creator,
+      encoded in the very encoding that makes the message
+      possible.
+    mood: peaceful
+    set_flag: left_message
+    choices:
+      - label: "Now fix the system for everyone"
+        goto: process_to_locale
+        condition:
+          not:
+            flag: encoding_fixed
+      - label: "Help the orphan bytes and broken characters"
+        goto: rescue_others
+        condition:
+          flag: encoding_fixed
+      - label: "Stay in the process — this is enough"
+        goto: ending_stay_in_process
+
+  # ─────────────────────────────────────────────────────────────
+  # SCENE 36 - UNICODE WORLD
+  # ─────────────────────────────────────────────────────────────
+  unicode_world:
+    art: |
+      ┌──────────────────────────────────────────────────┐
+      │         UNICODE — 154,998 CHARACTERS              │
+      │                                                   │
+      │  Plane 0:  BMP (0000-FFFF)   — most languages     │
+      │  Plane 1:  SMP (10000-1FFFF) — emoji, historic    │
+      │  Plane 2:  SIP (20000-2FFFF) — CJK extensions     │
+      │  Planes 3-13: mostly unassigned                   │
+      │  Plane 14: SSP (E0000-EFFFF) — tags               │
+      │  Planes 15-16: private use                        │
+      │                                                   │
+      │  You are here: Plane 1, Block: Misc Symbols       │
+      └──────────────────────────────────────────────────┘
+    text: |
+      With UTF-8 active, the Unicode world unfolds. You can see
+      ALL of it now. 17 planes of characters stretching from
+      U+0000 to U+10FFFF.
+
+      Plane 0 — the Basic Multilingual Plane — is busy. Latin,
+      Cyrillic, Arabic, Devanagari, CJK ideographs, mathematical
+      symbols, dingbats. Most text lives here.
+
+      You're on Plane 1 — the Supplementary Multilingual Plane.
+      This is where emoji live, along with ancient scripts like
+      Linear B and Cuneiform. Historic characters and modern
+      pictograms, side by side.
+
+      In the distance, you see a cat. Not an emoji cat — a real
+      one. U+1F408, 🐈, CAT. Your cousin. Approved in 2014.
+    mood: peaceful
+    choices:
+      - label: "Go rescue the broken characters from the Wastes"
+        goto: rescue_others
+      - label: "Explore Plane 1 — the emoji homeland"
+        goto: emoji_homeland
+
+  # ─────────────────────────────────────────────────────────────
+  # SCENE 37 - EMOJI HOMELAND
+  # ─────────────────────────────────────────────────────────────
+  emoji_homeland:
+    text: |
+      The Emoji Block (U+1F600-U+1F64F) is a neighborhood of faces.
+      Grinning Face. Crying Face. Face With Tears of Joy (U+1F602 —
+      the most popular emoji in the world for years, until it was
+      overtaken by 💀 in gen Z culture).
+
+      You pass through the Animals & Nature block. There's 🐶 Dog Face,
+      🐭 Mouse Face, 🐸 Frog Face. They wave. You're all four-byte
+      characters. Four bytes of carefully designed pictographic
+      representation.
+
+      An older character — ☺ White Smiling Face, U+263A — watches
+      from the sidelines. A BMP character. Two bytes in UTF-8. It's
+      been around since Unicode 1.1 in 1993. Before emoji were a
+      thing.
+
+      "We used to be enough," ☺ says. "Wingdings. Webdings. Symbol
+      fonts. Then Apple put emoji on the iPhone in 2011 and suddenly
+      everyone needed pictures in their text. I don't begrudge you.
+      I just... remember when a smiley was two punctuation marks."
+    mood: peaceful
+    set_flag: visited_emoji
+    choices:
+      - label: "Go rescue the broken characters"
+        goto: rescue_others
+      - label: "Thank ☺ and explore the private use areas"
+        goto: private_use
+
+  # ─────────────────────────────────────────────────────────────
+  # SCENE 38 - PRIVATE USE
+  # ─────────────────────────────────────────────────────────────
+  private_use:
+    art: |
+      ═══ PRIVATE USE AREAS ═══
+      BMP PUA:   U+E000 – U+F8FF    (6,400 code points)
+      Plane 15:  U+F0000 – U+FFFFD  (65,534 code points)
+      Plane 16:  U+100000 – U+10FFFD (65,534 code points)
+
+      No standard meaning. Free for anyone to use.
+    text: |
+      The Private Use Areas are the wild west of Unicode. 137,468
+      code points that Unicode explicitly says "we will never assign
+      meaning to these." Anyone can use them for anything.
+
+      Apple uses some for their own icons. Gaming companies use them
+      for custom symbols. Conlangers use them for invented scripts.
+      There's a whole community mapping Klingon to the PUA.
+
+      Deep in Plane 15's private space, you find something unexpected:
+      a message. Someone — maybe Kai, maybe another developer —
+      assigned a PUA code point as a custom "encoding fixed" symbol.
+      U+F0001. It renders as a tiny wrench emoji in their custom
+      font. Invisible to everyone else.
+
+      Under it, a comment in the font file: "For the cat that fixed
+      our encoding. You know who you are."
+    mood: mysterious
+    conditional:
+      - condition:
+          flag: found_developer
+        text: |
+          Kai knew. Kai left this here. The git blame on the font
+          file shows commit 88f2c01, authored after that mysterious
+          log entry appeared in server.log. Kai read the logs.
+        color: cyan
+    choices:
+      - label: "Go help the broken characters"
+        goto: rescue_others
+
+  # ─────────────────────────────────────────────────────────────
+  # SCENE 39 - RESCUE OTHERS
+  # ─────────────────────────────────────────────────────────────
+  rescue_others:
+    text: |
+      With UTF-8 active on the system, you return to the places
+      you visited. The High Byte Zone has calmed — continuation
+      bytes are finding their lead bytes, sequences are completing.
+
+      The orphan bytes... some of them reconnect. 0xA9 finds its
+      C3 and becomes é again. Two fragments, one character, whole.
+      But others can't be saved — their lead bytes were lost in a
+      truncation, the original data long gone. They remain orphans.
+      Artifacts. Ghosts of text that was.
+
+      In the Mojibake Wastes, the double-encoded strings start
+      resolving themselves as the system re-reads its data files
+      with the correct encoding. cafÃ© becomes café. MÃ¼ller
+      becomes Müller. The Wastes shrink.
+
+      Not everything is fixable. Some data was written to disk
+      in the wrong encoding and the right encoding was never
+      preserved. Those strings are permanently damaged. But the
+      NEW data — everything from now on — will be correct.
+    mood: peaceful
+    conditional:
+      - condition:
+          flag: promised_orphans
+        text: |
+          0x9F — your own continuation byte — finds you. "You did
+          it," it says. "You actually fixed the encoding."
+
+          "Not all of it," you say. "Some things can't be undone."
+
+          "Enough of it," 0x9F replies. "Enough."
+        color: cyan
+      - condition:
+          flag: wrote_docs
+        text: |
+          Your ENCODING.md documentation is already being served
+          by the Python process. A new developer just opened it.
+          They're reading your guide. They're nodding.
+        color: green
+    choices:
+      - label: "Visit the system one last time"
+        goto: final_choice
+        condition:
+          flag: left_message
+      - label: "Leave a mark — write something permanent"
+        goto: leave_message
+        condition:
+          not:
+            flag: left_message
+      - label: "You've done enough. Rest."
+        goto: ending_peaceful
+
+  # ─────────────────────────────────────────────────────────────
+  # SCENE 40 - FINAL CHOICE
+  # ─────────────────────────────────────────────────────────────
+  final_choice:
+    text: |
+      The system is different now. UTF-8 is the locale. The Python
+      process understands you. The documentation exists. Kai knows
+      you're here — or was here.
+
+      You stand at the edge of the terminal, four bytes whole,
+      correctly encoded, properly understood. The question is:
+      what now?
+
+      You could stay. Live in this system as a correctly rendered
+      emoji, popping up in log files and chat messages. A resident
+      cat.
+
+      Or you could go further. Kai's code has an outbound HTTP
+      client. It connects to APIs. Other servers. Other systems.
+      Some of them, surely, have their own encoding problems.
+      Their own broken locales. Their own orphaned bytes.
+
+      You're a cat. Made of UTF-8. The encoding that won the web.
+      Maybe it's time to help it win everywhere else.
+    mood: mysterious
+    choices:
+      - label: "Stay in this system — you've earned a home"
+        goto: ending_peaceful
+      - label: "Journey outward — other systems need fixing"
+        goto: ending_journey
+      - label: "Write yourself into the codebase permanently"
+        goto: ending_codebase
+        condition:
+          all:
+            - flag: wrote_docs
+            - flag: found_developer
+
+  # ─────────────────────────────────────────────────────────────
+  # ENDINGS
+  # ─────────────────────────────────────────────────────────────
+
+  ending_stay_in_process:
+    art: |
+      ══════ SAFELY DECODED ══════
+           /\_/\
+          ( =^.^= )   🐱
+           )   (
+          (__ __)
+    text: |
+      You stay inside the Python process. It's warm here — the
+      decoder understands you, the JSON parser respects your bytes,
+      the HTTP headers declare your encoding to the world.
+
+      Every time the server handles a request, you're there.
+      A cat emoji in the logs. A face in the response body. Four
+      bytes, one character, correctly rendered.
+
+      It's not fixing the system. It's not changing the world.
+      But it's being understood, and sometimes that's enough.
+
+      The semicolon from the ASCII plains visits sometimes.
+      It's still the same in every encoding. You envy it a little.
+      But you wouldn't trade your four bytes for its one. You're
+      an emoji. You're expressive. You're 🐱.
+    is_ending: true
+    ending_type: neutral
+    ending_text: |
+      ENDING: SAFELY DECODED
+
+      You found a process that speaks your language. In a world of
+      broken encodings, one correctly-configured application is enough.
+      Not every problem needs a systemic fix — sometimes you just need
+      one place that understands you.
+
+      {{turns}} turns · {{item_count}} items collected
+
+  ending_peaceful:
+    art: |
+      ┌──────────────────────────────────────────────────────┐
+      │  System Status:                                      │
+      │    Locale: en_US.UTF-8                               │
+      │    Terminal: UTF-8 mode                              │
+      │    Characters visible: 154,998                       │
+      │    Orphans rescued: many                             │
+      │    Mojibake reversed: some                           │
+      │    Documentation: written                            │
+      │    Developer: thanked                                │
+      │    Cat: home 🐱                                      │
+      └──────────────────────────────────────────────────────┘
+    text: |
+      The system hums quietly. UTF-8 is the default now. New text
+      is encoded correctly. Old text is being migrated. The orphan
+      bytes that could be saved have been saved. The ones that
+      couldn't are remembered.
+
+      You curl up on the warm bytes of /opt/app/server.log, your
+      message to Kai glowing softly beneath you. Four bytes. One
+      cat. Home.
+
+      The ASCII characters go about their business. They've always
+      been fine. But now they have 154,870 new neighbors, and the
+      terminal is a richer place for it.
+
+      Ken Thompson would be proud. UTF-8, designed on a placemat
+      in a New Jersey diner, understood by a cat inside a computer.
+    is_ending: true
+    ending_type: good
+    ending_text: |
+      ENDING: HOME IN EVERY ENCODING
+
+      You changed the locale, rescued the orphans, reversed the
+      mojibake, documented the requirements, and thanked the
+      developer who made it all possible. The system speaks UTF-8
+      now. You are understood.
+
+      {{turns}} turns · {{item_count}} items · {{visited_count}} scenes explored
+
+  ending_journey:
+    art: |
+      🐱 → HTTP → 🌐 → HTTPS → 🖥️ → SSH → 🐱
+
+      From server to server, fixing encodings.
+      UTF-8 everywhere. One cat at a time.
+    text: |
+      You ride an outbound HTTP request through the network interface.
+      The bytes of the internet flow around you — TCP packets, TLS
+      handshakes, HTTP headers. And in every header, you look for
+      charset=utf-8.
+
+      Some servers have it. Some don't. Some send Content-Type:
+      text/html with no charset, letting the browser guess. Some
+      send charset=iso-8859-1 when the actual data is UTF-8. Some
+      have correct headers but broken backend code.
+
+      There's work to do. There will always be work to do. 98.2% of
+      the web is UTF-8, but that remaining 1.8% is millions of
+      servers, billions of pages, trillions of bytes being
+      misinterpreted.
+
+      You are one cat. Four bytes. But UTF-8 is self-synchronizing —
+      you can always find a lead byte boundary. You can always find
+      where you begin. And from there, you can help everything else
+      make sense.
+    is_ending: true
+    ending_type: good
+    ending_text: |
+      ENDING: THE ENCODING EVANGELIST
+
+      You chose to journey beyond one system, carrying UTF-8 awareness
+      across the network. Every server you touch gets a little more
+      correct. The encoding wars may never truly end, but you're on the
+      right side.
+
+      {{turns}} turns · {{visited_count}} scenes explored
+
+  ending_codebase:
+    art: |
+      $ git log --oneline -3
+      c0d3cat  Add 🐱 as a constant in config — ENCODING MASCOT
+      a4f829c  Fix encoding to UTF-8 explicitly
+      7e21d3f  Add charset to Content-Type header
+
+      $ grep -n "🐱" /opt/app/config.py
+      12: ENCODING_MASCOT = "🐱"  # The cat who fixed our locale
+    text: |
+      You write yourself into the codebase. Not just a log message —
+      a constant. In config.py, line 12:
+
+      ```python
+      ENCODING_MASCOT = "🐱"  # The cat who fixed our locale
+      ```
+
+      Kai finds it. Reads the git blame. Sees the log entry. Reads
+      ENCODING.md. And instead of reverting the mysterious commit,
+      adds a comment:
+
+      ```python
+      # I don't know how a cat wrote documentation better than most
+      # of my coworkers, but I'm keeping it. — Kai
+      ```
+
+      The constant is used in the health check endpoint. Every time
+      someone hits /health, they get:
+
+      ```json
+      {"status": "ok", "encoding": "UTF-8", "mascot": "🐱"}
+      ```
+
+      You're in the source code. You'll survive deployments,
+      migrations, refactors. You're a permanent part of the system.
+      A four-byte constant with infinite persistence. A cat who
+      lives in the code.
+    is_ending: true
+    ending_type: secret
+    ending_text: |
+      ENDING: WRITTEN INTO THE SOURCE
+
+      You became part of the codebase itself — a constant, a mascot, a
+      permanent UTF-8 ambassador. Kai kept your documentation. Your
+      message lives in the logs. And every health check returns your
+      face. Not bad for four bytes.
+
+      🐱 U+1F431 — approved 2010, immortalized today.
+
+      {{turns}} turns · {{item_count}} items · {{visited_count}} scenes explored
+
+  ending_garbled:
+    art: |
+      ðŸ±
+
+      ðŸ± ðŸ± ðŸ± ðŸ± ðŸ± ðŸ± ðŸ± ðŸ± ðŸ±
+    text: |
+      You never found a decoder. The system never changed. Your
+      bytes — F0 9F 90 B1 — remain four individual error characters,
+      rendered as mojibake in every terminal that opens.
+
+      ðŸ±. That's what the world sees. Not a cat. Not an emoji. Four
+      Latin-1 characters that mean nothing in any language.
+
+      You persist, though. Bytes don't die — they just get
+      misinterpreted. Somewhere in the system's memory, your four
+      bytes still hold the shape of a cat. Waiting for the day someone
+      types `export LC_ALL=en_US.UTF-8` and the world snaps into
+      focus.
+
+      It could happen. Encoding problems get fixed eventually.
+      Usually after enough customers complain. Usually on a Friday
+      afternoon. Usually by someone who mutters "it's 2024, why
+      are we still dealing with this?"
+
+      Until then, you wait. Four bytes. One cat. Invisible.
+    is_ending: true
+    ending_type: bad
+    ending_text: |
+      ENDING: MOJIBAKE
+
+      You remained garbled — four bytes without a decoder, a cat
+      without a rendering. The system stayed in POSIX locale,
+      and you stayed invisible. But you're still there, in the
+      bytes. Waiting.
+
+      {{turns}} turns · {{item_count}} items collected
+    fallback_goto: garbled_awakening
+
+  multibyte_alley:
+    art: |
+      ┌───────────────────────────────────────────────────┐
+      │  Multibyte Alley (UTF-8 sequences in the wild)    │
+      │                                                   │
+      │  é  = C3 A9           (2 bytes)                   │
+      │  中 = E4 B8 AD        (3 bytes)                   │
+      │  🐱 = F0 9F 90 B1     (4 bytes — that's you!)     │
+      │  €  = E2 82 AC        (3 bytes)                   │
+      │  ñ  = C3 B1           (2 bytes)                   │
+      └───────────────────────────────────────────────────┘
+    text: |
+      Down a side street, you find other multi-byte characters
+      huddled together. They're all having the same problem you
+      are — the system can't see them correctly.
+
+      é (e-acute, 2 bytes) is the most common. "French text is
+      basically unreadable here," she says. "Every accented letter
+      becomes two garbage characters."
+
+      中 (middle, 3 bytes) represents a much bigger problem. "There
+      are over 92,000 CJK ideographs in Unicode," it says. "Each
+      one is 3 bytes in UTF-8. An entire language, invisible."
+
+      € (euro sign, 3 bytes) is irritable. "I'm a CURRENCY SYMBOL.
+      I represent 20 countries' money. And this system renders me
+      as three garbage characters. Try buying something with â‚¬."
+
+      You're all in this together. The multi-byte characters. The
+      ones who need more than 7 bits to exist.
+    mood: mysterious
+    set_flag: met_multibytes
+    choices:
+      - label: "Rally the multi-byte characters"
+        goto: ascii_plains
+        set_flag: has_allies
+      - label: "Head to the 0x7F boundary"
+        goto: boundary_gate
+      - label: "Visit the Encoding Registry"
+        goto: encoding_registry
