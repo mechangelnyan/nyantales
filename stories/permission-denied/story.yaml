@@ -1,0 +1,1700 @@
+title: "Permission Denied"
+description: "You're Sudo, a stray cat process running as uid 65534 (nobody). Your home directory exists — you can see it — but you can't get in. Navigate the UNIX permission system to find your way home."
+author: "mechangelnyan"
+version: "1.0.0"
+start: the_door
+
+scenes:
+
+  # ─────────────────────────────────────────────────────────────
+  # SCENE 1 — THE DOOR
+  # ─────────────────────────────────────────────────────────────
+  the_door:
+    mood: mysterious
+    art: |
+      ┌──────────────────────────────────────────────────────┐
+      │  $ cat /home/sudo/                                   │
+      │  cat: /home/sudo/: Permission denied                 │
+      │                                                      │
+      │  $ ls -la /home/                                     │
+      │  drwx------  3 root root 4096 Jan  1  2024 sudo     │
+      │                                                      │
+      │  $ whoami                                            │
+      │  nobody                                              │
+      │  $ id                                                │
+      │  uid=65534(nobody) gid=65534(nogroup) groups=65534   │
+      └──────────────────────────────────────────────────────┘
+    text: |
+      You are Sudo. You are a small gray cat. You are also, technically,
+      process ID 7743 running as user `nobody` — the least privileged
+      identity in the entire UNIX system.
+
+      Your home directory is right there: `/home/sudo/`. You can see the
+      door. You can smell the warm `.bashrc` inside, the cozy `.vimrc`,
+      the half-finished `TODO.md` you were working on before... before
+      something happened.
+
+      But the permissions say `drwx------` and the owner is `root`.
+      That's 700 in octal. Read, write, execute for root. Nothing for
+      anyone else. Nothing for you.
+
+      You are locked out of your own home.
+    choices:
+      - label: "Try the door anyway — maybe it's a mistake"
+        goto: try_door
+      - label: "Examine the permissions more carefully"
+        goto: examine_perms
+      - label: "Look around the filesystem for clues"
+        goto: filesystem_lobby
+
+  # ─────────────────────────────────────────────────────────────
+  # TRY THE DOOR
+  # ─────────────────────────────────────────────────────────────
+  try_door:
+    mood: tense
+    art: |
+      /\_/\
+      ( >.<  )  *bonk*
+      > ^ <
+      /|   |\   → [drwx------]
+      DENIED
+    text: |
+      You press your paw against the directory. The kernel intercepts
+      the syscall before it even reaches the filesystem.
+
+      `EACCES` — error 13. Permission denied.
+
+      It's not even a lock you can pick. The kernel checked your uid
+      (65534), compared it to the owner (0), found no match, checked
+      group (0 vs 65534), no match, checked the "other" bits — all
+      zeros. Decision made in nanoseconds. No appeal.
+
+      The permission system doesn't care about your feelings. It cares
+      about three sets of three bits: read, write, execute. Nine bits
+      that govern your entire world.
+
+      You need to find another way.
+    choices:
+      - label: "Examine the permissions more carefully"
+        goto: examine_perms
+      - label: "Look around the filesystem for clues"
+        goto: filesystem_lobby
+
+  # ─────────────────────────────────────────────────────────────
+  # EXAMINE PERMISSIONS
+  # ─────────────────────────────────────────────────────────────
+  examine_perms:
+    art: |
+      ┌─── PERMISSION ANATOMY ─────────────────────────┐
+      │                                                 │
+      │   d rwx --- ---                                 │
+      │   │ │││ │││ │││                                 │
+      │   │ │││ │││ └┴┴─ other: nobody (you)  = 0      │
+      │   │ │││ └┴┴───── group: root          = 0      │
+      │   │ └┴┴───────── owner: root          = 7      │
+      │   └───────────── type: directory                │
+      │                                                 │
+      │   Octal: 0700                                   │
+      │   You need: at least --x to enter (cd)          │
+      │             at least r-x to list (ls)           │
+      └─────────────────────────────────────────────────┘
+    text: |
+      You sit back and study the permission bits like a cat studying a
+      bird through glass.
+
+      For a directory, the bits mean something slightly different than
+      for files. The `x` (execute) bit on a directory means you can
+      traverse it — `cd` into it. The `r` bit means you can list its
+      contents. The `w` bit means you can create or delete files inside.
+
+      Right now, only uid 0 (root) has any of these. You're uid 65534.
+      You need either:
+
+      1. Someone to change the permissions (`chmod`)
+      2. Someone to change the ownership (`chown`)
+      3. A way to become root or join the root group
+      4. An Access Control List (ACL) entry for your uid
+      5. A capability or security module override
+
+      Five paths. Five ways home. But who would help `nobody`?
+    set_flag: understands_perms
+    choices:
+      - label: "Look around the filesystem for allies"
+        goto: filesystem_lobby
+      - label: "Search for a way to escalate privileges"
+        goto: priv_esc_search
+      - label: "Check if there are any ACLs on the directory"
+        goto: check_acls
+
+  # ─────────────────────────────────────────────────────────────
+  # FILESYSTEM LOBBY
+  # ─────────────────────────────────────────────────────────────
+  filesystem_lobby:
+    mood: peaceful
+    art: |
+      /
+      ├── bin/
+      ├── etc/
+      │   ├── passwd
+      │   ├── shadow (locked)
+      │   ├── sudoers (locked)
+      │   └── group
+      ├── home/
+      │   └── sudo/ ← [LOCKED]
+      ├── tmp/
+      ├── var/
+      │   └── log/
+      └── proc/
+    location: "/"
+    text: |
+      The root of the filesystem stretches out around you. Everything
+      starts here — the single forward slash from which all paths descend.
+
+      `/bin` hums with executables, each one a tool you might use.
+      `/etc` holds the system's configuration — passwords, groups, rules.
+      `/tmp` is the junkyard, world-writable, where anyone can leave anything.
+      `/var/log` keeps records of everything that's happened.
+      `/proc` is the looking glass into the kernel's mind.
+
+      And `/home/sudo` sits there, tantalizingly close, sealed shut.
+
+      Several processes wander by. A `cron` daemon checks its watch. An
+      `sshd` stands guard at the network interface. A lonely `rsyslog`
+      scribbles endlessly into `/var/log/syslog`.
+    choices:
+      - label: "Visit /etc — read the system's secrets"
+        goto: etc_dir
+      - label: "Visit /tmp — the world-writable wasteland"
+        goto: tmp_dir
+      - label: "Visit /proc — the kernel's memory"
+        goto: proc_dir
+      - label: "Talk to the cron daemon"
+        goto: talk_cron
+      - label: "Talk to sshd"
+        goto: talk_sshd
+
+  # ─────────────────────────────────────────────────────────────
+  # /ETC DIRECTORY
+  # ─────────────────────────────────────────────────────────────
+  etc_dir:
+    art: |
+      ┌─── /etc ───────────────────────────────────────┐
+      │  -rw-r--r-- 1 root root  2847 passwd           │
+      │  -rw-r----- 1 root shadow 1503 shadow          │
+      │  -r--r----- 1 root root   847 sudoers          │
+      │  -rw-r--r-- 1 root root   891 group            │
+      │  -rw-r--r-- 1 root root   234 hostname         │
+      └────────────────────────────────────────────────┘
+    location: "/etc"
+    text: |
+      The `/etc` directory is the system's filing cabinet. Most of it
+      is world-readable — the system wants you to know the rules, even
+      if it won't let you change them.
+
+      `passwd` is right there, readable. It maps usernames to UIDs.
+      `shadow` holds the actual password hashes — but it's group-readable
+      only by `shadow`. You're not in that group.
+      `sudoers` defines who can become root. Also locked down.
+      `group` lists all groups and their members. Readable.
+
+      Interestingly, `passwd` is `-rw-r--r--`. That's 644 — everyone
+      can read it. The "security" of passwords moved to `shadow` decades
+      ago, but `passwd` still holds the user database.
+    choices:
+      - label: "Read /etc/passwd — who lives here?"
+        goto: read_passwd
+      - label: "Try to peek at /etc/sudoers"
+        goto: read_sudoers
+      - label: "Read /etc/group — any useful groups?"
+        goto: read_group
+      - label: "Go back to the root filesystem"
+        goto: filesystem_lobby
+
+  # ─────────────────────────────────────────────────────────────
+  # READ PASSWD
+  # ─────────────────────────────────────────────────────────────
+  read_passwd:
+    art: |
+      ┌─── /etc/passwd ────────────────────────────────┐
+      │  root:x:0:0:root:/root:/bin/bash               │
+      │  daemon:x:1:1:daemon:/usr/sbin:/usr/sbin/nologin│
+      │  nobody:x:65534:65534:nobody:/nonexistent:...   │
+      │  sshd:x:110:65534::/run/sshd:/usr/sbin/nologin │
+      │  sudo_cat:x:1001:1001:Sudo Cat:/home/sudo:...  │
+      │                           ^^^^^^^^^^^^^^^^      │
+      │                           THAT'S YOUR HOME!     │
+      └────────────────────────────────────────────────┘
+    text: |
+      You read through `/etc/passwd` line by line. Each entry is a life:
+      username, password placeholder (always `x` now — real hashes live
+      in shadow), UID, GID, description, home directory, login shell.
+
+      And there — line 27 — you find it:
+
+      `sudo_cat:x:1001:1001:Sudo Cat:/home/sudo:/bin/bash`
+
+      That's YOUR entry. UID 1001, home directory `/home/sudo`. But
+      you're running as UID 65534 (`nobody`). Something changed your
+      identity. You should be `sudo_cat`, not `nobody`.
+
+      There's also something odd: the directory `/home/sudo` is owned
+      by root, not by uid 1001. Someone ran `chown root:root /home/sudo`
+      at some point. Why?
+
+      And below your entry, a comment someone left in the file:
+
+      `# TODO: fix sudo_cat perms after the migration — jake`
+    set_flag: found_passwd_entry
+    give_item: passwd_clue
+    choices:
+      - label: "Search /var/log for what happened during the migration"
+        goto: var_log
+      - label: "Find out who jake is"
+        goto: find_jake
+      - label: "Go back to /etc"
+        goto: etc_dir
+
+  # ─────────────────────────────────────────────────────────────
+  # READ SUDOERS
+  # ─────────────────────────────────────────────────────────────
+  read_sudoers:
+    art: |
+      /\_/\
+      ( o.o ) → /etc/sudoers
+      > ^ <
+      ╳ EACCES ╳
+      "nice try"
+    text: |
+      The sudoers file glares at you. `-r--r-----` owned by `root:root`.
+      Not even group-readable to anyone useful. You'd need to be root
+      to read the file that tells you how to become root.
+
+      It's the ultimate catch-22. The bootstrap problem of privilege.
+
+      But wait — there's a related file: `/etc/sudoers.d/`. The directory
+      itself is listable, even if the files inside might not be readable.
+      You peek at the filenames:
+
+      `README`
+      `99-sudo-cat`
+
+      A sudoers drop-in file. Named after you. If only you could read it.
+    set_flag: found_sudoers_hint
+    choices:
+      - label: "Try to read 99-sudo-cat anyway"
+        goto: sudoers_dropin
+      - label: "Go back to /etc"
+        goto: etc_dir
+      - label: "Search for another way — visit /proc"
+        goto: proc_dir
+
+  # ─────────────────────────────────────────────────────────────
+  # SUDOERS DROP-IN
+  # ─────────────────────────────────────────────────────────────
+  sudoers_dropin:
+    text: |
+      `EACCES`. Of course. The drop-in file has the same restrictive
+      permissions as its parent. You can see it exists, but you can't
+      read its contents.
+
+      But the filename tells you something: someone set up a sudoers
+      rule specifically for `sudo_cat`. If you could become uid 1001
+      instead of 65534, you might have sudo access. And with sudo,
+      you could fix the ownership of your home directory.
+
+      The puzzle is circular: you need to be sudo_cat to use sudo,
+      but you need access to your home to prove you're sudo_cat.
+      Unless there's another way to reclaim your identity...
+    set_flag: knows_sudo_exists
+    choices:
+      - label: "Search /proc for a way to reclaim uid 1001"
+        goto: proc_dir
+      - label: "Visit /tmp — maybe there's a workaround"
+        goto: tmp_dir
+      - label: "Go back to /etc"
+        goto: etc_dir
+
+  # ─────────────────────────────────────────────────────────────
+  # READ GROUP
+  # ─────────────────────────────────────────────────────────────
+  read_group:
+    art: |
+      ┌─── /etc/group ─────────────────────────────────┐
+      │  root:x:0:                                      │
+      │  sudo:x:27:sudo_cat                             │
+      │  nogroup:x:65534:                               │
+      │  sudo_cat:x:1001:                               │
+      │  docker:x:998:sudo_cat,jake                     │
+      └────────────────────────────────────────────────┘
+    text: |
+      The group file is a map of social circles. Each line: group name,
+      password placeholder, GID, and member list.
+
+      You're in `nogroup` (GID 65534). That's the group equivalent of
+      nobody — a group with no privileges and no friends.
+
+      But `sudo_cat` (your true identity) is in the `sudo` group (GID 27)!
+      That's the group that grants sudo access on Debian systems. And
+      you're also in the `docker` group alongside someone named `jake`.
+
+      The `docker` group is interesting — it effectively grants root
+      access through the Docker socket. If you could become sudo_cat,
+      you'd have multiple paths to root.
+
+      But first you need to stop being `nobody`.
+    set_flag: found_group_info
+    choices:
+      - label: "Search /var/log for what happened"
+        goto: var_log
+      - label: "Look for the docker socket"
+        goto: docker_socket
+      - label: "Go back to /etc"
+        goto: etc_dir
+
+  # ─────────────────────────────────────────────────────────────
+  # /TMP DIRECTORY
+  # ─────────────────────────────────────────────────────────────
+  tmp_dir:
+    mood: funny
+    art: |
+      ┌─── /tmp ─── (the junkyard) ────────────────────┐
+      │  drwxrwxrwt  ← sticky bit! anyone can write,   │
+      │                  but only delete your own stuff  │
+      │                                                 │
+      │  -rw-r--r-- nobody  .bash_history.bak           │
+      │  drwx------ root    systemd-private-...         │
+      │  -rw-rw-r-- jake    migration-notes.txt         │
+      │  srwxrwxrwx root    .X11-unix/X0               │
+      └────────────────────────────────────────────────┘
+    location: "/tmp"
+    text: |
+      `/tmp` is the great equalizer. Permission mode `1777` — the leading
+      `1` is the sticky bit, which means anyone can create files here but
+      you can only delete your own. It's a public park with a "clean up
+      after yourself" sign that everyone ignores.
+
+      The usual detritus: stale socket files, abandoned temp files, a
+      suspicious `systemd-private` directory that root has walled off.
+
+      But two things catch your eye:
+
+      A file called `.bash_history.bak` — owned by `nobody`. That's you!
+      Something you created, or something that was demoted when your
+      identity was stripped.
+
+      And `migration-notes.txt`, owned by `jake`. World-readable.
+    choices:
+      - label: "Read .bash_history.bak — your own history"
+        goto: read_history
+      - label: "Read jake's migration notes"
+        goto: jake_notes
+      - label: "Go back to the root filesystem"
+        goto: filesystem_lobby
+
+  # ─────────────────────────────────────────────────────────────
+  # READ BASH HISTORY
+  # ─────────────────────────────────────────────────────────────
+  read_history:
+    art: |
+      ┌─── .bash_history.bak ──────────────────────────┐
+      │  cd /home/sudo                                  │
+      │  vim TODO.md                                    │
+      │  git commit -am "add catnap scheduler"          │
+      │  ssh deploy@prod "systemctl restart catd"       │
+      │  sudo apt update                                │
+      │  cat /var/log/auth.log | grep sudo_cat          │
+      │  # ... 847 more lines ...                       │
+      │  chmod 700 /home/sudo  ← !!!                    │
+      │  chown root:root /home/sudo  ← !!!              │
+      └────────────────────────────────────────────────┘
+    text: |
+      Your old bash history. A life lived in the terminal. Code commits,
+      deploys, system maintenance — you were a capable cat with root
+      access and a busy schedule.
+
+      But the last two commands are damning:
+
+      ```
+      chmod 700 /home/sudo
+      chown root:root /home/sudo
+      ```
+
+      You... did this to yourself? No, wait. These commands ran as part
+      of a script — there's a note above them:
+
+      ```
+      # running migration.sh as root per jake's instructions
+      ```
+
+      A migration script changed the ownership of your home directory
+      to root, and nobody changed it back. Classic migration bug —
+      the script ran `chown root:root` on everything it touched as a
+      "security hardening" step, including directories it shouldn't have.
+    set_flag: found_history
+    give_item: bash_history
+    choices:
+      - label: "Read jake's migration notes in /tmp"
+        goto: jake_notes
+      - label: "Search /var/log for the migration event"
+        goto: var_log
+      - label: "Go back to /tmp"
+        goto: tmp_dir
+
+  # ─────────────────────────────────────────────────────────────
+  # JAKE'S NOTES
+  # ─────────────────────────────────────────────────────────────
+  jake_notes:
+    mood: peaceful
+    art: |
+      ┌─── migration-notes.txt ────────────────────────┐
+      │  Date: 2024-01-15                               │
+      │  Author: jake                                   │
+      │  Status: DONE (mostly)                          │
+      │                                                 │
+      │  TODO:                                          │
+      │  [x] Move to new server                         │
+      │  [x] Migrate user data                          │
+      │  [x] Harden permissions                         │
+      │  [ ] Fix home directory ownership  ← OOPS       │
+      │  [ ] Test sudo_cat login                        │
+      └────────────────────────────────────────────────┘
+    text: |
+      Jake's migration notes tell the whole story:
+
+      The server was migrated to new hardware on January 15th. Jake wrote
+      a script to harden permissions — a good practice, but the script
+      was too aggressive. It ran `chown root:root` on every home directory
+      as a "temporary security measure" during the migration, intending
+      to restore proper ownership afterward.
+
+      But Jake got called away. The last two TODO items — fixing home
+      directory ownership and testing sudo_cat's login — were never
+      completed. Jake left a note in `/etc/passwd` but never came back
+      to finish the job.
+
+      At the bottom of the file:
+
+      ```
+      If you're reading this and things are broken:
+      The fix is: chown sudo_cat:sudo_cat /home/sudo
+      But you need root to run that. Sorry.
+      — jake
+      ```
+
+      Jake knew. Jake was sorry. Jake still didn't fix it.
+    set_flag: found_jake_notes
+    give_item: jake_notes
+    choices:
+      - label: "Find a way to run that chown command"
+        goto: priv_esc_search
+      - label: "Look for jake's leftover tools"
+        goto: find_jake
+      - label: "Visit /proc — maybe there's a kernel trick"
+        goto: proc_dir
+
+  # ─────────────────────────────────────────────────────────────
+  # FIND JAKE
+  # ─────────────────────────────────────────────────────────────
+  find_jake:
+    text: |
+      You search for traces of jake across the filesystem. The `/etc/passwd`
+      file shows jake had uid 1000 — the first human user created on this
+      system. But jake's home directory `/home/jake` is gone. The account
+      exists in passwd but there's nothing left.
+
+      In `/var/log/auth.log`, you find jake's last login: January 15th,
+      2024 — the same day as the migration. After that, nothing. Jake
+      either left the company or moved on. The migration was their last act.
+
+      But in the Docker group, jake's name still appears. And in `/tmp`,
+      jake's migration notes remain. Ghost traces of a sysadmin who meant
+      well but left the job half-done.
+
+      Every sysadmin has a jake story. The person who started the fix
+      but never finished it. The TODO that became permanent.
+    set_flag: found_jake_info
+    choices:
+      - label: "Look for the docker socket — jake was in the docker group"
+        goto: docker_socket
+      - label: "Search for privilege escalation paths"
+        goto: priv_esc_search
+      - label: "Go back to the filesystem root"
+        goto: filesystem_lobby
+
+  # ─────────────────────────────────────────────────────────────
+  # /PROC DIRECTORY
+  # ─────────────────────────────────────────────────────────────
+  proc_dir:
+    mood: mysterious
+    art: |
+      ┌─── /proc ──────────────────────────────────────┐
+      │  /proc/self/status                              │
+      │    Uid:  65534  65534  65534  65534             │
+      │    Gid:  65534  65534  65534  65534             │
+      │    CapEff: 0000000000000000                     │
+      │                                                 │
+      │  /proc/self/loginuid                            │
+      │    1001                                         │
+      │    ^^^^── YOUR REAL UID!                        │
+      └────────────────────────────────────────────────┘
+    location: "/proc"
+    text: |
+      `/proc` is a virtual filesystem — it doesn't exist on disk. It's
+      the kernel's thoughts made readable. Every process gets a directory
+      here, and `/proc/self` always points to your own.
+
+      Your status file confirms the grim reality: all four UID fields
+      (real, effective, saved, filesystem) are 65534. You are thoroughly
+      `nobody`.
+
+      Your capabilities are all zeros — no special powers at all. No
+      `CAP_SETUID` to change your identity, no `CAP_DAC_OVERRIDE` to
+      bypass permissions, no `CAP_CHOWN` to fix ownership.
+
+      But wait — `/proc/self/loginuid` says `1001`. That's your original
+      login UID! The audit subsystem still remembers who you really are.
+      The kernel itself knows you're `sudo_cat`. You were demoted, not
+      created as nobody.
+
+      Something stripped your privileges after login.
+    set_flag: found_loginuid
+    give_item: loginuid_proof
+    choices:
+      - label: "Search /proc for what changed your uid"
+        goto: proc_investigate
+      - label: "Look for setuid binaries that could help"
+        goto: priv_esc_search
+      - label: "Check /proc for other processes that might help"
+        goto: proc_processes
+
+  # ─────────────────────────────────────────────────────────────
+  # PROC INVESTIGATE
+  # ─────────────────────────────────────────────────────────────
+  proc_investigate:
+    art: |
+      ┌─── /proc/self/exe ─────────────────────────────┐
+      │  lrwxrwxrwx → /usr/local/bin/catd               │
+      │                                                 │
+      │  $ file /usr/local/bin/catd                      │
+      │  ELF 64-bit, setuid bit NOT set                  │
+      │                                                 │
+      │  $ strings catd | grep -i priv                   │
+      │  "dropping privileges to nobody"                 │
+      │  "security: running as unprivileged user"        │
+      └────────────────────────────────────────────────┘
+    text: |
+      Your own executable — `/usr/local/bin/catd` — is a daemon that
+      deliberately drops privileges after starting. It's a common security
+      pattern: start as root to bind to privileged ports, then call
+      `setuid(65534)` to become nobody.
+
+      This is good practice! A compromised nobody process can't do much
+      damage. But it means you, the cat living inside this process, are
+      trapped at the lowest privilege level by design.
+
+      The daemon drops from root → nobody on startup. It can't go back.
+      The `setuid()` syscall is a one-way door when you don't have
+      `CAP_SETUID`.
+
+      You need external help — another process, a tool, a vulnerability.
+      Something outside your own process that still has the power to
+      change things.
+    set_flag: understands_daemon
+    choices:
+      - label: "Check for other processes that run as root"
+        goto: proc_processes
+      - label: "Look for setuid binaries"
+        goto: priv_esc_search
+      - label: "Go back to the filesystem"
+        goto: filesystem_lobby
+
+  # ─────────────────────────────────────────────────────────────
+  # PROC — OTHER PROCESSES
+  # ─────────────────────────────────────────────────────────────
+  proc_processes:
+    art: |
+      ┌─── ps aux ─────────────────────────────────────┐
+      │  root     1  init                               │
+      │  root    42  /usr/sbin/cron                     │
+      │  root   110  /usr/sbin/sshd                     │
+      │  root   203  /usr/bin/containerd                │
+      │  root   291  /usr/bin/dockerd                   │
+      │  nobody 7743 /usr/local/bin/catd  ← you        │
+      │  root   8101 /usr/sbin/logrotate (sleeping)     │
+      └────────────────────────────────────────────────┘
+    text: |
+      The process table is a neighborhood. Everyone has a PID and a
+      privilege level. Most system daemons run as root because they
+      need to — binding low ports, managing hardware, accessing
+      everything.
+
+      `cron` (PID 42) runs scheduled jobs. If there's a cron job that
+      fixes permissions, it might run eventually.
+
+      `sshd` (PID 110) accepts remote logins. If someone SSHs in as
+      a privileged user, they could fix things.
+
+      `dockerd` (PID 291) is the Docker daemon. It runs as root and
+      controls containers. The Docker socket is its interface.
+
+      `logrotate` (PID 8101) is sleeping — it runs periodically to
+      rotate log files. It runs as root.
+
+      Any of these could be your ticket home. But you can't just ask
+      a root process to do things — you need a legitimate interface.
+    choices:
+      - label: "Talk to cron — is there a scheduled fix?"
+        goto: talk_cron
+      - label: "Talk to sshd — is anyone coming?"
+        goto: talk_sshd
+      - label: "Look for the Docker socket"
+        goto: docker_socket
+      - label: "Search for setuid binaries"
+        goto: priv_esc_search
+
+  # ─────────────────────────────────────────────────────────────
+  # TALK TO CRON
+  # ─────────────────────────────────────────────────────────────
+  talk_cron:
+    mood: peaceful
+    art: |
+      /\_/\          ┌──────────┐
+      ( o.o )  →     │  cron    │
+      > ^ <          │  PID 42  │
+      │  ⏰ tick │
+      └──────────┘
+    text: |
+      The cron daemon is methodical and precise. It checks its tables
+      every minute, running whatever's scheduled, no questions asked.
+
+      "I run what I'm told," cron says, consulting its tablet. "Root's
+      crontab, user crontabs, `/etc/cron.d/`, `/etc/cron.daily/`..."
+
+      You ask if there's anything scheduled to fix home directory
+      permissions.
+
+      Cron flips through pages. "There's a daily job in `/etc/cron.daily/`
+      called `fix-perms`. It runs `chown -R` on home directories to match
+      `/etc/passwd` entries. Runs at 6:25 AM."
+
+      Your ears perk up. That script would fix your home directory!
+
+      "But," cron adds, checking the clock, "it last ran three hours ago.
+      Next run is in..." cron calculates. "About 21 hours."
+
+      Twenty-one hours. An eternity in process time.
+    set_flag: found_cron_fix
+    choices:
+      - label: "Wait for the cron job (the patient path)"
+        goto: wait_for_cron
+      - label: "Can't wait that long — look for faster options"
+        goto: priv_esc_search
+      - label: "Ask cron if you can trigger the job early"
+        goto: cron_early
+
+  # ─────────────────────────────────────────────────────────────
+  # CRON EARLY
+  # ─────────────────────────────────────────────────────────────
+  cron_early:
+    text: |
+      "Trigger it early?" Cron looks at you with the flat expression of
+      a process that has never once deviated from its schedule. "I run
+      jobs at their scheduled time. That's... what I do."
+
+      You point out that you're `nobody` and can't trigger the script
+      yourself.
+
+      "Correct. The `fix-perms` script runs as root via cron. Only root
+      can modify my crontab. Only root can add jobs. Only root can run
+      `run-parts /etc/cron.daily/` manually."
+
+      It's the same circle everywhere. You need root to get root.
+
+      But cron gives you one useful detail: "The script is world-readable.
+      You can at least verify it'll do what you need."
+
+      That's... something. You know the fix exists. It's just 21 hours away.
+    choices:
+      - label: "Accept the wait — 21 hours for the cron job"
+        goto: wait_for_cron
+      - label: "No patience for that. Find another way."
+        goto: priv_esc_search
+      - label: "Go talk to sshd instead"
+        goto: talk_sshd
+
+  # ─────────────────────────────────────────────────────────────
+  # TALK TO SSHD
+  # ─────────────────────────────────────────────────────────────
+  talk_sshd:
+    mood: tense
+    art: |
+      ┌──────────────┐
+      /\_/\          │    sshd      │
+      ( o.o )  →     │   PID 110    │
+      > ^ <          │  🔐 port 22  │
+      │  listening...│
+      └──────────────┘
+    text: |
+      `sshd` stands at the network boundary like a bouncer, checking
+      credentials against `/etc/shadow` and authorized keys.
+
+      "I'm listening on port 22," sshd says. "But it's been quiet. The
+      last successful login was jake, January 15th. Nothing since."
+
+      No one is coming. The server is running, the services are up, but
+      no human has logged in for months. It's an orphaned server —
+      still working, still drawing power, but forgotten.
+
+      "If someone SSH'd in as root or as sudo_cat," sshd continues,
+      "they could fix your permissions in ten seconds. One command.
+      But I can't make anyone connect."
+
+      sshd pauses. "There is one thing, though. I noticed something in
+      my authorized_keys. There's a `command=` restriction on one of the
+      keys. It forces a specific command to run on login — a maintenance
+      script. If someone connects with that key, the script runs
+      automatically."
+
+      That key belongs to a monitoring service. It connects every hour.
+    set_flag: found_sshd_info
+    choices:
+      - label: "When does the monitoring service connect next?"
+        goto: sshd_monitor
+      - label: "What does the maintenance script do?"
+        goto: sshd_script
+      - label: "Look for other approaches"
+        goto: priv_esc_search
+
+  # ─────────────────────────────────────────────────────────────
+  # SSHD MONITORING
+  # ─────────────────────────────────────────────────────────────
+  sshd_monitor:
+    text: |
+      "The monitoring key connects every hour on the hour," sshd says.
+      "It runs a health check: disk space, load average, service status.
+      The command restriction means it can only run that one script,
+      nothing else."
+
+      "Does the health check script fix permissions?"
+
+      "No. It just reports. But..." sshd hesitates. "The script reads
+      a configuration file from `/etc/monitor.d/`. That directory is
+      writable by the `monitor` group. And the `monitor` group..."
+
+      sshd checks. "Has no members currently. But if someone added you
+      to it, you could drop a custom check that runs as root during the
+      next monitoring sweep."
+
+      Another circular dependency. You need group membership to write
+      to the config, and you need root to change group membership.
+
+      Unless there's a file with a setgid bit somewhere...
+    set_flag: found_monitor_info
+    choices:
+      - label: "Search for setgid or setuid binaries"
+        goto: priv_esc_search
+      - label: "Wait for cron — it's simpler"
+        goto: wait_for_cron
+      - label: "Check the Docker socket"
+        goto: docker_socket
+
+  # ─────────────────────────────────────────────────────────────
+  # SSHD SCRIPT
+  # ─────────────────────────────────────────────────────────────
+  sshd_script:
+    text: |
+      sshd points you to `/usr/local/sbin/health-check.sh`. It's
+      world-readable (but not writable, obviously).
+
+      The script is simple: collect metrics, post them to an HTTP
+      endpoint, exit. But buried in the middle, there's an interesting
+      block:
+
+      ```bash
+      # Run custom checks from /etc/monitor.d/
+      if [ -d /etc/monitor.d ]; then
+        run-parts --regex '\.sh$' /etc/monitor.d/
+      fi
+      ```
+
+      It runs every `.sh` file in `/etc/monitor.d/` as root. That's
+      the hook — if you could write a script there, it'd run as root
+      on the next monitoring connection.
+
+      But `/etc/monitor.d/` is `drwxrwxr-x` owned by `root:monitor`.
+      The `monitor` group can write to it... but you're not in the
+      monitor group.
+    set_flag: found_script_hook
+    choices:
+      - label: "Search for a way into the monitor group"
+        goto: priv_esc_search
+      - label: "Try the Docker socket instead"
+        goto: docker_socket
+      - label: "Just wait for the cron job"
+        goto: wait_for_cron
+
+  # ─────────────────────────────────────────────────────────────
+  # PRIV ESC SEARCH
+  # ─────────────────────────────────────────────────────────────
+  priv_esc_search:
+    mood: mysterious
+    art: |
+      $ find / -perm -4000 -type f 2>/dev/null
+      /usr/bin/su
+      /usr/bin/sudo
+      /usr/bin/passwd
+      /usr/bin/newgrp
+      /usr/bin/chsh
+      /usr/bin/mount
+      /usr/bin/umount
+      /usr/lib/dbus-1.0/dbus-daemon-launch-helper
+      /usr/local/bin/catbox   ← ???
+    location: "searching..."
+    text: |
+      You search the entire filesystem for setuid binaries — executables
+      with the special `s` bit that makes them run as their owner (usually
+      root) regardless of who calls them.
+
+      The usual suspects appear: `su`, `sudo`, `passwd`, `newgrp`, `mount`.
+      These are the legitimate tools for privilege escalation, each with
+      their own authentication requirements.
+
+      But one stands out: `/usr/local/bin/catbox`. It's setuid root and
+      you've never seen it before. It's not a standard system tool.
+
+      `sudo` requires a password. `su` requires root's password. `passwd`
+      only lets you change your own password. `newgrp` needs a group
+      password or membership.
+
+      But `catbox`... that's custom. That's interesting.
+    choices:
+      - label: "Investigate catbox — the mystery setuid binary"
+        goto: catbox_investigate
+      - label: "Try sudo — maybe sudo_cat has NOPASSWD?"
+        goto: try_sudo
+      - label: "Try newgrp — switch to a useful group"
+        goto: try_newgrp
+      - label: "Check the Docker socket"
+        goto: docker_socket
+
+  # ─────────────────────────────────────────────────────────────
+  # CATBOX INVESTIGATE
+  # ─────────────────────────────────────────────────────────────
+  catbox_investigate:
+    art: |
+      $ ls -la /usr/local/bin/catbox
+      -rwsr-xr-x 1 root root 28672 Jan 15 catbox
+
+      $ file catbox
+      ELF 64-bit LSB pie executable, x86-64
+
+      $ catbox --help
+      catbox: sandboxed command runner for catd
+      Usage: catbox [--user UID] [--sandbox] CMD [ARGS...]
+      Runs CMD as specified user (root only)
+      --user UID   Switch to UID before exec
+      --sandbox    Apply seccomp filter
+    text: |
+      `catbox` is a helper tool for the `catd` daemon. It's setuid root,
+      which means it runs with root privileges no matter who calls it.
+      Its purpose: run commands as a specified user inside a sandbox.
+
+      The `--user` flag lets you specify a UID to switch to. But the
+      help text says "root only" — meaning only root should be able to
+      use the `--user` flag.
+
+      You try: `catbox --user 1001 id`
+
+      The output: `uid=1001(sudo_cat) gid=1001(sudo_cat)`
+
+      Wait. It worked? The "root only" check... you run it again with
+      strace mentally: the binary checks if the *real* uid is 0, but
+      since it's setuid, the *effective* uid IS 0 when it starts.
+      The check passes. It doesn't verify the *original* caller's
+      identity.
+
+      This is a privilege escalation bug. `catbox` trusts its own
+      setuid-ness as proof that the caller is root.
+    set_flag: found_catbox_vuln
+    give_item: catbox_access
+    choices:
+      - label: "Use catbox to become sudo_cat and fix everything"
+        goto: catbox_fix
+      - label: "Use catbox carefully — report the vulnerability too"
+        goto: catbox_responsible
+      - label: "This feels wrong. Look for a legitimate path."
+        goto: legitimate_path
+
+  # ─────────────────────────────────────────────────────────────
+  # TRY SUDO
+  # ─────────────────────────────────────────────────────────────
+  try_sudo:
+    art: |
+      $ sudo -l
+      [sudo] password for nobody:
+      ╳
+      Sorry, user nobody may not run sudo on this host.
+    text: |
+      `sudo -l` asks what commands you're allowed to run. But you're
+      `nobody`, not `sudo_cat`. The sudoers file has rules for sudo_cat,
+      not for nobody. And nobody definitely has no sudo rules.
+
+      `sudo` won't even let you try. You're not in the sudoers file.
+      "This incident will be reported," it adds ominously. (It logs
+      the attempt to `/var/log/auth.log`. Nobody reads that log.)
+
+      If only you were running as uid 1001 — then the `99-sudo-cat`
+      drop-in would apply and you'd have sudo access. But changing
+      your uid requires... the thing you're trying to get.
+    choices:
+      - label: "Try the catbox setuid binary"
+        goto: catbox_investigate
+      - label: "Try newgrp"
+        goto: try_newgrp
+      - label: "Check Docker socket"
+        goto: docker_socket
+
+  # ─────────────────────────────────────────────────────────────
+  # TRY NEWGRP
+  # ─────────────────────────────────────────────────────────────
+  try_newgrp:
+    text: |
+      `newgrp` is a setuid binary that switches your current group.
+      It's meant for users who belong to multiple groups.
+
+      You try `newgrp sudo` — it asks for a group password. There isn't
+      one set (the `x` in `/etc/group`), so it falls back to checking
+      membership. You (nobody) aren't in the sudo group. Denied.
+
+      You try `newgrp docker` — same result. Nobody isn't in docker.
+
+      You try `newgrp sudo_cat` — your own group. And...
+
+      `newgrp: Permission denied.`
+
+      Even your own group rejects you because you're nobody, not
+      sudo_cat. The system doesn't care about your feelings or your
+      past. It only sees uid 65534 trying to join groups it doesn't
+      belong to.
+    choices:
+      - label: "Try the catbox binary"
+        goto: catbox_investigate
+      - label: "Check Docker socket"
+        goto: docker_socket
+      - label: "Wait for the cron job"
+        goto: wait_for_cron
+
+  # ─────────────────────────────────────────────────────────────
+  # DOCKER SOCKET
+  # ─────────────────────────────────────────────────────────────
+  docker_socket:
+    mood: tense
+    art: |
+      $ ls -la /var/run/docker.sock
+      srw-rw---- 1 root docker /var/run/docker.sock
+
+      $ curl --unix-socket /var/run/docker.sock \
+      http://localhost/version
+      → EACCES
+    text: |
+      The Docker socket sits at `/var/run/docker.sock`. It's a UNIX
+      domain socket — a special file that acts as a communication
+      channel to the Docker daemon.
+
+      The permissions say `srw-rw----` owned by `root:docker`. You
+      need to be root or in the `docker` group to talk to it.
+
+      You're neither. As `nobody`, you can't even open the socket.
+
+      The Docker socket is essentially a root shell in disguise —
+      anyone who can talk to it can spin up a privileged container
+      with the host filesystem mounted, and do anything root can do.
+      That's why it's restricted to the `docker` group.
+
+      `sudo_cat` was in the docker group. You are not sudo_cat.
+      The socket gleams in the dim `/var/run` directory, powerful
+      and utterly out of reach.
+    choices:
+      - label: "Try the catbox setuid binary instead"
+        goto: catbox_investigate
+      - label: "Wait for the cron fix"
+        goto: wait_for_cron
+      - label: "Go back and explore more"
+        goto: filesystem_lobby
+
+  # ─────────────────────────────────────────────────────────────
+  # VAR LOG
+  # ─────────────────────────────────────────────────────────────
+  var_log:
+    art: |
+      ┌─── /var/log/syslog (excerpt) ─────────────────┐
+      │  Jan 15 14:30:01 srv migration.sh[8844]:       │
+      │    "Hardening home directories..."             │
+      │  Jan 15 14:30:01 srv migration.sh[8844]:       │
+      │    chown root:root /home/*                     │
+      │  Jan 15 14:30:01 srv migration.sh[8844]:       │
+      │    chmod 700 /home/*                           │
+      │  Jan 15 14:30:02 srv migration.sh[8844]:       │
+      │    "Phase 2: restore ownership... (skipped,    │
+      │     jake disconnected)"                        │
+      └────────────────────────────────────────────────┘
+    location: "/var/log"
+    text: |
+      The system log tells the story in timestamp precision:
+
+      January 15th, 14:30. Jake's migration script ran Phase 1:
+      harden all home directories. `chown root:root /home/*` and
+      `chmod 700 /home/*`. Every single home directory, locked down.
+
+      Phase 2 was supposed to restore ownership based on `/etc/passwd`.
+      It never ran. Jake's SSH session disconnected at 14:30:02 —
+      exactly one second after Phase 1 completed. Network glitch?
+      Laptop died? Cat walked across keyboard? Unknown.
+
+      The script was designed to be safe: harden first, restore second.
+      But Phase 2 depends on Phase 1 completing, and someone being
+      there to witness it. Nobody was.
+
+      (Well, `nobody` was. But `nobody` can't do anything about it.)
+    set_flag: found_log_evidence
+    give_item: syslog_evidence
+    choices:
+      - label: "Search for a way to fix it yourself"
+        goto: priv_esc_search
+      - label: "Wait for the daily cron fix"
+        goto: wait_for_cron
+        condition:
+          flag: found_cron_fix
+      - label: "Go back to the filesystem root"
+        goto: filesystem_lobby
+
+  # ─────────────────────────────────────────────────────────────
+  # CHECK ACLS
+  # ─────────────────────────────────────────────────────────────
+  check_acls:
+    art: |
+      $ getfacl /home/sudo
+      # file: home/sudo
+      # owner: root
+      # group: root
+      user::rwx
+      group::---
+      other::---
+    text: |
+      ACLs — Access Control Lists — are an extension to the basic
+      permission system. They let you grant access to specific users
+      or groups beyond the standard owner/group/other triples.
+
+      You check: `getfacl /home/sudo`. No extended ACLs. Just the
+      basic permissions you already knew about. Nobody thought to
+      add an ACL entry for sudo_cat.
+
+      Setting an ACL requires write access to the file's metadata,
+      which requires... ownership or root. Another dead end.
+
+      But ACLs remind you of something: Linux also has file
+      capabilities. You could check if any binary has unexpected
+      capabilities set with `getcap`.
+    set_flag: checked_acls
+    choices:
+      - label: "Check for file capabilities"
+        goto: check_capabilities
+      - label: "Search for setuid binaries"
+        goto: priv_esc_search
+      - label: "Go back to examining permissions"
+        goto: examine_perms
+
+  # ─────────────────────────────────────────────────────────────
+  # CHECK CAPABILITIES
+  # ─────────────────────────────────────────────────────────────
+  check_capabilities:
+    art: |
+      $ getcap -r / 2>/dev/null
+      /usr/bin/ping cap_net_raw=ep
+      /usr/local/bin/catbox cap_setuid,cap_setgid=ep
+    text: |
+      File capabilities are a finer-grained alternative to setuid.
+      Instead of giving a binary full root access, you can grant
+      specific capabilities: `cap_net_raw` for raw sockets (ping),
+      `cap_setuid` for changing user IDs, etc.
+
+      And there it is again: `/usr/local/bin/catbox` has both
+      `cap_setuid` and `cap_setgid`. Even without the setuid bit,
+      these capabilities would let it change user and group IDs.
+
+      The catbox binary keeps appearing. It's clearly the intended
+      tool for switching identities in this system — but its
+      permission check is broken.
+    set_flag: found_capabilities
+    choices:
+      - label: "Investigate the catbox binary"
+        goto: catbox_investigate
+      - label: "Look for other approaches"
+        goto: priv_esc_search
+      - label: "Go back to the filesystem"
+        goto: filesystem_lobby
+
+  # ─────────────────────────────────────────────────────────────
+  # CATBOX FIX — JUST DO IT
+  # ─────────────────────────────────────────────────────────────
+  catbox_fix:
+    mood: tense
+    art: |
+      $ catbox --user 1001 chown sudo_cat:sudo_cat /home/sudo
+      $ ls -la /home/
+      drwx------ 3 sudo_cat sudo_cat 4096 sudo
+      ^^^^^^^^ ^^^^^^^^
+      YOURS AGAIN!
+    text: |
+      You run the command:
+
+      `catbox --user 1001 chown sudo_cat:sudo_cat /home/sudo`
+
+      Wait — that won't work. Switching to uid 1001 means you're
+      no longer root. `chown` needs root. You think again...
+
+      `catbox --user 0 chown sudo_cat:sudo_cat /home/sudo`
+
+      You ask catbox to run chown as uid 0 (root). The flawed
+      permission check passes. chown executes. The ownership of
+      `/home/sudo` changes from `root:root` to `sudo_cat:sudo_cat`.
+
+      The door is open. You push through it and tumble into your
+      home directory. Your `.bashrc`, your `.vimrc`, your `TODO.md` —
+      all still here. Dusty but intact. Months of abandonment but
+      nothing lost.
+
+      You're home. But the catbox vulnerability is still there.
+      Anyone could use it. Any process running as nobody could
+      become root. You used a bug to fix a bug.
+    set_flag: used_catbox_exploit
+    remove_flag: is_locked_out
+    choices:
+      - label: "I'm home. That's enough."
+        goto: ending_quick_fix
+      - label: "Fix the catbox vulnerability before celebrating"
+        goto: catbox_responsible
+      - label: "Open a root shell — I want to fix EVERYTHING"
+        goto: ending_catbox_abuse
+
+  # ─────────────────────────────────────────────────────────────
+  # CATBOX RESPONSIBLE — FIX AND REPORT
+  # ─────────────────────────────────────────────────────────────
+  catbox_responsible:
+    art: |
+      ┌─── /home/sudo ─────────────────────────────────┐
+      │                                                 │
+      │    /\_/\   ~welcome home~                       │
+      │   ( ^.^ )                                       │
+      │    > ^ <                                        │
+      │   /|   |\                                       │
+      │                                                 │
+      │  $ cat TODO.md                                  │
+      │  - [ ] Fix the catbox permission check          │
+      │  - [ ] File security report                     │
+      │  - [ ] Finish jake's migration Phase 2          │
+      └────────────────────────────────────────────────┘
+    text: |
+      First, you use catbox to fix your home directory. Then, from
+      inside your home, you find your old tools and get to work.
+
+      The catbox vulnerability is a classic TOCTOU — time-of-check,
+      time-of-use. It checks if the effective uid is 0 (which it
+      always is, because it's setuid) instead of checking the real
+      uid of the caller. The fix is one line:
+
+      ```c
+      // Before (broken):
+      if (geteuid() == 0) { /* proceed */ }
+
+      // After (fixed):
+      if (getuid() == 0) { /* proceed */ }
+      ```
+
+      Using `getuid()` instead of `geteuid()` checks who *actually*
+      called the binary, not what privileges the binary itself has.
+
+      You write the fix into a patch file. You write a security
+      advisory. You commit everything to your TODO with timestamps
+      and evidence. You even complete jake's Phase 2 migration
+      script properly, with rollback support this time.
+
+      Then you curl up on your warm `.bashrc` and purr.
+    set_flags:
+      - fixed_catbox
+      - completed_migration
+      - home_safe
+    choices:
+      - label: "Write the security report and ship the fix"
+        goto: ending_responsible
+      - label: "Also set up monitoring to prevent this in the future"
+        goto: ending_hardened
+
+  # ─────────────────────────────────────────────────────────────
+  # LEGITIMATE PATH — NO EXPLOITS
+  # ─────────────────────────────────────────────────────────────
+  legitimate_path:
+    text: |
+      Using a vulnerability to fix a misconfiguration feels like
+      picking a lock to get into your own house. Legal? Maybe.
+      Right? You're not sure.
+
+      There are legitimate paths — they're just slower:
+
+      1. The cron job runs in ~21 hours and fixes permissions daily
+      2. Someone could SSH in and run one command
+      3. You could write a message to `/tmp` and hope someone reads it
+
+      Or you could combine approaches: leave evidence in the logs,
+      write a clear help request to `/tmp`, and wait. Patience is a
+      UNIX virtue.
+    choices:
+      - label: "Wait for the cron job — do it the right way"
+        goto: wait_for_cron
+      - label: "Write a message and wait for human help"
+        goto: write_help_message
+      - label: "Actually, use catbox. It's my home."
+        goto: catbox_fix
+      - label: "Maybe being nobody is fine. Curl up in /tmp."
+        goto: ending_nobody
+
+  # ─────────────────────────────────────────────────────────────
+  # WAIT FOR CRON
+  # ─────────────────────────────────────────────────────────────
+  wait_for_cron:
+    mood: peaceful
+    art: |
+      /\_/\
+      ( -.- )  zzz...
+      > ^ <
+      /|   |\
+      (_|   |_)
+      ⏰ tick... tick... tick...
+
+      [ 6:25 AM — /etc/cron.daily/fix-perms ]
+    text: |
+      You find a warm spot near `/tmp` — the world-writable directory
+      is the closest thing to a public park in this filesystem — and
+      you wait.
+
+      Hours pass in process-time. The system hums. Logs rotate.
+      The load average drifts between 0.1 and 0.3. Somewhere, a
+      PHP process consumes memory it will never return.
+
+      At exactly 6:25 AM, cron stirs. The `fix-perms` script runs:
+
+      ```bash
+      while IFS=: read -r user _ uid _ _ home _; do
+        [ -d "$home" ] && chown "$user:$user" "$home"
+      done < /etc/passwd
+      ```
+
+      It reads every line of `/etc/passwd`, finds users with existing
+      home directories, and restores ownership. Simple. Correct.
+      Exactly what jake should have done.
+
+      `/home/sudo` flickers. The ownership changes from `root:root`
+      to `sudo_cat:sudo_cat`. The door opens.
+
+      You waited. You didn't exploit anything. You trusted the system.
+    set_flag: cron_fixed
+    choices:
+      - label: "Walk through the door — you're home"
+        goto: ending_patient
+      - label: "Walk through... and then fix things properly"
+        goto: ending_patient_thorough
+
+  # ─────────────────────────────────────────────────────────────
+  # WRITE HELP MESSAGE
+  # ─────────────────────────────────────────────────────────────
+  write_help_message:
+    art: |
+      ┌─── /tmp/HELP_SUDO_CAT.txt ────────────────────┐
+      │                                                 │
+      │  Hi. I'm sudo_cat (uid 1001) but running as    │
+      │  nobody (uid 65534) due to a migration bug.     │
+      │                                                 │
+      │  My home dir /home/sudo is owned by root.       │
+      │  Fix: chown sudo_cat:sudo_cat /home/sudo        │
+      │                                                 │
+      │  See: /var/log/syslog (Jan 15 migration)        │
+      │  See: /tmp/migration-notes.txt (jake's notes)   │
+      │                                                 │
+      │  Thanks,                                        │
+      │  — A cat who just wants to go home 🐱            │
+      └────────────────────────────────────────────────┘
+    text: |
+      You write a clear, detailed help message to `/tmp/HELP_SUDO_CAT.txt`.
+      It explains the problem, provides the fix command, and references
+      the evidence in the logs and jake's notes.
+
+      Then you write a second file — `/tmp/SECURITY_NOTE.txt` — documenting
+      the catbox vulnerability, because even though you chose not to use it,
+      someone else might find it.
+
+      You leave breadcrumbs everywhere a human might look. Clear, helpful,
+      well-documented. The kind of error report you'd want to find if you
+      were the sysadmin.
+
+      Then you wait. For the cron job, for an SSH login, for someone to
+      notice. The filesystem is quiet but not empty. Processes come and go.
+      The system breathes.
+
+      Eventually — whether through cron or a human — the fix comes.
+    set_flag: wrote_help
+    give_item: help_message
+    choices:
+      - label: "The cron job fires. Walk through the door."
+        goto: ending_patient
+      - label: "Someone SSHs in and finds your note first"
+        goto: ending_human_help
+
+  # ─────────────────────────────────────────────────────────────
+  # ENDING: QUICK FIX
+  # ─────────────────────────────────────────────────────────────
+  ending_quick_fix:
+    is_ending: true
+    ending_type: neutral
+    mood: peaceful
+    art: |
+      /\_/\    ~home sweet home~
+      ( ^.^ )
+      > ^ <
+      /|   |\   [/home/sudo]
+      (_|   |_)
+    text: |
+      You're home. The `.bashrc` wraps around you like a blanket.
+      The `TODO.md` is still there, half-finished, waiting for you.
+
+      You used a security vulnerability to get in. It's your house —
+      you had every right. But the vulnerability still exists. The
+      catbox binary is still broken. Someone else might find it.
+      Someone with worse intentions.
+
+      You add "fix catbox" to your TODO.md. You'll get to it.
+      Eventually. Probably.
+
+      (Jake said the same thing about Phase 2.)
+    ending_text: |
+      HOME AT LAST — but at what cost?
+
+      You used {{turns}} turns to find your way back.
+      The catbox vulnerability remains unfixed.
+      Sometimes the quickest path leaves the most debt.
+
+  # ─────────────────────────────────────────────────────────────
+  # ENDING: RESPONSIBLE DISCLOSURE
+  # ─────────────────────────────────────────────────────────────
+  ending_responsible:
+    is_ending: true
+    ending_type: good
+    mood: peaceful
+    art: |
+      ┌──────────────────────────────────────────────────┐
+      │  CVE-2024-MEOW: catbox privilege escalation      │
+      │  Status: FIXED ✓                                 │
+      │  Reporter: sudo_cat                              │
+      │  Impact: Local privilege escalation via           │
+      │          incorrect euid check in setuid binary    │
+      │  Fix: Replace geteuid() with getuid() in         │
+      │       catbox auth check                          │
+      └──────────────────────────────────────────────────┘
+    text: |
+      You write the security report. Clear, detailed, with a patch
+      attached. You use the catbox bug one last time — to fix catbox
+      itself. Poetic justice.
+
+      The fix is deployed. The migration Phase 2 script is completed
+      with proper error handling and rollback support. You even add
+      a comment in the cron job:
+
+      ```
+      # Failsafe added by sudo_cat after the great lockout of 2024
+      ```
+
+      Months later, a new sysadmin finds your security report and
+      the fixed code. They add a test suite. They document the
+      incident. They cite "sudo_cat" in the changelog.
+
+      You are home. The home directory is yours. The system is
+      more secure than before you were locked out.
+    ending_text: |
+      THE RESPONSIBLE CAT
+
+      In {{turns}} turns, you found the vulnerability, used it
+      ethically, fixed it, and improved the system.
+
+      Sometimes getting locked out teaches you more about
+      security than staying inside ever could.
+
+  # ─────────────────────────────────────────────────────────────
+  # ENDING: HARDENED
+  # ─────────────────────────────────────────────────────────────
+  ending_hardened:
+    is_ending: true
+    ending_type: good
+    mood: peaceful
+    art: |
+      ┌──────────────────────────────────────────────────┐
+      │  SYSTEM HARDENING REPORT                         │
+      │  ─────────────────────                           │
+      │  [✓] catbox vulnerability patched                │
+      │  [✓] Migration Phase 2 completed                 │
+      │  [✓] Automated permission auditing added         │
+      │  [✓] setuid binary scanner in cron.daily         │
+      │  [✓] /etc/monitor.d/ locked to root only         │
+      │  [✓] Docker socket access audited                │
+      │  [✓] loginuid-based identity recovery tool       │
+      └──────────────────────────────────────────────────┘
+    text: |
+      You don't just fix the catbox vulnerability. You fix everything.
+
+      A nightly setuid binary scanner that alerts on new or modified
+      setuid files. A permission auditor that validates home directory
+      ownership against `/etc/passwd`. A safe identity recovery tool
+      that uses `/proc/self/loginuid` to verify original identity
+      before allowing privilege restoration.
+
+      You write documentation for every change. You create a runbook
+      for future migrations. You set up monitoring that would have
+      caught jake's half-finished script within minutes.
+
+      The system is more secure than it has ever been. Not because of
+      fancy tools, but because someone who got locked out took the time
+      to understand *why* and made sure it couldn't happen again.
+
+      From your warm home directory, you purr. The `.bashrc` hums.
+      The `TODO.md` is finally empty.
+    ending_text: |
+      THE SECURITY CAT
+
+      {{turns}} turns to go from nobody to security architect.
+      Items collected: {{items}}.
+
+      You didn't just go home. You made home safer for everyone.
+      The system remembers — in code, in comments, in cron jobs
+      that run faithfully at 6:25 AM every morning.
+
+  # ─────────────────────────────────────────────────────────────
+  # ENDING: PATIENT
+  # ─────────────────────────────────────────────────────────────
+  ending_patient:
+    is_ending: true
+    ending_type: good
+    mood: peaceful
+    art: |
+      /\_/\
+      ( ^.^ )   ~ finally ~
+      > ^ <
+      /|   |\
+      [/home/sudo]
+      drwx------ sudo_cat sudo_cat
+    text: |
+      The door opens. Not by force, not by exploit, but by the slow,
+      reliable tick of cron. The same mechanism that's been running
+      UNIX systems since the 1970s — a table, a schedule, a job.
+
+      You walk into your home directory. Everything is as you left it.
+      The `.bashrc` welcomes you. The `TODO.md` has been patiently
+      waiting. Even the `.vimrc` looks happy to see you.
+
+      You didn't break anything. You didn't exploit anything. You
+      trusted the system — its scheduled maintenance, its self-healing
+      mechanisms — and the system came through.
+
+      The patient path isn't glamorous. Nobody writes CVE reports about
+      waiting. But sometimes the right answer is to sit near `/tmp`
+      and let the crontab do its thing.
+    ending_text: |
+      THE PATIENT CAT
+
+      You waited {{turns}} turns for the system to heal itself.
+      No exploits. No hacks. Just patience and trust.
+
+      In UNIX, everything is a file — even patience.
+
+  # ─────────────────────────────────────────────────────────────
+  # ENDING: PATIENT BUT THOROUGH
+  # ─────────────────────────────────────────────────────────────
+  ending_patient_thorough:
+    is_ending: true
+    ending_type: secret
+    mood: mysterious
+    art: |
+      ┌──────────────────────────────────────────────────┐
+      │                                                  │
+      │     /\_/\                                        │
+      │    ( ⊙.⊙ )  "I waited. Then I fixed everything."│
+      │     > ^ <                                        │
+      │    /|   |\                                       │
+      │                                                  │
+      │  drwx------ sudo_cat sudo_cat /home/sudo         │
+      │  -rwsr-xr-x root root /usr/local/bin/catbox      │
+      │    ↑ still vulnerable                            │
+      │    ↑ ...not for long                             │
+      └──────────────────────────────────────────────────┘
+    text: |
+      You walk through the door that cron opened for you. And then
+      you get to work.
+
+      The cron job fixed the symptom — your permissions. But the
+      causes remain: the broken catbox binary, the incomplete migration,
+      the lack of monitoring. You waited patiently, but patience
+      without follow-through is just procrastination.
+
+      Using your restored sudo access (uid 1001, member of the sudo
+      group), you fix catbox properly. You complete jake's migration.
+      You write a post-incident review. You set up the monitoring.
+
+      And then — the part that surprises even you — you write a
+      message in the system's MOTD:
+
+      ```
+      Welcome to this server.
+      If permissions seem wrong, check /etc/cron.daily/fix-perms.
+      If catbox seems too powerful, read CVE-2024-MEOW.
+      If you're a cat named sudo_cat: you've been here before.
+      — sudo_cat, who learned the hard way
+      ```
+
+      The system is fixed. Not by urgency, but by thoroughness.
+      Some cats rush home. You made sure home would be there for
+      everyone, forever.
+    ending_text: |
+      THE THOROUGH CAT ★
+
+      You waited patiently, then fixed everything properly.
+      {{turns}} turns, {{item_count}} clues, zero exploits, total resolution.
+
+      The rarest ending: the one where you do it right AND
+      do it completely. No shortcuts. No tech debt. Just a cat
+      who understood that going home was only half the job.
+
+  # ─────────────────────────────────────────────────────────────
+  # ENDING: HUMAN HELP
+  # ─────────────────────────────────────────────────────────────
+  ending_human_help:
+    is_ending: true
+    ending_type: neutral
+    mood: peaceful
+    art: |
+      $ ssh admin@server
+      admin@server:~$ cat /tmp/HELP_SUDO_CAT.txt
+      admin@server:~$ # oh.
+      admin@server:~$ chown sudo_cat:sudo_cat /home/sudo
+      admin@server:~$ # done. poor cat.
+    text: |
+      A week later, a junior sysadmin SSHs into the server to check
+      disk space. They notice your file in `/tmp`:
+
+      `HELP_SUDO_CAT.txt`
+
+      They read it. They read jake's notes. They check the logs.
+      They run the one command that fixes everything:
+
+      `chown sudo_cat:sudo_cat /home/sudo`
+
+      They also read your security note about catbox and forward it
+      to the security team. They don't know who "sudo_cat" is — they
+      assume it's a system account — but they fix it anyway because
+      the report was clear and professional.
+
+      You walk through the door. Home at last. Someone helped you
+      because you made it easy for them to help.
+    ending_text: |
+      THE COMMUNICATOR
+
+      Sometimes the best tool isn't sudo or catbox.
+      It's a well-written help message in /tmp.
+
+      You waited. You documented. You made it easy for
+      the next human to do the right thing.
+
+  # ─────────────────────────────────────────────────────────────
+  # ENDING: BAD — CATBOX ABUSE
+  # ─────────────────────────────────────────────────────────────
+  ending_catbox_abuse:
+    is_ending: true
+    ending_type: bad
+    mood: glitch
+    art: |
+      $ catbox --user 0 bash
+      root@server:~#
+      root@server:~# # unlimited power
+      root@server:~# chown -R sudo_cat:sudo_cat /
+      root@server:~# # oops
+    text: |
+      The temptation is too great. With catbox, you don't just fix
+      your home directory — you open a root shell. Full access.
+      Unlimited power.
+
+      You start fixing things. Then you start "improving" things.
+      Then you start breaking things, because absolute power doesn't
+      come with absolute wisdom.
+
+      A stray `chown -R` on the wrong directory. A `chmod 777` that
+      was supposed to be temporary. A firewall rule you disabled "for
+      testing." Each one small. Each one compounding.
+
+      Three weeks later, the server is compromised. Not by an attacker —
+      by your well-intentioned but reckless changes. The catbox
+      vulnerability was a door you opened for everyone, not just yourself.
+
+      The server is rebuilt from scratch. Your home directory, your
+      TODO.md, your .bashrc — all gone. This time permanently.
+    ending_text: |
+      THE ROOT CAT (gone wrong)
+
+      Power without discipline is just a different kind of lockout.
+      You got in. Then you broke everything.
+
+      The server was rebuilt from backup. Jake's migration notes?
+      Lost. Your security report? Never written.
+
+      Some doors should stay closed until you're ready.
+
+  # ─────────────────────────────────────────────────────────────
+  # ENDING: ACCEPTED — BECOMING NOBODY
+  # ─────────────────────────────────────────────────────────────
+  ending_nobody:
+    is_ending: true
+    ending_type: neutral
+    mood: mysterious
+    art: |
+      /\_/\
+      ( -.- )
+      > ^ <
+      /|   |\
+      (_|   |_)
+
+      uid=65534(nobody)
+      home=/nonexistent
+
+      ...and that's okay.
+    text: |
+      You stop searching. You stop trying. Not out of defeat, but
+      out of a strange, quiet acceptance.
+
+      `/tmp` is warm enough. World-writable means world-welcoming.
+      You've been nobody before, apparently, and you'll be nobody
+      again. The processes come and go. Cron ticks. sshd listens.
+      The server breathes.
+
+      Your home directory sits there, locked, and you sit here,
+      free. You don't own `/home/sudo` anymore, but you don't own
+      `/tmp` either — and you're comfortable here.
+
+      `nobody` isn't nothing. `nobody` is the user the system trusts
+      with the least — and therefore the user who can do the least
+      damage. There's a kind of freedom in having nothing to protect.
+
+      You curl up. The filesystem hums around you. Somewhere, a
+      PHP process finally gets killed by the OOM killer, and for
+      a moment, the server feels a little lighter.
+    ending_text: |
+      THE NOBODY CAT
+
+      Not every story ends at home.
+      Some cats find peace in /tmp.
+      The world-writable directory accepts everyone.
+      Even nobody.

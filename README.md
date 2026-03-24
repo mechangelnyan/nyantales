@@ -303,6 +303,14 @@ Navigate the ASCII Plains (128 smug characters since 1963), cross the 0x7F bound
 
 **Endings:** Good (×2) · Neutral · Bad · Secret · **Scenes:** 46
 
+### 🔐 Permission Denied
+
+> *You're Sudo, a stray cat process running as uid 65534 (nobody). Your home directory exists — you can see it — but you can't get in. Navigate the UNIX permission system to find your way home.*
+
+Explore the filesystem as `nobody` — the least privileged identity in UNIX. Read `/etc/passwd` to discover your true identity (uid 1001, sudo_cat), trace the migration script that locked you out, find Jake's unfinished TODO in `/tmp`, discover a flawed setuid binary (`catbox`) with a TOCTOU vulnerability, talk to cron and sshd, investigate `/proc` for kernel-level identity proof, and choose your path: exploit the bug, wait patiently for cron, or write a help message and trust the system. Teaches: UNIX permissions (rwx/octal), setuid/setgid, capabilities, ACLs, /proc, privilege escalation, responsible disclosure, and the philosophy of least privilege.
+
+**Endings:** Good (×3) · Neutral (×3) · Bad · Secret · **Scenes:** 42
+
 ---
 
 ## Ending Discovery
