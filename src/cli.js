@@ -39,6 +39,7 @@ function showHelp() {
   console.log(`    ${chalk.cyan('nyantales progress')}       ${chalk.dim('View ending discovery progress')}`);
   console.log(`    ${chalk.cyan('nyantales validate')}       ${chalk.dim('Validate all stories')}`);
   console.log(`    ${chalk.cyan('nyantales validate <s>')}   ${chalk.dim('Validate a specific story')}`);
+  console.log(`    ${chalk.cyan('nyantales new [slug]')}     ${chalk.dim('Scaffold a new story')}`);
   console.log(`    ${chalk.cyan('nyantales --help')}         ${chalk.dim('Show this help')}`);
   console.log();
   console.log(chalk.bold('  Options:\n'));
@@ -372,6 +373,209 @@ function showProgress() {
 }
 
 // ─────────────────────────────────────────────────────────────
+// Scaffold a new story
+// ─────────────────────────────────────────────────────────────
+
+async function scaffoldStory(slug) {
+  console.log(BANNER);
+
+  if (!slug) {
+    const { inputSlug } = await inquirer.prompt([{
+      type: 'input',
+      name: 'inputSlug',
+      message: chalk.cyan('Story slug (kebab-case, e.g. "lost-in-the-cloud"):'),
+      validate: v => /^[a-z0-9][a-z0-9-]*[a-z0-9]$/.test(v) || 'Use lowercase letters, numbers, and hyphens (min 3 chars)',
+    }]);
+    slug = inputSlug;
+  }
+
+  // Validate slug format
+  if (!/^[a-z0-9][a-z0-9-]*[a-z0-9]$/.test(slug)) {
+    console.error(chalk.red(`\n  Invalid slug: '${slug}'`));
+    console.log(chalk.dim('  Use lowercase letters, numbers, and hyphens (min 3 chars).\n'));
+    process.exit(1);
+  }
+
+  const storyDir = path.join(STORIES_DIR, slug);
+  const storyFile = path.join(storyDir, 'story.yaml');
+
+  if (fs.existsSync(storyDir)) {
+    console.error(chalk.red(`\n  Story '${slug}' already exists at: ${storyDir}\n`));
+    process.exit(1);
+  }
+
+  // Gather metadata
+  const { title } = await inquirer.prompt([{
+    type: 'input',
+    name: 'title',
+    message: chalk.cyan('Story title:'),
+    default: slug.split('-').map(w => w[0].toUpperCase() + w.slice(1)).join(' '),
+  }]);
+
+  const { description } = await inquirer.prompt([{
+    type: 'input',
+    name: 'description',
+    message: chalk.cyan('One-line description:'),
+    default: 'A cat adventure in the terminal.',
+  }]);
+
+  const { author } = await inquirer.prompt([{
+    type: 'input',
+    name: 'author',
+    message: chalk.cyan('Author:'),
+    default: 'mechangelnyan',
+  }]);
+
+  const template = `# ${title}
+# ${description}
+# by ${author}
+
+title: "${title}"
+description: "${description}"
+author: "${author}"
+start: intro
+
+scenes:
+  intro:
+    location: "The Beginning"
+    mood: peaceful
+    art: |
+      .  ^  ^ .
+      ( o.o  )
+      (  > <  )
+    text: >
+      You open your eyes. The screen flickers.
+      A cursor blinks in the darkness, waiting for input.
+      This is where your story begins.
+    choices:
+      - label: "Look around"
+        goto: look_around
+      - label: "Type something"
+        goto: type_something
+
+  look_around:
+    text: >
+      The room is dim, lit only by the glow of the monitor.
+      You notice a small note taped to the side of the screen.
+    choices:
+      - label: "Read the note"
+        goto: read_note
+        set_flag: found_note
+      - label: "Ignore it and explore further"
+        goto: explore
+
+  type_something:
+    text: >
+      Your paws tap hesitantly on the keyboard.
+      The terminal responds with a friendly greeting.
+    choices:
+      - label: "Keep typing"
+        goto: explore
+      - label: "Step back and look around"
+        goto: look_around
+
+  read_note:
+    mood: mysterious
+    text: >
+      The note reads: "Every story needs an ending.
+      Some good, some bad. All worth finding."
+    choices:
+      - label: "Take the note"
+        goto: explore
+        give_item: mysterious_note
+      - label: "Leave it"
+        goto: explore
+
+  explore:
+    text: >
+      You venture deeper into the terminal.
+      Something tells you this is just the beginning...
+    choices:
+      - label: "Press onward (good path)"
+        goto: ending_good
+      - label: "Turn back (neutral path)"
+        goto: ending_neutral
+      - label: "Secret path"
+        goto: ending_secret
+        condition:
+          has_item: mysterious_note
+
+  ending_good:
+    is_ending: true
+    ending_type: good
+    mood: peaceful
+    art: |
+      *  .  *
+      . ★★★ .
+      *  .  *
+    text: >
+      The screen fills with warm light.
+      You found your way home.
+    ending_text: >
+      Congratulations! You completed the story.
+      But there are more paths to discover...
+
+  ending_neutral:
+    is_ending: true
+    ending_type: neutral
+    text: >
+      You return to where you started.
+      The cursor blinks, patient as ever.
+      Maybe next time you'll go further.
+    ending_text: >
+      Not every journey reaches its destination,
+      but every step teaches something new.
+
+  ending_secret:
+    is_ending: true
+    ending_type: secret
+    mood: mysterious
+    art: |
+      ╔══════════════════╗
+      ║  ★ SECRET  ★     ║
+      ╚══════════════════╝
+    text: >
+      The mysterious note glows in your paws.
+      It was a key all along — a key to understanding
+      that the best stories are the ones you almost miss.
+    ending_text: >
+      You found the secret ending!
+      The note knew you'd come looking.
+`;
+
+  // Create the directory and write the file
+  fs.mkdirSync(storyDir, { recursive: true });
+  fs.writeFileSync(storyFile, template, 'utf8');
+
+  console.log();
+  console.log(chalk.green(`  ✦ Story scaffolded!`));
+  console.log();
+  console.log(chalk.dim('  Directory: ') + storyDir);
+  console.log(chalk.dim('  File:      ') + storyFile);
+  console.log();
+
+  // Validate the scaffold
+  const engine = new Engine(storyFile, { skipAnimation: true });
+  await engine.loadStory();
+  const result = validateStory(engine.story);
+
+  if (result.errors.length === 0) {
+    const s = result.stats;
+    console.log(`  ${chalk.green('✓')} Valid — ${s.scenes} scenes · ${s.endings} endings · ${s.choices} choices`);
+  } else {
+    console.log(chalk.red('  ✗ Scaffold has validation errors (this is a bug):'));
+    for (const e of result.errors) console.log(`    ${chalk.red(e)}`);
+  }
+
+  console.log();
+  console.log(chalk.bold('  Next steps:'));
+  console.log(chalk.dim(`    1. Edit ${storyFile}`));
+  console.log(chalk.dim(`    2. Run: nyantales validate ${slug}`));
+  console.log(chalk.dim(`    3. Run: nyantales play ${slug}`));
+  console.log();
+}
+
+// ─────────────────────────────────────────────────────────────
 // Interactive main menu (no args)
 // ─────────────────────────────────────────────────────────────
 
@@ -461,6 +665,12 @@ async function main() {
     case 'validate':
     case 'check':
       await validateStories(rest[0], opts);
+      break;
+
+    case 'new':
+    case 'create':
+    case 'scaffold':
+      await scaffoldStory(rest[0]);
       break;
 
     case '--help':

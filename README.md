@@ -44,6 +44,10 @@ nyantales continue
 # List saved games
 nyantales saves
 
+# Scaffold a new story
+nyantales new                             # interactive prompts
+nyantales new lost-in-the-cloud           # with slug
+
 # Validate stories
 nyantales validate                        # check all stories
 nyantales validate the-terminal-cat       # check one story
