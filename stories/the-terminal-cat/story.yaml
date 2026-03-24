@@ -465,6 +465,22 @@ scenes:
              (... oh wait, that's the problem)
 
       You take a deep breath. This is it.
+    conditional:
+      - condition:
+          all:
+            - flag: has_wisdom
+            - flag: got_zombie_warning
+        text: |
+          Between the cat command's instructions and the zombie's warning, you feel
+          strangely prepared. You know the password, and you know the risk.
+          This isn't reckless anymore — it's a plan.
+        color: green
+      - condition:
+          any:
+            - has_item: fish_treat
+            - flag: knows_sudo_password
+        text: "You have what you need. One way or another, this ends here."
+        color: cyan
     choices:
       - label: "sudo ./escape — use the password you know"
         goto: ending_escape

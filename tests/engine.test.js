@@ -146,6 +146,61 @@ describe('Engine.checkCondition', () => {
     engine.state.markVisited('intro');
     assert.equal(engine.checkCondition({ not_visited: 'intro' }), false);
   });
+
+  // ── Compound conditions ──────────────────────────────────
+
+  it('all: returns true when every sub-condition passes', () => {
+    engine.state.setFlag('a');
+    engine.state.setFlag('b');
+    assert.equal(engine.checkCondition({ all: [{ flag: 'a' }, { flag: 'b' }] }), true);
+  });
+
+  it('all: returns false when any sub-condition fails', () => {
+    engine.state.setFlag('a');
+    assert.equal(engine.checkCondition({ all: [{ flag: 'a' }, { flag: 'b' }] }), false);
+  });
+
+  it('any: returns true when at least one sub-condition passes', () => {
+    engine.state.setFlag('b');
+    assert.equal(engine.checkCondition({ any: [{ flag: 'a' }, { flag: 'b' }] }), true);
+  });
+
+  it('any: returns false when all sub-conditions fail', () => {
+    assert.equal(engine.checkCondition({ any: [{ flag: 'a' }, { flag: 'b' }] }), false);
+  });
+
+  it('not: negates a sub-condition', () => {
+    assert.equal(engine.checkCondition({ not: { flag: 'x' } }), true);
+    engine.state.setFlag('x');
+    assert.equal(engine.checkCondition({ not: { flag: 'x' } }), false);
+  });
+
+  it('nested compound: all containing any', () => {
+    engine.state.setFlag('a');
+    engine.state.addItem('key');
+    // all: [ any of flags, has_item ]
+    const cond = { all: [
+      { any: [{ flag: 'a' }, { flag: 'b' }] },
+      { has_item: 'key' },
+    ]};
+    assert.equal(engine.checkCondition(cond), true);
+    engine.state.removeItem('key');
+    assert.equal(engine.checkCondition(cond), false);
+  });
+
+  it('min_turns checks turn count', () => {
+    engine.state.turnCount = 5;
+    assert.equal(engine.checkCondition({ min_turns: 3 }), true);
+    assert.equal(engine.checkCondition({ min_turns: 5 }), true);
+    assert.equal(engine.checkCondition({ min_turns: 6 }), false);
+  });
+
+  it('max_turns checks turn count', () => {
+    engine.state.turnCount = 5;
+    assert.equal(engine.checkCondition({ max_turns: 5 }), true);
+    assert.equal(engine.checkCondition({ max_turns: 10 }), true);
+    assert.equal(engine.checkCondition({ max_turns: 4 }), false);
+  });
 });
 
 // ─────────────────────────────────────────────────────────────

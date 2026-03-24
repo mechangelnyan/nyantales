@@ -210,6 +210,46 @@ conditional:
 | `no_item: name` | The item is NOT in inventory |
 | `visited: scene_id` | The player has visited that scene |
 | `not_visited: scene_id` | The player has NOT visited that scene |
+| `min_turns: N` | The player has taken at least N turns |
+| `max_turns: N` | The player has taken at most N turns |
+
+### Compound Conditions
+
+Combine multiple conditions using `all` (AND), `any` (OR), and `not` (negation). These can be nested arbitrarily deep.
+
+```yaml
+# Require ALL conditions to be true (AND)
+condition:
+  all:
+    - flag: has_key
+    - has_item: lantern
+    - visited: clue_room
+
+# Require ANY condition to be true (OR)
+condition:
+  any:
+    - flag: knows_password
+    - has_item: master_key
+
+# Negate a condition
+condition:
+  not:
+    flag: alarm_triggered
+
+# Nested: require a key AND (either the password OR the master key)
+condition:
+  all:
+    - has_item: rusty_key
+    - any:
+      - flag: knows_password
+      - has_item: master_key
+
+# Show a hint only in the first 10 turns
+condition:
+  max_turns: 10
+```
+
+Compound conditions work everywhere conditions are accepted: `condition` on choices, `conditional` text blocks, etc.
 
 ---
 

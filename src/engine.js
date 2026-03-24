@@ -231,12 +231,24 @@ export class Engine {
   checkCondition(cond) {
     if (!cond) return true;
     if (typeof cond === 'string') return this.state.hasFlag(cond);
+
+    // Compound conditions — AND / OR
+    if (Array.isArray(cond.all)) return cond.all.every(c => this.checkCondition(c));
+    if (Array.isArray(cond.any)) return cond.any.some(c => this.checkCondition(c));
+
+    // Negation wrapper
+    if (cond.not != null) return !this.checkCondition(cond.not);
+
+    // Atomic conditions
     if (cond.flag)          return this.state.hasFlag(cond.flag);
     if (cond.not_flag)      return !this.state.hasFlag(cond.not_flag);
     if (cond.has_item)      return this.state.hasItem(cond.has_item);
     if (cond.no_item)       return !this.state.hasItem(cond.no_item);
     if (cond.visited)       return this.state.hasVisited(cond.visited);
     if (cond.not_visited)   return !this.state.hasVisited(cond.not_visited);
+    // Turn-count comparisons
+    if (cond.min_turns != null) return this.state.turnCount >= cond.min_turns;
+    if (cond.max_turns != null) return this.state.turnCount <= cond.max_turns;
     return true;
   }
 
