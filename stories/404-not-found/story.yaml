@@ -1,0 +1,1348 @@
+title: "404 Not Found"
+description: "You are Packet, a stray cat riding an HTTP request through a crumbling web server. Every route leads somewhere — but the page you need has vanished. Navigate status codes, dodge timeouts, and find your way home before the connection drops."
+author: "mechangelnyan"
+version: "1.0.0"
+start: the_request
+
+scenes:
+
+  # ═══════════════════════════════════════════════════════════
+  # ACT 1 — THE REQUEST
+  # ═══════════════════════════════════════════════════════════
+
+  the_request:
+    mood: mysterious
+    effects:
+      - pause
+    art: |
+      ┌─────────────────────────────────────────────────────┐
+      │                                                     │
+      │   4 0 4   N O T   F O U N D                         │
+      │                                                     │
+      │   ┌───────────────────────────────────────────┐     │
+      │   │  GET /home HTTP/1.1                       │     │
+      │   │  Host: catnet.meow                        │     │
+      │   │  User-Agent: Packet/1.0 (curious cat)     │     │
+      │   │  Accept: */*                              │     │
+      │   │  Connection: keep-alive                   │     │
+      │   │                                           │     │
+      │   │  Status: PENDING...                       │     │
+      │   └───────────────────────────────────────────┘     │
+      │                                                     │
+      │        /\_/\                                        │
+      │       ( o.o )  "Where... am I?"                     │
+      │        > ^ <                                        │
+      │       /|   |\                                       │
+      │                                                     │
+      └─────────────────────────────────────────────────────┘
+    text: |
+      You open your eyes inside a stream of light.
+
+      Data flows around you in ribbons of color — headers, cookies, query strings — all rushing toward... somewhere. You are Packet, and you are riding an HTTP request.
+
+      The last thing you remember is curling up on a warm server rack. Now you're hurtling through a reverse proxy, and the destination header says /home.
+
+      But something feels wrong. The routing table flickers. The load balancer hums an anxious note.
+
+      Ahead, the path splits.
+    choices:
+      - label: "Follow the main route — trust the routing table"
+        goto: routing_table
+      - label: "Slip through a gap in the proxy config"
+        goto: proxy_gap
+      - label: "Sniff the request headers for clues"
+        goto: sniff_headers
+
+  routing_table:
+    mood: mysterious
+    location: "packet@nginx:/routes$"
+    art: |
+        ╔═══════════════════════════════════════════╗
+        ║  ROUTING TABLE v4.2.1                     ║
+        ║  ─────────────────────────────────────────║
+        ║  /home ............ ??? (unmapped)         ║
+        ║  /api  ............ upstream:8080          ║
+        ║  /static .......... /var/www/html          ║
+        ║  /admin ........... 403 FORBIDDEN          ║
+        ║  /debug ........... (hidden)               ║
+        ╚═══════════════════════════════════════════╝
+    text: |
+      The routing table spreads before you like a map etched in light. Most routes glow steady blue — healthy, mapped, alive.
+
+      But /home... /home is dark. Not just unmapped — erased. Where the entry should be, there's a ragged gap, like something was torn out.
+
+      An old cat-shaped process flickers nearby, half-transparent. "That route existed once," she whispers. "Before the migration. They moved everything to /app but forgot to redirect. Now anyone who comes looking for /home just... falls."
+
+      She fades before you can ask more.
+    choices:
+      - label: "Head to /api — maybe it knows where /home went"
+        goto: api_gateway
+      - label: "Check /static — the old files might still be there"
+        goto: static_files
+      - label: "Try /debug — hidden routes hide secrets"
+        goto: debug_endpoint
+        requires_flag: found_debug_hint
+
+  proxy_gap:
+    mood: tense
+    location: "packet@proxy:~$"
+    art: |
+            ┌──────────────┐
+            │ NGINX PROXY  │
+            │   ┌──────┐   │
+            │   │ ░░░░ │   │     /\_/\
+            │   │ ░░░░ │←──────( >.< )  *squeezing through*
+            │   │ ░░░░ │   │     > ^ <
+            │   └──────┘   │
+            │  CONFIG GAP  │
+            └──────────────┘
+    text: |
+      You squeeze through a misconfigured proxy rule — a gap where someone wrote `location ~ /` instead of `location = /`. Classic regex mistake.
+
+      On the other side, you tumble into a dim corridor between services. It smells like stale cache and forgotten sessions.
+
+      Two doors ahead. One leaks warm amber light and the hum of a database. The other is cold, marked with a hazard stripe and a sign: "CONNECTION POOL — DO NOT ENTER WHILE DRAINING."
+    choices:
+      - label: "Follow the warm light to the database"
+        goto: database_room
+      - label: "Risk the connection pool"
+        goto: connection_pool
+      - label: "Go back and try the routing table instead"
+        goto: routing_table
+
+  sniff_headers:
+    mood: mysterious
+    location: "packet@wire:/headers$"
+    art: |
+        ┌─ REQUEST HEADERS ────────────────────────┐
+        │                                           │
+        │  X-Forwarded-For: 10.0.0.??              │
+        │  X-Real-IP: [REDACTED]                    │
+        │  X-Request-ID: a7f3...c9e1               │
+        │  X-Debug-Mode: true          ← !!        │
+        │  Cookie: session=expired_cat_token        │
+        │  X-Original-URI: /home                    │
+        │                                           │
+        └───────────────────────────────────────────┘
+    text: |
+      You nose through the headers like a cat digging through a bag. Most are routine — forwarding info, request IDs, the usual bureaucracy of web traffic.
+
+      But two catch your eye:
+
+      `X-Debug-Mode: true` — someone left debug mode on. That means there's a hidden /debug endpoint somewhere, and it's active.
+
+      `X-Original-URI: /home` — this request was rewritten. It originally asked for /home, but something changed it along the way. The trail isn't cold; it was covered up.
+
+      Your session cookie is expired, which explains why everything feels a little... ghostly.
+    effects:
+      - glitch
+    set_flag: found_debug_hint
+    choices:
+      - label: "Follow the debug header to /debug"
+        goto: debug_endpoint
+      - label: "Head to the routing table with this new knowledge"
+        goto: routing_table
+      - label: "Try to renew the session cookie"
+        goto: session_renewal
+
+  # ═══════════════════════════════════════════════════════════
+  # ACT 2 — DEEPER IN THE SERVER
+  # ═══════════════════════════════════════════════════════════
+
+  api_gateway:
+    mood: tense
+    location: "packet@api-gw:8080$"
+    art: |
+        ┌─────────────────────────────────────────────────────┐
+        │           A P I   G A T E W A Y                     │
+        │                                                     │
+        │   ╔════╗  ╔════╗  ╔════╗  ╔════╗  ╔════╗           │
+        │   ║ v1 ║→║ v2 ║→║ v3 ║→║ v4 ║→║ ?? ║           │
+        │   ╚════╝  ╚════╝  ╚════╝  ╚════╝  ╚════╝           │
+        │                                                     │
+        │   Rate Limit: ██████████░░░░  72% capacity          │
+        │   Active Connections: 1,847                         │
+        └─────────────────────────────────────────────────────┘
+    text: |
+      The API gateway is chaos. Thousands of requests stream past you — GET, POST, PUT, DELETE — each one a hurried traveler with somewhere to be.
+
+      A grizzled tomcat process named `api-worker-7` leans against a load balancer. "Looking for /home? Ha. That endpoint got deprecated in v3. They said they'd add a redirect. They never did."
+
+      He scratches behind his ear. "But the data's still there. Buried in the database, under the old schema. Table called `pages_legacy`. If you can get past the ORM, you might find it."
+
+      A rate limiter blinks at you — you're running out of requests.
+    choices:
+      - label: "Ask api-worker-7 about the database path"
+        goto: database_room
+      - label: "Try to sneak past the rate limiter"
+        goto: rate_limited
+      - label: "Check the API docs — there might be a migration guide"
+        goto: api_docs
+
+  static_files:
+    mood: peaceful
+    location: "packet@static:/var/www/html$"
+    art: |
+        ┌─────────────────────────────────────────────────────┐
+        │                                                     │
+        │    📁 /var/www/html                                 │
+        │    ├── 📁 css/                                      │
+        │    │   └── 📄 style.css (3 years old)               │
+        │    ├── 📁 img/                                      │
+        │    │   ├── 🖼️  logo_old.png                         │
+        │    │   ├── 🖼️  logo_new.png                         │
+        │    │   └── 🖼️  cat_404.gif ← !!                    │
+        │    ├── 📁 js/                                       │
+        │    │   └── 📄 jquery-1.9.js (oh no)                 │
+        │    ├── 📄 index.html (last modified: 2 years ago)   │
+        │    └── 📄 .htaccess (from the Apache days)          │
+        │                                                     │
+        └─────────────────────────────────────────────────────┘
+    text: |
+      The static file directory is like an attic — dusty, forgotten, full of things nobody needs but nobody wants to delete.
+
+      jQuery 1.9. A CSS file with `!important` on nearly every line. An index.html that references a CDN that no longer exists.
+
+      But nestled among the relics, you find something: `cat_404.gif` — an animated GIF of a cat chasing its tail with the text "Page Not Found" spinning around it. It's... beautiful. And it was the old 404 page.
+
+      Inside the `.htaccess` file, you find a comment:
+
+      `# TODO: Redirect /home to /app — URGENT (added 2 years ago)`
+
+      They knew. They always knew.
+    set_flag: found_htaccess_clue
+    choices:
+      - label: "Follow the clue to /app"
+        goto: the_app
+      - label: "Examine cat_404.gif more closely"
+        goto: cat_404_gif
+      - label: "Read the old index.html"
+        goto: old_index
+
+  debug_endpoint:
+    mood: glitch
+    location: "packet@debug:/__internal$"
+    effects:
+      - glitch
+    art: |
+        ╔═════════════════════════════════════════════════════╗
+        ║  ▓▓▓ DEBUG CONSOLE — AUTHORIZED ACCESS ONLY ▓▓▓   ║
+        ╠═════════════════════════════════════════════════════╣
+        ║                                                     ║
+        ║  > server.routes.find("/home")                      ║
+        ║  ERROR: Route '/home' was deleted at                ║
+        ║         2024-03-15T02:47:00Z by deploy #4891        ║
+        ║  > server.routes.history("/home")                   ║
+        ║  [REDIRECT /home → /app added: NEVER]              ║
+        ║  [ROLLBACK available: YES]                          ║
+        ║                                                     ║
+        ╚═════════════════════════════════════════════════════╝
+    text: |
+      The debug console hums with power. This is the nerve center — raw access to the server's internals. Everything is exposed: routes, configs, environment variables, even the deploy history.
+
+      You find the smoking gun: deploy #4891 deleted the /home route but the paired redirect was in a separate PR that never got merged. A classic two-PR deployment gone wrong.
+
+      The console offers you options. You could roll back the route, restoring /home. You could add the redirect that should have been there all along. Or you could dig deeper into the deploy logs.
+
+      A warning blinks: "Debug mode will auto-disable in 120 seconds."
+    choices:
+      - label: "Roll back the route — restore /home directly"
+        goto: rollback_route
+      - label: "Add the redirect /home → /app (the proper fix)"
+        goto: add_redirect
+      - label: "Dig into deploy #4891's full logs"
+        goto: deploy_logs
+
+  # ═══════════════════════════════════════════════════════════
+  # MID-GAME BRANCHES
+  # ═══════════════════════════════════════════════════════════
+
+  database_room:
+    mood: mysterious
+    location: "packet@postgres:5432$"
+    art: |
+        ┌─────────────────────────────────────────────────────┐
+        │         D A T A B A S E   R O O M                   │
+        │                                                     │
+        │   ┌─────────┐  ┌─────────┐  ┌─────────┐            │
+        │   │ pages   │  │ users   │  │ sessions│            │
+        │   │ (empty) │  │ 42,891  │  │ 10,203  │            │
+        │   └─────────┘  └─────────┘  └─────────┘            │
+        │                                                     │
+        │   ┌──────────────────┐                              │
+        │   │ pages_legacy     │  ← dusty but full            │
+        │   │ rows: 1,847      │                              │
+        │   └──────────────────┘                              │
+        │                                                     │
+        │          /\_/\                                      │
+        │         ( o.o )  *sniffing around the tables*       │
+        │          > ^ <                                      │
+        └─────────────────────────────────────────────────────┘
+    text: |
+      The database hums like a cathedral. Rows and columns stretch in every direction, indexed and ordered, a cathedral of structured data.
+
+      The `pages` table is empty — wiped during the migration. But there, in the corner, cobwebbed and dusty: `pages_legacy`. Nobody dropped it. Nobody migrated it. It just... sits here.
+
+      You query it:
+
+      `SELECT * FROM pages_legacy WHERE slug = '/home';`
+
+      One row returns. The content is all there — the welcome text, the navigation links, even the little cat ASCII art that used to greet visitors. It's intact. It's been waiting.
+
+      An ORM process rumbles nearby, suspicious of your raw SQL.
+    set_flag: found_home_data
+    choices:
+      - label: "Extract the data and carry it to /app"
+        goto: carry_data
+      - label: "Try to restore the pages table from legacy"
+        goto: restore_table
+      - label: "Sneak past the ORM before it blocks you"
+        goto: orm_chase
+
+  connection_pool:
+    mood: tense
+    effects:
+      - shake
+    location: "packet@pool:/drain$"
+    art: |
+        ┌─────────────────────────────────────────────────────┐
+        │    C O N N E C T I O N   P O O L                    │
+        │                                                     │
+        │    Active:  ████████████████████░  95%               │
+        │    Idle:    █░░░░░░░░░░░░░░░░░░░   5%               │
+        │    Waiting: ████████████░░░░░░░░  60%               │
+        │                                                     │
+        │    ⚠ POOL EXHAUSTION WARNING ⚠                     │
+        │    Max connections: 100 / 100                        │
+        └─────────────────────────────────────────────────────┘
+    text: |
+      You slip into the connection pool and immediately regret it.
+
+      Connections thrash around you like rapids. Each one is a desperate process trying to reach the database, and there aren't enough slots. You're buffeted by WAITING and TIMEOUT signals.
+
+      A connection next to you gives up — `ERROR: too many connections for role "app_user"` — and dissolves. For a brief moment, there's a gap.
+
+      You could ride the gap to the database, but the pool is draining. If it closes while you're inside, you'll be terminated with it.
+    choices:
+      - label: "Ride the gap — sprint to the database"
+        goto: database_room
+      - label: "Wait for the pool to stabilize"
+        goto: pool_timeout
+      - label: "Back out before it's too late"
+        goto: proxy_gap
+      - label: "Do nothing — freeze and hope for the best"
+        goto: ending_timeout
+
+  session_renewal:
+    mood: mysterious
+    location: "packet@auth:/session$"
+    art: |
+        ┌───────────────────────────────────────────┐
+        │  SESSION STORE (Redis)                    │
+        │                                           │
+        │  > GET session:expired_cat_token          │
+        │  (nil)                                    │
+        │                                           │
+        │  > KEYS session:cat_*                     │
+        │  1) session:cat_9lives                    │
+        │  2) session:cat_whisker_auth              │
+        │                                           │
+        │  TTL: session:cat_9lives → 3547s          │
+        └───────────────────────────────────────────┘
+    text: |
+      The session store is a Redis instance — fast, warm, and surprisingly cozy. Your expired token maps to nothing, as expected. But there are other cat sessions here.
+
+      `session:cat_9lives` has almost an hour left. Its payload contains elevated permissions — including write access to the routing table. If you could borrow it...
+
+      But session hijacking is a serious offense. The WAF (Web Application Firewall) patrols these corridors, and she does not have a sense of humor.
+    choices:
+      - label: "Borrow the cat_9lives session (risky)"
+        goto: session_hijack
+      - label: "Create a new session the legitimate way"
+        goto: legitimate_session
+      - label: "Leave the session store and explore elsewhere"
+        goto: routing_table
+
+  rate_limited:
+    mood: tense
+    effects:
+      - shake
+    art: |
+        ┌─────────────────────────────────────────────────────┐
+        │                                                     │
+        │   HTTP/1.1 429 Too Many Requests                    │
+        │   Retry-After: 60                                   │
+        │                                                     │
+        │   {                                                 │
+        │     "error": "rate_limit_exceeded",                 │
+        │     "message": "Slow down, kitty.",                 │
+        │     "requests_remaining": 0,                        │
+        │     "reset_at": "soon™"                             │
+        │   }                                                 │
+        │                                                     │
+        │        /\_/\                                        │
+        │       ( >_< )  "Mrrp!"                              │
+        │        > ^ <                                        │
+        └─────────────────────────────────────────────────────┘
+    text: |
+      429. Too Many Requests. The rate limiter drops on you like a cage.
+
+      "Slow down, kitty," it drones. You're stuck. The counter ticks. 60 seconds. 59. 58...
+
+      While you wait, you overhear two background workers gossiping:
+
+      "Did you hear? Someone left debug mode on."
+      "Again? That's the third time this sprint."
+      "At least it's not the time someone exposed the env vars to the frontend."
+
+      Useful gossip. Debug mode is active.
+    set_flag: found_debug_hint
+    choices:
+      - label: "Wait out the rate limit, then go to /debug"
+        goto: debug_endpoint
+      - label: "Wait out the rate limit, then try /static"
+        goto: static_files
+
+  api_docs:
+    mood: peaceful
+    location: "packet@docs:/swagger$"
+    art: |
+        ┌─────────────────────────────────────────────────────┐
+        │  📖  A P I   D O C U M E N T A T I O N             │
+        │                                                     │
+        │  Version: v4 (current)                              │
+        │  Last updated: 8 months ago                         │
+        │                                                     │
+        │  ┌─ Deprecated Endpoints ───────────────────┐       │
+        │  │ GET /home ............ removed in v3     │       │
+        │  │ GET /pages/:slug ..... moved to /app/*   │       │
+        │  │ POST /login .......... use /auth/oauth   │       │
+        │  └──────────────────────────────────────────┘       │
+        │                                                     │
+        │  Migration guide: "See JIRA-4891"                   │
+        │  (JIRA has been decommissioned)                     │
+        └─────────────────────────────────────────────────────┘
+    text: |
+      The API documentation is a Swagger page, slightly stale, like most documentation. But the deprecation notes are gold:
+
+      GET /home was removed in v3, replaced by the /app routing architecture. The migration guide references JIRA-4891 — which is on a JIRA instance that was itself decommissioned six months ago.
+
+      But the important detail: `/app/page/home` should be the new canonical path. If you can get there, you might find what you're looking for.
+
+      There's also a note scrawled in a code comment: "If all else fails, check the CDN. The edge cache never forgets."
+    set_flag: found_htaccess_clue
+    choices:
+      - label: "Head to /app/page/home"
+        goto: the_app
+      - label: "Check the CDN edge cache"
+        goto: cdn_cache
+      - label: "Go to the database — get the data directly"
+        goto: database_room
+
+  # ═══════════════════════════════════════════════════════════
+  # ACT 3 — THE DEEPER WEB
+  # ═══════════════════════════════════════════════════════════
+
+  the_app:
+    mood: peaceful
+    location: "packet@app:/page/home$"
+    art: |
+        ┌─────────────────────────────────────────────────────┐
+        │                                                     │
+        │   /app/page/home                                    │
+        │                                                     │
+        │   ┌───────────────────────────────────────────┐     │
+        │   │                                           │     │
+        │   │   Welcome to CatNet!                      │     │
+        │   │                                           │     │
+        │   │   /\_/\   "Every packet finds its way     │     │
+        │   │  ( ^.^ )    home eventually."             │     │
+        │   │   > ^ <                                   │     │
+        │   │                                           │     │
+        │   │   [About] [Stories] [Adopt] [Contact]     │     │
+        │   │                                           │     │
+        │   └───────────────────────────────────────────┘     │
+        │                                                     │
+        └─────────────────────────────────────────────────────┘
+    text: |
+      You find it. /app/page/home. The page is here — alive, rendered, warm. The welcome text. The little cat ASCII art. The navigation links. Everything that /home used to be, living at a new address.
+
+      It's beautiful. The data survived the migration after all. It just needs someone to point the way.
+
+      But you realize the problem isn't that /home is gone. It's that nobody updated the old links. Every bookmark, every external reference, every search engine result still points to /home — and gets a 404.
+
+      The fix is simple. One redirect. `301 Moved Permanently`. That's all it would take.
+
+      But you're just a packet. Can you make it happen?
+    choices:
+      - label: "Find the config file and add the redirect yourself"
+        goto: config_quest
+        requires_flag: found_htaccess_clue
+      - label: "Find a developer process and convince them to fix it"
+        goto: find_developer
+      - label: "You found it. That's enough. Rest here."
+        goto: ending_found_home
+
+  cat_404_gif:
+    mood: funny
+    art: |
+        ┌───────────────────────────────────────────┐
+        │                                           │
+        │         /\_/\      ╭──────────╮           │
+        │        ( @.@ )    │ 404      │           │
+        │     ───( > < )───│ NOT     │           │
+        │         │   │     │ FOUND   │           │
+        │     ~~~~│   │~~~~╰──────────╯           │
+        │                                           │
+        │   cat_404.gif — 847 frames, 2.3MB         │
+        │   Created: 4 years ago                    │
+        │   Author: "intern_who_loved_cats"         │
+        └───────────────────────────────────────────┘
+    text: |
+      The GIF is a masterpiece. 847 frames of a pixel cat chasing a spinning "404 NOT FOUND" text. It was made by an intern four years ago — someone with the git username `intern_who_loved_cats`.
+
+      Their last commit message reads: "Added custom 404 page with cat animation. Hope this makes people smile when they hit a dead link. 🐱"
+
+      That intern is long gone, but their cat lives on. Embedded in this GIF is a metadata comment:
+
+      `<!-- If you're reading this: the real 404 fix is in nginx.conf line 47. Just add the redirect. I tried, but I didn't have prod access. — the intern -->`
+
+      A message in a bottle, left in a GIF, four years ago.
+    set_flags:
+      - found_htaccess_clue
+      - intern_legacy
+    choices:
+      - label: "Honor the intern — go find nginx.conf line 47"
+        goto: config_quest
+      - label: "Keep exploring the static files"
+        goto: old_index
+      - label: "Head to /app to see if /home exists there"
+        goto: the_app
+
+  old_index:
+    mood: peaceful
+    location: "packet@static:/var/www/html$"
+    art: |
+        ┌───────────────────────────────────────────────────────┐
+        │  <!DOCTYPE html>                                      │
+        │  <html lang="en">                                     │
+        │  <head>                                               │
+        │    <title>CatNet - Home</title>                       │
+        │    <!-- This page is deprecated.                      │
+        │         See /app for the new version.                 │
+        │         Keeping this for sentimental reasons. -->     │
+        │    <script src="jquery-1.9.js"></script>              │
+        │  </head>                                              │
+        │  <body>                                               │
+        │    <h1>Welcome to CatNet!</h1>                        │
+        │    <p>A place for every cat on the internet.</p>      │
+        │  </body>                                              │
+        │  </html>                                              │
+        └───────────────────────────────────────────────────────┘
+    text: |
+      The old index.html is a time capsule. Clean, simple HTML. A jQuery script tag that loads from a local file. No framework, no build step, no webpack — just a page.
+
+      The comment says it all: "Keeping this for sentimental reasons." Someone couldn't bear to delete it.
+
+      It's not functional anymore — the links point to endpoints that don't exist, the styles reference a CDN that's offline. But the words are there: "A place for every cat on the internet."
+
+      That's what /home was. That's what it meant.
+    choices:
+      - label: "You've seen enough nostalgia. Time to fix the route."
+        goto: config_quest
+        requires_flag: found_htaccess_clue
+      - label: "Head to /app — the future, not the past"
+        goto: the_app
+      - label: "Look for the intern's other contributions"
+        goto: cat_404_gif
+
+  cdn_cache:
+    mood: mysterious
+    location: "packet@cdn:edge-node-7$"
+    art: |
+        ┌─────────────────────────────────────────────────────┐
+        │        C D N   E D G E   C A C H E                  │
+        │                                                     │
+        │   ┌──────────────────────────────────┐              │
+        │   │ Cache Status: /home              │              │
+        │   │ ──────────────────────────────── │              │
+        │   │ HIT (stale)                      │              │
+        │   │ Age: 847291s (9.8 days)          │              │
+        │   │ TTL: expired                     │              │
+        │   │ Origin: unreachable              │              │
+        │   │                                  │              │
+        │   │ Serving stale content while      │              │
+        │   │ revalidating... forever.         │              │
+        │   └──────────────────────────────────┘              │
+        │                                                     │
+        │          /\_/\   "A ghost page..."                  │
+        │         ( o.o )                                     │
+        │          > ^ <                                      │
+        └─────────────────────────────────────────────────────┘
+    text: |
+      The CDN edge cache is the internet's attic. And it still has a copy of /home.
+
+      Stale. Expired. The origin server returns nothing, so the CDN just keeps serving its last known version — a ghost page, haunting the edge of the network.
+
+      The cached version is old but complete. It's the /home page as it existed before the migration, frozen in amber. Users who hit the CDN still see it. Users who bypass the cache get a 404.
+
+      It's Schrödinger's homepage: simultaneously alive and dead, depending on which path your request takes.
+
+      A CDN worker notices you. "Take what you need, but hurry. The cache purge job runs at midnight."
+    choices:
+      - label: "Copy the cached page and bring it to /app"
+        goto: carry_data
+      - label: "Let the cache die. The fix should be a proper redirect."
+        goto: config_quest
+        requires_flag: found_htaccess_clue
+      - label: "Head to /app to see the current version"
+        goto: the_app
+
+  # ═══════════════════════════════════════════════════════════
+  # CONVERGENCE — THE FIX
+  # ═══════════════════════════════════════════════════════════
+
+  config_quest:
+    mood: tense
+    location: "packet@nginx:/etc/nginx$"
+    art: |
+        ┌─────────────────────────────────────────────────────┐
+        │  📄 nginx.conf                                      │
+        │  ─────────────────────────────────────────────────── │
+        │  ...                                                 │
+        │  45│  # === Route Configuration ===                  │
+        │  46│  location /api { proxy_pass http://backend; }   │
+        │  47│  # location /home { return 301 /app/page/home; }│
+        │  48│  location /static { alias /var/www/html; }      │
+        │  49│  ...                                            │
+        │                                                     │
+        │  Line 47 is COMMENTED OUT.                          │
+        │  The redirect exists. Someone wrote it.              │
+        │  It was never uncommented.                           │
+        └─────────────────────────────────────────────────────┘
+    text: |
+      There it is. Line 47 of nginx.conf.
+
+      `# location /home { return 301 /app/page/home; }`
+
+      The redirect was written. By the intern, four years ago. It's been sitting here, commented out, this entire time. One `#` symbol — that's all that stands between a 404 and a working redirect.
+
+      All those lost visitors. All those broken bookmarks. One character.
+
+      Your paws hover over the config. You're a cat. In a web server. About to edit production nginx config. This is either heroic or catastrophic.
+    choices:
+      - label: "Uncomment line 47. Be the change."
+        goto: the_fix
+      - label: "Don't touch prod. Find a developer to do it properly."
+        goto: find_developer
+      - label: "Write a PR instead — propose the change through proper channels"
+        goto: write_pr
+
+  find_developer:
+    mood: peaceful
+    location: "packet@slack:/dev-channel$"
+    art: |
+        ┌─────────────────────────────────────────────────────┐
+        │  #dev-general                                       │
+        │                                                     │
+        │  dev-cat-3 🐱: anyone else getting 404s on /home?   │
+        │  dev-cat-7 🐱: yeah it's been broken for months     │
+        │  dev-cat-3 🐱: should we fix it?                    │
+        │  dev-cat-7 🐱: it's on the backlog                  │
+        │  dev-cat-3 🐱: it's been on the backlog for 2 years │
+        │  dev-cat-7 🐱: ... yeah                             │
+        │                                                     │
+        │  > packet has joined #dev-general                   │
+        │                                                     │
+        └─────────────────────────────────────────────────────┘
+    text: |
+      You find the developer processes hanging out in their Slack channel. They know about the /home problem. Everyone knows. It's one of those bugs that's been open so long it's practically a feature.
+
+      "Just uncomment line 47 in nginx.conf," dev-cat-3 says when you explain your quest. "We've all wanted to do it. But nobody wants to be the one who touched prod config without a ticket."
+
+      Dev-cat-7 sighs. "File a JIRA— oh wait. We don't have JIRA anymore."
+
+      "Linear?"
+
+      "Nobody checks Linear."
+
+      They look at each other. They look at you.
+
+      "Are you... volunteering?"
+    choices:
+      - label: "\"I'll do it. Point me to the config.\""
+        goto: config_quest
+      - label: "\"Can one of you pair with me at least?\""
+        goto: pair_fix
+      - label: "\"What if we just tell the CDN to cache the redirect?\""
+        goto: cdn_fix
+
+  # ═══════════════════════════════════════════════════════════
+  # RESOLUTION PATHS
+  # ═══════════════════════════════════════════════════════════
+
+  the_fix:
+    mood: tense
+    effects:
+      - shake
+      - bell
+    art: |
+        ┌─────────────────────────────────────────────────────┐
+        │  packet@nginx:/etc/nginx$ sed -i                    │
+        │    's/# location \/home/location \/home/'           │
+        │    nginx.conf                                       │
+        │                                                     │
+        │  packet@nginx:/etc/nginx$ nginx -t                  │
+        │  nginx: the configuration file syntax is ok         │
+        │  nginx: configuration file test is successful       │
+        │                                                     │
+        │  packet@nginx:/etc/nginx$ nginx -s reload           │
+        │  ...                                                │
+        │                                                     │
+        │        /\_/\                                        │
+        │       ( ◕.◕ )  *holds breath*                       │
+        │        > ^ <                                        │
+        └─────────────────────────────────────────────────────┘
+    text: |
+      You do it. One sed command. Remove the `#`. Test the config. Reload.
+
+      For a heartbeat, nothing happens. The server holds its breath. You hold yours.
+
+      Then — green. Across the dashboard, the 404 errors for /home drop to zero. The redirect is live. Every request to /home now gracefully flows to /app/page/home, carrying visitors to the page that was always there, just at a different address.
+
+      Monitoring lights up. "RESOLVED: /home 404 errors — 0 in last 60 seconds." A four-year-old bug, fixed by a cat who wandered into the server.
+
+      The intern's comment in the GIF was right all along.
+    choices:
+      - label: "Watch the traffic flow — see people finding /home again"
+        goto: ending_hero
+        auto: true
+
+  pair_fix:
+    mood: peaceful
+    location: "packet@nginx:/etc/nginx$"
+    art: |
+        ┌─────────────────────────────────────────────────────┐
+        │                                                     │
+        │    /\_/\    /\_/\    /\_/\                          │
+        │   ( ^.^ )  ( o.o )  ( >.< )                        │
+        │    > ^ <    > ^ <    > ^ <                          │
+        │    Packet  dev-cat-3 dev-cat-7                      │
+        │                                                     │
+        │   "Okay, let's do this together."                   │
+        │   "I'll review, you edit, they'll monitor."         │
+        │                                                     │
+        └─────────────────────────────────────────────────────┘
+    text: |
+      Dev-cat-3 and dev-cat-7 exchange a glance and nod. "Alright. Let's do it properly. Three-cat pair programming."
+
+      Dev-cat-3 pulls up the config. Dev-cat-7 opens the monitoring dashboard. You position your paw over line 47.
+
+      "Remove the comment."
+      "Config test passes."
+      "Reload."
+      "...watching traffic..."
+      "Green across the board. It's working!"
+
+      High-fives all around (high-paws?). The redirect is live, and this time it was done by the book — reviewed, monitored, and deployed as a team.
+
+      Dev-cat-3 commits the change with the message: `fix: uncomment /home redirect (closes 4-year-old bug, thx @packet)`
+    choices:
+      - label: "Watch the traffic flow together"
+        goto: ending_team
+        auto: true
+
+  cdn_fix:
+    mood: peaceful
+    art: |
+        ┌─────────────────────────────────────────────────────┐
+        │   CDN Edge Rule Created                             │
+        │   ─────────────────────────────────────────────     │
+        │   Path: /home                                       │
+        │   Action: 301 Redirect → /app/page/home             │
+        │   Cache: permanent                                   │
+        │   Status: ✅ ACTIVE                                  │
+        │                                                     │
+        │   Note: Origin config unchanged.                     │
+        │         Fix is at the edge only.                     │
+        └─────────────────────────────────────────────────────┘
+    text: |
+      The CDN approach is clever — instead of fixing the origin server's nginx config, you add a redirect rule at the CDN edge. It's faster, it's global, and it doesn't require touching prod.
+
+      It's also a band-aid. The origin still returns 404 for /home. If anyone bypasses the CDN — internal requests, health checks, direct IP access — they'll still get nothing.
+
+      Dev-cat-7 shrugs. "It works for users. That's what matters, right?"
+
+      Maybe. But you know line 47 is still commented out. The proper fix is still waiting.
+    choices:
+      - label: "Good enough. Users are happy."
+        goto: ending_bandaid
+      - label: "No — go fix the origin too. Do it right."
+        goto: config_quest
+
+  write_pr:
+    mood: peaceful
+    location: "packet@github:/pull/new$"
+    art: |
+        ┌─────────────────────────────────────────────────────┐
+        │  ┌─ Pull Request #4892 ──────────────────────┐      │
+        │  │                                            │      │
+        │  │  fix: uncomment /home → /app redirect      │      │
+        │  │                                            │      │
+        │  │  Closes: (no ticket — JIRA is dead)        │      │
+        │  │  Author: packet-the-cat                    │      │
+        │  │  Reviewers: dev-cat-3, dev-cat-7           │      │
+        │  │                                            │      │
+        │  │  Changes: 1 file, 1 line                   │      │
+        │  │  - # location /home { return 301 ...       │      │
+        │  │  + location /home { return 301 ...         │      │
+        │  │                                            │      │
+        │  │  Status: ✅ Approved (2/2)                  │      │
+        │  │  CI: ✅ All checks passed                   │      │
+        │  └────────────────────────────────────────────┘      │
+        └─────────────────────────────────────────────────────┘
+    text: |
+      You do it the right way. A pull request. One line changed: remove a `#`.
+
+      PR #4892 — the sequel to the deploy #4891 that caused the problem in the first place. Poetic.
+
+      The description is simple: "The intern wrote this redirect four years ago. It was never uncommented. This PR removes the comment. That's it. That's the fix."
+
+      Dev-cat-3 and dev-cat-7 approve within minutes. CI passes (it's one character — what's going to break?). The merge button glows green.
+
+      You click it. The deploy pipeline picks it up. Sixty seconds later, /home works again.
+    choices:
+      - label: "Watch the deploy go green"
+        goto: ending_secret_intern
+        requires_flag: intern_legacy
+      - label: "Watch the deploy go green"
+        goto: ending_proper_fix
+
+  # ═══════════════════════════════════════════════════════════
+  # SIDE PATHS
+  # ═══════════════════════════════════════════════════════════
+
+  carry_data:
+    mood: peaceful
+    location: "packet@app:/page/home$"
+    art: |
+      ┌──────────────────────────────────────┐
+      │        /\_/\                          │
+      │       ( ^.^ )  *carrying data*        │
+      │        > ^ <                          │
+      │       /|~~~|\  ← pages_legacy row #1  │
+      └──────────────────────────────────────┘
+    text: |
+      You carefully extract the /home data from pages_legacy and carry it through the server like a cat carrying a kitten. Through the connection pool, past the ORM, across the API gateway.
+
+      At /app, you gently place it down. The app framework picks it up, renders it, and /app/page/home lights up with the original content — complete with the welcome text and the cat ASCII art.
+
+      The page exists. But the redirect doesn't. People looking for /home still won't find it unless someone fixes the route.
+    set_flag: found_htaccess_clue
+    choices:
+      - label: "Now fix the redirect — head to the config"
+        goto: config_quest
+      - label: "You've done enough. The data is safe."
+        goto: ending_found_home
+
+  restore_table:
+    mood: tense
+    effects:
+      - shake
+    location: "packet@postgres:5432$"
+    art: |
+        > INSERT INTO pages SELECT * FROM pages_legacy;
+        ERROR: column "framework_id" does not exist
+        HINT: The table schema has changed since migration.
+
+        > ALTER TABLE pages ... ???
+        ⚠ WARNING: This requires migration scripts.
+    text: |
+      You try to copy the data from pages_legacy to the modern pages table, but the schemas don't match. Of course they don't — that's why the migration happened in the first place.
+
+      The old table has columns like `html_content` and `sidebar_widgets`. The new one expects `component_tree` and `metadata_json`. They're different worlds.
+
+      Forcing the data in would corrupt the table. You need either a migration script (which was never finished) or a different approach entirely.
+    choices:
+      - label: "Forget the database. Fix the redirect instead."
+        goto: config_quest
+        requires_flag: found_htaccess_clue
+      - label: "Carry the data manually to /app"
+        goto: carry_data
+      - label: "Go back and explore more of the server"
+        goto: routing_table
+
+  orm_chase:
+    mood: tense
+    effects:
+      - shake
+    art: |
+        ┌──────────────────────────────────────┐
+        │                                      │
+        │   ORM: "Unauthorized raw SQL          │
+        │         detected! Initiating          │
+        │         query sanitization!"          │
+        │                                      │
+        │   /\_/\  ←───  [ORM PROCESS]         │
+        │  ( ⊙_⊙ ) RUN!  ████████████         │
+        │   > ^ <         ████████████         │
+        │                                      │
+        └──────────────────────────────────────┘
+    text: |
+      The ORM spots your raw SQL query and does not approve. "UNAUTHORIZED ACCESS PATTERN!" it booms. "ALL QUERIES MUST GO THROUGH THE APPROVED ABSTRACTION LAYER!"
+
+      You bolt. The ORM gives chase, trying to wrap you in a Sequelize model. You dodge past a JOIN operation, slide under a TRANSACTION, and finally lose it in a maze of foreign key constraints.
+
+      When you catch your breath, you realize the chase pushed you toward the connection pool's back entrance. From here, you can either slip out to the proxy or double back to the database once the ORM's attention shifts.
+    choices:
+      - label: "Slip out through the connection pool"
+        goto: connection_pool
+      - label: "Wait for the ORM to leave, then sneak back"
+        goto: database_room
+      - label: "Forget the database approach — find another way"
+        goto: routing_table
+
+  session_hijack:
+    mood: tense
+    effects:
+      - glitch
+      - shake
+    art: |
+        ┌─────────────────────────────────────────────────────┐
+        │                                                     │
+        │   ⚠  W A F   A L E R T  ⚠                         │
+        │                                                     │
+        │   Suspicious session activity detected              │
+        │   Source: packet (expired_cat_token)                 │
+        │   Target: session:cat_9lives                        │
+        │   Action: BLOCK + LOG                               │
+        │                                                     │
+        │   "Nice try, kitty."                                │
+        │           — WAF v7.2                                │
+        │                                                     │
+        └─────────────────────────────────────────────────────┘
+    text: |
+      The moment you touch the cat_9lives session, alarms blare. The WAF materializes — a sleek, armored cat-process with zero tolerance and maximum logging.
+
+      "Session hijacking attempt detected and blocked," she announces calmly. "Your IP has been flagged. Your request has been logged. Your token has been revoked."
+
+      Great. Now you don't even have your expired token. You're completely unauthenticated.
+
+      The WAF narrows her eyes. "However... given that you appear to be a lost packet rather than a malicious actor, I'm going to let you leave with a warning. Go find the legitimate route."
+
+      She dissolves back into the firewall rules, and you slink away with your tail between your legs.
+    choices:
+      - label: "Take the hint — try the legitimate session path"
+        goto: legitimate_session
+      - label: "Leave the session store entirely"
+        goto: routing_table
+
+  legitimate_session:
+    mood: peaceful
+    location: "packet@auth:/oauth$"
+    art: |
+        ┌───────────────────────────────────────────┐
+        │  OAuth2 Flow                              │
+        │  ─────────────────────────────────────    │
+        │  1. Redirect to /auth/login ........ ✅   │
+        │  2. Enter credentials .............. ✅   │
+        │     (username: packet, pwd: meow9x)       │
+        │  3. Receive authorization code ..... ✅   │
+        │  4. Exchange for access token ...... ✅   │
+        │  5. Token issued: cat_pkt_fresh_001       │
+        │                                           │
+        │  Access level: read-only                  │
+        │  (insufficient for config changes)        │
+        └───────────────────────────────────────────┘
+    text: |
+      You go through the OAuth flow properly. Username, password, authorization code, token exchange — the whole ritual.
+
+      Your new token is valid but read-only. You can browse the server, read configs, query the database — but you can't change anything. No writing to nginx.conf. No modifying routes.
+
+      Still, read access is enough to see the truth. And you've already found it: the redirect exists, commented out, on line 47. You just need someone with write access to fix it.
+
+      The proper channels it is.
+    choices:
+      - label: "Head to the developer channel — ask for help"
+        goto: find_developer
+      - label: "Write a PR on GitHub — let the pipeline deploy it"
+        goto: write_pr
+        requires_flag: found_htaccess_clue
+      - label: "Browse to /app and see if /home is there"
+        goto: the_app
+
+  pool_timeout:
+    mood: tense
+    art: |
+        ┌─────────────────────────────────────────────────────┐
+        │                                                     │
+        │   Waiting for connection pool to stabilize...       │
+        │                                                     │
+        │   ████████░░░░░░░░░░░░  40%                        │
+        │   ██████████████░░░░░░  70%                        │
+        │   ████████████████████  100%                       │
+        │                                                     │
+        │   Pool status: STABILIZED                           │
+        │   Available connections: 23/100                      │
+        │                                                     │
+        │        /\_/\                                        │
+        │       ( -.- )  *patient cat is patient*             │
+        │        > ^ <                                        │
+        └─────────────────────────────────────────────────────┘
+    text: |
+      You wait. Patient as only a cat can be. The connection pool thrashes, drains, and slowly refills. Connections come and go. The load balancer redistributes traffic.
+
+      Finally, stability. The pool settles at 23 available connections — not great, but workable.
+
+      While waiting, you noticed something: most of the connection pressure comes from a single source — a retry loop. Some process keeps trying to load /home, getting a 404, and retrying. Over and over. It's the root cause of the pool pressure.
+
+      Fixing the 404 would fix the pool too. Everything is connected.
+    choices:
+      - label: "Ride a fresh connection to the database"
+        goto: database_room
+      - label: "Follow the retry loop to its source"
+        goto: api_gateway
+      - label: "Head back to find a different path"
+        goto: proxy_gap
+
+  deploy_logs:
+    mood: mysterious
+    location: "packet@debug:/__internal/deploys$"
+    art: |
+        ┌─────────────────────────────────────────────────────┐
+        │  Deploy #4891 — Full Log                            │
+        │  ─────────────────────────────────────────────────── │
+        │                                                     │
+        │  Author: senior-dev-whiskers                        │
+        │  Date: 2024-03-15 02:47 UTC                         │
+        │  Branch: feature/migrate-to-app-router              │
+        │  Status: ✅ DEPLOYED                                 │
+        │                                                     │
+        │  Changes:                                            │
+        │   - Migrated all routes to /app/*                    │
+        │   - Removed legacy /home, /about, /contact           │
+        │   - NOTE: Redirect PR #4892 pending review           │
+        │                                                     │
+        │  PR #4892 status: STALE (never merged)              │
+        │  Last reviewer comment: "LGTM but let's wait        │
+        │   for the next sprint" (2 years ago)                 │
+        └─────────────────────────────────────────────────────┘
+    text: |
+      The deploy logs tell the whole story.
+
+      Senior-dev-whiskers deployed the migration at 2:47 AM — because of course important deploys happen at 2 AM. The migration itself was clean: all routes moved to /app/*, old routes removed.
+
+      But the redirect PR — #4892 — was split into a separate deployment. "Let's not ship both at once," the tech lead said. "Deploy the migration first, then the redirects."
+
+      PR #4892 got one review: "LGTM but let's wait for the next sprint."
+
+      That was two years ago. The sprint never came. The PR went stale. The CI checks expired. Nobody rebased. /home has been 404 since that night.
+
+      "Let's wait for the next sprint" — the five words that killed /home.
+    choices:
+      - label: "Revive PR #4892 — it's time to merge"
+        goto: write_pr
+      - label: "Skip the PR — fix it directly in the config"
+        goto: config_quest
+      - label: "Go see if /app/page/home exists at least"
+        goto: the_app
+
+  # ═══════════════════════════════════════════════════════════
+  # ENDINGS
+  # ═══════════════════════════════════════════════════════════
+
+  ending_hero:
+    mood: peaceful
+    is_ending: true
+    ending_type: good
+    art: |
+        ┌─────────────────────────────────────────────────────┐
+        │                                                     │
+        │   HTTP/1.1 301 Moved Permanently                    │
+        │   Location: /app/page/home                          │
+        │                                                     │
+        │   ┌───────────────────────────────────────────┐     │
+        │   │  /home → /app/page/home   ✅ ACTIVE      │     │
+        │   │  Visitors served: ████████████ 100%       │     │
+        │   │  404 errors: 0                            │     │
+        │   └───────────────────────────────────────────┘     │
+        │                                                     │
+        │        /\_/\                                        │
+        │       ( ^.^ )  "They're all finding home now."      │
+        │        > ^ <                                        │
+        │       /|   |\                                       │
+        │                                                     │
+        └─────────────────────────────────────────────────────┘
+    text: |
+      You watch the dashboard. The line that tracked /home 404 errors — a steady, sad line that's been climbing for years — drops to zero and flatlines.
+
+      In its place, a new line rises: successful redirects. Every old bookmark, every search engine link, every cached URL that pointed to /home now smoothly arrives at /app/page/home.
+
+      Visitors are finding their way. The intern's redirect, four years late, is finally live.
+
+      You did it alone. One cat, one config edit, one character removed. Sometimes the biggest fixes are the smallest changes.
+
+      You curl up on the warm server rack where this all began, and purr.
+    ending_text: |
+      🐱 ENDING: "The Solo Fix"
+      You fixed a four-year-old bug by yourself. One uncommented line. Zero tickets.
+      The intern would be proud.
+
+  ending_team:
+    mood: peaceful
+    is_ending: true
+    ending_type: good
+    art: |
+        ┌─────────────────────────────────────────────────────┐
+        │                                                     │
+        │   git log --oneline -1                              │
+        │   a7f3c9e fix: uncomment /home redirect             │
+        │           (closes 4-year-old bug, thx @packet)      │
+        │                                                     │
+        │    /\_/\    /\_/\    /\_/\                          │
+        │   ( ^.^ )  ( ^.^ )  ( ^.^ )                        │
+        │    > ^ <    > ^ <    > ^ <                          │
+        │   "team"   "work"   "meow"                         │
+        │                                                     │
+        └─────────────────────────────────────────────────────┘
+    text: |
+      The three of you watch the monitoring dashboard go green together. Dev-cat-3 documents the fix. Dev-cat-7 updates the runbook. You add a comment to the code:
+
+      `# Redirect restored. The intern was right. — Packet, dev-cat-3, dev-cat-7`
+
+      It's not just about the fix. It's about the fact that someone finally said "let's just do it" instead of "let's wait for the next sprint."
+
+      The team that fixed /home wasn't assigned, wasn't scheduled, wasn't planned. It was just three cats who decided that a four-year-old bug had lived long enough.
+    ending_text: |
+      🐱 ENDING: "The Team Fix"
+      You found allies, paired up, and fixed it properly. Code review included.
+      Sometimes the best PRs are just removing a comment.
+
+  ending_proper_fix:
+    mood: peaceful
+    is_ending: true
+    ending_type: good
+    art: |
+        ┌─────────────────────────────────────────────────────┐
+        │                                                     │
+        │   ✅ PR #4892 — MERGED                              │
+        │                                                     │
+        │   Deploy pipeline: ██████████████████████ 100%       │
+        │   Status: LIVE                                       │
+        │                                                     │
+        │   "Closes 4-year-old bug. 1 line. 1 character."     │
+        │                                                     │
+        │        /\_/\                                        │
+        │       ( ◕.◕ )  "The process worked... eventually."  │
+        │        > ^ <                                        │
+        └─────────────────────────────────────────────────────┘
+    text: |
+      PR #4892 — the original PR that should have been merged four years ago — finally lands. Through the proper process: reviewed, approved, CI green, deployed through the pipeline.
+
+      It took a stray packet-cat to push it across the finish line, but the fix is clean. No cowboy coding, no hotfixes, no shortcuts. Just the right change, through the right process, four years late.
+
+      The deploy bot posts in Slack: "PR #4892 deployed to production. /home redirect active."
+
+      Dev-cat-3 reacts with 🎉. Dev-cat-7 reacts with 😭. A ghost reaction appears from an account called `intern_who_loved_cats`, inactive for three years.
+
+      Someone is watching. And they're smiling.
+    ending_text: |
+      🐱 ENDING: "By the Book"
+      You followed the process. The right fix, through the right channels.
+      PR #4892 finally merged — four years after it was opened.
+      The intern got their merge notification. Wherever they are.
+
+  ending_found_home:
+    mood: peaceful
+    is_ending: true
+    ending_type: neutral
+    art: |
+        ┌─────────────────────────────────────────────────────┐
+        │                                                     │
+        │   /app/page/home                                    │
+        │                                                     │
+        │        /\_/\                                        │
+        │       ( -.- )  *purring*                             │
+        │        > ^ <                                        │
+        │       /|   |\                                       │
+        │                                                     │
+        │   "I found it. That's enough for today."            │
+        │                                                     │
+        └─────────────────────────────────────────────────────┘
+    text: |
+      You found /home. It's here, at /app/page/home, alive and well.
+
+      You didn't fix the redirect. The old links still 404. But you know the page exists, and you know where it is, and you know what needs to be done.
+
+      Sometimes finding the answer is enough. The fix can wait for another day, another cat, another request.
+
+      You curl up on /app/page/home and close your eyes. The data streams around you, warm and constant. You are home.
+    ending_text: |
+      🐱 ENDING: "Found, Not Fixed"
+      You discovered that /home lives on at /app/page/home.
+      The redirect still isn't set up, but at least you know the truth.
+      Sometimes the journey is the point.
+
+  ending_bandaid:
+    mood: mysterious
+    is_ending: true
+    ending_type: neutral
+    art: |
+        ┌─────────────────────────────────────────────────────┐
+        │                                                     │
+        │   CDN EDGE RULE: /home → 301 → /app/page/home      │
+        │   Status: ✅ Active (edge only)                     │
+        │                                                     │
+        │   Origin: Still returns 404 for /home               │
+        │                                                     │
+        │        /\_/\                                        │
+        │       ( >.> )  "It works... mostly."                 │
+        │        > ^ <                                        │
+        │                                                     │
+        └─────────────────────────────────────────────────────┘
+    text: |
+      The CDN fix works. For most users, /home resolves now. The redirect happens at the edge, fast and invisible.
+
+      But you know it's a band-aid. The origin is still broken. Internal tools, health checks, and anyone hitting the server directly still gets a 404. The nginx.conf still has that commented-out line 47, gathering digital dust.
+
+      Dev-cat-7 marks the issue as "Won't Fix (workaround in place)." It'll stay that way for years, probably.
+
+      You did something. But not the right thing. The intern's redirect is still waiting.
+    ending_text: |
+      🐱 ENDING: "The Band-Aid"
+      You fixed it at the edge, not the origin. Users are happy.
+      But line 47 is still commented out. The proper fix waits.
+
+  ending_timeout:
+    mood: tense
+    is_ending: true
+    ending_type: bad
+    art: |
+        ┌─────────────────────────────────────────────────────┐
+        │                                                     │
+        │   HTTP/1.1 504 Gateway Timeout                      │
+        │                                                     │
+        │   The server did not receive a timely response.     │
+        │                                                     │
+        │        /\_/\                                        │
+        │       ( x.x )  *connection terminated*              │
+        │        > ^ <                                        │
+        │                                                     │
+        │   Error: upstream timed out                          │
+        │   (110: Connection timed out)                        │
+        │                                                     │
+        └─────────────────────────────────────────────────────┘
+    text: |
+      You took too long. The keep-alive timer expired, and the connection dropped.
+
+      Your request dissolves into the void — a timeout, just another statistic in the error logs. 504 Gateway Timeout. The server moved on. The client moved on. Only you, Packet, are left in the space between.
+
+      /home is still 404. The redirect is still commented out. The intern's fix is still waiting. And now there's one more error in the logs that nobody will read.
+
+      Maybe the next request will find the way.
+    ending_text: |
+      🐱 ENDING: "Timed Out"
+      You ran out of time. The connection closed.
+      /home is still 404. Try again?
+
+  ending_secret_intern:
+    mood: mysterious
+    is_ending: true
+    ending_type: secret
+    effects:
+      - glitch
+    art: |
+        ┌─────────────────────────────────────────────────────┐
+        │                                                     │
+        │   commit 7a3f9c2                                    │
+        │   Author: intern_who_loved_cats                     │
+        │   Date: 4 years ago                                 │
+        │                                                     │
+        │   "Added custom 404 page with cat animation.        │
+        │    Hope this makes people smile when they            │
+        │    hit a dead link. 🐱"                              │
+        │                                                     │
+        │        /\_/\         /\_/\                          │
+        │       ( ^.^ )  ←→  ( ^.^ )                         │
+        │        > ^ <         > ^ <                          │
+        │       Packet     The Intern                         │
+        │                                                     │
+        │   "You found my message."                           │
+        │                                                     │
+        └─────────────────────────────────────────────────────┘
+    text: |
+      You found the GIF. You read the hidden comment. You followed the trail to line 47. And you fixed it — through a PR, the way the intern tried to.
+
+      As the deploy goes live, something strange happens. In the server logs, a ghost session flickers — `intern_who_loved_cats`, last active three years ago — and posts one final message to the deploy channel:
+
+      "Thank you. 🐱"
+
+      The session expires immediately after. The logs will show no record of it — except, maybe, in the CDN cache, where nothing truly dies.
+
+      You'll never know if it was a ghost in the machine or a real person who got the merge notification. But it doesn't matter.
+
+      The cat found its way home. Both of them did.
+    ending_text: |
+      🏆 SECRET ENDING: "The Intern's Legacy"
+      You found the hidden message, followed the trail, and completed what the intern started.
+      A four-year-old story, finally resolved. Some bugs outlive the people who find them.
+      But sometimes, a stray cat finishes what an intern began.
+
+  # Fallback scene for the secret ending trigger
+  rollback_route:
+    mood: tense
+    effects:
+      - shake
+    art: |
+        ┌─────────────────────────────────────────────────────┐
+        │  > server.routes.rollback("/home")                  │
+        │                                                     │
+        │  ⚠ WARNING: Rolling back will restore the legacy    │
+        │  route handler, not just the redirect.              │
+        │  This may conflict with the /app router.            │
+        │                                                     │
+        │  Proceed? [Y/n]                                     │
+        └─────────────────────────────────────────────────────┘
+    text: |
+      You attempt the rollback, but the debug console warns you: restoring the old /home route would bring back the entire legacy handler — not just a redirect. It would conflict with the /app router and potentially break everything.
+
+      A rollback is the wrong tool. What you need is a redirect — a simple 301 that says "this moved, go there instead." The kind of fix that was already written and just needs to be uncommented.
+
+      The debug console's timer ticks: 45 seconds of debug mode left.
+    choices:
+      - label: "Add the redirect instead — the right fix"
+        goto: add_redirect
+      - label: "Rush to nginx.conf before debug mode expires"
+        goto: config_quest
+
+  add_redirect:
+    mood: tense
+    location: "packet@debug:/__internal$"
+    art: |
+        ┌─────────────────────────────────────────────────────┐
+        │  > server.routes.add({                              │
+        │      path: "/home",                                 │
+        │      handler: "redirect",                           │
+        │      target: "/app/page/home",                      │
+        │      code: 301                                      │
+        │    })                                               │
+        │                                                     │
+        │  ✅ Route added (runtime only — not persisted)      │
+        │  ⚠ Will be lost on next server restart              │
+        │                                                     │
+        │  Debug mode: 30 seconds remaining                   │
+        └─────────────────────────────────────────────────────┘
+    text: |
+      You add the redirect through the debug console. It works immediately — /home now redirects to /app/page/home.
+
+      But there's a catch: runtime route changes aren't persisted. The next time the server restarts — or the next deploy — the redirect will vanish. You've fixed it temporarily, but the permanent fix still lives in nginx.conf, line 47, commented out.
+
+      You have 30 seconds of debug mode left. Enough time to do one more thing.
+    choices:
+      - label: "Head to nginx.conf and make the fix permanent"
+        goto: config_quest
+      - label: "Good enough for now — at least it works today"
+        goto: ending_found_home
+      - label: "File a PR to make it permanent"
+        goto: write_pr
+        requires_flag: found_htaccess_clue

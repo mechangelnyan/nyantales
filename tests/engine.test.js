@@ -615,3 +615,78 @@ describe('interpolate', () => {
     assert.equal(engine.interpolate(42), 42);
   });
 });
+
+// ─────────────────────────────────────────────────────────────
+// Scene-level flags & items
+// ─────────────────────────────────────────────────────────────
+
+describe('Scene-level set_flag and give_item', () => {
+  let engine;
+
+  beforeEach(() => {
+    engine = new Engine('/dev/null', { skipAnimation: true });
+    engine.story = {
+      title: 'Test',
+      start: 'scene1',
+      scenes: {
+        scene1: {
+          text: 'Hello',
+          set_flag: 'entered_scene1',
+          give_item: 'key',
+          is_ending: true,
+          ending_type: 'neutral',
+        },
+        scene2: {
+          text: 'Multi',
+          set_flags: ['flag_a', 'flag_b'],
+          give_items: ['sword', 'shield'],
+          is_ending: true,
+          ending_type: 'neutral',
+        },
+        scene3: {
+          text: 'Remove',
+          remove_flag: 'old_flag',
+          remove_item: 'junk',
+          is_ending: true,
+          ending_type: 'neutral',
+        },
+      },
+    };
+  });
+
+  it('sets a flag when entering a scene with set_flag', async () => {
+    assert.equal(engine.state.hasFlag('entered_scene1'), false);
+    await engine.showScene('scene1');
+    assert.equal(engine.state.hasFlag('entered_scene1'), true);
+  });
+
+  it('gives an item when entering a scene with give_item', async () => {
+    assert.equal(engine.state.hasItem('key'), false);
+    await engine.showScene('scene1');
+    assert.equal(engine.state.hasItem('key'), true);
+  });
+
+  it('handles set_flags array', async () => {
+    await engine.showScene('scene2');
+    assert.equal(engine.state.hasFlag('flag_a'), true);
+    assert.equal(engine.state.hasFlag('flag_b'), true);
+  });
+
+  it('handles give_items array', async () => {
+    await engine.showScene('scene2');
+    assert.equal(engine.state.hasItem('sword'), true);
+    assert.equal(engine.state.hasItem('shield'), true);
+  });
+
+  it('removes flags at scene level', async () => {
+    engine.state.setFlag('old_flag');
+    await engine.showScene('scene3');
+    assert.equal(engine.state.hasFlag('old_flag'), false);
+  });
+
+  it('removes items at scene level', async () => {
+    engine.state.addItem('junk');
+    await engine.showScene('scene3');
+    assert.equal(engine.state.hasItem('junk'), false);
+  });
+});

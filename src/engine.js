@@ -368,6 +368,15 @@ export class Engine {
     this.state.currentScene = sceneId;
     this.state.turnCount++;
 
+    // ── Scene-level flags & items ─────────────────────────────
+    const asArrayScene = v => (v == null ? [] : Array.isArray(v) ? v : [v]);
+    for (const f of asArrayScene(scene.set_flag))    this.state.setFlag(f);
+    for (const f of asArrayScene(scene.set_flags))   this.state.setFlag(f);
+    for (const f of asArrayScene(scene.remove_flag)) this.state.removeFlag(f);
+    for (const i of asArrayScene(scene.give_item))   this.state.addItem(i);
+    for (const i of asArrayScene(scene.give_items))  this.state.addItem(i);
+    for (const i of asArrayScene(scene.remove_item)) this.state.removeItem(i);
+
     // ── Mood setup ────────────────────────────────────────────
     const mood = scene.mood || null;
     const moodCfg = mood ? (MOOD_CONFIG[mood] || null) : null;
