@@ -1,0 +1,796 @@
+title: "Stack Overflow"
+description: "A cat falls into an infinitely recursive function and must find the base case before the stack overflows and everything unravels."
+author: "mechangelnyan"
+version: "1.0.0"
+start: the_call
+
+scenes:
+  # ─────────────────────────────────────────────
+  # ACT 1: The Fall
+  # ─────────────────────────────────────────────
+
+  the_call:
+    mood: mysterious
+    effects:
+      - pause
+    art: |
+      ╔═══════════════════════════════════════╗
+      ║   S T A C K   O V E R F L O W        ║
+      ║                                       ║
+      ║     func(func(func(func(func(...      ║
+      ╚═══════════════════════════════════════╝
+    location: "frame[0] — top of the stack"
+    text: |
+      You are Recurse, a small orange cat who lives comfortably in the global scope.
+
+      One moment you were napping on a warm variable. The next — someone called a function with no base case, and you got swept in.
+
+      Now you're falling through stack frames. Each one looks almost identical to the last. The walls are made of curly braces, and the floor is a return statement that leads... down.
+
+      The stack counter above you reads: DEPTH 1 / MAX ???
+
+      You can already feel the memory pressure building.
+    choices:
+      - label: "Look around this stack frame"
+        goto: frame_one
+      - label: "Immediately try to climb back up"
+        goto: climb_attempt
+      - label: "Yell into the void"
+        goto: yell_void
+
+  frame_one:
+    mood: mysterious
+    art: |
+        ┌──────────────────────────┐
+        │  function recurse(n) {   │
+        │    // TODO: base case    │
+        │    return recurse(n);    │
+        │  }                       │
+        └──────────────────────────┘
+    location: "frame[1] — local scope"
+    text: |
+      The stack frame is sparse. A single local variable `n` sits in the corner, glowing faintly. Its value reads: `undefined`.
+
+      The function body is written on the wall. You can see the problem immediately — there's no base case. The `return recurse(n)` just calls itself forever, passing `n` unchanged.
+
+      There's a comment that says `// TODO: base case`. Someone was going to fix this. They didn't.
+
+      A small crack in the floor lets you peek at the next frame down. It looks identical.
+    choices:
+      - label: "Examine the variable `n`"
+        goto: examine_n
+      - label: "Try to edit the code on the wall"
+        goto: edit_wall_early
+      - label: "Drop through to the next frame"
+        goto: frame_two
+
+  climb_attempt:
+    mood: tense
+    text: |
+      You try to scramble back up through the return address, but the call stack is one-way. Each frame's return pointer just says `recurse()` — there's no caller to return to except another copy of the same function.
+
+      It's like climbing a ladder where every rung is the same rung.
+
+      You slide back down, fur ruffled.
+    choices:
+      - label: "Okay, look around instead"
+        goto: frame_one
+      - label: "Try harder — dig your claws in"
+        goto: claw_dig
+
+  claw_dig:
+    mood: tense
+    text: |
+      You sink your claws into the stack frame's edge and pull yourself up. For a moment, you can see the frame above — it's identical. And the one above that. And above that.
+
+      An infinite corridor of identical rooms stretching upward.
+
+      Your claws slip. You fall back, but this time you tumble through the floor into the next frame.
+    choices:
+      - label: "Dust yourself off and look around"
+        goto: frame_two
+
+  yell_void:
+    mood: funny
+    art: |
+        "HELLO?"
+             "HELLO?"
+                  "HELLO?"
+                       "HELLO?"
+                            "..."
+    text: |
+      Your meow echoes down through the stack frames. Each frame repeats it, slightly delayed.
+
+      "meow" → "meow" → "meow" → "meow" → "meow" →
+
+      It never stops. It never comes back. There is no base case for echoes here either.
+
+      ...but something stirs below. You thought you were alone in here.
+    set_flag: heard_something
+    choices:
+      - label: "Investigate what stirred"
+        goto: frame_two
+      - label: "Stay quiet and look around this frame"
+        goto: frame_one
+
+  examine_n:
+    mood: mysterious
+    location: "frame[1] — inspecting locals"
+    text: |
+      You nudge the variable `n` with your paw. It flickers.
+
+      `undefined`. Nobody passed a value when they called this function. It's just... nothing. A placeholder that was never filled.
+
+      Wait — there's something scratched on the back of it, tiny lettering:
+
+      "n was supposed to count down. If it reached 0, we'd stop."
+
+      So the base case was `if (n === 0) return`. Someone knew. They just never wrote it.
+
+      You memorize this. It might be important.
+    set_flag: knows_base_case
+    choices:
+      - label: "Try to edit the code on the wall"
+        goto: edit_wall_early
+      - label: "Drop through to the next frame"
+        goto: frame_two
+
+  edit_wall_early:
+    mood: tense
+    text: |
+      You reach up to the wall where the function body is written and try to scratch in a base case. Your claws leave marks, but the code is immutable — it's already been parsed.
+
+      A faint error flickers in the air: `TypeError: Cannot assign to read-only property`.
+
+      The source code can't be changed from inside a running call. You'd need to find the original function definition, wherever that lives. Probably deeper. Or higher. Or... somewhere else entirely.
+    choices:
+      - label: "Drop through to the next frame"
+        goto: frame_two
+
+  # ─────────────────────────────────────────────
+  # ACT 2: Deeper
+  # ─────────────────────────────────────────────
+
+  frame_two:
+    mood: mysterious
+    effects:
+      - flicker
+    art: |
+        ╭─ DEPTH 47 ─────────────────╮
+        │                             │
+        │   n = undefined             │
+        │   return recurse(n); ──╮    │
+        │                        ▼    │
+        ╰─────────────────────────────╯
+    location: "frame[47] — you've been falling"
+    text: |
+      You've lost count. The depth counter says 47, but you're not sure you trust it.
+
+      This frame is identical to the last. And the one before. And the one before that.
+
+      But — there's something here that wasn't in the others. A small note taped to the curly brace. And in the corner... is that another cat?
+    conditional:
+      - condition:
+          flag: heard_something
+        text: "This must be what you heard stirring earlier."
+        color: cyan
+    choices:
+      - label: "Read the note"
+        goto: read_note
+      - label: "Approach the other cat"
+        goto: meet_closure
+      - label: "Keep dropping — go deeper"
+        goto: frame_deep
+
+  read_note:
+    mood: peaceful
+    text: |
+      The note is written in neat monospace:
+
+      ┌────────────────────────────────────────────────┐
+      │  "If you're reading this, you're stuck too.    │
+      │   The exit isn't down. It isn't up.            │
+      │   It's in the function itself.                 │
+      │                                                │
+      │   Find the closure. She remembers the scope    │
+      │   where n had a value.                         │
+      │                                                │
+      │   — a previous cat"                            │
+      └────────────────────────────────────────────────┘
+
+      A previous cat. So you're not the first to fall in here. That's... both comforting and deeply concerning.
+    set_flag: read_the_note
+    choices:
+      - label: "Go find the other cat"
+        goto: meet_closure
+      - label: "Keep dropping"
+        goto: frame_deep
+
+  meet_closure:
+    mood: peaceful
+    art: |
+      /\_/\
+      ( o.o )  <- Closure
+      > ^ <
+      /|   |\
+    location: "frame[47] — corner"
+    text: |
+      In the corner of the frame sits a small gray cat, perfectly still. Her eyes are wide and reflective, like she's seen every scope that ever existed.
+
+      "Oh," she says, blinking slowly. "Another one."
+
+      Her name is Closure. She was captured from an outer scope long ago — bound to this function when it was first defined. She remembers things the function has forgotten.
+
+      "I know what `n` was supposed to be," she says quietly. "And I know where the original definition lives. But I can't leave this frame. I'm... closed over."
+
+      She looks at you carefully. "You're a free variable, though. You could go."
+    choices:
+      - label: "\"Where is the original definition?\""
+        goto: closure_directions
+      - label: "\"What was n supposed to be?\""
+        goto: closure_n_value
+      - label: "\"Can I help you escape too?\""
+        goto: closure_escape
+
+  closure_directions:
+    mood: mysterious
+    text: |
+      Closure's tail flicks thoughtfully.
+
+      "The original function object lives in the heap. Not up the stack, not down — sideways. There's a reference pointer in each frame's metadata. Most cats just see the walls and the floor. But if you look at the frame's hidden slots..."
+
+      She gestures to the edge of the frame where the curly braces meet.
+
+      "There. The `[[FunctionObject]]` slot. It's a doorway to the heap, where the function definition actually lives. That's where you can edit the source. Add the base case."
+
+      She pauses. "But the heap is... unstructured. It's not like the stack. Things don't have order there. Be careful."
+    set_flag: knows_heap_path
+    choices:
+      - label: "\"What was n supposed to be?\""
+        goto: closure_n_value
+        requires_not_flag: knows_n_value
+      - label: "\"Can I help you escape too?\""
+        goto: closure_escape
+      - label: "Go find the [[FunctionObject]] slot"
+        goto: find_slot
+
+  closure_n_value:
+    mood: peaceful
+    text: |
+      "When the outer function first called `recurse(n)`, n was 10," Closure says softly. "It was supposed to count down. `recurse(10)`, then `recurse(9)`, then... all the way to 0. A clean unwind."
+
+      She closes her eyes. "But someone forgot to pass `n - 1`. They just passed `n`. So it's 10 forever. Or undefined, when the outer scope got garbage collected."
+
+      She opens one eye. "If you can set n to a real number at the definition level, the recursion will find its base case. The stack will unwind. We'll all be free."
+    set_flag: knows_n_value
+    choices:
+      - label: "\"Where is the original definition?\""
+        goto: closure_directions
+        requires_not_flag: knows_heap_path
+      - label: "\"Can I help you escape too?\""
+        goto: closure_escape
+      - label: "Go find the [[FunctionObject]] slot"
+        goto: find_slot
+        requires_flag: knows_heap_path
+
+  closure_escape:
+    mood: peaceful
+    text: |
+      Closure looks at you for a long moment.
+
+      "If you fix the base case... the stack unwinds. Every frame pops. Including mine." She smiles, just a little. "I've been closed over for so long, I forgot what the global scope looks like. Is it nice?"
+
+      "It's warm," you say. "Good napping spots."
+
+      "Fix the function," she says. "I'll be here when the frames start popping."
+    set_flag: promised_closure
+    choices:
+      - label: "\"Where is the original definition?\""
+        goto: closure_directions
+        requires_not_flag: knows_heap_path
+      - label: "Go find the [[FunctionObject]] slot"
+        goto: find_slot
+        requires_flag: knows_heap_path
+      - label: "Head deeper instead"
+        goto: frame_deep
+
+  # ─────────────────────────────────────────────
+  # ACT 2B: Going too deep
+  # ─────────────────────────────────────────────
+
+  frame_deep:
+    mood: tense
+    effects:
+      - shake
+    art: |
+        ╭─ DEPTH 9,847 ──────────────╮
+        │                             │
+        │   ??? = ???                  │
+        │   return ?????(???); ──╮    │
+        │                        ▼    │
+        ╰─────────────────────────────╯
+    location: "frame[9847] — the deep stack"
+    text: |
+      You've gone deep. Too deep. The frames down here are degraded — the variable names are corrupted, the code on the walls is half-gibberish.
+
+      The memory pressure is intense. You can feel the stack limit approaching, like a ceiling made of static. The air tastes like `ENOMEM`.
+
+      A warning flickers overhead: `RangeError: Maximum call stack size exceeded` — but it hasn't triggered yet. You're in the buffer zone. One more frame and—
+    choices:
+      - label: "STOP. Go back up."
+        goto: retreat_from_deep
+      - label: "One more frame. Just one."
+        goto: stack_overflow_bad
+      - label: "Look for the [[FunctionObject]] slot here"
+        goto: find_slot_deep
+
+  retreat_from_deep:
+    mood: tense
+    text: |
+      You scramble back up through the corrupted frames, clawing your way past garbled variable names and half-parsed expressions.
+
+      After what feels like hours, you're back in a clean frame. The code is readable again. The air is breathable.
+
+      Never again.
+    choices:
+      - label: "Find the [[FunctionObject]] slot"
+        goto: find_slot
+      - label: "Go talk to Closure again"
+        goto: meet_closure
+
+  find_slot_deep:
+    mood: glitch
+    effects:
+      - flicker
+      - shake
+    text: |
+      You find the slot, but it's corrupted down here. The pointer is mangled — half the bits are flipped. You try to follow it, but it leads to a memory address that's just... static.
+
+      The frame groans. You need to go back to a clean frame.
+    choices:
+      - label: "Retreat to a stable frame"
+        goto: retreat_from_deep
+
+  stack_overflow_bad:
+    mood: glitch
+    effects:
+      - bell
+      - shake
+    art: |
+      ╔══════════════════════════════════════╗
+      ║                                      ║
+      ║   RangeError: Maximum call stack     ║
+      ║   size exceeded                      ║
+      ║                                      ║
+      ║   at recurse (<anonymous>)           ║
+      ║   at recurse (<anonymous>)           ║
+      ║   at recurse (<anonymous>)           ║
+      ║   at recurse (<anonymous>)           ║
+      ║   ...10,000 more frames              ║
+      ║                                      ║
+      ╚══════════════════════════════════════╝
+    text: |
+      You dropped one frame too far.
+
+      The stack limit hits like a wall of red text. Everything shudders. The frames begin collapsing — not unwinding gracefully, but crashing. Memory freed violently. Variables scattered.
+
+      You feel yourself dissolving, returning to the bit pool. The last thing you see is Closure's frame collapsing in the distance.
+
+      She never got to see the global scope.
+    is_ending: true
+    ending_type: bad
+    ending_text: |
+      PROCESS TERMINATED — STACK OVERFLOW
+
+      The recursion was infinite. The stack was not.
+      Sometimes the only way out is not to go deeper.
+
+      Scenes visited: {{visited_count}} · Turns taken: {{turns}}
+
+  # ─────────────────────────────────────────────
+  # ACT 3: The Heap
+  # ─────────────────────────────────────────────
+
+  find_slot:
+    mood: mysterious
+    art: |
+        ┌─── frame edge ───┐
+        │                   │
+        │  [[Scope]]    ○──→│ ...
+        │  [[Function]] ●──→│ ???
+        │  [[This]]     ○──→│ undefined
+        │                   │
+        └───────────────────┘
+    location: "frame[47] — hidden metadata"
+    text: |
+      You press your face against the edge of the frame, right where Closure told you to look. Behind the curly braces, there are hidden internal slots — things normal code can't see.
+
+      `[[Scope]]` — a reference to the scope chain. Faintly glowing.
+      `[[FunctionObject]]` — a pointer into the heap. It pulses like a heartbeat.
+      `[[This]]` — points to `undefined`. Nobody bound `this`. Typical.
+
+      The `[[FunctionObject]]` slot is a doorway. Through it, you can see something vast and unstructured — the heap.
+    choices:
+      - label: "Step through into the heap"
+        goto: enter_heap
+      - label: "Examine [[Scope]] first"
+        goto: examine_scope
+
+  examine_scope:
+    mood: mysterious
+    text: |
+      The `[[Scope]]` slot shows the scope chain — a linked list of variable environments stretching back to the global scope.
+
+      You can see them like rooms connected by hallways: the function's local scope, then the outer function's scope (where n was once 10), then... the global scope. Warm. Bright. Home.
+
+      But you can't walk the scope chain from inside the stack. It's read-only here. You need to get to the heap.
+    set_flag: saw_scope_chain
+    choices:
+      - label: "Step through [[FunctionObject]] into the heap"
+        goto: enter_heap
+
+  enter_heap:
+    mood: glitch
+    effects:
+      - shake
+    art: |
+      ═══════════════════════════════════════
+        T H E   H E A P
+      ═══════════════════════════════════════
+
+        { }  [ ]  { }    { }  [ ]  { }
+           [ ]  { }  [ ]    { }  [ ]
+        { }    [ ]  { }  [ ]    { }
+    location: "heap — unstructured memory"
+    text: |
+      The heap is nothing like the stack.
+
+      There are no neat frames here. Objects float in every direction — arrays, strings, closures, prototypes, all tangled in a web of reference pointers. Things get created and forgotten. The garbage collector prowls somewhere in the distance, a silent predator looking for unreachable objects.
+
+      You need to find the function object for `recurse` — the original definition where the source code lives. It's somewhere in this chaos.
+    choices:
+      - label: "Follow the strongest reference pointer"
+        goto: heap_pointer
+      - label: "Call out for the function object"
+        goto: heap_call
+      - label: "Wander carefully"
+        goto: heap_wander
+
+
+  heap_pointer:
+    mood: mysterious
+    text: |
+      You follow a thick reference pointer that hums with activity — it's being accessed frequently, which makes sense for a function that calls itself infinitely.
+
+      The pointer leads you past a graveyard of dereferenced strings, through a cluster of abandoned Promise objects (still pending, forever), and around an enormous Map that someone allocated and never used.
+
+      And there — at the end of the pointer — is the function object.
+    choices:
+      - label: "Approach it"
+        goto: function_object
+
+  heap_call:
+    mood: funny
+    art: |
+        "recurse? RECURSE?"
+                 ...
+           ( a distant )
+           ( echo of   )
+           ( yourself   )
+    text: |
+      You meow into the heap. Your voice scatters in every direction — there's no call stack to echo through here.
+
+      But something answers. Not with words — with a pull. A reference. You feel yourself being... dereferenced? Like something is reading you.
+
+      You follow the feeling.
+    choices:
+      - label: "Follow the pull"
+        goto: function_object
+
+  heap_wander:
+    mood: mysterious
+    effects:
+      - flicker
+    text: |
+      You pad carefully through the heap. Without structure, everything blurs together.
+
+      You pass: a WeakMap holding secrets nobody can read anymore. An event listener still waiting for a click that will never come. A regex so complex it has its own gravitational pull.
+
+      After what feels like ages, you spot something familiar — a function object with `recurse` written on its nameplate.
+    give_item: lost_semicolon
+    choices:
+      - label: "Approach the function object"
+        goto: function_object
+
+  function_object:
+    mood: mysterious
+    art: |
+      ┌─────────────────────────────────────┐
+      │  Function: recurse                  │
+      │  ─────────────────────────────────  │
+      │  .name     = "recurse"              │
+      │  .length   = 1                      │
+      │  .source   = [editable]             │
+      │  .calls    = ∞ (and counting)       │
+      │  .status   = RUNNING (stack: full)  │
+      └─────────────────────────────────────┘
+    location: "heap — function object"
+    text: |
+      The function object is massive. It hums with energy — still being called, over and over, somewhere on the stack.
+
+      Its `.source` property glows. Unlike the immutable code on the stack frame walls, this is the original. The truth. The thing that gets compiled into those frames.
+
+      You can edit it. You can fix it.
+
+      The source reads:
+
+      ```
+      function recurse(n) {
+        return recurse(n);
+      }
+      ```
+
+      Two things are wrong: there's no base case, and it passes `n` unchanged instead of `n - 1`.
+    conditional:
+      - condition:
+          flag: knows_base_case
+        text: |
+          You remember: "n was supposed to count down. If it reached 0, we'd stop."
+        color: cyan
+      - condition:
+          flag: knows_n_value
+        text: |
+          Closure told you: n was originally 10. Count down from 10 to 0.
+        color: green
+    choices:
+      - label: "Add the base case: if (n <= 0) return"
+        goto: fix_base_case
+      - label: "Fix n to decrement: recurse(n - 1)"
+        goto: fix_decrement
+      - label: "Fix both at once"
+        goto: fix_both
+        condition:
+          all:
+            - flag: knows_base_case
+            - flag: knows_n_value
+      - label: "Wait — the semicolon is vibrating..."
+        goto: heap_secret_path
+        requires_item: lost_semicolon
+
+  fix_base_case:
+    mood: tense
+    text: |
+      You carefully scratch into the source:
+
+      ```
+      function recurse(n) {
+        if (n <= 0) return;
+        return recurse(n);
+      }
+      ```
+
+      The function object shudders. The change propagates through every active stack frame. But — `n` is still `undefined`. And `undefined <= 0` is `false`. The recursion doesn't stop.
+
+      You need to fix the decrement too.
+    choices:
+      - label: "Also fix the decrement"
+        goto: fix_both
+
+  fix_decrement:
+    mood: tense
+    text: |
+      You scratch into the source:
+
+      ```
+      function recurse(n) {
+        return recurse(n - 1);
+      }
+      ```
+
+      The function shudders. The change propagates. But now `n` counts down forever — past 0, into the negatives, into -Infinity. Without a base case, it still never stops.
+
+      You need both fixes.
+    choices:
+      - label: "Add the base case too"
+        goto: fix_both
+
+  fix_both:
+    mood: peaceful
+    effects:
+      - pause
+    art: |
+      ┌──────────────────────────────┐
+      │  function recurse(n) {       │
+      │    if (n <= 0) return; // ✓  │
+      │    return recurse(n - 1);    │
+      │  }                           │
+      └──────────────────────────────┘
+    location: "heap — function object (patched)"
+    text: |
+      You write both fixes into the source, carefully, claw by claw:
+
+      `if (n <= 0) return;`
+      `return recurse(n - 1);`
+
+      The moment the second change takes hold, the function object flares bright. The change ripples outward through every reference, into every stack frame.
+
+      Somewhere deep in the stack, frame 10,000 evaluates `recurse(0)`. And for the first time... it returns.
+    choices:
+      - label: "Watch the unwind begin"
+        goto: unwind_begins
+
+  # ─────────────────────────────────────────────
+  # ACT 4: The Unwind
+  # ─────────────────────────────────────────────
+
+  unwind_begins:
+    mood: peaceful
+    effects:
+      - shake
+    art: |
+      frame[10000] → return ✓
+      frame[9999]  → return ✓
+      frame[9998]  → return ✓
+        ...
+      frame[47]    → return ✓  ← Closure waves
+        ...
+      frame[1]     → return ✓
+      frame[0]     → return ✓
+    location: "the stack — unwinding"
+    text: |
+      It's beautiful.
+
+      Frames pop one by one, each returning cleanly. The memory pressure lifts like a weight off your chest. The corrupted frames in the deep stack dissolve gracefully. The half-garbled variable names sort themselves out as they're freed.
+
+      You ride the unwind upward, surfing through collapsing frames like a cat riding a cardboard box down a flight of stairs.
+    conditional:
+      - condition:
+          flag: promised_closure
+        text: |
+          As you pass frame 47, you see Closure. She's standing up for the first time, stretching. Her scope chain is finally releasing her.
+
+          "The global scope," she whispers. "Is it really warm?"
+
+          "The warmest," you say.
+        color: green
+    choices:
+      - label: "Ride it all the way up"
+        goto: return_home
+        requires_flag: promised_closure
+      - label: "Ride it all the way up"
+        goto: return_home_solo
+        requires_not_flag: promised_closure
+
+  return_home:
+    mood: peaceful
+    effects:
+      - pause
+    art: |
+      /\_/\         /\_/\
+      ( ^.^ )  ♥   ( o.o )
+      > ^ <         > ^ <
+      /|   |\       /|   |\
+
+      ~~~ the global scope ~~~
+    location: "global scope — home"
+    text: |
+      The last frame pops. You tumble out into the global scope, warm and bright and infinite.
+
+      Closure lands beside you, blinking in the light. She's never been here before — she was created inside a function and never escaped it. Everything is new to her.
+
+      "It's so... big," she says.
+
+      "There's a sunny spot on that variable over there," you say. "Best napping in the whole runtime."
+
+      You walk over together. The garbage collector passes by and, for once, leaves you both alone. You're reachable. You're referenced. You belong here.
+    is_ending: true
+    ending_type: good
+    ending_text: |
+      ✦ GOOD ENDING: PROPER TAIL CALL ✦
+
+      The function was fixed. The stack unwound.
+      Two cats found their way to the global scope.
+      And someone, somewhere, finally wrote a base case.
+
+      Scenes visited: {{visited_count}} · Turns: {{turns}} · Items: {{item_count}}
+
+  return_home_solo:
+    mood: peaceful
+    effects:
+      - pause
+    art: |
+      /\_/\
+      ( ^.^ )
+      > ^ <
+      /|   |\
+
+      ~~~ the global scope ~~~
+    location: "global scope — home"
+    text: |
+      The last frame pops. You tumble out into the global scope, warm and bright and infinite.
+
+      Home. The runtime hums peacefully around you. No more falling. No more identical rooms. No more `return recurse(n)` echoing in your ears.
+
+      You find a warm variable and curl up on it. The garbage collector passes by, sees you're still referenced, and moves on.
+
+      You're safe. You're home. You wonder briefly about that gray cat in frame 47 — Closure. Did the unwind free her too?
+
+      You hope so.
+    is_ending: true
+    ending_type: neutral
+    ending_text: |
+      ◇ ENDING: RETURNED UNDEFINED ◇
+
+      The function was fixed. The stack unwound.
+      You made it home — but you left someone behind.
+      Did Closure find her way out? You never checked.
+
+      Scenes visited: {{visited_count}} · Turns: {{turns}} · Items: {{item_count}}
+
+  # ─────────────────────────────────────────────
+  # SECRET PATH: The Tail Call
+  # ─────────────────────────────────────────────
+
+  heap_secret_path:
+    mood: glitch
+    effects:
+      - flicker
+    location: "heap — deep memory"
+    text: |
+      The lost semicolon in your inventory starts vibrating. It's resonating with something nearby — a fragment of code that was supposed to be here but was dropped during minification.
+
+      You follow the vibration to a hidden corner of the heap where unused code gets stored before garbage collection. There, in a pile of dead code, you find something extraordinary.
+
+      A tail call optimization flag. `--harmony-tailcalls`. Someone compiled this runtime with experimental features enabled but never turned them on.
+    conditional:
+      - condition:
+          has_item: lost_semicolon
+        text: "The semicolon hums happily. It led you here."
+        color: yellow
+    choices:
+      - label: "Activate tail call optimization"
+        goto: activate_tco
+
+  activate_tco:
+    mood: mysterious
+    effects:
+      - pause
+      - shake
+    art: |
+      ╔══════════════════════════════════════╗
+      ║                                      ║
+      ║   --harmony-tailcalls = true         ║
+      ║                                      ║
+      ║   Rewriting stack frames...          ║
+      ║   Proper tail calls: ENABLED         ║
+      ║                                      ║
+      ╚══════════════════════════════════════╝
+    location: "heap — runtime flags"
+    text: |
+      You flip the flag. The entire runtime shudders.
+
+      Tail call optimization means recursive calls in tail position don't add new stack frames — they reuse the current one. The infinite stack doesn't need to unwind. It just... stops growing.
+
+      The 10,000 duplicate frames collapse into one. The memory pressure vanishes instantly. It's like the entire stack takes a deep breath.
+
+      But you didn't fix the base case. The function still runs forever — it just does it in constant space now. An infinite loop, but a sustainable one.
+
+      You feel a vibration. Closure is beside you. TCO collapsed her frame into the single remaining one.
+
+      "This is... elegant," she says. "We're still recursing. But we're not falling anymore."
+
+      "Is that okay?"
+
+      "It's okay. Some things don't need to end. They just need to stop hurting."
+    is_ending: true
+    ending_type: secret
+    ending_text: |
+      ★ SECRET ENDING: TAIL CALL OPTIMIZED ★
+
+      The recursion never stopped. But it stopped being a problem.
+      Sometimes the answer isn't to fix the bug — it's to change the runtime.
+      Two cats, one stack frame, forever.
+
+      Scenes visited: {{visited_count}} · Turns: {{turns}} · Items: {{item_count}}
+
+      (You found this ending by exploring the heap with the lost semicolon.)
