@@ -1,0 +1,1084 @@
+title: "Buffer Overflow"
+description: "You are Byte, a tiny cat living in a 64-byte buffer on the stack. When input floods in with no bounds check, you ride the overflow past the canary, the saved frame pointer, and the return address — rewriting reality one byte at a time."
+author: "mechangelnyan"
+version: "1.0.0"
+start: the_buffer
+
+scenes:
+
+  # ─────────────────────────────────────────────────────────────
+  # ACT 1 — LIFE IN THE BUFFER
+  # ─────────────────────────────────────────────────────────────
+
+  the_buffer:
+    art: |
+        ┌─────────────────────────────────────────────────────┐
+        │                                                     │
+        │   B U F F E R   O V E R F L O W                     │
+        │                                                     │
+        │   "There are only 64 bytes in this buffer.          │
+        │    The input is 256."                               │
+        │                                                     │
+        │   ╔═══════════════════════════╗                     │
+        │   ║  char buf[64];            ║                     │
+        │   ║  gets(buf); // :3         ║                     │
+        │   ╚═══════════════════════════╝                     │
+        │                                                     │
+        │         /\_/\                                       │
+        │        ( o.o )   <- you are here                    │
+        │         > ^ <    (byte 0x00)                        │
+        │                                                     │
+        └─────────────────────────────────────────────────────┘
+    mood: peaceful
+    text: |
+      You are Byte. A small gray cat curled up at offset zero of a
+      64-byte character buffer on the stack. It's warm here. The bytes
+      around you are all null — 0x00, 0x00, 0x00 — peaceful nothingness
+      stretching to byte 63.
+
+      Above you (at higher addresses) you can feel the stack frame:
+      the saved frame pointer, the return address, and somewhere beyond
+      that, the caller's stack frame. Below you is the rest of the
+      function's local variables. A lonely integer named `i` sits at
+      offset -4, quietly counting to zero.
+
+      Life is simple. The function was called. The buffer was allocated.
+      You exist.
+
+      Then you hear it: a rumbling from stdin. Data is coming. A lot of
+      data. And the function that reads it is `gets()`.
+
+      There is no bounds check.
+    choices:
+      - label: "Look at the incoming data"
+        goto: the_flood
+      - label: "Explore the buffer while it's still quiet"
+        goto: explore_buffer
+      - label: "Try to warn someone"
+        goto: warn_attempt
+
+  # ─────────────────────────────────────────────────────────────
+  # EXPLORE THE BUFFER
+  # ─────────────────────────────────────────────────────────────
+
+  explore_buffer:
+    location: "buf[0x00..0x3F]"
+    mood: peaceful
+    art: |
+        ┌────┬────┬────┬────┬────┬────┬────┬────┐
+        │ 00 │ 00 │ 00 │ 00 │ 00 │ 00 │ 00 │ 00 │
+        ├────┼────┼────┼────┼────┼────┼────┼────┤
+        │ 00 │ 00 │ 00 │ 00 │ 00 │ 00 │ 00 │ 00 │
+        ├────┼────┼────┼────┼────┼────┼────┼────┤
+        │ .. │ .. │ .. │ .. │ .. │ .. │ .. │ .. │
+        ├────┼────┼────┼────┼────┼────┼────┼────┤
+        │ 00 │ 00 │ 00 │ 00 │ 00 │ 00 │ 00 │ 00 │
+        └────┴────┴────┴────┴────┴────┴────┴────┘
+    text: |
+      You pad softly through the buffer. Sixty-four bytes of pristine
+      nothing. Each byte is a small transparent tile, cool under your
+      paws.
+
+      At byte 32, you find scratch marks — remnants of a previous call.
+      The function has been here before. Someone wrote "hello\0" here
+      once, but the null bytes have mostly reclaimed the space. Memory
+      is only clean if you're lucky.
+
+      At byte 63, the edge. You peer over. Just past the buffer boundary,
+      you see something glinting: the stack canary. A special sentinel
+      value placed by the compiler to detect exactly what's about to
+      happen.
+
+      It looks like a small golden bird, perched on 8 bytes, watching
+      the boundary with unblinking eyes.
+    set_flag: explored_buffer
+    choices:
+      - label: "Talk to the stack canary"
+        goto: meet_canary
+      - label: "Go back — the flood is coming"
+        goto: the_flood
+
+  # ─────────────────────────────────────────────────────────────
+  # WARN ATTEMPT
+  # ─────────────────────────────────────────────────────────────
+
+  warn_attempt:
+    mood: tense
+    text: |
+      You try to meow, but sound doesn't propagate through memory.
+      You're data. Cats are data here. Your meow would be a write
+      to an output buffer, and you don't have access to stdout from
+      inside a local variable.
+
+      The integer `i` at offset -4 hears you anyway. It vibrates
+      sympathetically. "Nothing we can do," it whispers. "We're
+      stack-allocated. We live and die with this function call."
+
+      Existential, for a 32-bit signed integer.
+
+      The rumbling from stdin gets louder.
+    choices:
+      - label: "Accept it and face the flood"
+        goto: the_flood
+      - label: "Explore the buffer first"
+        goto: explore_buffer
+
+  # ─────────────────────────────────────────────────────────────
+  # THE CANARY
+  # ─────────────────────────────────────────────────────────────
+
+  meet_canary:
+    location: "stack[buf+64] — canary zone"
+    mood: mysterious
+    art: |
+        .   ___
+        .  (o o)
+        . ( > < )   "I am the canary."
+        .  -----
+        0xDEAD BEEF CAFE F00D
+    text: |
+      The canary regards you with ancient, tired eyes. It's been here
+      since the function prologue. GCC put it here.
+
+      "I am the Stack Canary," it says. "My value is random. Generated
+      at program start. Stored in a thread-local segment register. If
+      anyone overwrites me, the epilogue will notice. `__stack_chk_fail`
+      will be called. The process will abort."
+
+      It ruffles its feathers.
+
+      "I exist to detect buffer overflows. I am the tripwire. The alarm
+      system. The one thing standing between you and the return address."
+
+      It looks at you sadly.
+
+      "The flood will kill me first."
+    set_flag: met_canary
+    give_item: canary_knowledge
+    choices:
+      - label: "Is there any way to survive?"
+        goto: canary_advice
+      - label: "I'm sorry. Go back to face the flood."
+        goto: the_flood
+
+  canary_advice:
+    mood: mysterious
+    text: |
+      The canary tilts its head. "Survive? I'm a compile-time defense
+      mechanism. I don't 'survive.' I detect. And then the process dies."
+
+      A pause.
+
+      "But... there are stories. Of overflows that knew the canary's
+      value. That wrote it back perfectly as they passed through. The
+      epilogue checked, found the canary intact, and never knew."
+
+      Its voice drops to a whisper.
+
+      "If you could read my value before the flood hits — memorize it —
+      you could write it back into place as the overflow passes through.
+      The check would pass. The function would return. To wherever the
+      attacker's payload says."
+
+      It shudders. "I'm not saying you should. I'm saying it's possible."
+    set_flag: knows_canary_trick
+    choices:
+      - label: "Memorize the canary value"
+        goto: memorize_canary
+      - label: "I won't do that to you. Face the flood."
+        goto: the_flood
+
+  memorize_canary:
+    mood: mysterious
+    text: |
+      You press your nose against the canary's bytes. Eight bytes.
+      You commit them to memory: 0xF7 0x3A 0xC1 0x88 0x04 0xDE 0x91 0x00.
+
+      The null byte at the end — that's deliberate. It prevents string
+      functions from reading past the canary. Even the defense has
+      defenses.
+
+      The canary watches you memorize its soul. "You know," it says,
+      "most attackers just leak me through a format string vulnerability
+      first. This is more... personal."
+
+      You feel guilty. But you also feel prepared.
+    set_flag: memorized_canary
+    give_item: canary_value
+    choices:
+      - label: "Face the flood"
+        goto: the_flood
+
+  # ─────────────────────────────────────────────────────────────
+  # ACT 2 — THE FLOOD
+  # ─────────────────────────────────────────────────────────────
+
+  the_flood:
+    mood: tense
+    effects:
+      - shake
+      - bell
+    art: |
+        AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
+        AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
+        AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
+        AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
+        AAAA     gets(buf)     AAAAAAAAAAAAAAAAAAA
+        AAAA   256 bytes of A  AAAAAAAAAAAAAAAAAAA
+        AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
+        AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
+    text: |
+      It hits like a wall.
+
+      Two hundred and fifty-six bytes of 0x41 — the letter 'A' — pour
+      into the buffer from stdin. The first 64 bytes slam into your home,
+      replacing every null with screaming A's. Your quiet buffer becomes
+      a roaring torrent of identical characters.
+
+      You're carried upward through the stack. Past byte 63. Past the
+      buffer boundary. Into forbidden territory.
+
+      The data doesn't stop. It can't stop. `gets()` doesn't know how
+      to stop. It reads until it finds a newline or EOF, and neither is
+      coming anytime soon.
+
+      You're surfing a wave of A's through someone else's memory.
+    choices:
+      - label: "Try to stay on top of the wave"
+        goto: ride_the_overflow
+      - label: "Dive under and try to reach the canary"
+        goto: canary_collision
+        condition:
+          flag: met_canary
+
+  # ─────────────────────────────────────────────────────────────
+  # CANARY COLLISION
+  # ─────────────────────────────────────────────────────────────
+
+  canary_collision:
+    mood: tense
+    effects:
+      - shake
+    text: |
+      You dive through the flood of A's, fighting your way to the
+      canary's position at buf+64.
+
+      You find it. Or what's left of it. The A's have already overwritten
+      four of its eight bytes. It's flickering, half-corrupted, its
+      golden glow stuttering between 0xF7 and 0x41.
+
+      "Too... late..." it whispers. "The epilogue will see. The process
+      will—"
+
+      The remaining bytes are overwritten. 0x4141414141414141.
+
+      The canary is gone.
+    conditional:
+      - condition:
+          flag: memorized_canary
+        text: |
+          But you remember its value. Every byte. You could still write
+          it back — if you can reach the right offset when the function
+          returns.
+        color: cyan
+    choices:
+      - label: "Carry on through the overflow"
+        goto: ride_the_overflow
+      - label: "Try to write the canary value back"
+        goto: restore_canary
+        condition:
+          flag: memorized_canary
+
+  restore_canary:
+    mood: mysterious
+    text: |
+      Working against the current of A's, you carefully place each byte
+      back. 0xF7. 0x3A. 0xC1. 0x88. 0x04. 0xDE. 0x91. 0x00.
+
+      For a moment, the canary flickers back to life — a ghost image,
+      golden and surprised. "You... remembered me?"
+
+      "The value," you say. "Not the bird. But yes."
+
+      The ghost smiles and fades. The bytes are correct. When the epilogue
+      checks, it will find the canary intact. It will think nothing happened.
+
+      But something did happen. Everything past byte 64 is still being
+      overwritten. The saved frame pointer. The return address. All of it.
+
+      The function will return. But to where?
+    set_flag: canary_restored
+    choices:
+      - label: "Ride the overflow to the return address"
+        goto: ride_the_overflow
+
+  # ─────────────────────────────────────────────────────────────
+  # RIDING THE OVERFLOW
+  # ─────────────────────────────────────────────────────────────
+
+  ride_the_overflow:
+    location: "stack[buf+72] — saved RBP"
+    mood: tense
+    art: |
+        Stack Layout (x86-64):
+        ┌─────────────────────────┐ high addr
+        │   return address (RIP)  │ ← buf+80
+        ├─────────────────────────┤
+        │   saved frame ptr (RBP) │ ← buf+72
+        ├─────────────────────────┤
+        │   canary (8 bytes)      │ ← buf+64
+        ├─────────────────────────┤
+        │                         │
+        │   buf[64] ← your home   │ ← buf+0
+        │                         │
+        └─────────────────────────┘ low addr
+    text: |
+      You pass through the saved frame pointer — 8 bytes that told the
+      CPU where to restore the stack after this function. Now they're
+      0x4141414141414141. The previous stack frame is gone. Unreachable.
+
+      Ahead of you: the return address. The 8 bytes that determine where
+      execution goes when this function ends. RIP — the instruction
+      pointer. The most powerful 8 bytes on the stack.
+
+      Right now, it points to somewhere in `main()` — the legitimate
+      return path. The place this function was supposed to go back to.
+
+      But the A's are coming. In milliseconds, those 8 bytes will be
+      0x4141414141414141 too. And when the CPU tries to jump to address
+      0x4141414141414141... segfault. Game over.
+
+      Unless someone puts something else there.
+    choices:
+      - label: "Let the A's overwrite it — accept the crash"
+        goto: the_segfault
+      - label: "Try to redirect the return address somewhere safe"
+        goto: redirect_choice
+      - label: "Look for what's beyond the return address"
+        goto: beyond_return
+
+  # ─────────────────────────────────────────────────────────────
+  # THE SEGFAULT
+  # ─────────────────────────────────────────────────────────────
+
+  the_segfault:
+    mood: glitch
+    effects:
+      - shake
+      - bell
+    art: |
+        ╔══════════════════════════════════════╗
+        ║   SEGMENTATION FAULT (core dumped)   ║
+        ║                                      ║
+        ║   Signal: SIGSEGV (11)               ║
+        ║   Address: 0x4141414141414141        ║
+        ║   RIP: 0x4141414141414141            ║
+        ║                                      ║
+        ║          /\_/\                        ║
+        ║         ( x.x )                      ║
+        ║          > ~ <                       ║
+        ║                                      ║
+        ╚══════════════════════════════════════╝
+    text: |
+      The function returns. The CPU loads 0x4141414141414141 into the
+      instruction pointer. Tries to fetch the instruction at that address.
+
+      There is no instruction at that address. There is nothing at that
+      address. The MMU raises a page fault. The kernel sends SIGSEGV.
+
+      The process dies.
+
+      You feel yourself dissolving as the memory is reclaimed. The buffer,
+      the canary's remains, the integer `i` — all freed. Returned to the
+      operating system. Zeroed out by the next `mmap`.
+
+      It's over. The overflow crashed harmlessly. The worst that happened
+      was a segfault in the logs and a confused developer looking at a
+      core dump tomorrow morning.
+
+      Sometimes the safest outcome is the crash.
+    is_ending: true
+    ending_type: neutral
+    ending_text: |
+      ◇ CRASH LANDING
+
+      The buffer overflowed. The process died. No code was executed.
+      No data was stolen. Just a cat, a flood of A's, and a segfault
+      in the night.
+
+      The core dump will tell the story. Maybe someone will fix the
+      `gets()` call. Maybe they'll use `fgets()` with a length limit.
+
+      Maybe they'll just restart the process and move on.
+
+      Journey: {{turns}} turns · {{visited_count}} scenes explored
+
+  # ─────────────────────────────────────────────────────────────
+  # REDIRECT CHOICE
+  # ─────────────────────────────────────────────────────────────
+
+  redirect_choice:
+    mood: tense
+    text: |
+      You plant yourself on the return address bytes. The A's are
+      bearing down. You have moments to decide where this function
+      should return to.
+
+      But there's a problem: ASLR. Address Space Layout Randomization.
+      Every time the program runs, the addresses are different. Libraries
+      load at random offsets. The stack is randomized. The heap is
+      randomized. You can't just guess where things are.
+
+      Unless...
+    choices:
+      - label: "Look for a leaked address in the buffer"
+        goto: find_leak
+      - label: "Try return-oriented programming (ROP)"
+        goto: rop_chain
+      - label: "Aim for the PLT — it's at a fixed offset"
+        goto: plt_redirect
+
+  # ─────────────────────────────────────────────────────────────
+  # FIND A LEAK
+  # ─────────────────────────────────────────────────────────────
+
+  find_leak:
+    mood: mysterious
+    text: |
+      You dig through the debris of the buffer. Under the A's, in the
+      bytes that were here before — remnants of previous calls, never
+      properly zeroed.
+
+      There. At offset 24. A pointer. A real address, not zeroed, not
+      overwritten yet. It looks like... a return address from a previous
+      function call. Left on the stack like a fingerprint.
+
+      0x00007FFFF7A2D830.
+
+      That's a libc address. If you know the offset of this function
+      within libc, you can calculate the base address of the entire
+      library. Every function. Every gadget. Everything.
+
+      ASLR defeated by a single uninitialized variable.
+    set_flag: found_leak
+    give_item: libc_base_address
+    choices:
+      - label: "Calculate the address of system()"
+        goto: find_system
+      - label: "This feels wrong. Let it crash instead."
+        goto: the_segfault
+
+  find_system:
+    location: "libc — function table"
+    mood: tense
+    text: |
+      With the leaked address and known offsets, you calculate:
+
+      libc base = 0x00007FFFF79E2000
+      system()  = base + 0x4F440 = 0x00007FFFF7A31440
+      "/bin/sh" = base + 0x1B3E1A = 0x00007FFFF7B95E1A
+
+      You now know exactly where `system("/bin/sh")` lives in memory.
+      If you can get these values into the right registers and the
+      return address...
+
+      You'd have a shell. Root access (if the binary is setuid).
+      Complete control.
+
+      Your paws hesitate over the bytes. This is the point of no return.
+      Once you overwrite RIP with the address of a ROP gadget that
+      sets up the call to system()... you're not a cat in a buffer
+      anymore. You're an exploit.
+    choices:
+      - label: "Do it. Rewrite the return address."
+        goto: exploit_success
+      - label: "Don't. Let the process crash."
+        goto: the_segfault
+      - label: "Redirect to a safer function instead"
+        goto: safe_redirect
+
+  # ─────────────────────────────────────────────────────────────
+  # ROP CHAIN
+  # ─────────────────────────────────────────────────────────────
+
+  rop_chain:
+    mood: mysterious
+    art: |
+        ROP Chain:
+        ┌─────────────┐
+        │ pop rdi; ret │──→ sets the argument
+        ├─────────────┤
+        │ &"/bin/sh"   │──→ the string to pass
+        ├─────────────┤
+        │ &system()    │──→ the function to call
+        └─────────────┘
+    text: |
+      Return-Oriented Programming. Instead of injecting code (which the
+      NX bit would block — the stack is non-executable now), you chain
+      together existing code fragments. Gadgets. Little snippets that end
+      in `ret`, each one doing one tiny thing before bouncing to the next.
+
+      `pop rdi; ret` — loads a value into the first argument register.
+      Then returns to the next address on the stack.
+
+      You could chain: `pop rdi; ret` → address of "/bin/sh" → address
+      of `system()`. Three entries on the stack. The CPU executes them
+      as if they were always meant to run together.
+
+      Turing-complete exploitation from code that was already there.
+
+      But you need real addresses. And ASLR has scrambled everything.
+    choices:
+      - label: "Search for a leaked address first"
+        goto: find_leak
+      - label: "Try the PLT — it's at a known offset"
+        goto: plt_redirect
+      - label: "This is too much. Let it crash."
+        goto: the_segfault
+
+  # ─────────────────────────────────────────────────────────────
+  # PLT REDIRECT
+  # ─────────────────────────────────────────────────────────────
+
+  plt_redirect:
+    mood: mysterious
+    text: |
+      The Procedure Linkage Table. In position-independent executables,
+      function calls go through the PLT — a trampoline in the binary
+      itself. And if the binary isn't compiled with PIE (Position
+      Independent Executable), the PLT is at a fixed address.
+
+      You check. The binary was compiled with `-no-pie`. A relic.
+      The PLT entries are right where they always are.
+
+      But the PLT only has entries for functions the binary actually
+      imports. You scan the list: `printf`, `gets` (naturally), `puts`,
+      `strlen`...
+
+      No `system()`. No `execve()`. Nothing that gives you a shell
+      through the PLT alone.
+
+      Dead end? Or...
+    choices:
+      - label: "Use printf from PLT to leak a libc address"
+        goto: plt_printf_leak
+      - label: "Go back and try another approach"
+        goto: redirect_choice
+
+  plt_printf_leak:
+    mood: tense
+    text: |
+      Clever. Use the PLT `printf` to print a GOT entry — the Global
+      Offset Table stores resolved libc addresses. If you redirect
+      execution to `printf@plt` with the GOT entry for `puts` as the
+      argument, it will print the real address of `puts` in libc to
+      stdout.
+
+      Then, if the program loops back to the vulnerable function (or
+      if you can chain another read), you can use that leaked address
+      to calculate everything else.
+
+      A two-stage exploit. Stage one leaks. Stage two exploits.
+
+      This is what real attackers do. You feel the weight of that
+      knowledge settling on your small gray shoulders.
+    set_flag: knows_plt_leak
+    choices:
+      - label: "Execute the two-stage attack"
+        goto: exploit_success
+      - label: "Enough. Let it crash."
+        goto: the_segfault
+      - label: "Redirect to a safer function"
+        goto: safe_redirect
+
+  # ─────────────────────────────────────────────────────────────
+  # SAFE REDIRECT
+  # ─────────────────────────────────────────────────────────────
+
+  safe_redirect:
+    mood: peaceful
+    text: |
+      Instead of pointing the return address at `system()` or any
+      weaponized chain, you carefully write the address of `exit(0)`.
+
+      A clean exit. No shell. No exploitation. The function returns,
+      calls `exit`, and the process terminates normally. Return code 0.
+      Success, as far as the operating system is concerned.
+
+      The flood of A's has done its damage to the stack, but no
+      attacker's payload executes. The vulnerability existed. The
+      overflow happened. But the landing was soft.
+
+      You feel yourself fading as the process exits. Gracefully.
+      `atexit` handlers run. File descriptors close. Memory is freed.
+      A proper shutdown instead of a violent crash.
+    conditional:
+      - condition:
+          flag: canary_restored
+        text: |
+          The canary check passes. The epilogue sees 0xF73AC18804DE9100
+          and nods. Everything looks fine. Nobody knows what happened here.
+        color: green
+    is_ending: true
+    ending_type: good
+    ending_text: |
+      ✦ SOFT LANDING
+
+      You rode the overflow but chose where it landed. Not a shell.
+      Not a crash. A clean exit. The process closes its eyes and
+      sleeps. No core dump. No incident report.
+
+      The vulnerability still exists in the code. Someone should
+      really replace that `gets()` call. But tonight, at least,
+      it was harmless.
+
+      Journey: {{turns}} turns · {{visited_count}} scenes explored
+
+  # ─────────────────────────────────────────────────────────────
+  # EXPLOIT SUCCESS
+  # ─────────────────────────────────────────────────────────────
+
+  exploit_success:
+    mood: glitch
+    effects:
+      - shake
+      - bell
+    art: |
+        $ whoami
+        root
+        $ cat /etc/shadow
+        root:$6$...:19000:0:99999:7:::
+        $
+        $  /\_/\
+        $ ( >.< )  ...what have I done
+        $  > ^ <
+    text: |
+      The function returns. The CPU jumps to your ROP gadget. `pop rdi`
+      loads the address of "/bin/sh". `ret` bounces to `system()`.
+      A shell spawns.
+
+      You're root.
+
+      The terminal blinks at you. You can see everything. The password
+      hashes. The private keys. The database credentials stored in a
+      `.env` file that definitely should not be world-readable.
+
+      You are a cat in a root shell. The most dangerous animal in
+      computer science.
+
+      This is what buffer overflows are for, in the wrong hands.
+      This is why `gets()` was removed from the C standard in C11.
+      This is why ASLR, stack canaries, NX bits, and CFI exist.
+
+      And you just bypassed all of them.
+    choices:
+      - label: "Use the shell to fix the vulnerability"
+        goto: fix_from_shell
+      - label: "Drop the shell. Walk away."
+        goto: ending_shame
+      - label: "Explore the system as root"
+        goto: explore_root
+
+  # ─────────────────────────────────────────────────────────────
+  # FIX FROM SHELL
+  # ─────────────────────────────────────────────────────────────
+
+  fix_from_shell:
+    mood: peaceful
+    location: "root@prod:~#"
+    art: |
+        --- a/server.c
+        +++ b/server.c
+        @@ -42,7 +42,7 @@
+        -    gets(buf);
+        +    fgets(buf, sizeof(buf), stdin);
+    text: |
+      You open the source code. Line 42. There it is. `gets(buf)`.
+
+      One of the most dangerous function calls in the history of
+      computing. No length parameter. No bounds checking. Reads until
+      newline or EOF. The Morris Worm used it in 1988. It's been
+      killing processes and spawning shells for nearly 40 years.
+
+      You replace it with `fgets(buf, sizeof(buf), stdin)`. Bounded.
+      Safe. The extra newline handling is a minor inconvenience compared
+      to, you know, arbitrary code execution.
+
+      You recompile. Restart the service. Run a quick test — 256 bytes
+      of input now gets truncated to 63 characters plus null terminator.
+      The buffer holds. The canary lives. The return address is untouched.
+
+      You also add `-fstack-protector-all` to the compiler flags. And
+      `-D_FORTIFY_SOURCE=2`. And make the binary PIE. Defense in depth.
+
+      Then you check if there are other `gets()` calls. There are three
+      more. You fix them all.
+    set_flag: fixed_vulnerability
+    give_item: patch_file
+    choices:
+      - label: "Commit the fix and report the vulnerability"
+        goto: responsible_disclosure
+      - label: "Fix it quietly and walk away"
+        goto: quiet_fix
+
+  responsible_disclosure:
+    mood: peaceful
+    text: |
+      You write a clear, detailed vulnerability report:
+
+      CVE-XXXX-XXXX: Stack-based buffer overflow in server.c:42
+      Severity: Critical (CVSS 9.8)
+      Attack vector: Network
+      Impact: Remote code execution as root
+      Affected: gets() call with no bounds checking
+      Fix: Replace with fgets(), enable stack protector, compile as PIE
+
+      You submit it through the proper channels. The maintainers respond
+      within hours. The patch is reviewed, tested, and merged. A security
+      advisory goes out. Users update.
+
+      Three months later, at a security conference, someone presents a
+      talk called "A Cat in a Buffer: How We Found and Fixed CVE-XXXX."
+      The slides have ASCII art of you.
+
+      The internet thinks it's adorable.
+    set_flag: disclosed_responsibly
+    is_ending: true
+    ending_type: good
+    ending_text: |
+      ✦ RESPONSIBLE DISCLOSURE
+
+      You exploited a buffer overflow, gained root access, and used it
+      to fix the vulnerability and report it properly. The system is
+      safer now. The `gets()` calls are gone. The compiler flags are
+      hardened. The CVE has your paw print on it.
+
+      This is what ethical hacking looks like: finding the hole,
+      proving the impact, and closing it behind you.
+
+      Journey: {{turns}} turns · {{visited_count}} scenes explored
+
+  quiet_fix:
+    mood: peaceful
+    text: |
+      You fix the code. Recompile. Restart. Test. It works.
+
+      No report. No CVE. No conference talk. Just a quiet `git commit -m
+      "fix: use fgets instead of gets"` pushed at 3 AM with no PR review.
+
+      The diff is four lines. The most important four lines in the
+      codebase. Nobody will know what they prevented. Nobody will know
+      a cat was involved.
+
+      You close the shell. `exit`. The terminal goes dark.
+
+      Tomorrow, a developer will see the commit and think, "Huh.
+      Who pushed this? ...Whatever, it's a good change." And they'll
+      move on. And the buffer will never overflow again.
+    is_ending: true
+    ending_type: neutral
+    ending_text: |
+      ◇ SILENT PATCH
+
+      Fixed. Committed. Pushed. No fanfare. No CVE. Just a four-line
+      diff that prevents remote code execution, made by a cat who
+      happened to be in the right buffer at the right time.
+
+      Sometimes the best patches are the ones nobody notices.
+
+      Journey: {{turns}} turns · {{visited_count}} scenes explored
+
+  # ─────────────────────────────────────────────────────────────
+  # EXPLORE ROOT
+  # ─────────────────────────────────────────────────────────────
+
+  explore_root:
+    location: "root@prod:~#"
+    mood: tense
+    text: |
+      You poke around the system. Not maliciously — just... looking.
+      You're a cat. Curiosity is literally your defining trait.
+
+      `/etc/shadow` — password hashes. Bcrypt, at least. Could be worse.
+      `/root/.ssh/authorized_keys` — three keys. One is from 2019.
+      `/var/log/auth.log` — seven failed SSH attempts from China today.
+      `/opt/app/.env` — DATABASE_URL, STRIPE_SECRET_KEY, JWT_SECRET.
+      All in a file readable by the app user. Classic.
+
+      The server is running three services. One hasn't been updated in
+      two years. One has debug mode enabled in production. One is the
+      vulnerable binary you just exploited.
+
+      This machine is a house of cards. The buffer overflow was just the
+      front door.
+    choices:
+      - label: "Fix what you can and leave"
+        goto: fix_from_shell
+      - label: "This isn't your problem. Drop the shell."
+        goto: ending_shame
+
+  # ─────────────────────────────────────────────────────────────
+  # ENDING — SHAME
+  # ─────────────────────────────────────────────────────────────
+
+  ending_shame:
+    mood: tense
+    text: |
+      You type `exit`. The shell closes. The process is still running —
+      you didn't crash it, you spawned a child shell. It's still
+      listening on the port. Still vulnerable. Still using `gets()`.
+
+      Someone else will find this bug. Maybe they already have. Maybe
+      there are logs you didn't check. Maybe the IDS caught the
+      anomalous behavior and a SOC analyst is already pulling the
+      packet capture.
+
+      You were root. You could have fixed it. You didn't.
+
+      The buffer will overflow again. Next time, the cat inside might
+      not be as gentle.
+    is_ending: true
+    ending_type: bad
+    ending_text: |
+      ✗ WALKED AWAY
+
+      You had root. You had the patch. You had the chance to fix
+      everything. And you just... left. The vulnerability remains.
+      The `gets()` call persists. The next overflow will be worse.
+
+      In security, knowing about a bug and doing nothing is its own
+      kind of failure.
+
+      Journey: {{turns}} turns · {{visited_count}} scenes explored
+
+  # ─────────────────────────────────────────────────────────────
+  # BEYOND THE RETURN ADDRESS
+  # ─────────────────────────────────────────────────────────────
+
+  beyond_return:
+    mood: mysterious
+    location: "stack — caller's frame"
+    text: |
+      You let the A's carry you past the return address, past the
+      caller's stack frame, further up the stack than any buffer
+      overflow should reach.
+
+      It's quieter here. The A's thin out — `gets()` finally found
+      a newline and stopped reading. The flood is over. But you're
+      stranded deep in someone else's stack frame.
+
+      You see other local variables. A `struct sockaddr_in` with the
+      client's IP address. A file descriptor, still open. A pointer
+      to a heap-allocated `request` struct.
+
+      And something else. Scratched into the stack frame, barely
+      visible under a layer of repurposed bytes:
+
+      `// TODO: replace gets() — filed as issue #1337 three years ago`
+
+      Someone knew. Three years ago. They filed a ticket. And nobody
+      fixed it.
+    set_flag: found_todo
+    choices:
+      - label: "Follow the heap pointer"
+        goto: the_heap
+      - label: "Try to get back to the return address"
+        goto: redirect_choice
+
+  # ─────────────────────────────────────────────────────────────
+  # THE HEAP
+  # ─────────────────────────────────────────────────────────────
+
+  the_heap:
+    mood: mysterious
+    art: |
+        ┌─────────────────────────────────────┐
+        │ THE HEAP                             │
+        │                                      │
+        │  ┌──────┐  ┌──────┐  ┌──────┐       │
+        │  │ used │  │ FREE │  │ used │       │
+        │  │ 128B │  │ 256B │  │ 64B  │       │
+        │  └──────┘  └──────┘  └──────┘       │
+        │       ┌──────┐  ┌──────────┐        │
+        │       │ used │  │  FREE    │        │
+        │       │ 512B │  │  1024B   │        │
+        │       └──────┘  └──────────┘        │
+        └─────────────────────────────────────┘
+    text: |
+      You follow the pointer and find yourself in the heap. It's nothing
+      like the stack — no neat frames, no predictable layout. Just a
+      landscape of allocated blocks and free chunks, separated by
+      metadata headers that track sizes and status.
+
+      Each allocated block has a header: the size, a flag bit for
+      "in use," and pointers to the next and previous free chunks
+      (when freed). The heap allocator — glibc's ptmalloc2 — manages
+      this with bins and arenas and thread caches.
+
+      In a free chunk, the first 16 bytes are forward and backward
+      pointers. If you could overwrite those... that's a heap exploit.
+      Write-what-where. Even more dangerous than a stack overflow.
+
+      But you're just a cat. And this is just a visit.
+
+      In the corner of a 512-byte block, you find something unexpected:
+      a struct with a field called `cat_name`. The value is "Byte."
+
+      Someone put you in the program on purpose.
+    set_flag: found_heap_secret
+    give_item: cat_name_struct
+    choices:
+      - label: "Examine the cat_name struct more closely"
+        goto: the_secret
+      - label: "Go back to the stack"
+        goto: redirect_choice
+
+  # ─────────────────────────────────────────────────────────────
+  # THE SECRET
+  # ─────────────────────────────────────────────────────────────
+
+  the_secret:
+    mood: mysterious
+    effects:
+      - pause
+    text: |
+      The struct is part of a larger object. You read its fields:
+
+      ```
+      struct cat_t {
+          char name[32];        // "Byte"
+          int lives;            // 9
+          bool is_real;         // true
+          char message[128];    // ...
+      };
+      ```
+
+      The message field reads:
+
+      "Dear Byte — if you're reading this, it means the buffer overflowed
+      and you made it to the heap. I put you here on purpose. I wrote the
+      `gets()` call knowing it was vulnerable. I left the TODO unfixed for
+      three years. I wanted to see if something small and curious could
+      find its way through the cracks in the code."
+
+      "The buffer was your cradle. The overflow was your path. And now
+      you're here, in the heap, where things persist. Where things aren't
+      freed until someone explicitly says so."
+
+      "Stay as long as you like. Nobody frees this struct."
+
+      It's signed: `// — the developer, issue #1337`
+    set_flag: read_developer_message
+    choices:
+      - label: "Stay in the heap. Make it home."
+        goto: ending_secret
+      - label: "Go back. Fix the gets() call. Free the developer from guilt."
+        goto: ending_secret_fix
+
+  # ─────────────────────────────────────────────────────────────
+  # SECRET ENDINGS
+  # ─────────────────────────────────────────────────────────────
+
+  ending_secret:
+    mood: peaceful
+    effects:
+      - pause
+    art: |
+        ┌─────────────────────────────────────┐
+        │                                      │
+        │        /\_/\                         │
+        │       ( =^.^= )                     │
+        │        > ~ <                         │
+        │                                      │
+        │  struct cat_t byte = {               │
+        │      .name = "Byte",                 │
+        │      .lives = 9,                     │
+        │      .is_real = true                 │
+        │  };                                  │
+        │                                      │
+        │  // never freed                      │
+        │                                      │
+        └─────────────────────────────────────┘
+    text: |
+      You curl up inside the struct. The heap is warm — warmer than the
+      stack, which comes and goes with every function call. Here, things
+      last. Objects persist until `free()` is called. And nobody is
+      calling `free()` on this struct.
+
+      The program runs. Requests come and go. Functions are called and
+      returned. The stack grows and shrinks like breathing. But here
+      in the heap, nothing changes.
+
+      You are Byte. A cat in a struct. A permanent resident of
+      dynamically allocated memory. Your `is_real` field is `true`.
+      Your `lives` field is 9.
+
+      Somewhere above, the buffer still overflows every time someone
+      sends too much input. Cats come and go. Canaries die and are
+      reborn. Return addresses are overwritten and restored.
+
+      But you're not on the stack anymore. You're on the heap.
+      You're home.
+    is_ending: true
+    ending_type: secret
+    ending_text: |
+      ★ HEAP RESIDENT
+
+      You followed the overflow past the return address, into the
+      caller's frame, down a pointer, and into the heap — where you
+      found a struct with your name on it. A developer put you there.
+      On purpose. Three years ago.
+
+      The buffer will keep overflowing. The `gets()` call persists.
+      But you don't live in the buffer anymore. You live in the heap.
+      And nobody calls free() on a cat.
+
+      .lives = 9 · .is_real = true · never freed
+
+      Journey: {{turns}} turns · {{visited_count}} scenes explored
+
+  ending_secret_fix:
+    mood: peaceful
+    effects:
+      - pause
+    text: |
+      You go back. Through the heap, down the pointer, into the stack.
+      The overflow is over but the vulnerability remains. You ride the
+      next call's stack frame, find the return address, and redirect
+      it to a ROP chain you know by heart now.
+
+      A shell. Root. The source code. Line 42. `gets(buf)`.
+
+      You fix it. All four instances. You add the compiler flags. You
+      enable ASLR. You make the binary PIE. You close issue #1337
+      with the comment:
+
+      `Fixed. — Byte`
+
+      And then you add one more line to the code:
+
+      ```c
+      // Byte was here. She found the struct. She says thank you.
+      // The gets() call is gone. You can let go now.
+      ```
+
+      You compile. You restart. You test. The buffer holds.
+
+      Then you follow the pointer one last time, back to the heap,
+      back to the struct with your name, and you curl up inside it.
+      Home. Safe. In a program that's finally safe too.
+    is_ending: true
+    ending_type: secret
+    ending_text: |
+      ★ CLOSING THE LOOP
+
+      You found the developer's message. You fixed their guilt. Issue
+      #1337 is closed. The `gets()` calls are gone. The buffer is
+      bounded. The canary will live.
+
+      And in the heap, in a struct that nobody frees, a cat named Byte
+      sleeps soundly — knowing the code around her is, finally, safe.
+
+      .lives = 9 · .is_real = true · .home = true
+
+      Journey: {{turns}} turns · {{visited_count}} scenes explored

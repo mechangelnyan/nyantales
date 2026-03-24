@@ -249,6 +249,22 @@ A cat discovers her memories are cached copies — stale, aging, and one expired
 
 **Endings:** Good (×5) · Neutral (×3) · Secret (×1) · **Scenes:** 46
 
+### 🔀 Merge Conflict
+
+> *Two branches of reality collide. You're the cat caught in the middle, and only you can resolve the conflict.*
+
+HEAD says you're a black cat, `feature/identity` says you're white. Navigate PR comments, git log investigation, @whiskers' wisdom, and a YAML duplicate key trap. Discover that the conflict was really about rigid data modeling. Features diplomatic follow-up PRs, 42-color test suites, and a mildly viral thought leader blog post.
+
+**Endings:** Good (×4) · Bad (×2) · Neutral (×2) · Secret (×2) · **Scenes:** 26
+
+### 💾 Buffer Overflow
+
+> *You are Byte, a tiny cat living in a 64-byte buffer on the stack. When input floods in with no bounds check, you ride the overflow past the canary, the saved frame pointer, and the return address — rewriting reality one byte at a time.*
+
+Explore stack memory layout, befriend the stack canary (a compile-time sentinel placed by GCC), ride a wave of 0x41's through `gets()`, and choose what to do with the return address. Learn about ASLR, ROP chains, NX bits, PLT/GOT, and heap metadata. Find a secret struct in the heap with your name on it, left by a developer who filed issue #1337 three years ago and never fixed it.
+
+**Endings:** Good (×2) · Neutral (×2) · Bad · Secret (×2) · **Scenes:** 29
+
 ---
 
 ## Ending Discovery
