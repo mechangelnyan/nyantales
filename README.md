@@ -60,6 +60,9 @@ nyantales map the-terminal-cat            # map one story
 # View ending discovery progress
 nyantales progress
 
+# View achievements
+nyantales achievements
+
 # Options
 nyantales play the-terminal-cat --fast    # skip typewriter animation
 nyantales play the-terminal-cat --debug   # show scene/flag debug info
@@ -127,6 +130,26 @@ Check your progress anytime:
 
 ```bash
 nyantales progress
+```
+
+---
+
+## Achievements
+
+NyanTales features a cross-story achievement system with 15 badges to unlock:
+
+| Category | Achievements |
+|----------|-------------|
+| 🌟 Getting Started | Hello World · Bookworm Cat · Library Cat |
+| 🔓 Ending Hunter | Curious Whiskers · Shadow Cat · Purrfect Endings · Nine Lives · Completionist Cat · Master Completionist |
+| 🎮 Playstyle | Speedrunner · Every Nook & Cranny · Hoarder Cat · Path Finder · Tale Collector |
+
+Achievements unlock automatically at the end of each playthrough. They track
+milestones like finding secret endings, speedrunning stories, collecting items,
+and exploring every corner of the game.
+
+```bash
+nyantales achievements
 ```
 
 ---
@@ -262,6 +285,7 @@ nyantales/
 ├── src/
 │   ├── cli.js          CLI entry point
 │   ├── engine.js       Core engine (load, render, state, save/load)
+│   ├── achievements.js Achievements system (cross-story badges)
 │   ├── mapper.js       Story graph analysis & ASCII map renderer
 │   └── validator.js    Story validation & linting
 ├── stories/
@@ -277,7 +301,8 @@ nyantales/
 │   ├── save-load.test.js   Save/load system tests
 │   ├── scaffold.test.js    Story scaffolding tests
 │   ├── validator.test.js   Validator tests
-│   └── mapper.test.js      Story map/graph tests
+│   ├── mapper.test.js      Story map/graph tests
+│   └── achievements.test.js Achievement system tests
 ├── package.json
 └── README.md
 ```

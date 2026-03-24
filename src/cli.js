@@ -9,6 +9,7 @@ import yaml from 'yaml';
 import { Engine, discoverStories, GameState } from './engine.js';
 import { validateStory } from './validator.js';
 import { analyzeStoryGraph, renderAsciiMap, findEndingPaths, renderEndingPaths } from './mapper.js';
+import { renderAllAchievements, ACHIEVEMENTS, loadAchievements } from './achievements.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const STORIES_DIR = path.join(__dirname, '..', 'stories');
@@ -43,6 +44,7 @@ function showHelp() {
   console.log(`    ${chalk.cyan('nyantales new [slug]')}     ${chalk.dim('Scaffold a new story')}`);
   console.log(`    ${chalk.cyan('nyantales map <story>')}   ${chalk.dim('Show story graph & paths')}`);
   console.log(`    ${chalk.cyan('nyantales map')}           ${chalk.dim('Map all stories')}`);
+  console.log(`    ${chalk.cyan('nyantales achievements')}  ${chalk.dim('View unlocked achievements')}`);
   console.log(`    ${chalk.cyan('nyantales --help')}         ${chalk.dim('Show this help')}`);
   console.log();
   console.log(chalk.bold('  Options:\n'));
@@ -648,6 +650,15 @@ async function showStoryMap(slug, opts = {}) {
 }
 
 // ─────────────────────────────────────────────────────────────
+// Achievements
+// ─────────────────────────────────────────────────────────────
+
+function showAchievements() {
+  console.log(BANNER);
+  renderAllAchievements();
+}
+
+// ─────────────────────────────────────────────────────────────
 // Interactive main menu (no args)
 // ─────────────────────────────────────────────────────────────
 
@@ -661,10 +672,15 @@ async function mainMenu() {
   if (saves.length > 0) {
     choices.push({ name: `Continue saved game (${saves.length} save${saves.length === 1 ? '' : 's'})`, value: 'continue' });
   }
+  const achData = loadAchievements();
+  const achCount = Object.keys(achData.unlocked || {}).length;
+  const achTotal = ACHIEVEMENTS.length;
+
   choices.push(
     { name: 'List available stories',  value: 'list' },
     { name: 'Story map / graph',       value: 'map' },
     { name: 'Ending discovery progress', value: 'progress' },
+    { name: `Achievements (${achCount}/${achTotal})`,  value: 'achievements' },
     { name: 'Help',                    value: 'help' },
     { name: 'Exit',                    value: 'exit' },
   );
@@ -682,6 +698,7 @@ async function mainMenu() {
     case 'list': listStories(); break;
     case 'map': await showStoryMap(null); break;
     case 'progress': showProgress(); break;
+    case 'achievements': showAchievements(); break;
     case 'help': showHelp(); break;
     case 'exit': process.exit(0);
   }
@@ -750,6 +767,11 @@ async function main() {
     case 'map':
     case 'graph':
       await showStoryMap(rest[0], opts);
+      break;
+
+    case 'achievements':
+    case 'badges':
+      showAchievements();
       break;
 
     case '--help':

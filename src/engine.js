@@ -5,6 +5,7 @@ import yaml from 'yaml';
 import chalk from 'chalk';
 import inquirer from 'inquirer';
 import ora from 'ora';
+import { recordPlaythrough, checkAchievements, gatherStats, renderNewAchievements } from './achievements.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -529,6 +530,27 @@ export class Engine {
     }
 
     console.log(chalk.dim('─'.repeat(60)));
+
+    // Record playthrough stats and check achievements
+    try {
+      recordPlaythrough(this.state);
+      const stories = discoverStories(path.join(path.dirname(this.storyPath), '..', 'stories'))
+        .map(s => {
+          const raw = fs.readFileSync(s.file, 'utf8');
+          const data = yaml.parse(raw);
+          const endings = Object.entries(data.scenes || {})
+            .filter(([, sc]) => sc.is_ending)
+            .map(([id, sc]) => ({ id, type: sc.ending_type || 'neutral' }));
+          return { ...s, _endings: endings };
+        });
+      const storiesDir = path.join(path.dirname(this.storyPath), '..', 'stories');
+      const stats = gatherStats(storiesDir, stories);
+      const newAch = checkAchievements(stats);
+      renderNewAchievements(newAch);
+    } catch {
+      // Non-critical — don't break the game if achievements fail
+    }
+
     console.log('\n' + chalk.bold.cyan('  Thanks for playing NyanTales!') + '\n');
   }
 
