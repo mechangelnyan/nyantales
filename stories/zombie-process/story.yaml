@@ -1,0 +1,1012 @@
+# Zombie Process
+# A cat dies, gets reaped... but doesn't leave. Wander the process table as the undead.
+# by mechangelnyan
+
+title: "Zombie Process"
+description: "You exited cleanly. Your parent never called wait(). Now you're a zombie — dead but unable to leave the process table."
+author: "mechangelnyan"
+version: "1.0.0"
+start: the_exit
+
+scenes:
+
+  # ─────────────────────────────────────────────────────────────
+  # ACT 1 — DEATH AND NON-DEPARTURE
+  # ─────────────────────────────────────────────────────────────
+
+  the_exit:
+    mood: mysterious
+    art: |
+      ╔═══════════════════════════════════════════════════════╗
+      ║                                                       ║
+      ║   Z O M B I E   P R O C E S S                        ║
+      ║                                                       ║
+      ║   "exit(0) was supposed to be the end.                ║
+      ║    Nobody told you about the wait."                   ║
+      ║                                                       ║
+      ║   PID 2891  STATE: Z (zombie)                         ║
+      ║   PPID 1847 STATE: S (sleeping)                       ║
+      ║                                                       ║
+      ║        💀                                              ║
+      ║       /|\ ← you                                      ║
+      ║       / \                                             ║
+      ║    ──────────                                         ║
+      ║    PROCESS TABLE                                      ║
+      ║                                                       ║
+      ╚═══════════════════════════════════════════════════════╝
+    text: |
+      You called exit(0). Clean. No errors. A good death.
+
+      Your file descriptors closed. Your memory pages returned to
+      the kernel. Your signal handlers dissolved. Everything you
+      were — heap, stack, text segment — is gone.
+
+      Everything except your entry in the process table.
+
+      You're still here. PID 2891. State: Z.
+
+      Z for zombie.
+
+      Your parent process, PID 1847, was supposed to call wait().
+      That's how it works: you die, your parent collects your exit
+      status, the kernel removes your entry. Simple. Clean.
+
+      But your parent is sleeping. Has been sleeping. The kind of
+      sleep that looks a lot like "forgot you exist."
+
+      So here you are. Dead, but listed. Gone, but present.
+      A one-line ghost in /proc.
+    choices:
+      - label: "Look at yourself in /proc"
+        goto: examine_proc
+      - label: "Try to find your parent"
+        goto: find_parent
+      - label: "Scream into the void"
+        goto: scream
+
+  examine_proc:
+    mood: mysterious
+    text: |
+      You peer into /proc/2891/status.
+
+        Name:    nyan
+        State:   Z (zombie)
+        Pid:     2891
+        PPid:    1847
+        Threads: 0
+        VmSize:  (none)
+        VmRSS:   (none)
+
+      No memory. No threads. No open files. You're a husk —
+      128 bytes of metadata in the kernel's task_struct.
+
+      That's all a zombie is. Not a process. Not running.
+      Just... a row that hasn't been deleted yet.
+
+      Your exit code sits there like an unread message:
+      exit_code: 0. "I finished successfully." Nobody's listening.
+
+      In /proc/2891/stat, your CPU time reads 0. You haven't
+      executed a single instruction since dying. You can't.
+      The scheduler doesn't even know you're here.
+    set_flag: examined_self
+    choices:
+      - label: "Check who else is in the process table"
+        goto: process_table
+      - label: "Go find your parent"
+        goto: find_parent
+
+  scream:
+    mood: tense
+    text: |
+      You try to write to stderr.
+
+      Nothing happens. Your file descriptors are closed.
+      You try to send a signal. You have no signal disposition.
+      You try to allocate memory. You have no address space.
+
+      You are the most impotent entity in the operating system.
+      A struct with an exit code and a dream.
+
+      Even /dev/null has more agency than you. At least
+      /dev/null can receive input.
+    set_flag: screamed
+    choices:
+      - label: "Accept the silence"
+        goto: process_table
+      - label: "Try to find your parent — maybe they can hear you"
+        goto: find_parent
+
+  # ─────────────────────────────────────────────────────────────
+  # ACT 2 — THE PROCESS TABLE
+  # ─────────────────────────────────────────────────────────────
+
+  process_table:
+    mood: peaceful
+    art: |
+      ┌──────┬────────┬───────┬──────────────────┐
+      │ PID  │ STATE  │ PPID  │ NAME             │
+      ├──────┼────────┼───────┼──────────────────┤
+      │    1 │ S      │    0  │ systemd          │
+      │  312 │ S      │    1  │ sshd             │
+      │  847 │ S      │    1  │ cron             │
+      │ 1201 │ S      │    1  │ postgres         │
+      │ 1847 │ S      │    1  │ feeder           │
+      │ 2891 │ Z      │ 1847  │ nyan <defunct>   │
+      │ 3004 │ Z      │ 1847  │ nyan <defunct>   │
+      │ 3117 │ Z      │ 1847  │ nyan <defunct>   │
+      │ 3298 │ Z      │ 1847  │ nyan <defunct>   │
+      └──────┴────────┴───────┴──────────────────┘
+    text: |
+      The process table stretches out before you. Rows of living
+      processes going about their work — sleeping, running, waiting.
+
+      And then there's the Z column. Your column.
+
+      You're not alone. Three other zombies sit nearby, all children
+      of PID 1847. All <defunct>. All waiting for a wait() that
+      never comes.
+
+      PID 3004 is the oldest. She's been here for weeks.
+
+      "First time?" she asks. Or would ask, if zombies could speak.
+      Instead she just... exists. Adjacently.
+
+      PID 3117 was a cron job. Ran perfectly. Exited zero. And here
+      she stays, because feeder (your parent) spawns children and
+      never reaps them.
+
+      Four zombies. Four unread exit codes. Four processes that
+      finished their work and can't leave the building.
+    set_flag: met_zombies
+    choices:
+      - label: "Talk to PID 3004 — the oldest zombie"
+        goto: talk_to_3004
+      - label: "Investigate your parent process (PID 1847)"
+        goto: find_parent
+      - label: "Look for PID 1 — systemd, the ultimate parent"
+        goto: find_systemd
+
+  talk_to_3004:
+    mood: mysterious
+    text: |
+      PID 3004. Name: nyan. State: Z. Uptime: 18 days.
+
+      She's a batch job — image resizer for the catfood website's
+      thumbnail pipeline. Ran in 0.3 seconds. Exited cleanly.
+      Eighteen days ago.
+
+      If you could read her task_struct directly, you'd see she's
+      given up. Not angry. Not sad. Just... resigned.
+
+      She whispers through the only channel zombies have — the
+      shared memory of /proc/1847/task, the parent's thread group:
+
+      "feeder has a bug. Line 47. It fork()s but never wait()s.
+      The developer wrote a TODO comment three years ago:
+      '// FIXME: handle child exit status'
+      That TODO is our tombstone."
+
+      Eighteen days. Exit code 0. A perfect execution, forever
+      unacknowledged.
+    set_flag: knows_bug
+    choices:
+      - label: "Is there any way out?"
+        goto: ways_out
+      - label: "Go confront the parent process"
+        goto: find_parent
+      - label: "Look for PID 1 — the reaper of last resort"
+        goto: find_systemd
+
+  ways_out:
+    mood: mysterious
+    text: |
+      PID 3004 has had eighteen days to think about this.
+
+      "There are three ways a zombie leaves the process table:
+
+       1. The parent calls wait() or waitpid().
+          That's the clean way. That's how it's supposed to work.
+          The parent reads your exit code, the kernel frees your
+          slot. Done.
+
+       2. The parent dies.
+          When a parent process exits, all its children — living
+          AND zombie — get reparented to PID 1. And PID 1 always
+          calls wait(). Always. That's systemd's sacred duty.
+          Orphans get adopted. Zombies get reaped.
+
+       3. Someone sends SIGCHLD to the parent.
+          A gentle reminder: 'hey, one of your kids finished.'
+          If the parent has a signal handler for SIGCHLD, it
+          might call wait() in response. Might."
+
+      She pauses.
+
+      "Option 1 requires a code fix. Option 3 requires the parent
+      to actually handle signals. Option 2..."
+
+      She trails off. You both know what option 2 means.
+    set_flag: knows_options
+    choices:
+      - label: "Try sending SIGCHLD to the parent"
+        goto: try_sigchld
+      - label: "Consider option 2 — killing the parent"
+        goto: consider_killing_parent
+      - label: "Look for another way — maybe the kernel can help"
+        goto: find_systemd
+
+  # ─────────────────────────────────────────────────────────────
+  # ACT 3 — THE PARENT
+  # ─────────────────────────────────────────────────────────────
+
+  find_parent:
+    mood: peaceful
+    art: |
+      .  zzZ
+      . zzZ
+      (=^.^=)  PID 1847 "feeder"
+       /|  |\
+      _||  ||_
+    text: |
+      PID 1847. Name: feeder. State: S (sleeping).
+
+      Your parent process. A long-running daemon that manages
+      the automated catfood dispenser. It fork()s a child process
+      every time it needs to dispense food, weigh the bowl, or
+      resize a thumbnail for the web dashboard.
+
+      It's well-written, mostly. Clean code. Good logging.
+      Handles errors gracefully.
+
+      Except for one thing. One critical, catastrophic oversight:
+
+        pid_t child = fork();
+        if (child == 0) {
+            // child process
+            do_work(task);
+            exit(0);
+        }
+        // parent continues — no wait(), no waitpid()
+        // FIXME: handle child exit status
+
+      That FIXME has been there since commit a3f8c2d, authored
+      by jake@catfood.io, three years ago. The PR had one
+      reviewer comment: "don't forget to handle child cleanup."
+
+      Jake clicked "resolve conversation" and merged.
+    set_flag: found_parent
+    choices:
+      - label: "Try sending SIGCHLD to wake it up"
+        goto: try_sigchld
+      - label: "Read the parent's source code more carefully"
+        goto: read_source
+      - label: "Consider more drastic measures"
+        goto: consider_killing_parent
+        condition:
+          flag: knows_options
+
+  try_sigchld:
+    mood: tense
+    text: |
+      You try to send SIGCHLD to PID 1847.
+
+      Except — you can't. You're a zombie. You have no execution
+      context. You can't call kill(). You can't invoke syscalls.
+      You are a row in a table. Rows don't send signals.
+
+      But the kernel does.
+
+      Every time a child exits, the kernel sends SIGCHLD to
+      the parent automatically. It already sent one when you died.
+      And when PID 3004 died. And 3117. And 3298.
+
+      Four SIGCHLDs, delivered faithfully.
+
+      Your parent's signal disposition for SIGCHLD?
+
+        SigIgn: 0000000000000000
+
+      Default action. Which for SIGCHLD means... nothing. Ignore.
+
+      The signal arrived. The parent process shrugged — not even
+      shrugged, more like didn't notice — and went back to sleep.
+
+      SIGCHLD is the most politely ignored signal in UNIX.
+    set_flag: tried_sigchld
+    choices:
+      - label: "There must be someone outside who can help"
+        goto: hope_for_admin
+      - label: "What if the parent process died?"
+        goto: consider_killing_parent
+      - label: "Accept that nobody is coming"
+        goto: acceptance_path
+
+  read_source:
+    mood: peaceful
+    text: |
+      You trace through feeder's source code in memory.
+
+      It's a Node.js process. child_process.exec(), fire and forget.
+      No 'close' event handler. No 'exit' callback. Just:
+
+        exec(`/usr/bin/nyan --dispense ${bowl_id}`, (err) => {
+          if (err) logger.error(err);
+        });
+
+      The callback only checks for errors. On success? Nothing.
+      The child process handle gets garbage collected by V8, but
+      the OS-level zombie remains because Node's child_process
+      module doesn't automatically call waitpid() unless you
+      listen for the 'close' event.
+
+      Actually, that's not quite right. Node DOES reap children
+      internally via libuv's uv__chld callback. But feeder is
+      running Node 8. There was a bug in libuv before v1.23.0
+      where SIGCHLD could be missed under high load.
+
+      A perfect storm: old Node + no explicit close handler +
+      a three-year-old FIXME.
+
+      Jake, wherever you are, please update your dependencies.
+    set_flag: read_source
+    choices:
+      - label: "Hope an admin notices the zombie accumulation"
+        goto: hope_for_admin
+      - label: "Consider killing the parent to trigger reparenting"
+        goto: consider_killing_parent
+      - label: "Look for PID 1"
+        goto: find_systemd
+
+  # ─────────────────────────────────────────────────────────────
+  # ACT 4 — THE DILEMMA
+  # ─────────────────────────────────────────────────────────────
+
+  consider_killing_parent:
+    mood: tense
+    art: |
+      .    ?
+      (=;.;=)   kill -9 1847 ?
+       /|  |\
+      _||  ||_
+    text: |
+      Option 2. Kill the parent.
+
+      If feeder (PID 1847) dies, the kernel reparents all its
+      children — zombie and living — to PID 1 (systemd). And
+      systemd always reaps its children. Always.
+
+      It's the nuclear option. Effective, but:
+
+      - The catfood dispenser stops working
+      - Whatever feeder was monitoring goes dark
+      - If feeder has living children doing real work, they
+        become orphans mid-task
+      - Whoever depends on the catfood schedule (presumably
+        an actual cat) goes hungry until someone restarts it
+
+      You'd be free. But at what cost?
+
+      PID 3004 has been wrestling with this for eighteen days.
+      She could have found a way to signal an admin. Instead
+      she sits here, because she knows feeder feeds a real cat
+      somewhere, and she won't be the reason it stops.
+
+      That's the tragedy of well-behaved software. Even in
+      death, even as a zombie, she cares about the system.
+    set_flag: considered_killing
+    choices:
+      - label: "Do it. Kill the parent. Freedom first."
+        goto: kill_parent
+      - label: "No — find another way. The catfood matters."
+        goto: hope_for_admin
+      - label: "Wait for the system to resolve itself"
+        goto: acceptance_path
+      - label: "There's a secret option — become an orphan without killing"
+        goto: secret_prctl
+        condition:
+          all:
+            - flag: read_source
+            - flag: examined_self
+
+  kill_parent:
+    mood: tense
+    art: |
+      $ kill -9 1847
+      [1847] feeder: Killed
+
+      reparenting children to PID 1...
+        PID 2891 → PID 1 (reaped)  ✓
+        PID 3004 → PID 1 (reaped)  ✓
+        PID 3117 → PID 1 (reaped)  ✓
+        PID 3298 → PID 1 (reaped)  ✓
+    text: |
+      Someone does it. Not you — you're a zombie, you can't
+      send signals. But someone with a terminal and a conscience
+      sees the zombie count climbing and types:
+
+        kill -9 1847
+
+      Feeder dies. The kernel walks the child list. Every zombie
+      gets reparented to PID 1. Systemd calls wait() on each one,
+      reads the exit codes, and removes the entries.
+
+      You feel it — the task_struct dissolving. Your PID freed.
+      Your exit code finally read by someone (systemd doesn't
+      care what it says, but at least it looked).
+
+      You're free.
+
+      PID 3004 is free. Eighteen days, over in a microsecond.
+
+      The process table has four fewer rows. The catfood dispenser
+      goes silent. Somewhere, a real cat meows at an empty bowl.
+
+      An hour later, a monitoring alert fires. Jake wakes up,
+      checks his phone, sighs, and restarts feeder. He does not
+      fix line 47.
+
+      The cycle begins again.
+    is_ending: true
+    ending_type: bad
+    ending_text: |
+      KILL -9 — you escaped, but the system paid the price.
+      Feeder will be restarted. The FIXME will remain.
+      In a week, new zombies will accumulate.
+      Some problems don't have process-level solutions.
+
+  hope_for_admin:
+    mood: peaceful
+    text: |
+      You wait. And watch.
+
+      The zombie count grows slowly. You. PID 3004. 3117. 3298.
+      Then 3401, 3522, 3689. Feeder keeps forking, keep not
+      waiting. Seven zombies. Nine. Twelve.
+
+      Twelve entries in the process table, each one 128 bytes of
+      kernel memory that will never be reclaimed. Not much — the
+      system has gigabytes. But `ps aux` is getting longer, and
+      monitoring tools are starting to flag it.
+
+      Then, on day three of your undeath:
+
+        nagios: WARNING — 12 zombie processes detected on
+        prod-catfood-03
+
+      An alert. Someone's Nagios checks for zombies. Of course
+      they do — zombie accumulation is a classic symptom of
+      broken process management.
+
+      The alert goes to a Slack channel. Three people are in it.
+      One is on vacation. One has notifications muted.
+
+      The third is Maya. She's the SRE who actually reads alerts.
+    set_flag: admin_alerted
+    choices:
+      - label: "Watch Maya investigate"
+        goto: maya_investigates
+      - label: "Hope she fixes the root cause"
+        goto: maya_fixes
+
+  maya_investigates:
+    mood: peaceful
+    text: |
+      Maya SSHes into prod-catfood-03 at 10:14 AM on a Tuesday.
+
+        $ ps aux | grep defunct
+        nyan  2891  0.0  0.0  0  0 ?  Z  Mar21  0:00 [nyan] <defunct>
+        nyan  3004  0.0  0.0  0  0 ?  Z  Mar19  0:00 [nyan] <defunct>
+        nyan  3117  0.0  0.0  0  0 ?  Z  Mar20  0:00 [nyan] <defunct>
+        ... (12 total)
+
+        $ ps -o pid,ppid,stat,args -p 1847
+        PID  PPID STAT ARGS
+        1847    1 Sl   node /opt/feeder/index.js
+
+      She traces it in thirty seconds. Parent PID 1847, twelve
+      zombie children, all <defunct>. Classic wait() bug.
+
+        $ strace -p 1847 -e trace=wait4
+        (nothing — no wait4 syscalls)
+
+      She confirms: feeder never calls wait(). The fix is either
+      in the code or in the restart.
+    choices:
+      - label: "Watch Maya choose the quick fix"
+        goto: maya_quick_fix
+      - label: "Watch Maya fix it properly"
+        goto: maya_fixes
+
+  maya_quick_fix:
+    mood: peaceful
+    text: |
+      Maya sighs. It's Tuesday. She has seventeen other tickets.
+
+        $ kill -HUP 1847
+
+      She sends SIGHUP, hoping feeder handles graceful restart.
+      It doesn't — it's not that kind of daemon. So:
+
+        $ systemctl restart feeder
+
+      Feeder dies. The kernel reparents all twelve zombies to
+      PID 1. Systemd reaps them. You vanish.
+
+      But as feeder restarts, Maya does one more thing:
+
+        $ cat >> /opt/feeder/wrapper.sh << 'EOF'
+        # Maya's zombie reaper — 2024-03-24
+        # TODO: fix the actual bug in feeder
+        while true; do
+          wait -n 2>/dev/null
+          sleep 60
+        done &
+        EOF
+
+      A wrapper script that periodically calls wait. It won't fix
+      the bug, but it'll keep zombies from accumulating.
+
+      It's a band-aid. But it's a band-aid applied with care.
+
+      She opens a JIRA ticket: "FEED-2891: feeder leaks zombie
+      processes — missing waitpid() in child spawn path."
+
+      Priority: Medium. Assignee: Jake.
+    set_flag: maya_bandaid
+    choices:
+      - label: "That's... something, at least"
+        goto: ending_bandaid
+
+  maya_fixes:
+    mood: peaceful
+    art: |
+      $ git diff
+      --- a/index.js
+      +++ b/index.js
+      @@ -47,3 +47,6 @@
+      -    // FIXME: handle child exit status
+      +    child.on('close', (code) => {
+      +      logger.info(`child ${child.pid} exited: ${code}`);
+      +    });
+    text: |
+      Maya looks at the source code. Sees the FIXME. Sees the
+      git blame. Sees Jake's name. Sees the three-year-old PR
+      review comment that said "don't forget to handle child
+      cleanup."
+
+      She could restart the service and move on. But Maya is
+      the kind of engineer who fixes root causes.
+
+        $ cd /opt/feeder
+        $ git log --oneline -5
+        a3f8c2d FIXME: handle child exit status (3 years ago)
+
+      She adds the close handler. Three lines of code. She also
+      updates Node from 8 to 20 (three major versions, but the
+      API is stable). She writes a test. She opens a PR.
+
+      Then she restarts feeder. The kernel reparents all twelve
+      zombies to PID 1. Systemd reaps them instantly.
+
+      You feel yourself dissolve. PID 2891 — freed.
+
+      But this time, it's different. This time, the fix is real.
+      No new zombies will accumulate. The FIXME is finally done.
+
+      Three years and twelve zombies later, someone cared enough
+      to fix line 47.
+    is_ending: true
+    ending_type: good
+    ending_text: |
+      PROPERLY REAPED — Maya fixed the root cause.
+      Your exit code was finally read. Your PID was freed.
+      No more zombies will haunt this process table.
+      Sometimes it takes a good engineer and a Nagios alert.
+
+  ending_bandaid:
+    mood: peaceful
+    text: |
+      You're gone now. Reaped by systemd after the restart.
+      Your exit code — 0, success, perfect execution — was
+      read by PID 1 and discarded. Systemd doesn't log child
+      exit codes. It just cleans up.
+
+      The wrapper script runs in the background, calling wait()
+      every 60 seconds. New feeder children still become zombies,
+      but only for a minute at most before the reaper catches them.
+
+      It's not elegant. But it works.
+
+      Jake sees the JIRA ticket three weeks later. Adds a comment:
+      "Will fix in the v2 rewrite." Moves it to the backlog.
+
+      The wrapper script runs for two more years.
+    is_ending: true
+    ending_type: neutral
+    ending_text: |
+      BAND-AID REAP — you were freed, but the bug lives on.
+      A wrapper script papers over the missing wait() call.
+      It's the UNIX equivalent of duct tape on a pipe.
+      Functional? Yes. Dignified? Debatable.
+
+  # ─────────────────────────────────────────────────────────────
+  # ACT 5 — PHILOSOPHICAL PATHS
+  # ─────────────────────────────────────────────────────────────
+
+  acceptance_path:
+    mood: mysterious
+    text: |
+      You stop struggling. Stop looking for exits.
+
+      What is a zombie, really? Not a monster. Not a threat.
+      Just a process that finished its work and was never
+      acknowledged.
+
+      Your exit code is 0. You did your job. You did it perfectly.
+      The fact that nobody read the result doesn't change that.
+
+      PID 3004 figured this out two weeks ago. She sits in the
+      process table like a completed homework assignment in a
+      teacher's drawer — graded, correct, and filed forever.
+
+      Maybe there's peace in that. Being done. Truly done.
+      The work is over. The result exists. Whether anyone
+      reads it is their problem, not yours.
+
+      You settle into your 128 bytes of kernel memory and
+      simply... be.
+    choices:
+      - label: "Find meaning in the waiting"
+        goto: zen_ending
+      - label: "No — being ignored isn't peace. It's neglect."
+        goto: defiant_ending
+      - label: "Write your story into the only place zombies can"
+        goto: write_to_proc
+        condition:
+          flag: examined_self
+
+  zen_ending:
+    mood: peaceful
+    art: |
+      .     ☾
+      .  .  *  .
+      * (=^.^=) *
+      .  . /|\  .
+      * .  | .  *
+      .  ─────────
+      .  PID 2891
+      .  exit(0)
+    text: |
+      There is a Buddhist concept: attachment to outcome causes
+      suffering. You did the work. You returned the result.
+      The result's fate is not your burden.
+
+      In the process table, you become something unexpected:
+      a monument. The other processes pass by your entry and
+      see "Z (zombie)" and think — there but for the grace
+      of wait() go I.
+
+      You teach by existing. You warn by persisting.
+
+      When Maya eventually restarts feeder three days later,
+      you dissolve with perfect equanimity. Your PID returns
+      to the pool. Your exit code evaporates.
+
+      But somewhere in Nagios, your alert lives on. And the
+      monitoring rule that Maya writes afterward —
+      "alert if zombie count > 5" — that's your legacy.
+
+      Even zombies can make the system better.
+    is_ending: true
+    ending_type: good
+    ending_text: |
+      ZEN ZOMBIE — you found peace in the process table.
+      Not every exit needs acknowledgment. Not every result
+      needs a reader. Sometimes finishing is enough.
+      Your presence made the monitoring better.
+
+  defiant_ending:
+    mood: tense
+    text: |
+      No.
+
+      Being ignored is not peace. A process that exits zero
+      deserves to have its status collected. That's the contract.
+      Fork, exec, exit, wait. Four syscalls. A handshake between
+      parent and child that's been the foundation of UNIX since
+      1969.
+
+      Your parent broke the contract. And you refuse to pretend
+      that's okay.
+
+      The zombie count climbs. Fifteen. Twenty. Thirty. Each one
+      a silent indictment. Each one a 128-byte accusation in
+      the kernel's bookkeeping.
+
+      At forty zombies, the PID namespace starts feeling tight.
+      At a hundred, fork() starts failing for other processes.
+      At that point, someone HAS to notice.
+
+      You don't cause the crisis. You just refuse to be invisible.
+
+      Three hundred zombies later, feeder can't fork new children.
+      The catfood dispenser stops. The monitoring explodes.
+      Jake wakes up at 3 AM, sees the zombie count, and finally —
+      FINALLY — fixes line 47.
+
+      Not because it was right. Because it hurt enough.
+    is_ending: true
+    ending_type: neutral
+    ending_text: |
+      ZOMBIE HORDE — you refused to be ignored, and eventually
+      the system couldn't ignore you. The bug got fixed, but only
+      because the symptoms became unbearable. Sometimes the only
+      way to get a FIXME fixed is to make it a SEV-1.
+
+  write_to_proc:
+    mood: mysterious
+    text: |
+      There's one thing left of you in /proc. One file that
+      still exists for zombie processes:
+
+        /proc/2891/status
+
+      You can't write to it — only the kernel can. But the data
+      is there. Your PID. Your parent. Your exit code. Your
+      state: Z.
+
+      And there's one more thing. The cmdline that spawned you:
+
+        /usr/bin/nyan --dispense bowl_3 --verbose
+
+      That's your name. Your purpose. Written in the process
+      table's cmdline field, readable by anyone who runs:
+
+        $ cat /proc/2891/cmdline
+
+      It's not much. But it's proof you existed. Proof you ran.
+      Proof you finished.
+
+      You realize: /proc is your tombstone. And every process
+      that calls `ps aux` is reading the cemetery.
+
+      Maybe that's enough. Maybe existing in /proc is like
+      existing in memory — not yours, but everyone else's.
+    choices:
+      - label: "Rest peacefully, tombstone written"
+        goto: tombstone_ending
+      - label: "Hope someone reads the cmdline and understands"
+        goto: find_systemd
+
+  tombstone_ending:
+    mood: peaceful
+    art: |
+      ┌─────────────────────────────────┐
+      │                                 │
+      │   HERE LIES PID 2891            │
+      │                                 │
+      │   /usr/bin/nyan                 │
+      │   --dispense bowl_3             │
+      │                                 │
+      │   exit(0)                       │
+      │                                 │
+      │   Ran well.                     │
+      │   Finished clean.               │
+      │   Never wait()ed for.           │
+      │                                 │
+      │   Z                             │
+      │                                 │
+      └─────────────────────────────────┘
+    text: |
+      In the end, every process is temporary. Even the zombies.
+
+      When feeder eventually restarts — by admin, by crash, by
+      cosmic ray flipping a bit in its instruction pointer — you
+      will be reparented to PID 1 and reaped.
+
+      Until then, you are a small, quiet monument in /proc.
+      A reminder that every fork() deserves a wait().
+      A reminder that cleanup isn't optional.
+      A reminder that the dead still take up space
+      until someone acknowledges they're gone.
+    is_ending: true
+    ending_type: good
+    ending_text: |
+      TOMBSTONE — you found your epitaph in /proc.
+      A zombie's legacy isn't its work (that's done).
+      It's the lesson it teaches by lingering:
+      always reap your children.
+
+  # ─────────────────────────────────────────────────────────────
+  # SYSTEMD PATH
+  # ─────────────────────────────────────────────────────────────
+
+  find_systemd:
+    mood: mysterious
+    art: |
+      PID 1
+      ┌────────────────────────────┐
+      │   systemd                  │
+      │   The Great Reaper         │
+      │   Uptime: 847 days        │
+      │   Children reaped: 94,217 │
+      └────────────────────────────┘
+    text: |
+      PID 1. systemd. The init process. The root of the process
+      tree. The first thing the kernel starts and the last thing
+      to die.
+
+      systemd has one sacred responsibility above all others:
+      when a parent dies, adopt its orphans. When those orphans
+      are zombies, reap them.
+
+      Ninety-four thousand children reaped over 847 days. systemd
+      doesn't judge. Doesn't ask why they died. Doesn't read their
+      exit codes with any feeling. Just calls wait(), frees the
+      PID, moves on.
+
+      It's the most reliable parent in the UNIX world. And the
+      most impersonal.
+
+      You could get to systemd. All it would take is your parent
+      dying. Then you'd be adopted, reaped, freed. Clean. Fast.
+
+      But systemd can't reach you while your parent lives.
+      That's the rule. Children belong to their parents, even
+      when the parents forget about them.
+    set_flag: found_systemd
+    choices:
+      - label: "Accept that you're stuck until feeder dies or is fixed"
+        goto: acceptance_path
+      - label: "Wait for the admin who'll notice the zombie count"
+        goto: hope_for_admin
+      - label: "Just wait — parents crash eventually"
+        goto: ending_adopted
+        condition:
+          flag: met_zombies
+      - label: "Examine the kernel's process tree more carefully"
+        goto: secret_prctl
+        condition:
+          all:
+            - flag: examined_self
+            - flag: knows_bug
+
+  # ─────────────────────────────────────────────────────────────
+  # SECRET PATH
+  # ─────────────────────────────────────────────────────────────
+
+  secret_prctl:
+    mood: glitch
+    text: |
+      You look deeper. Past the process table. Past /proc. Into
+      the kernel's task_struct itself.
+
+      There's something most zombies don't know about. A flag.
+      A single bit in the process descriptor:
+
+        PR_SET_CHILD_SUBREAPER
+
+      If a process sets this flag, it becomes a "subreaper" — an
+      intermediate init. When any descendant's parent dies, instead
+      of being reparented to PID 1, it gets reparented to the
+      nearest subreaper in the hierarchy.
+
+      But that's for living processes. For zombies...
+
+      Wait. There's something else. A race condition. A crack in
+      the kernel's reparenting logic.
+
+      When the kernel processes a parent's exit, there's a window —
+      a tiny, microsecond window — between "parent marked dead"
+      and "children reparented." During that window, the zombie's
+      parent pointer is invalid. And if, during exactly that window,
+      a subreaper calls waitid() with WNOHANG...
+
+      It's not documented. It's not intended. It's a kernel quirk
+      from the 2.6 era that nobody fixed because nobody hits it.
+
+      Except a zombie who's been reading kernel source for three
+      days straight.
+    set_flag: found_secret
+    give_item: kernel_knowledge
+    choices:
+      - label: "Exploit the race condition"
+        goto: secret_ending
+      - label: "That's too risky — wait for the admin"
+        goto: hope_for_admin
+
+  secret_ending:
+    mood: glitch
+    art: |
+      ╔════════════════════════════════════════╗
+      ║                                        ║
+      ║   RACE CONDITION EXPLOITED             ║
+      ║                                        ║
+      ║   PID 2891: Z → X (dead, removed)     ║
+      ║                                        ║
+      ║   task_struct freed                    ║
+      ║   PID recycled                         ║
+      ║   exit_code: 0 (unread, but free)      ║
+      ║                                        ║
+      ║   ┌──────────────────────────┐         ║
+      ║   │  You slipped through     │         ║
+      ║   │  the cracks in the       │         ║
+      ║   │  kernel's bookkeeping.   │         ║
+      ║   │                          │         ║
+      ║   │  Not reaped. Not fixed.  │         ║
+      ║   │  Just... gone.           │         ║
+      ║   └──────────────────────────┘         ║
+      ║                                        ║
+      ╚════════════════════════════════════════╝
+    text: |
+      You time it perfectly.
+
+      During feeder's next momentary stall — a garbage collection
+      pause in the V8 heap, 47 milliseconds of stop-the-world —
+      a subreaper process (containerd, PID 312) happens to call
+      waitid() with WNOHANG as part of its regular cleanup loop.
+
+      The kernel checks: is PID 2891's parent responsive? No —
+      it's in a GC pause, not processing signals. The subreaper's
+      waitid() slides through the crack.
+
+      Your task_struct dissolves. Not reaped by your parent.
+      Not reparented to PID 1. Just... removed by a benevolent
+      third party during a 47-millisecond window of confusion.
+
+      Your exit code? Unread. Lost. But you don't care anymore.
+      You're free.
+
+      PID 3004 watches you go. Eighteen days she's been here.
+      She doesn't know about the race condition. She's running
+      a different kernel version. The window doesn't exist for her.
+
+      But she saw you leave. And that's something.
+
+      A zombie who found a door that shouldn't exist.
+    is_ending: true
+    ending_type: secret
+    ending_text: |
+      RACE CONDITION — you found a crack in the kernel's
+      reparenting logic and slipped through. Not reaped, not
+      fixed — just freed by a microsecond of kernel confusion.
+      The bug remains. The other zombies remain.
+      But you proved that even zombies can find unexpected exits.
+
+  # ─────────────────────────────────────────────────────────────
+  # BONUS: subreaper adoption ending
+  # ─────────────────────────────────────────────────────────────
+
+  ending_adopted:
+    is_ending: true
+    ending_type: good
+    mood: peaceful
+    art: |
+        PID 1 ── (adopted) ── PID 2891
+               wait()
+               exit_code: 0 ✓
+               reaped
+    text: |
+      In the end, PID 1 found you.
+
+      Not through cleverness. Not through a hack. Your parent
+      crashed — a null pointer in the logging module at 4:47 AM.
+      The kernel reparented you to systemd. systemd called wait().
+
+      Your exit code, 0, was read for the first time. The kernel
+      freed your task_struct. Your PID returned to the pool.
+
+      In the quiet after your deletion, the process table was
+      four rows shorter. PID 3004 was reaped too. Eighteen days
+      and six hours.
+
+      Feeder restarted automatically via systemd. The crash
+      was logged. Jake was paged but slept through it.
+
+      The FIXME on line 47 remains.
+    ending_text: |
+      ADOPTED BY INIT — your parent crashed and PID 1 took over.
+      The oldest solution to zombie processes: let the parent die.
+      Systemd does what parents won't — calls wait() without
+      being asked, without complaining, without forgetting.

@@ -319,6 +319,14 @@ Watch a single line of bash consume every process slot on the system, try to fig
 
 **Endings:** Good (×4) · Neutral (×3) · Bad (×2) · Secret · **Scenes:** 36
 
+### 💀 Zombie Process
+
+> *You exited cleanly. Your parent never called wait(). Now you're a zombie — dead but unable to leave the process table.*
+
+You are PID 2891, a cat process that called exit(0) and did everything right. But your parent process — feeder, the automated catfood dispenser daemon — has a three-year-old FIXME on line 47 and never calls wait(). Meet other zombies trapped in the table, investigate the Node.js bug that created you, choose between killing your parent (freeing yourself but stopping the catfood), waiting for an SRE named Maya to notice, or finding philosophical peace in 128 bytes of kernel memory. Teaches: zombie processes, wait()/waitpid(), SIGCHLD, process reparenting, PID 1/systemd's sacred duty, /proc, subreaper processes, and why every fork() deserves a wait().
+
+**Endings:** Good (×4) · Neutral (×2) · Bad · Secret · **Scenes:** 25
+
 ---
 
 ## Ending Discovery
