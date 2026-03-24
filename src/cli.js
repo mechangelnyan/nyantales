@@ -6,6 +6,7 @@ import { fileURLToPath } from 'url';
 import chalk from 'chalk';
 import inquirer from 'inquirer';
 import { Engine, discoverStories, GameState } from './engine.js';
+import { validateStory } from './validator.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const STORIES_DIR = path.join(__dirname, '..', 'stories');
@@ -34,15 +35,20 @@ function showHelp() {
   console.log(`    ${chalk.cyan('nyantales play')}           ${chalk.dim('Pick a story interactively')}`);
   console.log(`    ${chalk.cyan('nyantales continue')}       ${chalk.dim('Resume from a saved game')}`);
   console.log(`    ${chalk.cyan('nyantales saves')}          ${chalk.dim('List saved games')}`);
+  console.log(`    ${chalk.cyan('nyantales validate')}       ${chalk.dim('Validate all stories')}`);
+  console.log(`    ${chalk.cyan('nyantales validate <s>')}   ${chalk.dim('Validate a specific story')}`);
   console.log(`    ${chalk.cyan('nyantales --help')}         ${chalk.dim('Show this help')}`);
   console.log();
   console.log(chalk.bold('  Options:\n'));
-  console.log(`    ${chalk.cyan('--fast')}     ${chalk.dim('Skip typewriter animation')}`);
-  console.log(`    ${chalk.cyan('--debug')}    ${chalk.dim('Show scene/flag debug info')}`);
+  console.log(`    ${chalk.cyan('--fast')}       ${chalk.dim('Skip typewriter animation')}`);
+  console.log(`    ${chalk.cyan('--debug')}      ${chalk.dim('Show scene/flag debug info')}`);
+  console.log(`    ${chalk.cyan('--pedantic')}   ${chalk.dim('Enable extra validation warnings')}`);
   console.log();
   console.log(chalk.bold('  Examples:\n'));
   console.log(`    ${chalk.dim('nyantales play the-terminal-cat')}`);
   console.log(`    ${chalk.dim('nyantales play the-terminal-cat --fast')}`);
+  console.log(`    ${chalk.dim('nyantales validate')}`);
+  console.log(`    ${chalk.dim('nyantales validate cafe-debug --pedantic')}`);
   console.log(`    ${chalk.dim('nyantales continue')}`);
   console.log();
 }
@@ -216,6 +222,84 @@ async function continueGame(opts = {}) {
 }
 
 // ─────────────────────────────────────────────────────────────
+// Validate stories
+// ─────────────────────────────────────────────────────────────
+
+async function validateStories(slug, opts = {}) {
+  const { pedantic = false } = opts;
+
+  console.log(BANNER);
+  console.log(chalk.bold('  Story Validator\n'));
+
+  let targets;
+
+  if (slug) {
+    // Validate a single story
+    const storyFile = path.join(STORIES_DIR, slug, 'story.yaml');
+    if (!fs.existsSync(storyFile)) {
+      console.error(chalk.red(`  Story not found: ${slug}`));
+      console.log(chalk.dim(`  Run 'nyantales list' to see available stories.\n`));
+      process.exit(1);
+    }
+    targets = [{ slug, file: storyFile }];
+  } else {
+    // Validate all stories
+    const stories = discoverStories(STORIES_DIR);
+    if (stories.length === 0) {
+      console.log(chalk.yellow('  No stories found to validate.\n'));
+      return;
+    }
+    targets = stories.map(s => ({ slug: s.slug, file: s.file }));
+  }
+
+  let allPassed = true;
+
+  for (const target of targets) {
+    let story;
+    try {
+      const engine = new Engine(target.file, { skipAnimation: true });
+      await engine.loadStory();
+      story = engine.story;
+    } catch (err) {
+      console.log(`  ${chalk.red('✗')} ${chalk.bold(target.slug)} — failed to parse: ${err.message}`);
+      allPassed = false;
+      continue;
+    }
+
+    const result = validateStory(story, { pedantic });
+
+    if (result.errors.length === 0) {
+      const s = result.stats;
+      const endingList = s.endingTypes.join(', ');
+      console.log(`  ${chalk.green('✓')} ${chalk.bold(target.slug)}`);
+      console.log(chalk.dim(`    ${s.scenes} scenes · ${s.endings} endings (${endingList}) · ${s.choices} choices`));
+      if (result.warnings.length > 0) {
+        for (const w of result.warnings) {
+          console.log(`    ${chalk.yellow('⚠')} ${w}`);
+        }
+      }
+    } else {
+      allPassed = false;
+      console.log(`  ${chalk.red('✗')} ${chalk.bold(target.slug)}`);
+      for (const e of result.errors) {
+        console.log(`    ${chalk.red('✗')} ${e}`);
+      }
+      for (const w of result.warnings) {
+        console.log(`    ${chalk.yellow('⚠')} ${w}`);
+      }
+    }
+    console.log();
+  }
+
+  if (allPassed) {
+    console.log(chalk.green.bold('  All stories passed validation! 🐱\n'));
+  } else {
+    console.log(chalk.red.bold('  Some stories have errors.\n'));
+    process.exit(1);
+  }
+}
+
+// ─────────────────────────────────────────────────────────────
 // Interactive main menu (no args)
 // ─────────────────────────────────────────────────────────────
 
@@ -265,9 +349,10 @@ async function main() {
   }
 
   // Extract flags
-  const fast  = args.includes('--fast');
-  const debug = args.includes('--debug');
-  const opts  = { fast, debug };
+  const fast     = args.includes('--fast');
+  const debug    = args.includes('--debug');
+  const pedantic = args.includes('--pedantic');
+  const opts     = { fast, debug, pedantic };
   const positional = args.filter(a => !a.startsWith('--'));
 
   const [command, ...rest] = positional;
@@ -292,6 +377,11 @@ async function main() {
 
     case 'saves':
       listSaves();
+      break;
+
+    case 'validate':
+    case 'check':
+      await validateStories(rest[0], opts);
       break;
 
     case '--help':

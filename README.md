@@ -44,6 +44,11 @@ nyantales continue
 # List saved games
 nyantales saves
 
+# Validate stories
+nyantales validate                        # check all stories
+nyantales validate the-terminal-cat       # check one story
+nyantales validate --pedantic             # extra warnings (self-loops, etc.)
+
 # Options
 nyantales play the-terminal-cat --fast    # skip typewriter animation
 nyantales play the-terminal-cat --debug   # show scene/flag debug info
@@ -227,6 +232,7 @@ Tips:
 - Use items for physical objects the player carries
 - Chain `requires_flag` + `set_flag` to create progressive unlocks
 - Every dead end should have a `fallback_goto` or be `is_ending: true`
+- Run `nyantales validate my-story` to catch broken links and dead ends
 - Test with `--debug` to see scene names and flag state live
 
 ---
