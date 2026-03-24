@@ -424,6 +424,51 @@ scenes:
 
 ---
 
+## Text Interpolation
+
+Scene text, conditional text, choice labels, and ending text support dynamic variables using `{{variable}}` syntax. Variables are replaced at render time with current game state values.
+
+### Available Variables
+
+| Variable | Expands to | Example |
+|----------|-----------|---------|
+| `{{turns}}` | Current turn count | `"After {{turns}} turns, you arrive."` |
+| `{{scene}}` | Current scene ID | `"[debug] scene: {{scene}}"` |
+| `{{items}}` | Inventory list (comma-separated), or `"nothing"` | `"You're carrying: {{items}}"` |
+| `{{item_count}}` | Number of items in inventory | `"{{item_count}} items in your bag"` |
+| `{{visited_count}}` | Number of unique scenes visited | `"You've explored {{visited_count}} places."` |
+| `{{title}}` | Story title | `"Welcome to {{title}}!"` |
+| `{{flag:name}}` | `"true"` or `"false"` for the named flag | `"Key found: {{flag:has_key}}"` |
+| `{{has:name}}` | `"true"` or `"false"` for the named item | `"Fish: {{has:fish_treat}}"` |
+
+Unknown variables are left as-is (no error, no blank).
+
+### Example
+
+```yaml
+long_walk:
+  text: >
+    You've been walking for {{turns}} turns now, carrying {{items}}.
+    {{visited_count}} rooms explored. The exit must be close.
+  choices:
+    - label: "Check your {{item_count}} items"
+      goto: inventory_check
+    - label: "Keep going"
+      goto: next_room
+```
+
+### In Endings
+
+```yaml
+finale:
+  is_ending: true
+  ending_type: good
+  text: "You made it out in just {{turns}} turns."
+  ending_text: "Final score: {{visited_count}} scenes explored, {{item_count}} items collected."
+```
+
+---
+
 ## Tips
 
 **Scene IDs** can be anything without spaces. `snake_case` is conventional.

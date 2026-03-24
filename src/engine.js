@@ -305,6 +305,30 @@ export class Engine {
     return true;
   }
 
+  // ── Text interpolation ────────────────────────────────
+
+  interpolate(text) {
+    if (!text || typeof text !== 'string') return text;
+    return text.replace(/\{\{(\w[\w.:]*)\}\}/g, (match, key) => {
+      // Built-in variables
+      if (key === 'turns')     return String(this.state.turnCount);
+      if (key === 'scene')     return this.state.currentScene || '';
+      if (key === 'items')     return this.state.inventory.length > 0 ? this.state.inventory.join(', ') : 'nothing';
+      if (key === 'item_count') return String(this.state.inventory.length);
+      if (key === 'visited_count') return String(this.state.visited.size);
+      if (key === 'title')     return this.story?.title || '';
+
+      // Flag check: {{flag:name}} → "true" / "false"
+      if (key.startsWith('flag:')) return String(this.state.hasFlag(key.slice(5)));
+
+      // Item check: {{has:name}} → "true" / "false"
+      if (key.startsWith('has:'))  return String(this.state.hasItem(key.slice(4)));
+
+      // Unknown → leave as-is
+      return match;
+    });
+  }
+
   choiceAvailable(choice) {
     if (choice.requires_flag && !this.state.hasFlag(choice.requires_flag)) return false;
     if (choice.requires_not_flag && this.state.hasFlag(choice.requires_not_flag)) return false;
@@ -393,7 +417,7 @@ export class Engine {
     // Main narrative text
     const textColor = moodCfg ? moodCfg.color : 'white';
     if (scene.text) {
-      await this.typewrite(scene.text, textColor, { flicker: hasFlicker });
+      await this.typewrite(this.interpolate(scene.text), textColor, { flicker: hasFlicker });
       console.log();
     }
 
@@ -401,7 +425,7 @@ export class Engine {
     if (Array.isArray(scene.conditional)) {
       for (const block of scene.conditional) {
         if (this.checkCondition(block.condition)) {
-          await this.typewrite(block.text, block.color || 'yellow');
+          await this.typewrite(this.interpolate(block.text), block.color || 'yellow');
           console.log();
         }
       }
@@ -442,9 +466,9 @@ export class Engine {
     }
 
     const storyChoices = available.map((c, i) => ({
-      name: c.label,
+      name: this.interpolate(c.label),
       value: i,
-      short: c.label,
+      short: this.interpolate(c.label),
     }));
 
     // Add save/quit meta-choices
@@ -506,7 +530,7 @@ export class Engine {
     console.log(chalk[p.color]('═'.repeat(60)) + '\n');
 
     if (scene.ending_text) {
-      await this.typewrite(scene.ending_text, p.color);
+      await this.typewrite(this.interpolate(scene.ending_text), p.color);
     }
 
     // Record ending discovery

@@ -634,6 +634,8 @@ scenes:
 
       You are home.
 
+      Journey stats: {{turns}} turns, {{visited_count}} rooms explored, carrying {{items}}.
+
   # ─────────────────────────────────────────────────────────────
   # ENDING - FISH KING (SECRET)
   # ─────────────────────────────────────────────────────────────
@@ -681,3 +683,5 @@ scenes:
       You know the truth.
 
       The fish was worth it.
+
+      (You explored {{visited_count}} places in {{turns}} turns to find this ending.)

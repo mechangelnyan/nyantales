@@ -536,3 +536,82 @@ describe('Ending discovery', () => {
     assert.ok(bar.length > 0, 'bar is not empty');
   });
 });
+
+// ─────────────────────────────────────────────────────────────
+// Text interpolation tests
+// ─────────────────────────────────────────────────────────────
+
+describe('interpolate', () => {
+  let engine;
+
+  beforeEach(async () => {
+    engine = new Engine(path.join(STORIES_DIR, 'the-terminal-cat', 'story.yaml'));
+    await engine.loadStory();
+  });
+
+  it('replaces {{turns}} with current turn count', () => {
+    engine.state.turnCount = 7;
+    assert.equal(engine.interpolate('Turn {{turns}} begins.'), 'Turn 7 begins.');
+  });
+
+  it('replaces {{scene}} with current scene id', () => {
+    engine.state.currentScene = 'lobby';
+    assert.equal(engine.interpolate('You are in {{scene}}.'), 'You are in lobby.');
+  });
+
+  it('replaces {{items}} with inventory list', () => {
+    engine.state.addItem('fish');
+    engine.state.addItem('key');
+    assert.equal(engine.interpolate('Carrying: {{items}}'), 'Carrying: fish, key');
+  });
+
+  it('replaces {{items}} with "nothing" when empty', () => {
+    assert.equal(engine.interpolate('Carrying: {{items}}'), 'Carrying: nothing');
+  });
+
+  it('replaces {{item_count}} with inventory size', () => {
+    engine.state.addItem('fish');
+    engine.state.addItem('key');
+    assert.equal(engine.interpolate('You have {{item_count}} items.'), 'You have 2 items.');
+  });
+
+  it('replaces {{visited_count}} with visited scenes count', () => {
+    engine.state.markVisited('a');
+    engine.state.markVisited('b');
+    engine.state.markVisited('c');
+    assert.equal(engine.interpolate('Explored {{visited_count}} scenes.'), 'Explored 3 scenes.');
+  });
+
+  it('replaces {{title}} with story title', () => {
+    assert.equal(engine.interpolate('Playing: {{title}}'), 'Playing: The Terminal Cat');
+  });
+
+  it('replaces {{flag:name}} with true/false', () => {
+    engine.state.setFlag('has_key');
+    assert.equal(engine.interpolate('Key: {{flag:has_key}}, Clue: {{flag:has_clue}}'), 'Key: true, Clue: false');
+  });
+
+  it('replaces {{has:item}} with true/false', () => {
+    engine.state.addItem('fish');
+    assert.equal(engine.interpolate('Fish: {{has:fish}}, Key: {{has:key}}'), 'Fish: true, Key: false');
+  });
+
+  it('leaves unknown variables as-is', () => {
+    assert.equal(engine.interpolate('Hello {{unknown_var}}!'), 'Hello {{unknown_var}}!');
+  });
+
+  it('handles multiple replacements in one string', () => {
+    engine.state.turnCount = 3;
+    engine.state.addItem('map');
+    assert.equal(
+      engine.interpolate('Turn {{turns}}, carrying {{items}} ({{item_count}} item).'),
+      'Turn 3, carrying map (1 item).'
+    );
+  });
+
+  it('returns non-string input unchanged', () => {
+    assert.equal(engine.interpolate(null), null);
+    assert.equal(engine.interpolate(undefined), undefined);
+    assert.equal(engine.interpolate(42), 42);
+  });
+});
