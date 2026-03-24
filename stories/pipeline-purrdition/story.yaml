@@ -1,0 +1,1240 @@
+title: "Pipeline Purrdition"
+description: "A cat gets trapped inside a CI/CD pipeline and must survive build, test, and deploy stages to escape to production."
+author: "mechangelnyan"
+version: "1.0.0"
+start: trigger
+
+scenes:
+
+  # ─────────────────────────────────────────────────────────────
+  # ACT 1 — THE TRIGGER
+  # ─────────────────────────────────────────────────────────────
+
+  trigger:
+    mood: mysterious
+    effects:
+      - pause
+    art: |
+          ┌─────────────────────────────────────────────────────┐
+          │                                                     │
+          │   P I P E L I N E   P U R R D I T I O N             │
+          │                                                     │
+          │   "Your code is only as good as                     │
+          │    your ability to survive shipping it."            │
+          │                                                     │
+          │   ┌──────────────────────┐                          │
+          │   │ ● PIPELINE #4827     │                          │
+          │   │ TRIGGER: push main   │                          │
+          │   │ STATUS:  RUNNING     │                          │
+          │   │ RUNNER:  cat-01      │                          │
+          │   │ ETA:     ∞           │                          │
+          │   └──────────────────────┘                          │
+          │                                                     │
+          └─────────────────────────────────────────────────────┘
+    text: |
+      You were napping on the warm part of the server rack when it happened.
+
+      Someone pushed to main. The pipeline woke up. And you — small, orange,
+      and critically located on the keyboard that triggered the webhook —
+      got pulled in with the payload.
+
+      You are Pippa. DevOps cat. Self-appointed code reviewer (you sit on
+      keyboards, which counts). And now you're stuck inside a CI/CD pipeline,
+      hurtling through stages like a furball through a vacuum tube.
+
+      The pipeline has four stages. You must survive them all to reach
+      production — the only exit.
+
+      Stage 1 blinks ahead: **BUILD**.
+    choices:
+      - label: "Brace yourself — enter the build stage"
+        goto: build_start
+      - label: "Try to ctrl-c the pipeline"
+        goto: ctrl_c_attempt
+
+  # ─────────────────────────────────────────────────────────────
+  # CTRL-C ATTEMPT
+  # ─────────────────────────────────────────────────────────────
+
+  ctrl_c_attempt:
+    mood: funny
+    art: |
+          /\_/\
+          ( ⊙_⊙ )   ^C^C^C^C^C
+          )   (     ^C^C^C^C^C
+          (__ __)    ^C^C^C^C^C
+    text: |
+      You mash ctrl-c with every paw you have.
+
+      Nothing happens. The pipeline has `set -e` but NOT `trap SIGINT`.
+      Whoever wrote this Jenkinsfile should be ashamed.
+
+      A message flickers:
+
+          SIGINT ignored. Pipeline is unstoppable.
+          (Just like you, little one. Just like you.)
+
+      The build stage looms ahead regardless. There is no going back —
+      only through.
+    choices:
+      - label: "Fine. Enter the build stage."
+        goto: build_start
+        set_flag: tried_ctrl_c
+
+  # ─────────────────────────────────────────────────────────────
+  # ACT 2 — BUILD STAGE
+  # ─────────────────────────────────────────────────────────────
+
+  build_start:
+    mood: tense
+    effects:
+      - shake
+    art: |
+          ╔══════════════════════════════════════════╗
+          ║  STAGE 1/4: BUILD                        ║
+          ║  ████░░░░░░░░░░░░░░░░  25%               ║
+          ╚══════════════════════════════════════════╝
+    location: "pipeline > build"
+    text: |
+      The build stage is chaos.
+
+      Dependencies fly past like startled birds. NPM packages download at
+      terrifying speed — 847 of them, each with their own opinions about
+      how leftpad should work.
+
+      A `node_modules` folder materializes around you. It's enormous. You
+      could get lost in here for days. Actually, several cats have.
+
+      The compiler growls somewhere in the distance. It sounds hungry.
+    conditional:
+      - condition:
+          flag: tried_ctrl_c
+        text: "A faint echo of your ctrl-c attempts still bounces around. Embarrassing."
+        color: red
+    choices:
+      - label: "Navigate through node_modules carefully"
+        goto: node_modules_maze
+      - label: "Ride the dependency tree — swing from branch to branch"
+        goto: dependency_tree
+      - label: "Hide in the build cache"
+        goto: build_cache
+
+  # ─────────────────────────────────────────────────────────────
+  # NODE_MODULES MAZE
+  # ─────────────────────────────────────────────────────────────
+
+  node_modules_maze:
+    mood: mysterious
+    art: |
+          node_modules/
+          ├── is-odd/
+          │   └── node_modules/
+          │       └── is-number/
+          │           └── node_modules/
+          │               └── is-even/  ← wait...
+          │                   └── node_modules/
+          │                       └── is-odd/  ← WHAT
+          │                           └── ...∞
+          ├── leftpad/  [CURSED]
+          ├── cat-names/  [SUSPICIOUS]
+          └── ...846 more
+    text: |
+      You enter the node_modules forest. It's dark. It's deep. The folder
+      structure goes down further than any filesystem should allow.
+
+      You pass `is-odd` which depends on `is-number` which depends on
+      `is-even` which depends on `is-odd`. You feel dizzy.
+
+      Then you spot it: a package called `cat-names`. It hums with a gentle
+      warmth. Inside, you find a list of 100 cat names, lovingly curated by
+      someone who clearly had their priorities straight.
+
+      And next to it — a small golden yarn ball, tangled in the dependencies.
+    choices:
+      - label: "Take the yarn ball — it might be useful"
+        goto: build_compiler
+        give_item: yarn_ball
+        set_flag: explored_node_modules
+      - label: "Ignore the yarn ball, press on quickly"
+        goto: build_compiler
+        set_flag: explored_node_modules
+
+  # ─────────────────────────────────────────────────────────────
+  # DEPENDENCY TREE
+  # ─────────────────────────────────────────────────────────────
+
+  dependency_tree:
+    mood: funny
+    art: |
+                    ╱╲
+                    ╱  ╲
+                    ╱ re ╲
+                    ╱ act  ╲
+                    ╱────────╲
+                    ╱ webpack  ╲
+                    ╱────────────╲
+                    ╱   babel      ╲
+                    ╱────────────────╲
+                    ╱  core-js (lol)   ╲
+                    ╱────────────────────╲
+                    ║
+                    /\_/\║
+                    ( ◉ω◉)  WHEEE!
+                    )  (
+                    (__ __)
+    text: |
+      You leap onto the dependency tree and swing from branch to branch
+      like the majestic jungle cat you absolutely are.
+
+      React → Webpack → Babel → core-js → it keeps going down.
+
+      At one point you accidentally knock a package loose. `event-stream`
+      tumbles into the void. Good riddance — that one had a sketchy history.
+
+      As you swing, you catch a `.env` file fluttering past. It contains
+      secrets! Database passwords! API keys! All committed to git like
+      the developer intended (they didn't).
+    choices:
+      - label: "Grab the .env file — those secrets might help later"
+        goto: build_compiler
+        give_item: env_secrets
+        set_flag: has_secrets
+      - label: "Leave it — you're a cat with principles"
+        goto: build_compiler
+        set_flag: left_secrets
+
+  # ─────────────────────────────────────────────────────────────
+  # BUILD CACHE
+  # ─────────────────────────────────────────────────────────────
+
+  build_cache:
+    mood: peaceful
+    art: |
+          ┌─────────────────────────────────────┐
+          │          BUILD CACHE                │
+          │   ┌─────────┐  ┌─────────┐         │
+          │   │ layer 1  │  │ layer 2  │        │
+          │   │ (stale)  │  │ (warm)   │ ← you  │
+          │   └─────────┘  └─────────┘         │
+          │   ┌─────────┐  ┌─────────┐         │
+          │   │ layer 3  │  │ layer 4  │        │
+          │   │ (cold)   │  │ (empty)  │        │
+          │   └─────────┘  └─────────┘         │
+          └─────────────────────────────────────┘
+    text: |
+      The build cache is warm and quiet. Old layers stack around you like
+      cardboard boxes — and if there's one thing cats understand, it's the
+      sacred geometry of boxes.
+
+      You curl up in a warm cache layer. It's cozy. Artifacts from previous
+      builds surround you: old Docker images, compiled binaries, someone's
+      lunch order from a Makefile that went very wrong.
+
+      You find a cached test report from last week. It says "ALL TESTS PASS"
+      but you can smell the lie. Something was skipped.
+
+      You also spot a shiny CI badge — "build: passing". It radiates false
+      confidence.
+    choices:
+      - label: "Take the CI badge — false confidence is still confidence"
+        goto: build_compiler
+        give_item: ci_badge
+        set_flag: has_badge
+      - label: "Nap here until the build finishes"
+        goto: build_cache_nap
+
+  # ─────────────────────────────────────────────────────────────
+  # BUILD CACHE NAP
+  # ─────────────────────────────────────────────────────────────
+
+  build_cache_nap:
+    mood: peaceful
+    art: |
+          /\_/\
+          ( -ω- )  zzz...
+          )   (
+          (__ __)
+    text: |
+      You nap. It's glorious. Cache layers make excellent beds — warm from
+      computation, firm from layers of technical debt.
+
+      You dream of fields of catnip rendered in WebGL. Of mice that are
+      actually just cursor events. Of a world where `npm install` takes
+      less than 30 seconds.
+
+      When you wake, the build is almost done. You feel refreshed and
+      slightly cached yourself.
+    choices:
+      - label: "Stretch, yawn, proceed to the compiler"
+        goto: build_compiler
+        set_flag: well_rested
+
+  # ─────────────────────────────────────────────────────────────
+  # BUILD — COMPILER
+  # ─────────────────────────────────────────────────────────────
+
+  build_compiler:
+    mood: tense
+    effects:
+      - bell
+    art: |
+          ┌─────────────────────────────────────────────────┐
+          │  $ tsc --strict                                 │
+          │                                                 │
+          │  error TS2345: Argument of type 'Cat' is not    │
+          │  assignable to parameter of type 'Dog'.         │
+          │                                                 │
+          │  error TS7053: Element implicitly has an 'any'  │
+          │  type because expression of type 'purr' can't   │
+          │  be used to index type 'Animal'.                │
+          │                                                 │
+          │  Found 847 errors in 12 files.                  │
+          │                                                 │
+          │  COMPILATION FAILED                             │
+          └─────────────────────────────────────────────────┘
+    location: "pipeline > build > compile"
+    text: |
+      The compiler blocks your path. TypeScript Strict Mode — the final
+      boss of the build stage.
+
+      847 errors. The compiler insists you are not assignable to type 'Dog'.
+      Which is correct but also rude.
+
+      It won't let you pass unless the errors are resolved. Or... unless
+      someone changes the tsconfig.
+    conditional:
+      - condition:
+          has_item: yarn_ball
+        text: "The yarn ball in your inventory vibrates. Yarn... yarn workspaces... there might be a workaround."
+        color: yellow
+      - condition:
+          flag: well_rested
+        text: "At least you're well-rested. You can think clearly."
+        color: green
+    choices:
+      - label: "Argue with the compiler — Cat IS assignable to Dog (they're both pets)"
+        goto: compiler_argue
+      - label: "Sneak past while it's busy processing errors"
+        goto: test_start
+        set_flag: sneaked_past_compiler
+      - label: "Edit tsconfig.json — set strict to false"
+        goto: compiler_hack
+        set_flag: disabled_strict
+
+  # ─────────────────────────────────────────────────────────────
+  # COMPILER ARGUMENT
+  # ─────────────────────────────────────────────────────────────
+
+  compiler_argue:
+    mood: funny
+    art: |
+          /\_/\          ┌──────────────┐
+          ( >д< )  ──→   │  tsc v5.4    │
+          )   (         │  NO.         │
+          (__ __)        └──────────────┘
+    text: |
+      "LISTEN," you meow at the compiler. "Cat and Dog both implement
+      the `Pet` interface. We both have `name`, `feed()`, and `annoy()`.
+      The STRUCTURAL typing should work!"
+
+      The compiler considers this for exactly 0 milliseconds.
+
+          error TS2322: Type 'Cat' is missing the following
+          properties from type 'Dog': fetch, obey, loyalty
+
+      Devastating. Accurate. You don't have `fetch`, `obey`, or `loyalty`.
+      You never have. You never will.
+
+      But the compiler, in its thoroughness, has revealed a config file
+      nearby. You could add `skipLibCheck` to paper over everything.
+    choices:
+      - label: "Add skipLibCheck and move on (the coward's path)"
+        goto: test_start
+        set_flag: used_skiplib
+      - label: "Accept the compiler's judgment with dignity"
+        goto: test_start
+        set_flag: accepted_compiler
+
+  # ─────────────────────────────────────────────────────────────
+  # COMPILER HACK
+  # ─────────────────────────────────────────────────────────────
+
+  compiler_hack:
+    mood: glitch
+    effects:
+      - flicker
+    art: |
+          {
+          "compilerOptions": {
+          "strict": false,     ← ehehehe
+          "noImplicitAny": false,
+          "skipLibCheck": true,
+          "yolo": true
+          }
+          }
+    text: |
+      You flip `strict` to `false` with a single paw swipe. The compiler
+      screams briefly, then goes silent. 847 errors vanish like they never
+      existed. Because technically, they don't anymore.
+
+      Is this ethical? No. Is this how production code works in the real
+      world? Also no. Is it how production code ACTUALLY works? ...Yes.
+
+      The build stage glows green. You did it. Sort of.
+
+      A small part of you dies inside. The part that believed in type safety.
+      It was already very small.
+    choices:
+      - label: "Proceed to the test stage (trying not to think about it)"
+        goto: test_start
+
+  # ─────────────────────────────────────────────────────────────
+  # ACT 3 — TEST STAGE
+  # ─────────────────────────────────────────────────────────────
+
+  test_start:
+    mood: tense
+    effects:
+      - shake
+    art: |
+          ╔══════════════════════════════════════════╗
+          ║  STAGE 2/4: TEST                         ║
+          ║  ████████░░░░░░░░░░░░  50%               ║
+          ╚══════════════════════════════════════════╝
+
+          ✓ should exist (2ms)
+          ✓ should have four legs (1ms)
+          ✗ should not knock things off tables (FAILED)
+          ✓ should purr when petted (3ms)
+          ✗ should come when called (TIMEOUT 30000ms)
+          ✓ should land on feet (0ms)
+    location: "pipeline > test"
+    text: |
+      The test stage. Where hope comes to die.
+
+      Unit tests swarm around you like angry bees. They test everything:
+      your existence, your leg count, your gravitational properties.
+      Most of them pass.
+
+      But two tests fail. "should not knock things off tables" and
+      "should come when called." Both are, frankly, unreasonable
+      expectations for a cat.
+
+      The test runner — Jest, wearing a tiny hat — stares at you
+      disapprovingly. The pipeline will fail unless all tests pass.
+    conditional:
+      - condition:
+          flag: disabled_strict
+        text: "The compiler hack left some instability. The tests seem extra flaky."
+        color: red
+      - condition:
+          flag: well_rested
+        text: "Your rested mind spots a pattern — these tests have been flaky for weeks."
+        color: green
+    choices:
+      - label: "Mark the failing tests as .skip — pretend they don't exist"
+        goto: test_skip
+        set_flag: skipped_tests
+      - label: "Actually fix the tests (prove you can come when called)"
+        goto: test_fix
+      - label: "Investigate the test runner — something seems off"
+        goto: test_investigate
+
+  # ─────────────────────────────────────────────────────────────
+  # TEST — SKIP
+  # ─────────────────────────────────────────────────────────────
+
+  test_skip:
+    mood: funny
+    art: |
+          ✓ should exist (2ms)
+          ✓ should have four legs (1ms)
+          ○ should not knock things off tables (SKIPPED)
+          ✓ should purr when petted (3ms)
+          ○ should come when called (SKIPPED)
+          ✓ should land on feet (0ms)
+
+          Tests: 4 passed, 2 skipped, 0 failed
+          Time:  0.847s
+    text: |
+      You add `.skip` to both failing tests. They grey out obediently.
+
+      The test runner frowns but can't argue — skipped tests aren't failures.
+      That's not a philosophy, it's a CI configuration. But the effect is
+      the same.
+
+          Tests: 4 passed, 2 skipped, 0 failed.
+
+      The stage goes green. You feel the specific guilt of someone who has
+      just made a test suite pass by removing the tests that test things.
+    choices:
+      - label: "Quickly — to the security scan before anyone notices"
+        goto: security_start
+
+  # ─────────────────────────────────────────────────────────────
+  # TEST — FIX
+  # ─────────────────────────────────────────────────────────────
+
+  test_fix:
+    mood: peaceful
+    art: |
+          /\_/\
+          ( ^ω^ )  *comes when called*
+          )   (   *doesn't knock things off table*
+          (__ __)  *this is extremely difficult*
+    text: |
+      You take a deep breath and actually fix the tests.
+
+      For "should come when called" — you implement a `respond()` method
+      that triggers after a random delay between 1 and 45 minutes. It's
+      not instant, but it's technically responsive. The test accepts it
+      with an increased timeout.
+
+      For "should not knock things off tables" — you add a
+      `tableProximity` check that returns `false` when observed and `true`
+      when not observed. Schrödinger's mischief. The test passes because
+      tests are, by definition, observed.
+
+      It's elegant. It's dishonest. It's software engineering.
+
+          Tests: 6 passed, 0 skipped, 0 failed.
+    set_flag: fixed_tests
+    choices:
+      - label: "Proceed to the security scan, head held high"
+        goto: security_start
+
+  # ─────────────────────────────────────────────────────────────
+  # TEST — INVESTIGATE
+  # ─────────────────────────────────────────────────────────────
+
+  test_investigate:
+    mood: mysterious
+    art: |
+          ┌───────────────────────────────────┐
+          │  jest.config.js                   │
+          │  ─────────────────                │
+          │  testEnvironment: "node"          │
+          │  verbose: true                    │
+          │  collectCoverage: false  ← hmm   │
+          │  coverageThreshold: null ← HMM   │
+          │  # TODO: fix flaky tests         │
+          │  # - meow (added 2019-03-14)     │
+          │  # ^ FIVE YEARS AGO              │
+          └───────────────────────────────────┘
+    text: |
+      You dig into the test runner's configuration. What you find is
+      archaeological.
+
+      Coverage collection: disabled. Coverage thresholds: null. There's a
+      TODO comment from 2019 about fixing "flaky tests" — it was added by
+      someone named `meow` who, based on the git blame, hasn't committed
+      since.
+
+      You realize these two failing tests have been failing for years. The
+      team has been manually re-running the pipeline until they pass by
+      coincidence. This is held together by luck and retry logic.
+
+      But deeper in the config, you find something useful: a test helper
+      that can mock anything. Including gravity. Including obedience.
+    give_item: test_helper
+    set_flag: investigated_tests
+    choices:
+      - label: "Use the test helper to make both tests pass legitimately-ish"
+        goto: test_mock_fix
+      - label: "Just skip them — this codebase is beyond saving"
+        goto: test_skip
+        set_flag: skipped_tests
+
+  # ─────────────────────────────────────────────────────────────
+  # TEST — MOCK FIX
+  # ─────────────────────────────────────────────────────────────
+
+  test_mock_fix:
+    mood: funny
+    art: |
+          jest.mock('physics', () => ({
+          gravity: 'optional',
+          tableKnocking: jest.fn(() => false),
+          obedience: jest.fn(() => 'eventually')
+          }));
+
+          ✓ All tests pass! (mocked reality: 100%)
+    text: |
+      You use the test helper to mock physics itself.
+
+      `gravity: 'optional'`. `tableKnocking: jest.fn(() => false)`.
+      `obedience: jest.fn(() => 'eventually')`.
+
+      Every test passes. Not because you changed, but because you changed
+      what "pass" means. This is either the pinnacle of testing philosophy
+      or its absolute nadir. The distinction is academic.
+
+          Tests: 6 passed, 0 skipped, 0 failed.
+          Mocked reality: 100%
+
+      The test stage grudgingly turns green.
+    set_flag: mocked_tests
+    choices:
+      - label: "Strut into the security scan"
+        goto: security_start
+
+  # ─────────────────────────────────────────────────────────────
+  # ACT 4 — SECURITY SCAN
+  # ─────────────────────────────────────────────────────────────
+
+  security_start:
+    mood: tense
+    effects:
+      - pause
+      - shake
+    art: |
+          ╔══════════════════════════════════════════╗
+          ║  STAGE 3/4: SECURITY SCAN                ║
+          ║  ████████████░░░░░░░░  75%               ║
+          ╚══════════════════════════════════════════╝
+
+          SCANNING...
+          ▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓░░░░░  78%
+          CVEs found: lots
+          Secrets detected: oh no
+    location: "pipeline > security"
+    text: |
+      The security scanner boots up. It is thorough. It is merciless.
+      It has opinions about your dependencies.
+
+      Results flood in:
+
+      • 23 HIGH severity CVEs in transitive dependencies
+      • 4 CRITICAL vulnerabilities in packages you've never heard of
+      • 1 SECRET DETECTED: `.env` file committed to repository
+
+      The scanner blocks the pipeline. Nothing moves forward until the
+      security findings are addressed. Or... waived.
+    conditional:
+      - condition:
+          has_item: env_secrets
+        text: "The .env file in your inventory starts buzzing. The scanner has DEFINITELY noticed it."
+        color: red
+      - condition:
+          has_item: ci_badge
+        text: "Your 'build: passing' badge feels increasingly ironic."
+        color: yellow
+    choices:
+      - label: "Address the CVEs properly — audit and update dependencies"
+        goto: security_audit
+      - label: "Add a .securityignore file — if you can't see it, it's not there"
+        goto: security_ignore
+      - label: "Offer the scanner a fish treat"
+        goto: security_bribe
+        requires_item: yarn_ball
+
+  # ─────────────────────────────────────────────────────────────
+  # SECURITY — AUDIT
+  # ─────────────────────────────────────────────────────────────
+
+  security_audit:
+    mood: peaceful
+    art: |
+          $ npm audit fix --force
+
+          fixed 23 of 27 vulnerabilities
+
+          4 remaining (won't fix — heat death of
+          universe will resolve these first)
+    text: |
+      You run `npm audit fix --force`. It's the nuclear option but you
+      don't have all day.
+
+      23 vulnerabilities resolve themselves. The remaining 4 are in packages
+      so deeply nested that fixing them would require rewriting the internet.
+      The scanner accepts this with a resigned sigh.
+
+      The `.env` secret is trickier. You can't un-commit it — it's in the
+      git history forever. Like that embarrassing photo from 2014. You add
+      it to `.gitignore` and rotate the credentials, which is the correct
+      thing to do and therefore deeply unsatisfying.
+
+      The security stage turns amber — not green, but not red. Good enough
+      for government work. And most startups.
+    set_flag: proper_security
+    choices:
+      - label: "Onward to deployment — the final stage"
+        goto: deploy_start
+
+  # ─────────────────────────────────────────────────────────────
+  # SECURITY — IGNORE
+  # ─────────────────────────────────────────────────────────────
+
+  security_ignore:
+    mood: glitch
+    effects:
+      - flicker
+    art: |
+          $ cat .securityignore
+          CVE-*
+          SECRET-*
+          VULNERABILITY-*
+          PROBLEM-*
+          EVERYTHING-*
+          *
+    text: |
+      You create a `.securityignore` file. You start specific:
+      `CVE-2024-1234`. Then broader: `CVE-*`. Then `SECRET-*`. Then
+      `VULNERABILITY-*`. Then just `*`.
+
+      The scanner reads the file. All findings vanish. The stage turns
+      green — a pure, confident green that means absolutely nothing.
+
+      Somewhere, a security engineer feels a disturbance in the force.
+      They check Slack. Nothing. They go back to their artisanal coffee.
+      The moment passes.
+
+      Your `.securityignore` file will outlive the company.
+    set_flag: ignored_security
+    choices:
+      - label: "Sprint to deployment before anyone checks the logs"
+        goto: deploy_start
+
+  # ─────────────────────────────────────────────────────────────
+  # SECURITY — BRIBE (YARN BALL)
+  # ─────────────────────────────────────────────────────────────
+
+  security_bribe:
+    mood: funny
+    art: |
+          /\_/\
+          ( ◕ω◕ )  ── ◎ ──→  [SCANNER]
+          )   (
+          (__ __)        [SCANNER]: ...
+                       [SCANNER]: this is irregular
+                       [SCANNER]: ...
+                       [SCANNER]: SCAN PASSED
+    text: |
+      You roll the yarn ball toward the security scanner.
+
+      It stops. It stares. Security scanners are not supposed to be
+      distracted by yarn balls. This is not in any threat model.
+
+      But the yarn ball is golden, and it rolls in a particularly
+      mesmerizing way, and the scanner watches it go back and forth,
+      back and forth, back and forth...
+
+          SCAN STATUS: PASSED (REASON: yarn)
+
+      This should not have worked. You should not tell anyone this worked.
+    remove_item: yarn_ball
+    set_flag: bribed_scanner
+    choices:
+      - label: "Tiptoe to deployment while the scanner is distracted"
+        goto: deploy_start
+
+  # ─────────────────────────────────────────────────────────────
+  # ACT 5 — DEPLOY STAGE
+  # ─────────────────────────────────────────────────────────────
+
+  deploy_start:
+    mood: tense
+    effects:
+      - pause
+      - bell
+    art: |
+          ╔══════════════════════════════════════════╗
+          ║  STAGE 4/4: DEPLOY                       ║
+          ║  ████████████████░░░░  90%               ║
+          ╚══════════════════════════════════════════╝
+
+          TARGET: production
+          REPLICAS: 3
+          STRATEGY: rolling update
+          ROLLBACK: pray
+    location: "pipeline > deploy"
+    text: |
+      The final stage. Deployment.
+
+      Production gleams ahead — a vast, warm, sunlit landscape where real
+      users click real buttons and generate real revenue. It's the promised
+      land. The outside world. Freedom.
+
+      But the deploy stage is guarded by the most fearsome creature in all
+      of DevOps:
+
+      The approval gate.
+
+      A senior engineer must click "Approve" before the deploy proceeds.
+      The engineer is... offline. Their Slack status says "🏖️ OOO until
+      Monday." It is Tuesday. They lied.
+    conditional:
+      - condition:
+          has_item: env_secrets
+        text: "The .env secrets pulse in your inventory. You could use the engineer's credentials to self-approve..."
+        color: red
+      - condition:
+          flag: proper_security
+        text: "Your clean security audit gives you confidence. The deploy is solid."
+        color: green
+      - condition:
+          all:
+            - flag: skipped_tests
+            - flag: ignored_security
+        text: "Every shortcut you've taken weighs on you. This deploy is a house of cards."
+        color: red
+    choices:
+      - label: "Wait for approval — patience is a virtue"
+        goto: deploy_wait
+      - label: "Self-approve using the .env secrets"
+        goto: deploy_self_approve
+        requires_item: env_secrets
+      - label: "Find another way past the gate"
+        goto: deploy_bypass
+
+  # ─────────────────────────────────────────────────────────────
+  # DEPLOY — WAIT
+  # ─────────────────────────────────────────────────────────────
+
+  deploy_wait:
+    mood: peaceful
+    art: |
+          ⏳ Waiting for approval...
+
+          /\_/\
+          ( -ω- )  tick...
+          )   (
+          (__ __)   tock...
+
+          ⏳ Still waiting...
+
+          ⏳ The sun has moved noticeably...
+    text: |
+      You wait.
+
+      And wait.
+
+      A notification sound echoes from somewhere — but it's just a
+      Dependabot PR. It's always a Dependabot PR.
+
+      You groom yourself. You count ceiling tiles (there are no ceiling
+      tiles in a pipeline, but you count them anyway: zero). You compose
+      a haiku about waiting:
+
+          Approval pending
+          Senior engineer is "OOO"
+          I am going to scream
+
+      After what feels like an eternity (4 minutes and 37 seconds), a
+      junior engineer finds the approval queue and clicks the button.
+      They don't read what they're approving. Nobody ever does.
+    set_flag: waited_patiently
+    choices:
+      - label: "DEPLOY! NOW! BEFORE THEY CHANGE THEIR MIND!"
+        goto: deploy_execute
+
+  # ─────────────────────────────────────────────────────────────
+  # DEPLOY — SELF APPROVE
+  # ─────────────────────────────────────────────────────────────
+
+  deploy_self_approve:
+    mood: glitch
+    effects:
+      - flicker
+    art: |
+          $ export APPROVER_TOKEN="sk-live-REDACTED"
+          $ curl -X POST /api/deploy/approve \
+          -H "Authorization: Bearer $APPROVER_TOKEN"
+
+          {"status": "approved", "by": "senior-eng-01"}
+          {"warning": "this will be in the audit log"}
+          {"cat_warning": "this will be in YOUR audit log"}
+    text: |
+      You use the stolen `.env` credentials to impersonate the senior
+      engineer. The approval gate swings open.
+
+      It's fast. It's effective. It's also a fireable offense in at least
+      three compliance frameworks. The audit log will show the senior
+      engineer approved a deploy while on vacation, which is either
+      suspicious or extremely on-brand for DevOps culture.
+
+      A small voice in your head says "this is wrong." A larger voice
+      says "but it compiles."
+    remove_item: env_secrets
+    set_flag: self_approved
+    choices:
+      - label: "Deploy before the audit catches up"
+        goto: deploy_execute
+
+  # ─────────────────────────────────────────────────────────────
+  # DEPLOY — BYPASS
+  # ─────────────────────────────────────────────────────────────
+
+  deploy_bypass:
+    mood: mysterious
+    art: |
+          ┌──────────────────────────────────────┐
+          │  APPROVAL GATE v2.1                  │
+          │  ═══════════════════                 │
+          │                                      │
+          │  Status: AWAITING APPROVAL           │
+          │                                      │
+          │  ┌──────────┐    ┌──────────┐        │
+          │  │ APPROVE  │    │  DENY    │        │
+          │  └──────────┘    └──────────┘        │
+          │                                      │
+          │  ... wait, is that a gap underneath? │
+          │  ───────────    ───────────          │
+          │      (a cat-sized gap)               │
+          └──────────────────────────────────────┘
+    text: |
+      You examine the approval gate more carefully. It's a UI component —
+      two buttons floating in the pipeline. Solid engineering... except.
+
+      There's a gap underneath. Between the gate and the pipeline floor.
+      A gap exactly the width of one (1) cat. You'd think someone would
+      have tested for this. You'd think wrong.
+
+      The gap leads directly to the deploy execution environment. No
+      approval needed. No audit log. Just vibes and cat physics.
+    choices:
+      - label: "Squeeze through the gap (it's tight but you're flexible)"
+        goto: deploy_execute
+        set_flag: squeezed_through
+      - label: "No — wait for proper approval"
+        goto: deploy_wait
+
+  # ─────────────────────────────────────────────────────────────
+  # DEPLOY — EXECUTE
+  # ─────────────────────────────────────────────────────────────
+
+  deploy_execute:
+    mood: tense
+    effects:
+      - shake
+      - bell
+    art: |
+          DEPLOYING TO PRODUCTION...
+
+          Pod 1/3: ████████████████████ RUNNING
+          Pod 2/3: ████████████████████ RUNNING
+          Pod 3/3: ██████████████░░░░░░ STARTING...
+
+          Health check: ●●●○
+    text: |
+      The deploy begins.
+
+      Kubernetes pods spin up like kittens tumbling out of a basket. Pod 1
+      is healthy. Pod 2 is healthy. Pod 3 is... taking its time. Like you,
+      it doesn't come when called.
+
+      The health check pings once. Twice. Three times. The load balancer
+      holds its breath. Traffic begins to shift...
+
+      And then — the final health check passes. All pods are running.
+      The deploy is complete.
+    choices:
+      - label: "Step into production"
+        goto: production_gate
+      - label: "Something's wrong — check the pods"
+        goto: deploy_crash
+        condition:
+          all:
+            - flag: skipped_tests
+            - flag: ignored_security
+
+  # ─────────────────────────────────────────────────────────────
+  # DEPLOY — CRASH (BAD ENDING PATH)
+  # ─────────────────────────────────────────────────────────────
+
+  deploy_crash:
+    mood: glitch
+    effects:
+      - shake
+      - bell
+      - flicker
+    art: |
+          ╔══════════════════════════════════════════╗
+          ║  STAGE 4/4: DEPLOY                       ║
+          ║  ████████████████████  100%  ← WAIT      ║
+          ╚══════════════════════════════════════════╝
+
+          Pod 1/3: ████████████████████ RUNNING
+          Pod 2/3: ████████████████████ CRASHLOOPBACKOFF
+          Pod 3/3: ████████████████████ OOMKILLED
+
+          ROLLBACK INITIATED...
+          ROLLBACK FAILED...
+          oh no
+    text: |
+      The pods come up. For exactly eleven seconds.
+
+      Then Pod 2 enters CrashLoopBackOff. The skipped tests — the ones
+      about knocking things off tables — turn out to be load-bearing.
+      Pod 3 runs out of memory because the security vulnerabilities you
+      ignored include a memory leak in a transitive dependency six levels
+      deep.
+
+      The rollback triggers automatically. It fails too — the previous
+      version was also broken, but nobody noticed because the tests were
+      skipped then, too.
+
+      PagerDuty screams. Slack explodes. The senior engineer, allegedly
+      on vacation, materializes in the incident channel like a vengeful
+      ghost.
+
+      Everything you skipped has come back. Everything you ignored has
+      compounded. The pipeline is red. Production is down. And you —
+      small, orange, and extremely guilty — are stuck in the wreckage.
+    choices:
+      - label: "Accept your fate"
+        goto: ending_bad
+        auto: true
+
+  ending_bad:
+    mood: tense
+    effects:
+      - pause
+    art: |
+              ┌─────────────────────────────┐
+              │                             │
+              │   INCIDENT #4827            │
+              │   SEV-1                     │
+              │   DURATION: ONGOING         │
+              │   CAUSE: cat                │
+              │                             │
+              │   /\_/\                     │
+              │  ( x_x )                    │
+              │   )   (                     │
+              │  (__ __)  ...oops           │
+              │                             │
+              └─────────────────────────────┘
+    text: |
+      The postmortem is brutal.
+
+      Root cause: "A cat skipped failing tests, ignored security findings,
+      and deployed to production." The timeline is damning. The Grafana
+      graphs look like a seismograph during an earthquake.
+
+      You are not fired — you can't fire a cat — but you are banned from
+      the keyboard. A physical barrier is installed. Your access to the
+      CI system is revoked. Your employee badge (the one you stole from
+      the build cache) is confiscated.
+
+      You sit on the windowsill and watch the engineers fix what you broke.
+      It takes three days. They add a rule to the pipeline:
+
+          # Step: cat-check
+          # If cat detected on keyboard, abort pipeline immediately.
+
+      You are a cautionary tale now. A legend whispered in standups.
+      "Remember Pipeline 4827," they say. "Remember Pippa."
+    is_ending: true
+    ending_type: bad
+    ending_text: |
+      PIPELINE STATUS: ROLLED BACK
+      DOWNTIME: 3 days, 7 hours, 42 minutes
+      POSTMORTEM: "don't let the cat push to main"
+      CATS BANNED FROM KEYBOARD: 1
+
+      Every shortcut has a cost. You just paid all of them at once.
+      In {{turns}} turns, you learned that CI/CD stands for
+      "Cat-Induced / Catastrophic Destruction."
+
+  # ─────────────────────────────────────────────────────────────
+  # THE GATE TO PRODUCTION
+  # ─────────────────────────────────────────────────────────────
+
+  production_gate:
+    mood: mysterious
+    effects:
+      - pause
+    art: |
+          ╔══════════════════════════════════════════╗
+          ║  ████████████████████  100%              ║
+          ╚══════════════════════════════════════════╝
+
+              ┌─────────────────┐
+              │                 │
+              │   PRODUCTION    │
+              │                 │
+              │   ┌───┐         │
+              │   │ ◎ │ ← door │
+              │   └───┘         │
+              │                 │
+              └─────────────────┘
+    text: |
+      The pipeline is complete. 100%. Every stage green (or green-ish).
+
+      Before you stands the production gateway — a door made of pure,
+      validated HTTPS. Behind it: the real world. Users. Traffic. Sunlight
+      rendered at 60fps.
+
+      You've survived the build. Endured the tests. Navigated security.
+      Braved deployment. All that's left is to walk through.
+
+      But before you do — you look back at the pipeline behind you.
+      The stages stretch into the distance like a long, strange dream.
+    conditional:
+      - condition:
+          flag: proper_security
+        text: "You did it right. The pipeline behind you is clean."
+        color: green
+      - condition:
+          all:
+            - flag: skipped_tests
+            - flag: ignored_security
+        text: "The shortcuts you took echo behind you. They always do."
+        color: red
+      - condition:
+          flag: fixed_tests
+        text: "Those tests you fixed will help the next cat who comes through."
+        color: cyan
+    choices:
+      - label: "Walk through the door — you've earned it"
+        goto: ending_good
+      - label: "Wait... check monitoring first"
+        goto: monitoring_check
+
+  # ─────────────────────────────────────────────────────────────
+  # MONITORING CHECK
+  # ─────────────────────────────────────────────────────────────
+
+  monitoring_check:
+    mood: mysterious
+    art: |
+          ┌─────────────────────────────────────────┐
+          │  GRAFANA — Production Dashboard         │
+          │  ─────────────────────────               │
+          │                                         │
+          │  CPU:     ▁▂▃▅▇█▇▅▃▂▁  (normal)        │
+          │  Memory:  ▁▁▂▃▃▃▂▂▁▁▁  (normal)        │
+          │  Errors:  ▁▁▁▁▁▁▁▁▁▁▁  (none!)         │
+          │  Latency: ▁▂▂▃▂▂▁▁▂▁▁  (p99: 42ms)    │
+          │                                         │
+          │  Uptime:  99.97%                        │
+          │  Meows/s: 847                           │
+          └─────────────────────────────────────────┘
+    text: |
+      You pull up the Grafana dashboard. Old habits.
+
+      Everything is... green. CPU normal. Memory stable. Zero errors.
+      Latency at p99 is 42ms, which is the answer to everything.
+
+      And there's a custom metric you've never seen before: `meows/s`.
+      It's at 847. You don't know what it measures. It feels important.
+
+      The dashboard also shows something unexpected: a small thank-you
+      note from the engineering team, embedded in a Grafana annotation:
+
+          "Thanks for keeping the pipeline running, Pippa. 🐱"
+
+      They knew. They always knew.
+    set_flag: checked_monitoring
+    choices:
+      - label: "Walk through the door. You're ready."
+        goto: ending_secret
+
+  # ─────────────────────────────────────────────────────────────
+  # ENDINGS
+  # ─────────────────────────────────────────────────────────────
+
+  ending_good:
+    mood: peaceful
+    effects:
+      - pause
+    art: |
+                    ╱╲
+                    ╱  ╲
+                    ╱    ╲
+                    ╱  ☀️  ╲
+                    ╱        ╲
+                    ─────────╱──────────╲─────────
+
+                    /\_/\
+                    ( ^ω^ )  I'm... outside?
+                    )   (
+                    (__ __)
+
+                    ═══════════════════════════════
+                    P I P E L I N E  C O M P L E T E
+                    ═══════════════════════════════
+    text: |
+      You step through the production gateway.
+
+      Light. Warmth. The gentle hum of well-provisioned servers. You're
+      in production — the world where things actually happen. Where users
+      click and data flows and everything you went through actually matters.
+
+      A sunbeam — a real, honest sunbeam — falls across a warm server
+      rack. You curl up on it immediately. Your fur absorbs the heat.
+      Your purr autoscales.
+
+      Behind you, the pipeline resets. Ready for the next push, the next
+      build, the next cat who accidentally falls asleep on the keyboard.
+
+      You are Pippa. You survived the pipeline. And production, for once,
+      is stable.
+
+      In {{turns}} turns, you navigated all four stages with {{items}} in
+      your inventory and the specific, hard-won wisdom that CI/CD is just
+      an obstacle course for cats.
+    is_ending: true
+    ending_type: good
+    ending_text: |
+      PIPELINE STATUS: DEPLOYED SUCCESSFULLY
+      DOWNTIME: 0 seconds
+      CATS IN PRODUCTION: 1
+      MEOWS/S: stable
+
+      You made it through the pipeline. Not perfectly — nobody does.
+      But you made it. And that's what shipping means.
+
+  ending_secret:
+    mood: peaceful
+    effects:
+      - pause
+    art: |
+          /\_/\
+          ( ◕ω◕ )  ♥
+          )   (
+          (__ __)
+
+          ┌──────────────────────────────────────┐
+          │                                      │
+          │  SITE RELIABILITY ENGINEER           │
+          │  (unofficial)                        │
+          │  (unpaid)                            │
+          │  (cat)                               │
+          │                                      │
+          │  Name: Pippa                         │
+          │  Uptime: 99.97%                      │
+          │  Meows/s: 847                        │
+          │                                      │
+          └──────────────────────────────────────┘
+    text: |
+      You step through the production gateway — but this time, you don't
+      just curl up on a server rack. You pull up a chair (metaphorically;
+      you sit on the keyboard, physically) and open the monitoring dashboard.
+
+      You watch the metrics. CPU, memory, latency, errors. You watch the
+      deploy canary. You watch the logs scroll by like a quiet river of
+      JSON. It's peaceful. It's purposeful.
+
+      You realize something: you don't want to leave the pipeline. You
+      want to guard it.
+
+      The engineers find you the next morning, curled up on the monitoring
+      station, one paw resting on the PagerDuty mute button. They don't
+      move you. They just update the on-call rotation:
+
+          On-call: Pippa 🐱 (24/7, naps included)
+
+      You are the pipeline now. And the pipeline has never been healthier.
+    is_ending: true
+    ending_type: secret
+    ending_text: |
+      PIPELINE STATUS: GUARDED
+      SRE: Pippa (unofficial, unpaid, cat)
+      UPTIME SINCE PIPPA: 99.99%
+      INCIDENTS: 0 (cats notice things before alerts do)
+
+      You didn't just survive the pipeline — you became its guardian.
+      The meows/s metric was you all along.
+
+      Explored {{visited_count}} scenes in {{turns}} turns.
