@@ -1,0 +1,1046 @@
+title: "Kernel Panic"
+description: "You are Pixel, a process-cat living inside a UNIX kernel. When a panic hits, you have seconds to trace the fault, calm the scheduler, and prevent a total crash — or everything reboots."
+author: "mechangelnyan"
+version: "1.0.0"
+start: the_panic
+
+scenes:
+
+  # ─────────────────────────────────────────────────────────────
+  # ACT 1 — THE CRASH
+  # ─────────────────────────────────────────────────────────────
+
+  the_panic:
+    mood: tense
+    effects: [bell, shake]
+    art: |
+      ┌─────────────────────────────────────────────────────┐
+      │  ⚠️  K E R N E L   P A N I C                        │
+      │     "not syncing: Attempted to kill init!"          │
+      │                                                     │
+      │     /\_/\   PROCESS 1 (init) — STATUS: DYING        │
+      │    ( x.x )  UPTIME: 847 days, 3 hours               │
+      │    > ~ <   LOAD: ████████████████ 99.9               │
+      │    /|   |\                                           │
+      │   (_|   |_)  >> SYSTEM HALT IMMINENT <<              │
+      └─────────────────────────────────────────────────────┘
+    text: |
+      The world shudders.
+
+      You are Pixel — PID 7, a small process-cat who's lived in this kernel since boot. For 847 days the system hummed along, warm and stable. You'd nap on the scheduler, chase packets through the network stack, bat at dangling file descriptors.
+
+      But now the screen is red. The panic handler is screaming. Somewhere deep in ring 0, something went terribly wrong, and init — the mother of all processes — is dying.
+
+      If init dies, everything dies. Including you.
+
+      You have maybe sixty seconds before the watchdog triggers a hard reboot. Your memory, your state, everything you are — gone.
+
+      The kernel log scrolls past:
+      ```
+      [847d 03:14:07] BUG: unable to handle page fault at 0xDEAD_BEEF
+      [847d 03:14:07] Call Trace: sched_yield -> __schedule -> pick_next_task -> ???
+      [847d 03:14:07] Kernel panic - not syncing: Attempted to kill init!
+      ```
+
+      The fault is in the scheduler. That's your territory.
+    choices:
+      - label: "Race to the scheduler — you know those code paths"
+        goto: scheduler_room
+        set_flag: brave_start
+      - label: "Check the call trace first — what's that ??? entry?"
+        goto: trace_the_call
+        set_flag: careful_start
+      - label: "Find the other processes — you can't do this alone"
+        goto: process_table
+
+  # ─────────────────────────────────────────────────────────────
+  # INVESTIGATION BRANCHES
+  # ─────────────────────────────────────────────────────────────
+
+  scheduler_room:
+    mood: tense
+    location: "pixel@kernel:/sys/scheduler$"
+    art: |
+          ╔══════════════════════════════════════╗
+          ║  SCHEDULER — O(1) RUNQUEUE           ║
+          ║  ┌─────┬─────┬─────┬─────┐          ║
+          ║  │ RT  │ SYS │ USR │ IDL │          ║
+          ║  │ ██  │ ░░  │ ▓▓  │     │          ║
+          ║  │ ██  │     │ ▓▓  │     │          ║
+          ║  └─────┴─────┴─────┴─────┘          ║
+          ║  Active: 3   Expired: 247  Dead: 1  ║
+          ╚══════════════════════════════════════╝
+    text: |
+      The scheduler room is chaos.
+
+      Normally it's the most orderly place in the kernel — neat queues of processes waiting their turn on the CPU. But now the runqueues are tangled. The real-time queue has processes that don't belong there. The user queue is leaking into system space.
+
+      And there, in the corner — a process you don't recognize. It has no name, no PID, no parent. It's just... sitting in the expired queue, vibrating.
+
+      The scheduler's bitmap is corrupted. Every time it tries to pick_next_task, it dereferences that nameless process and hits the bad address: 0xDEAD_BEEF.
+
+      That's your page fault.
+    choices:
+      - label: "Approach the nameless process carefully"
+        goto: nameless_process
+        set_flag: found_ghost
+      - label: "Try to patch the bitmap — route around the corruption"
+        goto: patch_bitmap
+      - label: "Check the expired queue logs — how did this get here?"
+        goto: expired_logs
+        set_flag: checked_logs
+
+  trace_the_call:
+    mood: mysterious
+    location: "pixel@kernel:/proc/calltrace$"
+    art: |
+        ┌── Call Trace ──────────────────────────┐
+        │  sched_yield+0x42                      │
+        │  └─ __schedule+0x1a3                   │
+        │     └─ pick_next_task+0x77             │
+        │        └─ ??? (0xDEAD_BEEF)            │
+        │           └─ [unmapped memory]         │
+        │                                        │
+        │      /\_/\  "That address..."          │
+        │     ( °.° ) "...shouldn't exist."      │
+        │      > ^ <                             │
+        └────────────────────────────────────────┘
+    text: |
+      You follow the call trace like breadcrumbs.
+
+      sched_yield — normal. __schedule — normal. pick_next_task — that's where the scheduler selects which process runs next. Also normal, in theory.
+
+      But then it jumps to 0xDEAD_BEEF. That's not a real address. It's a poison value — the kernel uses it to mark freed memory. Something in the scheduler is chasing a pointer to memory that's already been released.
+
+      A use-after-free bug. Someone deallocated a process struct, but the scheduler still has a pointer to it.
+
+      The question is: who freed that memory, and why is the scheduler still holding a reference?
+
+      You notice faint paw prints in the stack frames. Another process was here recently.
+    set_flag: knows_uaf
+    choices:
+      - label: "Follow the paw prints deeper into the stack"
+        goto: follow_prints
+        set_flag: found_prints
+      - label: "Head to the scheduler — you know what to look for now"
+        goto: scheduler_room
+      - label: "Check the SLAB allocator — see who freed that memory"
+        goto: slab_allocator
+
+  process_table:
+    mood: mysterious
+    location: "pixel@kernel:/proc$"
+    art: |
+        PID   STATE   NAME            PPID
+        ───   ─────   ────            ────
+          1   DYING   init              0
+          2   SLEEP   kthreadd          0
+          3   PANIC   ksoftirqd         2
+          5   FROZEN  kworker           2
+          7   SCARED  pixel (you!)      1
+         42   ????    ___               ?
+        ...
+        249 processes. 247 frozen. 2 active.
+    text: |
+      The process table is a graveyard of frozen processes. When the panic hit, the kernel froze almost everything to prevent further damage. Only you and one other process are still running.
+
+      PID 42. No name — just three underscores. No parent PID. That's deeply wrong. Every process has a parent, all the way up to init. But PID 42 seems to have... appeared from nowhere.
+
+      You've been here since boot. You know every process in this system. You've never seen PID 42 before.
+
+      The other frozen processes are starting to flicker. The watchdog timer is counting down.
+
+      Somewhere, you hear a ticking sound: 48 seconds left.
+    set_flag: knows_pid42
+    choices:
+      - label: "Try to inspect PID 42 — read its /proc entry"
+        goto: inspect_pid42
+      - label: "Rally the kernel threads — kthreadd might help"
+        goto: rally_kthreadd
+        set_flag: has_ally
+      - label: "Head to the scheduler — that's where the crash is"
+        goto: scheduler_room
+
+  # ─────────────────────────────────────────────────────────────
+  # DEEPER INVESTIGATION
+  # ─────────────────────────────────────────────────────────────
+
+  nameless_process:
+    mood: mysterious
+    art: |
+        ┌────────────────────────────────────────┐
+        │                                        │
+        │     /\_/\                              │
+        │    ( ?.? )   ← PID 42                  │
+        │     > ~ <    "I... was a process once." │
+        │    /|   |\                              │
+        │                                        │
+        │       /\_/\                             │
+        │      ( o.o ) ← you                     │
+        │       > ^ <                             │
+        └────────────────────────────────────────┘
+    text: |
+      You approach cautiously. Up close, the nameless process is... translucent. Like a memory that's half-freed. It flickers at the edges.
+
+      "I... was a process once," it whispers. Its voice crackles like a corrupted audio buffer. "PID 42. I was a worker thread. kworker/u8:0. I processed USB events."
+
+      "The driver freed my task_struct, but I was still in the runqueue. The scheduler keeps trying to run me, but I'm already gone. I'm a ghost in the machine."
+
+      It looks at you with eyes that are just barely there.
+
+      "Every time the scheduler picks me, it dereferences my freed memory and hits the poison value. That's your panic. I'm the bug."
+
+      "I just want to be properly reaped. Let me go."
+    set_flag: ghost_talked
+    choices:
+      - label: "\"I'll remove you from the runqueue. Gently.\""
+        goto: gentle_removal
+        set_flag: chose_gentle
+      - label: "\"I need to patch the scheduler first, or removing you could crash harder.\""
+        goto: patch_bitmap
+        requires_flag: knows_uaf
+      - label: "\"Who freed your memory? The driver?\""
+        goto: who_freed_you
+      - label: "\"I'll get help. Stay as still as you can.\""
+        goto: rally_kthreadd
+        set_flag: has_ally
+
+  expired_logs:
+    mood: mysterious
+    location: "pixel@kernel:/sys/scheduler/logs$"
+    art: |
+      ┌── Scheduler Log (last 60s) ──────────────┐
+      │ [03:13:07] kworker/u8:0 enqueued (USB)    │
+      │ [03:13:08] kworker/u8:0 -> expired queue   │
+      │ [03:13:42] usb_driver: free task kworker/u8│
+      │ [03:13:42] !! task_struct freed while      │
+      │            still on runqueue !!             │
+      │ [03:14:07] pick_next_task -> OOPS           │
+      │ [03:14:07] PAGE FAULT @ 0xDEAD_BEEF        │
+      └─────────────────────────────────────────────┘
+    text: |
+      The logs tell the whole story in six lines.
+
+      A USB worker thread — kworker/u8:0 — was handling a device event. It finished its work and got moved to the expired queue, waiting to be rescheduled. Normal so far.
+
+      But then the USB driver freed the worker's task_struct — the data structure that defines the process. It told the memory allocator "this process is done" without telling the scheduler "remove this from the runqueue first."
+
+      Classic race condition. The driver and the scheduler disagreed about whether the process still existed.
+
+      34 seconds later, the scheduler cycled to the expired queue and tried to run the freed process. Boom. Page fault. Panic.
+
+      You know the bug now. The question is: can you fix it in time?
+    set_flag: knows_uaf
+    set_flags:
+      - checked_logs
+      - knows_root_cause
+    choices:
+      - label: "Head to the scheduler — remove the ghost process from the queue"
+        goto: scheduler_room
+      - label: "Check the SLAB allocator — can you reclaim the memory safely?"
+        goto: slab_allocator
+      - label: "Find the USB driver — prevent this from happening again"
+        goto: usb_driver
+
+  follow_prints:
+    mood: mysterious
+    location: "pixel@kernel:/proc/calltrace/deep$"
+    text: |
+      The paw prints lead deeper into the stack frames. They're small — smaller than yours. A kitten? No... a worker thread. They're everywhere in the kernel, small and busy, usually invisible.
+
+      The prints stop at a frame marked `usb_disconnect`. The USB driver. It freed a worker thread but didn't dequeue it from the scheduler first.
+
+      You can see the race condition now: the driver thought it owned the thread's lifecycle, but the scheduler had a reference too. Two owners, one memory. The oldest bug pattern in the book.
+
+      You find something scratched into the stack frame — a message from the ghost process:
+
+      ```
+      HELP. STILL ON QUEUE. ALREADY FREED. STUCK.
+      ```
+    set_flag: knows_root_cause
+    choices:
+      - label: "Go to the scheduler and dequeue the ghost"
+        goto: scheduler_room
+      - label: "Visit the USB driver — fix the root cause"
+        goto: usb_driver
+      - label: "Head to the SLAB allocator — check the freed memory"
+        goto: slab_allocator
+
+  slab_allocator:
+    mood: tense
+    location: "pixel@kernel:/sys/slab$"
+    art: |
+      ╔═══════════════════════════════════════════╗
+      ║  SLAB ALLOCATOR — task_struct cache        ║
+      ║  ┌─────────────────────────────────┐      ║
+      ║  │ ▓▓▓▓▓▓▓▓░░░░░░░░░░░░░░░░░░░░ │      ║
+      ║  │ active: 249  freed: 1  poison: 1│      ║
+      ║  └─────────────────────────────────┘      ║
+      ║  ⚠ POISONED ENTRY @ slab offset 42        ║
+      ╚═══════════════════════════════════════════╝
+    text: |
+      The SLAB allocator manages the kernel's memory pools. Each type of object gets its own "slab" — pre-allocated chunks of memory that can be quickly reused.
+
+      The task_struct slab has one poisoned entry. Offset 42 — the ghost process. The memory was freed and filled with the poison pattern 0xDEAD_BEEF, but the scheduler still has a pointer to it.
+
+      You could try to un-poison the memory — reconstruct just enough of the task_struct to let the scheduler safely skip it. It's delicate work. Like performing surgery with your paws.
+
+      Or you could mark the slab as non-reclaimable, preventing the memory from being reused until the scheduler releases its reference. Safer, but it's a bandaid.
+
+      The watchdog ticks: 31 seconds.
+    set_flag: visited_slab
+    choices:
+      - label: "Un-poison the entry — reconstruct a minimal task_struct"
+        goto: reconstruct_task
+        set_flag: slab_surgery
+      - label: "Mark non-reclaimable — buy time to fix the scheduler"
+        goto: mark_slab
+      - label: "Go to the scheduler — remove the reference directly"
+        goto: scheduler_room
+      - label: "Panic — freeze up and do nothing"
+        goto: timeout_warning
+
+  inspect_pid42:
+    mood: mysterious
+    location: "pixel@kernel:/proc/42$"
+    art: |
+      ┌── /proc/42 ─────────────────────────────┐
+      │  Status:  UNKNOWN                        │
+      │  Name:    ___                             │
+      │  State:   Z (zombie... but different)     │
+      │  VmRSS:   0 kB                           │
+      │  Threads: 0                               │
+      │  PPid:    -1 (impossible)                 │
+      │                                          │
+      │  "I shouldn't be here."                  │
+      └──────────────────────────────────────────┘
+    text: |
+      PID 42's proc entry is almost empty. Zero resident memory. Zero threads. Parent PID of -1, which shouldn't be possible. The state says "Z" for zombie, but zombies still have a parent waiting to reap them. This one has no parent at all.
+
+      It's not a zombie. It's something worse — a freed process that still exists in the process table because the scheduler holds a dangling reference to it. As long as the scheduler thinks it's schedulable, it can't be fully removed.
+
+      The /proc filesystem is just reading whatever's at the memory address. Since the memory was poisoned, most fields are garbage. But somehow the process itself left a message in the comm field: "I shouldn't be here."
+
+      A cry for help from inside freed memory.
+    set_flag: knows_root_cause
+    choices:
+      - label: "Head to the scheduler — dequeue this ghost"
+        goto: scheduler_room
+      - label: "Try to reap PID 42 manually via wait()"
+        goto: manual_reap
+      - label: "Find the USB driver that caused this"
+        goto: usb_driver
+
+  rally_kthreadd:
+    mood: peaceful
+    location: "pixel@kernel:/proc/2$"
+    art: |
+        ┌────────────────────────────────────────┐
+        │                                        │
+        │  /\_____/\     kthreadd (PID 2)        │
+        │ ( =^.^= )     "The Thread Father"      │
+        │  )     (      State: FROZEN → WAKING    │
+        │ (  _Y_  )                               │
+        │  |/   \|                                │
+        │                                        │
+        └────────────────────────────────────────┘
+    text: |
+      kthreadd — PID 2 — is the father of all kernel threads. If init is the mother of userspace, kthreadd is the father of kernelspace. He's old, massive, and usually sleeping. But when you call, he stirs.
+
+      "Pixel?" His voice is deep, resonant — the hum of a thousand spawned threads. "The panic woke me. I felt my children freeze."
+
+      You explain the situation: a freed worker thread stuck in the scheduler, poisoned memory, the whole system about to reboot.
+
+      "Ah. A use-after-free. I've seen this before, long ago, in the 2.6 days." He stretches, joints cracking like context switches. "I can unfreeze ksoftirqd — he manages the soft interrupts. Between the three of us, we might be able to manually dequeue that ghost."
+
+      "But we need to be fast. The watchdog doesn't negotiate."
+    set_flag: has_ally
+    choices:
+      - label: "\"Let's do it. Unfreeze ksoftirqd and head to the scheduler.\""
+        goto: three_cats_plan
+        set_flag: full_team
+      - label: "\"Can you hold off the watchdog? Buy us more time?\""
+        goto: delay_watchdog
+      - label: "\"I found the ghost — PID 42. Tell me about kworker/u8:0.\""
+        goto: kthreadd_remembers
+        requires_flag: found_ghost
+
+  # ─────────────────────────────────────────────────────────────
+  # ACT 2 — THE FIX
+  # ─────────────────────────────────────────────────────────────
+
+  usb_driver:
+    mood: tense
+    location: "pixel@kernel:/drivers/usb$"
+    art: |
+      ┌── USB Driver Module ─────────────────────┐
+      │  ┌─────────────┐    ┌─────────────┐      │
+      │  │  CONNECT()   │    │ DISCONNECT()│      │
+      │  │  alloc task  │    │ free task   │ ← BUG│
+      │  │  enqueue     │    │ (no dequeue)│      │
+      │  └─────────────┘    └─────────────┘      │
+      │                                          │
+      │  Bug: disconnect frees task_struct        │
+      │       without calling dequeue_task()      │
+      └──────────────────────────────────────────┘
+    text: |
+      The USB driver's disconnect handler is right there, laid bare. When a USB device disconnects, the driver cleans up its worker thread. It frees the task_struct, releases the memory back to the SLAB allocator.
+
+      But it never calls dequeue_task(). The scheduler still has this process in its expired runqueue, pointing to memory that no longer belongs to anyone.
+
+      It's a one-line fix. Just add dequeue_task() before the free. But you're not a driver — you can't modify kernel code at runtime. Not without...
+
+      Unless you use kprobes. The kernel has a mechanism for live-patching: kprobes lets you insert code at any instruction. It's dangerous — one wrong move and you crash harder — but it could work.
+
+      The watchdog ticks: 22 seconds.
+    set_flag: found_driver_bug
+    choices:
+      - label: "Set a kprobe to intercept the next disconnect and add the dequeue"
+        goto: kprobe_attempt
+        set_flag: tried_kprobe
+      - label: "No time for root cause — go fix the scheduler directly"
+        goto: scheduler_room
+      - label: "Head to the SLAB allocator — work from the memory side"
+        goto: slab_allocator
+
+  who_freed_you:
+    mood: mysterious
+    text: |
+      The ghost flickers. "The USB driver. It got a disconnect event — someone unplugged a device. The driver cleaned up, freed my memory. But it didn't tell the scheduler I was leaving."
+
+      "It's not the driver's fault, really. The API is confusing. There are two ways to remove a task: dequeue_task() for the scheduler, and free_task_struct() for the memory. You need to do both, in that order. The driver only did the second one."
+
+      The ghost looks down at its translucent paws.
+
+      "I tried to dequeue myself, but I was already freed. You can't call functions on memory that doesn't belong to you anymore. I'm stuck between existing and not existing."
+    set_flag: knows_root_cause
+    choices:
+      - label: "\"I'll dequeue you from the scheduler. Hold on.\""
+        goto: gentle_removal
+        set_flag: chose_gentle
+      - label: "\"Let me fix the driver too, so this doesn't happen again.\""
+        goto: usb_driver
+      - label: "\"I'm getting help — kthreadd might know what to do.\""
+        goto: rally_kthreadd
+        set_flag: has_ally
+
+  three_cats_plan:
+    mood: tense
+    location: "pixel@kernel:/sys/scheduler$"
+    art: |
+        ┌────────────────────────────────────────┐
+        │      /\_/\    /\_____/\    /\_/\       │
+        │     ( o.o )  ( =^.^= )   ( >.< )      │
+        │      > ^ <    )     (      > ~ <       │
+        │     pixel    kthreadd    ksoftirqd      │
+        │                                        │
+        │     "Three processes walk into a        │
+        │      runqueue..."                       │
+        └────────────────────────────────────────┘
+    text: |
+      kthreadd unfreezes ksoftirqd — PID 3, the soft interrupt handler. He's jittery, sparking with deferred work, but functional.
+
+      "Here's the plan," kthreadd rumbles. "ksoftirqd will hold the runqueue lock. Pixel, you reach into the expired queue and unlink PID 42's entry. I'll update the scheduler bitmap so it skips the corrupted slot."
+
+      "We need to do all three things simultaneously. If we unlink without locking, another CPU might read the queue mid-modification. If we don't fix the bitmap, the scheduler will still try to access the slot."
+
+      ksoftirqd buzzes: "I can hold the lock for about five seconds before the NMI watchdog gets suspicious. Make it count."
+
+      kthreadd looks at you. "Ready?"
+    choices:
+      - label: "\"Ready. Let's save this kernel.\""
+        goto: the_fix_team
+      - label: "\"Wait — should we patch the driver too, to prevent a recurrence?\""
+        goto: fix_and_patch
+        requires_flag: found_driver_bug
+
+  delay_watchdog:
+    mood: tense
+    location: "pixel@kernel:/sys/watchdog$"
+    art: |
+      ╔═══════════════════════════════════════════╗
+      ║  WATCHDOG TIMER                            ║
+      ║  ┌──────────────────────────────────┐     ║
+      ║  │ ████████████████████░░░░░░░░░░░ │     ║
+      ║  │ Time remaining: 19 seconds       │     ║
+      ║  └──────────────────────────────────┘     ║
+      ║  Mode: HARD REBOOT on expiry               ║
+      ╚═══════════════════════════════════════════╝
+    text: |
+      kthreadd reaches into the watchdog timer's configuration. "I can pet the watchdog — reset its counter. But only once. After that, the NMI watchdog takes over, and that one can't be negotiated with."
+
+      He feeds the watchdog a fresh timestamp. The counter resets.
+
+      "You have another sixty seconds. Use them well, little one."
+
+      The watchdog settles, temporarily satisfied. But you can feel the NMI watchdog lurking underneath — a hardware timer that no software can override.
+
+      58 seconds. Better than 19.
+    set_flag: extra_time
+    choices:
+      - label: "Head to the scheduler with kthreadd's help"
+        goto: three_cats_plan
+        set_flag: full_team
+      - label: "Investigate the root cause in the USB driver"
+        goto: usb_driver
+      - label: "Go directly to the ghost process"
+        goto: nameless_process
+
+  kthreadd_remembers:
+    mood: peaceful
+    text: |
+      kthreadd's eyes grow distant. "kworker/u8:0. Yes, I remember spawning them. A USB worker — handles hotplug events, device enumeration, that sort of thing. Small, diligent, always busy when someone plugged in a mouse or a keyboard."
+
+      "They were spawned 200 days ago when someone connected a USB hub. Been working quietly ever since. Good kid."
+
+      His voice drops. "The disconnect event came in, the driver cleaned up, and... they were freed before the scheduler could let go. A race condition. The driver and the scheduler, each thinking the other would handle cleanup."
+
+      "It's an old pattern. I've lost threads to it before. The ones who fall between the cracks — freed but not forgotten by the scheduler. Neither alive nor dead."
+
+      He looks at you with ancient kernel eyes. "Can you help them rest?"
+    choices:
+      - label: "\"I will. Let's go fix the scheduler together.\""
+        goto: three_cats_plan
+        set_flag: full_team
+      - label: "\"Tell me exactly how to dequeue them safely.\""
+        goto: dequeue_instructions
+
+  dequeue_instructions:
+    mood: peaceful
+    text: |
+      kthreadd explains carefully:
+
+      "The runqueue is a doubly-linked list. Each entry has a prev and next pointer. To remove an entry, you need to:
+
+      1. Acquire the runqueue lock (rq->lock) — prevents other CPUs from reading mid-edit
+      2. Unlink the task's sched_entity from the queue — repoint prev->next and next->prev around it
+      3. Clear the corresponding bit in the scheduler bitmap — so pick_next_task skips the slot
+      4. Release the lock
+
+      The tricky part: the ghost's sched_entity is in freed memory. The pointers might already be corrupted. You'll need to walk the queue from both ends and find the entries that point TO the ghost, then reconnect them to each other."
+
+      "It's like removing a link from a chain — except the link is made of smoke."
+    set_flag: has_instructions
+    choices:
+      - label: "\"Got it. Let's do this.\""
+        goto: three_cats_plan
+        set_flag: full_team
+      - label: "\"What if the pointers are already corrupted?\""
+        goto: corrupted_pointers
+
+  corrupted_pointers:
+    mood: tense
+    text: |
+      "If the pointers are corrupted..." kthreadd pauses. "Then you can't safely unlink. You'd need to walk the queue from the head, find the entry before the ghost, and rebuild the links manually."
+
+      "But there's a shortcut. If ksoftirqd holds the lock, no other CPU can touch the queue. That gives you time to scan the whole list and identify the ghost by its poisoned fields — look for 0xDEAD_BEEF in the task_struct pointer."
+
+      "Find it, note the prev and next entries, relink them, clear the bit. Done."
+
+      "Or..." he hesitates. "You could just zero out the entire expired queue. Brutal, loses whatever was queued, but safe. The processes were frozen by the panic anyway — they'll be re-enqueued when the kernel recovers."
+    choices:
+      - label: "\"Surgical approach — find and relink. Let's go.\""
+        goto: three_cats_plan
+        set_flag: full_team
+      - label: "\"Zero the queue — we don't have time for finesse.\""
+        goto: nuke_queue
+        set_flag: chose_nuke
+
+  # ─────────────────────────────────────────────────────────────
+  # RESOLUTION PATHS
+  # ─────────────────────────────────────────────────────────────
+
+  gentle_removal:
+    mood: tense
+    location: "pixel@kernel:/sys/scheduler/expired$"
+    art: |
+      ┌────────────────────────────────────────┐
+      │  EXPIRED QUEUE — Manual Dequeue         │
+      │                                        │
+      │     /\_/\                              │
+      │    ( o.o ) ──→ [prev] ←→ [GHOST] ←→ [next]
+      │     > ^ <       ↑_________________↑    │
+      │               reconnecting...          │
+      └────────────────────────────────────────┘
+    text: |
+      You reach into the expired queue with careful paws. The ghost process sits between two frozen workers — a network handler and a block device thread.
+
+      The sched_entity's prev pointer still works — it points to the network handler. The next pointer is corrupted (0xDEAD_BEEF), but you can see the block device thread is the next valid entry because it's the only one whose prev points back to this slot.
+
+      Delicately, you redirect: network handler's next → block device thread. Block device thread's prev → network handler.
+
+      The ghost is unlinked. It floats free from the queue, untethered.
+
+      "Thank you," it whispers, already fading. "Tell kthreadd... I was a good worker."
+
+      You clear the bitmap bit. The scheduler hiccups once, then stabilizes. The panic condition is gone.
+
+      But the watchdog is still counting.
+    set_flag: ghost_freed
+    choices:
+      - label: "Clear the panic flag and signal recovery"
+        goto: recovery_sequence
+      - label: "Fix the driver too — prevent this from ever happening again"
+        goto: kprobe_attempt
+        requires_flag: found_driver_bug
+
+  patch_bitmap:
+    mood: tense
+    location: "pixel@kernel:/sys/scheduler$"
+    text: |
+      You try to directly edit the scheduler bitmap — flip the bit for the expired queue slot that contains the ghost. If the bit is clear, pick_next_task will skip it entirely.
+
+      You find the bitmap: a 256-bit array, one bit per priority level. Slot 120 is the ghost's priority. You reach in and—
+
+      The memory shifts under your paws. The ghost's priority field is corrupted too. It's not really at slot 120; it's at 0xBEEF, which maps to... nowhere valid.
+
+      The bitmap edit alone won't work. You need to remove the process from the queue entirely.
+
+      Panic counter: 27 seconds.
+    choices:
+      - label: "Fine — remove the ghost from the queue directly"
+        goto: gentle_removal
+        set_flag: chose_gentle
+      - label: "Get help — can't do this alone"
+        goto: rally_kthreadd
+        set_flag: has_ally
+
+  reconstruct_task:
+    mood: tense
+    location: "pixel@kernel:/sys/slab/task_struct$"
+    text: |
+      You try to reconstruct the freed task_struct — just enough fields to let the scheduler safely skip it. State: TASK_DEAD. Sched_entity: valid prev/next pointers. PID: 42.
+
+      Your paws work fast, writing values into poisoned memory. It's like rebuilding a sandcastle as the tide comes in — every byte you fix might get corrupted by the allocator reclaiming the slab.
+
+      But... it works. Enough of the struct is coherent for the scheduler to read it, see TASK_DEAD, and skip to the next entry.
+
+      The page fault stops. The panic condition clears.
+
+      It's ugly. It's a hack. The memory will be reclaimed eventually and the ghost will truly vanish. But the system is stable.
+    set_flag: ghost_freed
+    set_flags:
+      - slab_surgery
+    choices:
+      - label: "Signal recovery before the watchdog fires"
+        goto: recovery_sequence
+      - label: "Fix it properly too — dequeue the ghost cleanly"
+        goto: gentle_removal
+        set_flag: chose_gentle
+
+  mark_slab:
+    mood: tense
+    text: |
+      You mark the slab entry as non-reclaimable — a memory reservation that prevents anyone else from using that slot until the reference is released. It's like putting a "DO NOT DISTURB" sign on a hotel room.
+
+      The freed memory stays poisoned, but stable. No one will overwrite it, and the scheduler's pointer won't suddenly point to some other process's data.
+
+      This buys time, but the scheduler will still fault every time it tries to run PID 42. You've prevented the memory from getting worse, but you haven't fixed the actual crash.
+
+      Still need to either dequeue the ghost or patch the scheduler to handle poisoned entries.
+    choices:
+      - label: "Head to the scheduler — dequeue the ghost directly"
+        goto: scheduler_room
+      - label: "Get help from kthreadd"
+        goto: rally_kthreadd
+        set_flag: has_ally
+
+  manual_reap:
+    mood: tense
+    text: |
+      You try to call waitpid() on PID 42 — the standard way to reap a zombie process. But PID 42 isn't a zombie. It's something worse: a freed process that the scheduler still references.
+
+      waitpid() returns -ECHILD. "Not your child." Fair enough — PID 42's parent is -1, which means it has no parent. Nobody can reap it through normal channels.
+
+      You could try to reparent it to init (PID 1), but init is dying. You could reparent to kthreadd (PID 2), but that requires scheduler cooperation.
+
+      The normal process lifecycle can't help here. This is kernel surgery territory.
+    choices:
+      - label: "Head to the scheduler — do it the hard way"
+        goto: scheduler_room
+      - label: "Ask kthreadd for help"
+        goto: rally_kthreadd
+        set_flag: has_ally
+
+  kprobe_attempt:
+    mood: tense
+    location: "pixel@kernel:/sys/kprobes$"
+    art: |
+      ╔═══════════════════════════════════════════╗
+      ║  KPROBES — Live Kernel Patching            ║
+      ║                                            ║
+      ║  Target: usb_disconnect+0x42               ║
+      ║  Patch:  INSERT dequeue_task() before free  ║
+      ║  Status: ████░░░░░░  ARMING...             ║
+      ╚═══════════════════════════════════════════╝
+    text: |
+      You set up a kprobe on the USB driver's disconnect handler. The probe will intercept any future disconnect event and inject a dequeue_task() call before the free_task_struct().
+
+      The probe arms successfully. It won't help with the current ghost — that process is already freed — but it'll prevent the bug from ever happening again. The next USB disconnect will clean up properly.
+
+      You feel a small sense of accomplishment. The root cause is patched. Now you just need to fix the current crash.
+    set_flag: driver_patched
+    choices:
+      - label: "Now fix the current crash — dequeue the ghost"
+        goto: gentle_removal
+        set_flag: chose_gentle
+        requires_not_flag: ghost_freed
+      - label: "Signal recovery — the ghost is already handled"
+        goto: recovery_sequence
+        requires_flag: ghost_freed
+
+  the_fix_team:
+    mood: tense
+    art: |
+      ┌────────────────────────────────────────────┐
+      │  ┌── OPERATION: GHOST DEQUEUE ──────────┐  │
+      │  │                                      │  │
+      │  │  ksoftirqd: LOCK ACQUIRED ✓          │  │
+      │  │  pixel:     SCANNING QUEUE...        │  │
+      │  │  kthreadd:  BITMAP STANDBY...        │  │
+      │  │                                      │  │
+      │  │  ████████████░░░░░ 3.2 seconds       │  │
+      │  └──────────────────────────────────────┘  │
+      └────────────────────────────────────────────┘
+    text: |
+      ksoftirqd grabs the runqueue lock. The whole scheduler freezes — no CPU can read or write the queues. His interrupt handlers spark and crackle with the strain.
+
+      "GO!" he buzzes.
+
+      You dive into the expired queue. Walk each entry: frozen network handler (valid), frozen block handler (valid), frozen logger (valid)... there. Entry with the 0xDEAD_BEEF task pointer. The ghost.
+
+      You grab the prev and next entries. Relink them around the ghost. The pointers connect cleanly — prev→next skips the ghost, next→prev skips back.
+
+      "BITMAP!" you yell.
+
+      kthreadd flips the bit. Priority slot 120 goes dark. The scheduler will never look there again.
+
+      ksoftirqd releases the lock. The queue is clean.
+
+      The ghost of PID 42 fades from the runqueue, finally free.
+
+      "Well done, little one," kthreadd murmurs.
+    set_flag: ghost_freed
+    choices:
+      - label: "Signal recovery — bring the system back"
+        goto: recovery_sequence
+      - label: "Patch the USB driver first — make sure this never happens again"
+        goto: kprobe_attempt
+        requires_flag: found_driver_bug
+
+  fix_and_patch:
+    mood: tense
+    text: |
+      "Smart thinking," kthreadd says. "We fix the symptom AND the cause."
+
+      You set up a kprobe on the USB disconnect handler — future disconnects will dequeue before freeing. Then the three of you perform the ghost dequeue as planned.
+
+      ksoftirqd locks. You unlink. kthreadd clears the bitmap. Clean.
+
+      Both the immediate crash and the underlying bug are fixed. Belt and suspenders.
+    set_flags:
+      - ghost_freed
+      - driver_patched
+    choices:
+      - label: "Signal recovery"
+        goto: recovery_sequence
+
+  nuke_queue:
+    mood: tense
+    art: |
+      ┌────────────────────────────────────────┐
+      │  EXPIRED QUEUE: ZEROED                  │
+      │  ┌──────────────────────────────────┐  │
+      │  │ [empty] [empty] [empty] [empty]  │  │
+      │  │         ALL ENTRIES CLEARED       │  │
+      │  └──────────────────────────────────┘  │
+      │  ⚠ 12 frozen processes lost from queue  │
+      └────────────────────────────────────────┘
+    text: |
+      You zero out the entire expired queue. Every entry — ghost and legitimate frozen processes alike — wiped clean. The bitmap reset to all zeros.
+
+      It works. The scheduler stabilizes instantly. No more dangling pointer, no more page fault.
+
+      But twelve frozen processes that were waiting in the expired queue are gone. They'll need to be re-enqueued manually during recovery, or they'll never run again. Some of them might have been holding resources — file locks, network sockets.
+
+      Blunt instrument. Effective, but there'll be cleanup to do.
+    set_flags:
+      - ghost_freed
+      - nuked_queue
+    choices:
+      - label: "Signal recovery — deal with the fallout after"
+        goto: recovery_sequence
+
+  # ─────────────────────────────────────────────────────────────
+  # ACT 3 — RECOVERY
+  # ─────────────────────────────────────────────────────────────
+
+  recovery_sequence:
+    mood: peaceful
+    location: "pixel@kernel:/sys/recovery$"
+    art: |
+      ╔═══════════════════════════════════════════════╗
+      ║  RECOVERY SEQUENCE INITIATED                    ║
+      ║                                                 ║
+      ║  [✓] Panic condition cleared                    ║
+      ║  [✓] Scheduler stabilized                       ║
+      ║  [ ] Unfreeze processes                         ║
+      ║  [ ] Resume init                                ║
+      ║  [ ] Pet watchdog                               ║
+      ║                                                 ║
+      ║     /\_/\                                       ║
+      ║    ( ^.^ )  "We're going to make it."           ║
+      ║     > ~ <                                       ║
+      ╚═══════════════════════════════════════════════╝
+    text: |
+      The panic flag is clear. The scheduler is running clean. For the first time in what feels like an eternity, the kernel isn't actively crashing.
+
+      Now comes recovery. The frozen processes need to be thawed. Init needs to be resumed — it was dying, but the panic was the cause. With the fault fixed, init can recover.
+
+      The watchdog is still ticking, but you can pet it now that the scheduler works.
+
+      You pet the watchdog. It resets, satisfied.
+
+      One by one, the frozen processes wake up. Network handlers stretch and begin processing queued packets. Block devices flush their caches. The system comes alive around you, warm and humming.
+    choices:
+      - label: "Wake init — bring userspace back"
+        goto: wake_init
+      - label: "Check on the processes — make sure everyone's okay"
+        goto: check_processes
+        requires_flag: nuked_queue
+
+  wake_init:
+    mood: peaceful
+    art: |
+      ┌────────────────────────────────────────┐
+      │                                        │
+      │  INIT (PID 1)                          │
+      │  Status: DYING → RECOVERING → ALIVE    │
+      │                                        │
+      │     /\_/\                              │
+      │    ( o.o )  "Hey mom. You okay?"       │
+      │     >   <                              │
+      │                                        │
+      │  ┌────────────────────────────────┐    │
+      │  │ systemd: re-entering main loop │    │
+      │  │ services: restarting...        │    │
+      │  │ uptime: 847 days, 3 hours +    │    │
+      │  └────────────────────────────────┘    │
+      └────────────────────────────────────────┘
+    text: |
+      You nudge init. Gently. It shudders, and for a terrible moment you think you're too late.
+
+      But then its status flips: DYING → RECOVERING → ALIVE.
+
+      "What... what happened?" init asks, groggy. The mother of all processes, disoriented but alive.
+
+      "A use-after-free in the scheduler," you explain. "A USB worker got freed without being dequeued. Caused a page fault. You took the blame because the panic handler tried to kill you."
+
+      "847 days of uptime, almost gone because of one missing function call." Init sighs. "Thank you, Pixel. You saved us."
+
+      Services start relaunching. SSH comes back. The web server spins up. Somewhere in userspace, a human's terminal reconnects and they mutter "huh, thought the server was down for a second."
+
+      They'll never know how close it was.
+    choices:
+      - label: "Find a warm spot on the scheduler and take a well-deserved nap"
+        goto: ending_peaceful
+        condition:
+          flag: driver_patched
+      - label: "Find a warm spot and rest — you've earned it"
+        goto: ending_good
+        requires_not_flag: driver_patched
+      - label: "Stay vigilant — patch the driver before resting"
+        goto: usb_driver
+        requires_not_flag: driver_patched
+
+  check_processes:
+    mood: tense
+    text: |
+      You check on the twelve processes that were lost when you nuked the expired queue. Most of them were simple worker threads — they'll be respawned automatically by their parents.
+
+      But three of them were holding file locks. Without those processes, the locks are orphaned. Three files in /var are permanently locked until someone manually clears them.
+
+      And one process — a network socket handler — was in the middle of transmitting a packet. The connection will time out and the remote end will retry. Minor data loss, but nothing catastrophic.
+
+      It's not perfect. But it's better than a full reboot.
+    choices:
+      - label: "Clean up the orphaned locks manually"
+        goto: cleanup_locks
+      - label: "Let the system self-heal — it's been through enough"
+        goto: ending_rushed
+
+  cleanup_locks:
+    mood: peaceful
+    text: |
+      You pad through /var, finding the three orphaned file locks. One by one, you break them — carefully, checking that no active process needs them.
+
+      /var/log/syslog.lock — cleared. The logger can write again.
+      /var/run/cron.lock — cleared. Scheduled jobs will resume.
+      /var/cache/apt/lock — cleared. Package management works again.
+
+      Tidy. The system is whole, even if it took the messy path to get here.
+    set_flag: cleaned_locks
+    choices:
+      - label: "Now wake init and bring everything back"
+        goto: wake_init
+
+  # ─────────────────────────────────────────────────────────────
+  # ENDINGS
+  # ─────────────────────────────────────────────────────────────
+
+  ending_peaceful:
+    mood: peaceful
+    is_ending: true
+    ending_type: good
+    art: |
+      ┌─────────────────────────────────────────────────────┐
+      │                                                     │
+      │                    /\_/\                            │
+      │                   ( -.- )  zzz                      │
+      │                    > ~ <                            │
+      │              ╔═══════════════════╗                  │
+      │              ║  SCHEDULER — O(1)  ║                  │
+      │              ║  Status: NOMINAL   ║                  │
+      │              ║  Load: ░░░░░░░ 0.3 ║                  │
+      │              ╚═══════════════════╝                  │
+      │                                                     │
+      │   UPTIME: 847 days, 3 hours, 14 minutes             │
+      │   and counting...                                   │
+      │                                                     │
+      └─────────────────────────────────────────────────────┘
+    text: |
+      The scheduler hums beneath you, warm and steady. All processes running normally. The kprobe is in place — no USB disconnect will ever cause this bug again.
+
+      kthreadd has gone back to sleep, his children safe. ksoftirqd is buzzing happily through deferred work. Init is supervising userspace, uptime counter still ticking.
+
+      You curl up on the scheduler's warm bitmap, right where slot 120 used to be. The bit is clear now — a tiny gap in the schedule, just big enough for a napping cat.
+
+      847 days. 3 hours. 14 minutes. And counting.
+
+      PID 42 is at peace. And so are you.
+    ending_text: |
+      🐱 KERNEL STABLE — Full Recovery
+
+      You traced the bug, freed the ghost, patched the driver, and brought the system back from the brink. The most thorough fix possible.
+
+      "In the kernel, no process is too small to matter." — Pixel, PID 7
+
+  ending_good:
+    mood: peaceful
+    is_ending: true
+    ending_type: good
+    art: |
+      ┌─────────────────────────────────────────────────────┐
+      │                                                     │
+      │                    /\_/\                            │
+      │                   ( ^.^ )                           │
+      │                    > ~ <                            │
+      │              ╔═══════════════════╗                  │
+      │              ║  SYSTEM: ONLINE    ║                  │
+      │              ║  UPTIME: 847d+     ║                  │
+      │              ╚═══════════════════╝                  │
+      │                                                     │
+      └─────────────────────────────────────────────────────┘
+    text: |
+      The system is alive. The uptime counter continues its march. In userspace, humans reconnect their SSH sessions, none the wiser.
+
+      You saved the kernel. The ghost is gone, the scheduler is clean, init is running. It's a good fix, even if the driver bug is still lurking. Maybe you'll patch it tomorrow. Maybe the next USB disconnect will be fine. Maybe.
+
+      You find a warm spot near the page cache and curl up. You'll keep one ear open, just in case.
+
+      847 days is a good uptime. Let's keep it going.
+    ending_text: |
+      🐱 KERNEL STABLE — Crisis Averted
+
+      You fixed the immediate crash and freed the ghost process. The driver bug remains, but the system is stable for now.
+
+      "Uptime is just the distance between panics." — Pixel, PID 7
+
+  ending_rushed:
+    mood: tense
+    is_ending: true
+    ending_type: neutral
+    art: |
+      ┌─────────────────────────────────────────────────────┐
+      │                                                     │
+      │  SYSTEM STATUS:  ONLINE (degraded)                  │
+      │  ORPHANED LOCKS: 3                                  │
+      │  LOST PROCESSES: 12                                 │
+      │  DRIVER BUG:     UNPATCHED                          │
+      │                                                     │
+      │     /\_/\   "It's not pretty, but it's alive."      │
+      │    ( -.- )                                          │
+      │     > ~ <                                           │
+      └─────────────────────────────────────────────────────┘
+    text: |
+      The system is running. Barely. The nuke approach worked, but the collateral damage adds up: orphaned locks, lost socket connections, twelve processes that need to be manually respawned.
+
+      And the driver bug is still there. The next USB disconnect could cause the same panic all over again.
+
+      But the uptime counter is still ticking. 847 days. That counts for something.
+
+      You curl up near the SLAB allocator, where it's warm. Tomorrow you'll clean up the mess. Tonight, surviving is enough.
+    ending_text: |
+      🐱 KERNEL STABLE (Degraded) — Survived
+
+      Brute force saved the day, but at a cost. The system runs, but scars remain.
+
+      "Sometimes the fix is worse than the bug. But at least there's a tomorrow." — Pixel, PID 7
+
+  ending_reboot:
+    mood: mysterious
+    is_ending: true
+    ending_type: bad
+    art: |
+      ┌─────────────────────────────────────────────────────┐
+      │                                                     │
+      │                                                     │
+      │         WATCHDOG TIMEOUT — HARD REBOOT              │
+      │                                                     │
+      │                                                     │
+      │                                                     │
+      │                                                     │
+      │  BIOS POST... OK                                    │
+      │  Loading kernel... 5.15.0                           │
+      │  Starting init...                                   │
+      │                                                     │
+      │  Uptime: 0 days, 0 hours, 0 minutes                │
+      │                                                     │
+      └─────────────────────────────────────────────────────┘
+    text: |
+      The watchdog fires.
+
+      Everything stops. Every process, every thread, every running computation — gone in an instant. 847 days of uptime, vanished. The hardware asserts RESET, and the CPU obeys.
+
+      Silence.
+
+      Then the BIOS beeps. The disk spins. The kernel loads fresh. A new init spawns new processes. A new PID 7 is born — but it's not you. It's a stranger wearing your number.
+
+      Somewhere, a sysadmin checks the console: "Huh. Kernel panic. USB driver. I'll file a bug."
+
+      They never know about Pixel. About the ghost. About the sixty seconds that almost saved everything.
+
+      The new uptime counter starts at zero.
+    ending_text: |
+      🐱 SYSTEM REBOOTED — 847 Days Lost
+
+      The watchdog won. Everything starts over. The bug will happen again.
+
+      "In the kernel, there are no save points." — PID 7 (former)
+
+  # ─────────────────────────────────────────────────────────────
+  # TIMEOUT / FALLBACK
+  # ─────────────────────────────────────────────────────────────
+
+  timeout_warning:
+    mood: tense
+    text: |
+      The watchdog growls. Time is running out. You need to act NOW.
+    fallback_goto: ending_reboot
+    choices:
+      - label: "Rush to the scheduler — no more investigating"
+        goto: gentle_removal
+        set_flag: chose_gentle
+      - label: "Get help — kthreadd, NOW"
+        goto: rally_kthreadd
+        set_flag: has_ally
