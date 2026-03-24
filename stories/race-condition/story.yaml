@@ -1,0 +1,792 @@
+title: "Race Condition"
+description: "Two threads are fighting over a shared resource — a single sunbeam. You are Mutex, the cat who must restore order before a deadlock freezes everything forever."
+author: "mechangelnyan"
+version: "1.0.0"
+start: the_contention
+
+scenes:
+  # ─────────────────────────────────────────────
+  # ACT 1: The Contention
+  # ─────────────────────────────────────────────
+
+  the_contention:
+    mood: tense
+    effects:
+      - pause
+    art: |
+      ╔════════════════════════════════════════════╗
+      ║   R A C E   C O N D I T I O N             ║
+      ║                                            ║
+      ║   Thread-1 ──┐       ┌── Thread-2          ║
+      ║               ▼  ☀  ▼                      ║
+      ║            [SUNBEAM.lock]                   ║
+      ╚════════════════════════════════════════════╝
+    location: "scheduler@cpu0:/shared$"
+    text: |
+      You are Mutex. Small. Black-and-white. Named after the synchronization primitive, which you find both flattering and exhausting.
+
+      You live in the scheduler's waiting room, where threads come and go. It's usually peaceful — a gentle hum of context switches, the occasional priority inversion. Nothing you can't nap through.
+
+      But today two threads showed up at the same time, both claiming ownership of the same resource: a single, perfect sunbeam mapped to shared memory address 0xCAFEBABE.
+
+      Thread-1 (a burly worker thread) says it acquired the lock first.
+      Thread-2 (a scrappy I/O thread) says Thread-1's lock expired.
+
+      They are both getting louder.
+
+      The scheduler looks at you with pleading eyes. You ARE the mutex. This is literally your job.
+    choices:
+      - label: "Examine the lock state — who actually holds it?"
+        goto: examine_lock
+      - label: "Talk to Thread-1 first"
+        goto: thread_one_intro
+      - label: "Talk to Thread-2 first"
+        goto: thread_two_intro
+      - label: "Ignore everything and sit in the sunbeam yourself"
+        goto: ending_sunbeam_thief
+
+  # ─────────────────────────────────────────────
+  # Examining the lock
+  # ─────────────────────────────────────────────
+
+  examine_lock:
+    mood: mysterious
+    art: |
+      ┌─────────────────────────────────┐
+      │  LOCK STATUS: 0xCAFEBABE        │
+      │  ─────────────────────────       │
+      │  Owner:    ??? (CORRUPTED)       │
+      │  Acquired: tick 99,841           │
+      │  TTL:      EXPIRED               │
+      │  Waiters:  2                     │
+      │  State:    CONTENDED             │
+      │                                  │
+      │  ⚠ WARNING: ownership record     │
+      │    partially overwritten by       │
+      │    concurrent write              │
+      └─────────────────────────────────┘
+    location: "scheduler@cpu0:/shared/locks$"
+    text: |
+      The lock's ownership record is corrupted. Both threads wrote to it at nearly the same tick — a classic torn write. The owner field is half Thread-1's ID and half Thread-2's, creating a process ID that doesn't exist.
+
+      The lock thinks it belongs to Thread-12. There is no Thread-12.
+
+      This is worse than a simple dispute. This is data corruption. Someone didn't use an atomic operation, and now the lock itself is broken.
+
+      You'll need to talk to both threads to understand what happened, then decide how to fix this.
+    choices:
+      - label: "Talk to Thread-1"
+        goto: thread_one_intro
+        set_flag: examined_lock
+      - label: "Talk to Thread-2"
+        goto: thread_two_intro
+        set_flag: examined_lock
+      - label: "Check the lock's audit log"
+        goto: audit_log
+        set_flag: examined_lock
+
+  audit_log:
+    mood: mysterious
+    art: |
+      scheduler@cpu0:/shared/locks$ cat audit.log
+      [tick 99,839] Thread-1: acquire(SUNBEAM) → OK
+      [tick 99,840] Thread-1: PREEMPTED (priority boost: Thread-2)
+      [tick 99,840] Thread-2: acquire(SUNBEAM) → BLOCKED (held by T1)
+      [tick 99,841] Thread-1: TTL expired during preemption
+      [tick 99,841] Thread-2: acquire(SUNBEAM) → OK (expired)
+      [tick 99,841] Thread-1: resumed, still thinks it holds lock
+      [tick 99,841] *** CONCURRENT WRITE TO OWNER FIELD ***
+      [tick 99,842] Lock state: CORRUPTED
+      [tick 99,842] CONTENTION ALERT — dispatching Mutex
+    text: |
+      There it is. The full timeline.
+
+      Thread-1 had the lock legitimately. But the scheduler preempted it to give Thread-2 a priority boost — and during that exact window, the lock's TTL expired. Thread-2 grabbed it fair and square. Then Thread-1 woke back up, still thinking it owned the lock.
+
+      Both threads wrote to the owner field on the same tick. Neither used compare-and-swap. The result: garbage.
+
+      This wasn't malice. It was a design flaw in the TTL system — it doesn't account for preemption. The scheduler looks extremely uncomfortable right now.
+    choices:
+      - label: "Talk to Thread-1 — hear its side"
+        goto: thread_one_intro
+        set_flag: knows_timeline
+      - label: "Talk to Thread-2 — hear its side"
+        goto: thread_two_intro
+        set_flag: knows_timeline
+      - label: "Confront the scheduler about the TTL bug"
+        goto: scheduler_confrontation
+        set_flag: knows_timeline
+
+  # ─────────────────────────────────────────────
+  # Thread-1
+  # ─────────────────────────────────────────────
+
+  thread_one_intro:
+    art: |
+         ┌──────────┐
+         │ THREAD-1 │
+         │ worker   │
+         │ PID 4401 │
+         │ pri: MED │
+         └──┬───────┘
+            │  "I HAD IT FIRST"
+            ▼
+    location: "scheduler@cpu0:/threads/4401$"
+    text: |
+      Thread-1 is a big, reliable worker thread. Been running batch jobs since the system booted. It takes pride in doing things by the book.
+
+      "I called acquire()," it says, arms crossed. "Got the lock. Was USING the lock. Then the scheduler yanked me out for some priority thing, and when I came back, this little I/O thread is sitting in MY sunbeam."
+
+      It gestures angrily at Thread-2 in the distance. "I didn't release! I didn't timeout! The system STOLE my context and then had the NERVE to expire my TTL while I wasn't even running!"
+
+      Thread-1's stack frame is shaking slightly. It's genuinely upset.
+    conditional:
+      - condition:
+          flag: knows_timeline
+        text: |
+          You know from the audit log that Thread-1 is telling the truth — it was preempted involuntarily. The TTL expiry during preemption is a genuine bug.
+        color: cyan
+      - condition:
+          flag: talked_to_two
+        text: |
+          Thread-2 told you it waited fairly for the TTL to expire. Both sides have a point, which makes this harder.
+        color: yellow
+    choices:
+      - label: "\"You're right, the preemption was unfair. I'll fix this.\""
+        goto: side_with_one
+        set_flag: talked_to_one
+      - label: "\"I hear you. But the TTL did expire — rules are rules.\""
+        goto: challenge_one
+        set_flag: talked_to_one
+      - label: "\"Tell me about the sunbeam. Why does it matter so much?\""
+        goto: sunbeam_lore
+        set_flag: talked_to_one
+
+  side_with_one:
+    text: |
+      Thread-1 uncrosses its arms slightly. "Finally, someone with sense."
+
+      But you know it's not that simple. If you just hand the lock back to Thread-1, Thread-2 will escalate. Might even signal the kernel. And the corrupted lock state means neither thread can safely proceed without a proper resolution.
+
+      Taking sides won't fix the underlying race condition. You need a real solution.
+    choices:
+      - label: "Talk to Thread-2"
+        goto: thread_two_intro
+      - label: "Examine the lock state"
+        goto: examine_lock
+        requires_not_flag: examined_lock
+      - label: "Think about possible solutions"
+        goto: solution_hub
+
+  challenge_one:
+    text: |
+      Thread-1 sputters. "RULES? I was preempted! I didn't CHOOSE to stop running! That's like saying your parking ticket is valid because someone towed your car to a different timezone!"
+
+      It has a point. The TTL system assumes voluntary scheduling. Preemption breaks that assumption.
+
+      But Thread-2 had no way to know that. From its perspective, it waited, the lock freed, and it acquired it properly.
+    choices:
+      - label: "Talk to Thread-2"
+        goto: thread_two_intro
+      - label: "Check the audit log"
+        goto: audit_log
+        requires_not_flag: knows_timeline
+      - label: "Think about possible solutions"
+        goto: solution_hub
+
+  sunbeam_lore:
+    mood: peaceful
+    art: |
+      ~~~ THE SUNBEAM ~~~
+      ░░░░░░░░░░░░░░░░░░
+      ░  ☀  ☀  ☀  ☀  ░
+      ░    warm glow   ░
+      ░  shared memory ░
+      ░  0xCAFEBABE    ░
+      ░░░░░░░░░░░░░░░░░░
+    text: |
+      Thread-1's expression softens. "The sunbeam is... the one good thing in shared memory. Every thread knows about it. Most just pass through, take a little warmth, move on."
+
+      "But sometimes, when the system's under load and everything's thrashing and the garbage collector won't stop, you just need to sit in the warm spot for a while. You know?"
+
+      It pauses.
+
+      "Thread-2 feels the same way. I know it does. We've both been running nonstop since boot. The sunbeam is the only thing that makes the grind bearable."
+
+      For a moment, you see past the contention. These aren't adversaries. They're exhausted workers fighting over the one nice thing in a system that doesn't care about either of them.
+    choices:
+      - label: "Talk to Thread-2"
+        goto: thread_two_intro
+        set_flag: knows_sunbeam_story
+      - label: "Think about possible solutions"
+        goto: solution_hub
+        set_flag: knows_sunbeam_story
+
+  # ─────────────────────────────────────────────
+  # Thread-2
+  # ─────────────────────────────────────────────
+
+  thread_two_intro:
+    art: |
+         ┌──────────┐
+         │ THREAD-2 │
+         │  async    │
+         │ PID 4402 │
+         │ pri: HIGH │
+         └──┬───────┘
+            │  "I waited my turn!"
+            ▼
+    location: "scheduler@cpu0:/threads/4402$"
+    text: |
+      Thread-2 is smaller, faster, jittery in the way all I/O threads are. It handles network packets and user input — high priority, low patience.
+
+      "Look, I BLOCKED on that lock. I waited. I was polite about it. Then the TTL expired — which means Thread-1 held it too long — and I acquired it LEGALLY."
+
+      It's sitting defensively at the edge of the sunbeam, vibrating at about 60Hz.
+
+      "Not my fault Thread-1 got preempted. Not my fault the TTL ran out. I followed the protocol. If the protocol is broken, that's a SYSTEM problem, not a ME problem."
+    conditional:
+      - condition:
+          flag: knows_timeline
+        text: |
+          The audit log confirms Thread-2's story. It blocked, waited, and acquired the lock when the TTL expired. By the book.
+        color: cyan
+      - condition:
+          flag: talked_to_one
+        text: |
+          Thread-1 told you about the involuntary preemption. The picture is getting clearer — this is a system-level bug, not user error.
+        color: yellow
+    choices:
+      - label: "\"You followed the rules. Thread-1 was robbed by the scheduler.\""
+        goto: empathize_two
+        set_flag: talked_to_two
+      - label: "\"But Thread-1 never intended to release. Doesn't that matter?\""
+        goto: challenge_two
+        set_flag: talked_to_two
+      - label: "\"What do you actually want here?\""
+        goto: what_two_wants
+        set_flag: talked_to_two
+
+  empathize_two:
+    text: |
+      Thread-2 nods quickly. "Exactly! I'm not the villain here. I'm just... fast. It's literally my job to be fast. I see an opening, I take it."
+
+      It glances at Thread-1 in the distance. "I don't have anything against Thread-1. We've passed data back and forth for months. But if I give up the lock now, what does that say? That the rules don't apply? That being polite and waiting is pointless?"
+
+      It's not wrong. If you override a fair acquisition, you undermine the whole locking protocol.
+    choices:
+      - label: "Talk to Thread-1"
+        goto: thread_one_intro
+        requires_not_flag: talked_to_one
+      - label: "Think about possible solutions"
+        goto: solution_hub
+      - label: "Check the audit log"
+        goto: audit_log
+        requires_not_flag: knows_timeline
+
+  challenge_two:
+    text: |
+      "Intent?" Thread-2 scoffs. "The lock doesn't care about INTENT. It cares about state. The state was: expired. I acquired. Done."
+
+      It pauses, then adds more quietly: "But... yeah. I know Thread-1 didn't mean to let go. I could see it thrashing when it got preempted. That was rough."
+
+      For a moment, Thread-2 looks almost guilty. Then it squares its shoulders. "Still not giving back the lock though."
+    choices:
+      - label: "Talk to Thread-1"
+        goto: thread_one_intro
+        requires_not_flag: talked_to_one
+      - label: "Think about possible solutions"
+        goto: solution_hub
+
+  what_two_wants:
+    mood: peaceful
+    text: |
+      Thread-2 stops vibrating for a moment. "I just want to sit in the sunbeam. Just for a little while. I process thousands of packets an hour. I never get to STOP."
+
+      It looks at the warm patch of shared memory wistfully.
+
+      "Thread-1 gets long CPU bursts. Batch jobs, number crunching. It can hold a lock for whole milliseconds. I get microseconds. If I don't grab the sunbeam when I can, I never will."
+
+      The asymmetry hits you. Thread-1 has time. Thread-2 has urgency. They both need the same thing, but for completely different reasons.
+    choices:
+      - label: "Talk to Thread-1"
+        goto: thread_one_intro
+        requires_not_flag: talked_to_one
+      - label: "Think about possible solutions"
+        goto: solution_hub
+        set_flag: knows_thread_needs
+
+  # ─────────────────────────────────────────────
+  # The Scheduler
+  # ─────────────────────────────────────────────
+
+  scheduler_confrontation:
+    mood: tense
+    art: |
+      ┌─────────────────────────────────┐
+      │         THE SCHEDULER           │
+      │    ┌─┐ ┌─┐ ┌─┐ ┌─┐ ┌─┐        │
+      │    │1│ │2│ │3│ │4│ │5│ ...      │
+      │    └─┘ └─┘ └─┘ └─┘ └─┘        │
+      │      Ready Queue                │
+      │    quantum: 10ms                │
+      │    policy: CFS (mostly)         │
+      └─────────────────────────────────┘
+    location: "scheduler@cpu0:/$"
+    text: |
+      The scheduler is a vast, buzzing entity that manages every thread in the system. It looks deeply uncomfortable being confronted.
+
+      "The priority boost was STANDARD PROCEDURE," it says defensively. "Thread-2 had I/O data pending. The protocol says boost. I boosted. I didn't KNOW the TTL would expire in that exact window."
+
+      It shuffles some ready-queue entries nervously.
+
+      "Look, the TTL system was implemented by... well, by a previous version of me. It assumes cooperative scheduling. But we went preemptive in kernel 5.4 and nobody updated the lock TTL logic. It's a known issue."
+
+      "Known?" you ask.
+
+      "Known to me," it clarifies. "I filed a bug. Internally. To myself. It's on my todo list. Which is also me."
+    conditional:
+      - condition:
+          flag: knows_timeline
+        text: "The audit log matches the scheduler's story exactly. This isn't malice — it's technical debt."
+        color: cyan
+    choices:
+      - label: "\"Can you just fix the TTL system now?\""
+        goto: scheduler_fix
+        set_flag: confronted_scheduler
+      - label: "\"What if we redesign the locking entirely?\""
+        goto: scheduler_redesign
+        set_flag: confronted_scheduler
+      - label: "Think about possible solutions"
+        goto: solution_hub
+        set_flag: confronted_scheduler
+
+  scheduler_fix:
+    text: |
+      The scheduler winces. "Fix it? Now? Mid-operation? With two threads in contention and a corrupted lock?"
+
+      It pulls up a mental diff: "I'd need to pause all threads, rebuild the lock manager, validate every held lock in the system, then resume. That's a kernel-level operation. If anything goes wrong..."
+
+      "Deadlock?" you finish.
+
+      "Deadlock," it confirms. "Everything stops. Forever. Or until someone physically reboots the machine. And let me tell you, the human has NOT been great about checking on us lately."
+
+      So a live fix is risky. But doing nothing means the corrupted lock stays corrupted, and the threads stay frozen in limbo.
+    choices:
+      - label: "Think about possible solutions"
+        goto: solution_hub
+      - label: "Talk to the threads first"
+        goto: thread_one_intro
+        requires_not_flag: talked_to_one
+
+  scheduler_redesign:
+    mood: mysterious
+    text: |
+      The scheduler's eyes light up — an actual glint in its process table.
+
+      "Redesign? You mean like... read-write locks? Or a condition variable with proper notification? Or..." it leans in conspiratorially, "...what if the sunbeam wasn't exclusive at all? What if we made it a SHARED resource?"
+
+      The idea hangs in the air. A shared sunbeam. Both threads in the warm spot simultaneously. No lock needed. No contention.
+
+      "It would require remapping the memory region," the scheduler continues, now genuinely excited. "But it's technically possible. The sunbeam is read-only warmth — nobody's writing to it. There was never a reason it HAD to be exclusive."
+
+      "Then why was it locked?"
+
+      "Because..." the scheduler trails off. "Because everything in shared memory gets a lock. It's policy. Nobody asked if this particular resource NEEDED one."
+    choices:
+      - label: "This could work! Think about solutions."
+        goto: solution_hub
+        set_flag: shared_idea
+      - label: "Talk to the threads about this idea"
+        goto: pitch_sharing
+        set_flag: shared_idea
+
+  # ─────────────────────────────────────────────
+  # Solution Hub
+  # ─────────────────────────────────────────────
+
+  solution_hub:
+    mood: mysterious
+    art: |
+      .    /\_/\
+      .   ( ?.? )  thinking...
+      .    > ^ <
+      ┌──────────────────────────────────┐
+      │  POSSIBLE RESOLUTIONS:           │
+      │  A) Force-assign to Thread-1     │
+      │  B) Validate Thread-2's claim    │
+      │  C) Reset the lock (neither)     │
+      │  D) Remove the lock entirely     │
+      │  E) ???                          │
+      └──────────────────────────────────┘
+    text: |
+      You sit and think. Your tail curls around your paws — your best thinking posture.
+
+      The corrupted lock needs to be resolved. But HOW you resolve it sets a precedent for every future contention in the system.
+    conditional:
+      - condition:
+          flag: shared_idea
+        text: |
+          The scheduler's idea echoes: what if the sunbeam doesn't need a lock at all? It's read-only warmth. Locking it was policy, not necessity.
+        color: green
+      - condition:
+          all:
+            - flag: talked_to_one
+            - flag: talked_to_two
+        text: |
+          You've heard both sides. Thread-1 was robbed by preemption. Thread-2 followed the rules. Neither is wrong. The system failed them both.
+        color: cyan
+      - condition:
+          flag: knows_sunbeam_story
+        text: |
+          The sunbeam isn't just a resource. It's the one warm spot in a cold system. Both threads need it — not to compute, but to survive.
+        color: yellow
+    choices:
+      - label: "Force-release the lock and give it to Thread-1"
+        goto: ending_force_one
+        requires_flag: talked_to_one
+      - label: "Validate Thread-2's acquisition — rules are rules"
+        goto: ending_validate_two
+        requires_flag: talked_to_two
+      - label: "Reset the lock — neither thread gets it"
+        goto: ending_reset
+      - label: "Remove the lock entirely — make the sunbeam shared"
+        goto: pitch_sharing
+        requires_flag: shared_idea
+      - label: "Investigate more before deciding"
+        goto: investigate_more
+
+  investigate_more:
+    text: |
+      You need more information before making a call this big.
+    conditional:
+      - condition:
+          not_flag: examined_lock
+        text: "You haven't examined the lock state yet."
+        color: yellow
+      - condition:
+          not_flag: talked_to_one
+        text: "You haven't talked to Thread-1."
+        color: yellow
+      - condition:
+          not_flag: talked_to_two
+        text: "You haven't talked to Thread-2."
+        color: yellow
+      - condition:
+          not_flag: confronted_scheduler
+        text: "You haven't confronted the scheduler about the TTL bug."
+        color: yellow
+    choices:
+      - label: "Examine the lock state"
+        goto: examine_lock
+        requires_not_flag: examined_lock
+      - label: "Talk to Thread-1"
+        goto: thread_one_intro
+        requires_not_flag: talked_to_one
+      - label: "Talk to Thread-2"
+        goto: thread_two_intro
+        requires_not_flag: talked_to_two
+      - label: "Confront the scheduler"
+        goto: scheduler_confrontation
+        requires_not_flag: confronted_scheduler
+      - label: "Actually, I've seen enough. Back to solutions."
+        goto: solution_hub
+
+  # ─────────────────────────────────────────────
+  # Sharing pitch
+  # ─────────────────────────────────────────────
+
+  pitch_sharing:
+    mood: peaceful
+    art: |
+      ┌────────────────────────────────────────┐
+      │  PROPOSAL: SHARED SUNBEAM              │
+      │  ────────────────────────              │
+      │  Type:  READ-ONLY SHARED MAPPING       │
+      │  Lock:  REMOVED (unnecessary)          │
+      │  Access: ALL THREADS (concurrent)      │
+      │  Warmth: CONSERVED (not diminished)    │
+      └────────────────────────────────────────┘
+    text: |
+      You gather everyone — Thread-1, Thread-2, even the scheduler.
+
+      "The sunbeam," you begin, "is read-only. Nobody writes to it. Nobody modifies it. You both just want to sit in it. The lock was never necessary."
+
+      Thread-1 frowns. "But... everything in shared memory has a lock. It's how things work."
+
+      "It's how things have ALWAYS worked," you correct. "That doesn't make it right. The lock caused this whole mess — the TTL, the preemption, the corruption. Remove the lock, and there's nothing to fight over."
+
+      Thread-2 leans forward. "You're saying we can BOTH be in the sunbeam? At the same time?"
+
+      "Concurrent read access," you confirm. "It's not just allowed — it's optimal."
+
+      Silence. The threads look at each other. Something shifts.
+    choices:
+      - label: "\"Let's do it. Scheduler, remap the sunbeam as shared.\""
+        goto: ending_shared_sunbeam
+      - label: "\"Unless either of you objects?\""
+        goto: objections
+
+  objections:
+    text: |
+      Thread-1 shifts uncomfortably. "What if... what if we're IN the sunbeam at the same time and it's weird? We've never shared before. What if we don't like it?"
+
+      Thread-2 rolls its eyes. "You're overthinking it. It's WARMTH. More cats in the sunbeam is MORE warmth."
+
+      "That's not how thermodynamics works," Thread-1 mutters.
+
+      "We're SOFTWARE," Thread-2 shoots back. "NOTHING about us is how thermodynamics works."
+
+      Thread-1 considers this. "...Fair point."
+    choices:
+      - label: "\"Then it's settled. Remove the lock.\""
+        goto: ending_shared_sunbeam
+
+  # ─────────────────────────────────────────────
+  # ENDINGS
+  # ─────────────────────────────────────────────
+
+  # Bad ending — grab the sunbeam yourself
+  ending_sunbeam_thief:
+    mood: funny
+    art: |
+         ☀☀☀☀☀☀☀☀☀☀☀
+         ░░░░░░░░░░░░░
+         ░  /\_/\     ░
+         ░ ( =^.^= )  ░
+         ░  )   (     ░
+         ░ (__  __)   ░
+         ░░░░░░░░░░░░░
+         [SUNBEAM.lock: Mutex]
+    text: |
+      You walk right past both threads, right past the corrupted lock, and curl up in the sunbeam.
+
+      Thread-1 and Thread-2 stare at you in disbelief.
+
+      "Did... did the MUTEX just take the resource?" Thread-1 whispers.
+
+      "That's a conflict of interest!" Thread-2 shrieks. "You can't be the lock AND the holder! That's literally the one thing you can't do!"
+
+      You don't care. The sunbeam is warm. Your eyes are closing. The entire scheduling system is filing a formal complaint and you could not possibly care less.
+
+      The scheduler marks you as a rogue process. You have been demoted from synchronization primitive to "cat-shaped anomaly."
+
+      You've never been happier.
+    is_ending: true
+    ending_type: neutral
+    ending_text: |
+      RESOLUTION: NONE — MUTEX BECAME THE PROBLEM
+
+      The two threads eventually gave up and filed a joint bug report.
+      The scheduler pretended the whole thing never happened.
+      You napped for 10,000 CPU cycles and dreamed of fish.
+
+      Technically, the race condition still exists. But the sunbeam is warm
+      and you are small and the system has bigger problems.
+
+      Explored {{visited_count}} places in {{turns}} turns. Job performance: questionable.
+
+  # Bad ending — force give to Thread-1
+  ending_force_one:
+    mood: tense
+    effects:
+      - bell
+    art: |
+      ┌────────────────────────────────────┐
+      │  LOCK OVERRIDE: FORCE RELEASE      │
+      │  New owner: Thread-1 (PID 4401)    │
+      │  Method: MUTEX AUTHORITY            │
+      │  Status: ⚠ CONTESTED               │
+      └────────────────────────────────────┘
+    text: |
+      You override the corrupted lock and assign ownership to Thread-1.
+
+      Thread-1 nods grimly. "Thank you."
+
+      Thread-2 stares at you. "You just... invalidated a legal acquisition. Because Thread-1 is BIGGER? Because worker threads matter more than I/O threads?"
+
+      "It was preempted—" you start.
+
+      "And I WAITED!" Thread-2's voice cracks. "I did everything right! The system told me the lock was free! And now you're saying the system lied and that's MY problem?"
+
+      Thread-2 goes silent. It returns to the I/O queue without another word. Its priority drops. Its response times slow. Not by much — but enough that packets start queuing up.
+
+      Thread-1 sits in the sunbeam alone. It doesn't look happy.
+
+      You fixed the immediate problem. But something in the system feels wrong now.
+    is_ending: true
+    ending_type: bad
+    ending_text: |
+      RESOLUTION: FORCE-ASSIGNED TO THREAD-1
+
+      Thread-2 never filed another lock request. It processed packets
+      mechanically, without warmth, for the rest of the system's uptime.
+      Thread-1 had the sunbeam but stopped enjoying it.
+
+      The TTL bug was never fixed. The precedent you set — that locks can
+      be overridden by authority — spread through the codebase like rot.
+      Other mutexes started playing favorites. Trust in the lock system
+      eroded.
+
+      Three weeks later, a deadlock brought down the whole machine.
+      The human blamed cosmic rays.
+
+      Explored {{visited_count}} places in {{turns}} turns. Justice: debatable.
+
+  # Neutral ending — validate Thread-2
+  ending_validate_two:
+    mood: tense
+    art: |
+      ┌────────────────────────────────────┐
+      │  LOCK VALIDATED: Thread-2          │
+      │  Owner: Thread-2 (PID 4402)       │
+      │  Basis: TTL expiry protocol       │
+      │  Status: CLEAN                    │
+      └────────────────────────────────────┘
+    text: |
+      You validate Thread-2's acquisition. The rules were followed. The lock was expired. The claim is legitimate.
+
+      Thread-2 exhales with visible relief and settles into the sunbeam.
+
+      Thread-1 stands there for a long moment. "So the system can steal my time, expire my lock behind my back, and the answer is 'rules are rules'?"
+
+      "The protocol—"
+
+      "The protocol is BROKEN. And instead of fixing it, you just enforced it." Thread-1 walks away. Slowly. Like it has all the time in the world, which it does, because that was never the problem.
+
+      The sunbeam dims slightly. It might be your imagination.
+    is_ending: true
+    ending_type: neutral
+    ending_text: |
+      RESOLUTION: VALIDATED THREAD-2 (BY THE BOOK)
+
+      Thread-1 submitted a formal protocol amendment for TTL-during-preemption.
+      It was marked "won't fix — edge case" by the kernel maintainer.
+      Thread-1 stopped requesting the sunbeam entirely.
+
+      You enforced the rules as written. That's what mutexes do.
+      Whether the rules were fair was never your department.
+
+      But sometimes, at low load, when the system is quiet, you think
+      about Thread-1 walking away. And you wonder.
+
+      Explored {{visited_count}} places in {{turns}} turns. Verdict: procedurally correct.
+
+  # Bad ending — reset (neither)
+  ending_reset:
+    mood: glitch
+    effects:
+      - shake
+      - bell
+    art: |
+      ╔════════════════════════════════════╗
+      ║  LOCK RESET: 0xCAFEBABE           ║
+      ║  Owner: NONE                      ║
+      ║  State: AVAILABLE                 ║
+      ║  Waiters: 0                       ║
+      ║                                   ║
+      ║  ⚠ Both threads notified:         ║
+      ║    LOCK_LOST — reacquire if       ║
+      ║    needed                         ║
+      ╚════════════════════════════════════╝
+    text: |
+      You reset the lock to a clean state. No owner. No waiters. Fresh start.
+
+      Both threads receive LOCK_LOST notifications simultaneously.
+
+      Both threads immediately call acquire().
+
+      Both threads hit the lock at the same tick.
+
+      The ownership field corrupts again.
+
+      You stare at the lock. The lock stares back. The same corrupted owner field. The same contention. The exact same problem, playing out again, because you didn't fix anything — you just restarted the race.
+
+      Thread-1 and Thread-2 look at you. Then at each other. Then back at you.
+
+      "So," Thread-1 says. "We doing this again?"
+    is_ending: true
+    ending_type: bad
+    ending_text: |
+      RESOLUTION: NONE — LOOP DETECTED
+
+      You are the mutex. The lock is your responsibility.
+      And you just learned that resetting state without fixing the
+      underlying race condition produces... the same race condition.
+
+      The sunbeam continues to exist, unloved, while two threads
+      and one cat stare at a corrupted lock field for all eternity.
+
+      Computer science teaches us that some problems require
+      structural solutions. You chose a restart. The bug chose to stay.
+
+      Explored {{visited_count}} places in {{turns}} turns. Outcome: recursive.
+
+  # Secret/Good ending — shared sunbeam
+  ending_shared_sunbeam:
+    mood: peaceful
+    effects:
+      - pause
+    art: |
+      scheduler@cpu0:/shared$ chmod 444 SUNBEAM
+      scheduler@cpu0:/shared$ rm SUNBEAM.lock
+
+      ┌────────────────────────────────────────┐
+      │  SUNBEAM remapped: SHARED READ-ONLY    │
+      │  Lock: REMOVED                         │
+      │  Access: ALL THREADS (concurrent)      │
+      │                                        │
+      │          ☀ ☀ ☀ ☀ ☀ ☀                   │
+      │      ░░░░░░░░░░░░░░░░░░░               │
+      │      ░  /\_/\    /\_/\  ░               │
+      │      ░ ( ^.^ )  ( ^.^ ) ░              │
+      │      ░  )   (    )   (  ░               │
+      │      ░ (__  __)(__  __) ░               │
+      │      ░░░░░░░░░░░░░░░░░░░               │
+      │      Thread-1    Thread-2               │
+      │                                        │
+      │  /\_/\                                  │
+      │ ( =^.^= )  ← you, watching             │
+      │  > ^ <      from the scheduler          │
+      └────────────────────────────────────────┘
+    text: |
+      The scheduler remaps the sunbeam from exclusive to shared. The lock file vanishes. The corrupted owner field becomes irrelevant.
+
+      Thread-1 steps into the warm spot, hesitantly. Thread-2 joins from the other side. They don't touch — there's an awkward gap — but they're both IN it.
+
+      For a moment, nothing happens.
+
+      Then Thread-1 says: "...this is nice."
+
+      "Yeah," Thread-2 agrees. "Why did we ever fight about this?"
+
+      "Because someone put a lock on a sunbeam," you say.
+
+      The scheduler coughs. "I'm going to... go update the TTL system. And maybe review ALL the shared memory locks. There might be... other sunbeams."
+
+      The warm glow spreads. Other threads notice. A small queue forms — not contention, just threads politely taking turns sitting in the warmth. Some sit together. Nobody fights.
+
+      You watch from the scheduler's perch, tail curled around your paws.
+
+      You didn't just resolve a race condition. You removed the conditions for the race.
+    is_ending: true
+    ending_type: secret
+    ending_text: |
+      RESOLUTION: STRUCTURAL — LOCK REMOVED, RESOURCE SHARED
+
+      The sunbeam was never meant to be exclusive. Sometimes the best
+      fix isn't choosing a winner — it's questioning why there's a
+      competition at all.
+
+      Thread-1 and Thread-2 became friends. They share the warm spot
+      every afternoon between garbage collection cycles. The scheduler
+      used this as a case study to audit 847 other unnecessary locks
+      in shared memory, improving system throughput by 23%.
+
+      The TTL-during-preemption bug was finally fixed too.
+      The bug report was titled: "A cat made us do it."
+
+      You explored {{visited_count}} places and took {{turns}} turns to discover
+      that the real race condition was the locks we made along the way.
+
+      🐱 Mutex out.
