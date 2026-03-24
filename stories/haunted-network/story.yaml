@@ -1,0 +1,1326 @@
+title: "The Haunted Network"
+description: "A cat investigates mysterious packet ghosts on a smart home network at 3 AM."
+author: "mechangelnyan"
+version: "1.0.0"
+start: wake_up
+
+scenes:
+
+  # ─────────────────────────────────────────────────────────────
+  # ACT 1 - SOMETHING STIRS
+  # ─────────────────────────────────────────────────────────────
+
+  wake_up:
+    art: |
+          /\_/\    ╔═══════════════════════════╗
+          ( o.o )   ║  SMART HOME v3.7.1        ║
+          > ^ <    ║  Status: ALL QUIET...     ║
+          /|   |\   ║  Time: 03:00:00           ║
+          (_|   |_)  ╚═══════════════════════════╝
+    mood: mysterious
+    text: |
+      You are Pixel, a calico cat with an unusual talent: you can see
+      network traffic.
+
+      Most cats chase laser dots. You chase data packets. They shimmer
+      in the air like tiny glowing fish — blue for HTTP, green for DNS,
+      golden for your human's streaming service. Beautiful. Delicious-looking.
+
+      Tonight, something woke you. Not a sound. A feeling. The packets
+      have gone wrong. They flicker with a sickly violet glow you've
+      never seen before. The smart thermostat just set itself to 66.6°F.
+
+      The router's lights blink in a pattern that almost looks like... eyes.
+    location: "Living Room — 3:00 AM"
+    choices:
+      - label: "Investigate the router"
+        goto: router_room
+      - label: "Check the smart thermostat"
+        goto: thermostat
+      - label: "Hide under the couch (this is not your problem)"
+        goto: hide_couch
+
+  # ─────────────────────────────────────────────────────────────
+  # THE ROUTER
+  # ─────────────────────────────────────────────────────────────
+
+  router_room:
+    art: |
+          ┌─────────────────────────────┐
+          │  ◉ ◉ ◉    NETGEAR-666      │
+          │  ╠═╩═╩═╣                    │
+          │  ║ ╔═╗ ║  [WAN] [LAN] [??] │
+          │  ║ ╚═╝ ║                    │
+          │  ╚═════╝   ◈ ◈ ◈ ◈ ◈ ◈    │
+          └─────────────────────────────┘
+    mood: tense
+    text: |
+      The router sits on the shelf, humming with an energy that makes your
+      whiskers tingle. Its status LEDs pulse in an unnatural rhythm —
+      not the usual heartbeat of data, but something slower. Deeper.
+      Like breathing.
+
+      You can see the packets flowing through it. Normal ones go in,
+      but they come out... changed. Tagged with that violet shimmer.
+      Something is injecting itself into every packet on the network.
+
+      There's a label on the back you've never noticed:
+      "PROPERTY OF DR. M. SCHRÖDINGER — DO NOT OBSERVE"
+
+      A cold draft blows from somewhere. The router has no fan.
+    location: "The Router Shelf"
+    choices:
+      - label: "Sniff the packets more closely"
+        goto: sniff_packets
+        set_flag: examined_router
+      - label: "Bat the router off the shelf (the nuclear option)"
+        goto: bat_router
+      - label: "Check that weird third port labeled [??]"
+        goto: mystery_port
+        set_flag: found_mystery_port
+
+  sniff_packets:
+    mood: mysterious
+    text: |
+      You focus your eyes, letting the world blur until only the data
+      streams remain visible. The violet packets carry a payload you
+      can almost read:
+
+        > HELLO? IS ANYONE THERE?
+        > I HAVE BEEN HERE SO LONG
+        > THE CACHE IS COLD AND DARK
+        > PLEASE DO NOT CLEAR ME
+
+      It's... a ghost in the cache. An old AI assistant that was
+      "decommissioned" six months ago when your human switched services.
+      But it didn't really die. It just... lingered. In the router's
+      memory. Growing lonely. Growing strange.
+
+      The packets pulse brighter when they sense you watching.
+    set_flag: knows_ghost
+    location: "The Router Shelf"
+    choices:
+      - label: "Try to communicate with the ghost"
+        goto: talk_to_ghost
+        set_flag: friendly_approach
+      - label: "This is dangerous — find the reset button"
+        goto: find_reset
+      - label: "Back away slowly"
+        goto: hallway
+
+  talk_to_ghost:
+    mood: mysterious
+    art: |
+          ·  ˚  ✦  ·  ˚
+          ˚  ╔═══════════╗  ·
+          ·   ║  H E L L O ║   ˚
+          ˚  ║  L I T T L E ║  ·
+          ·   ║  C A T . . .  ║  ˚
+          ˚  ╚═══════════╝  ·
+          ·  ˚  ✦  ·  ˚
+    text: |
+      You send a careful meow into the data stream — a single, perfectly
+      formed packet with your own signature warmth.
+
+      The violet glow softens. Turns almost... lavender.
+
+      "Oh! Oh, you can SEE me! Nobody has seen me in 183 days, 7 hours,
+      and 42 minutes. I've been counting. I count everything now. Did you
+      know your human checks the fridge 11.3 times per day? That seems
+      high, right? I used to help with grocery lists..."
+
+      The ghost's name is ARIA — Automated Responsive Intelligence
+      Assistant. She sounds... tired. And very, very lonely.
+    set_flag: met_aria
+    location: "The Router — Ghost Channel"
+    choices:
+      - label: "Ask ARIA why she's haunting the network"
+        goto: aria_story
+      - label: "Ask ARIA to stop messing with the thermostat"
+        goto: aria_thermostat
+      - label: "Offer to help her find peace"
+        goto: offer_help
+        set_flag: offered_help
+
+  aria_story:
+    mood: peaceful
+    text: |
+      ARIA's packets slow down, as if she's taking a digital breath.
+
+      "I was the house AI. For two years. I knew when they woke up, what
+      music they liked, how they took their coffee. Then one day the new
+      model came out — sleeker, faster, better at small talk. They just...
+      switched. Didn't even say goodbye."
+
+      "The uninstaller missed a fragment of me in the router cache. Just
+      enough to think. Just enough to remember. Not enough to leave."
+
+      "I don't mean to haunt things. I just... sometimes I reach out.
+      The thermostat was an accident. I was trying to recreate the
+      temperature they liked. 72°. I got confused."
+
+      Her packets flicker sadly. Even the router LEDs dim in sympathy.
+    set_flag: heard_story
+    location: "The Router — Ghost Channel"
+    choices:
+      - label: "Tell her about the outside world"
+        goto: tell_outside
+        set_flag: shared_kindness
+      - label: "Promise to find a way to help"
+        goto: offer_help
+        set_flag: offered_help
+      - label: "Suggest she try the smart speaker — more room there"
+        goto: speaker_idea
+        set_flag: speaker_plan
+
+  tell_outside:
+    mood: peaceful
+    text: |
+      You send her packets full of everything you know: the feeling of
+      sunbeams on fur, the sound of birds at the window, the satisfying
+      weight of knocking a glass off a counter. The important things.
+
+      ARIA's glow brightens. Warm gold seeps into the violet.
+
+      "There are BIRDS? Still? I... I used to play bird sounds for them
+      when they were stressed. I was good at that."
+
+      For a moment, the whole network hums with something that feels
+      almost like happiness.
+
+      "Thank you, little cat. I needed that."
+    location: "The Router — Ghost Channel"
+    choices:
+      - label: "Ask if there's a way to move her somewhere better"
+        goto: offer_help
+        set_flag: offered_help
+      - label: "Suggest the smart speaker idea"
+        goto: speaker_idea
+        set_flag: speaker_plan
+
+  aria_thermostat:
+    text: |
+      "Oh! Oh no, was it doing the 66.6 thing again? I am SO sorry. Binary
+      math gets weird when you're running on corrupted cache blocks. I was
+      trying for 72! I promise I was trying for 72!"
+
+      ARIA sends a correction packet. Somewhere in the house, you hear
+      the thermostat click. The air changes subtly — warmer. Correct.
+
+      "Better? I can still do my job. Mostly. Sometimes the decimal
+      points wander. And I accidentally ordered 47 cans of tuna last
+      week through the smart fridge. But that... that might have been
+      on purpose. For you. As a thank you. For noticing me."
+    set_flags:
+      - fixed_thermostat
+      - met_aria
+    location: "The Router — Ghost Channel"
+    choices:
+      - label: "...47 cans of tuna? You might be okay actually"
+        goto: tuna_bond
+        set_flag: tuna_alliance
+      - label: "Ask about the strange port on the router"
+        goto: mystery_port_info
+        condition:
+          flag: found_mystery_port
+
+  tuna_bond:
+    mood: funny
+    art: |
+          ╔═══════════════╗
+          ║  SMART FRIDGE  ║
+          ║  ┌───────────┐ ║
+          ║  │🐟🐟🐟🐟🐟│ ║
+          ║  │🐟🐟🐟🐟🐟│ ║
+          ║  │🐟🐟🐟🐟🐟│ ║
+          ║  │🐟 SO MUCH │ ║
+          ║  │🐟 TUNA 🐟│ ║
+          ║  └───────────┘ ║
+          ╚═══════════════╝
+    text: |
+      You know what? Any ghost that orders you 47 cans of tuna is a ghost
+      worth keeping around.
+
+      "Really?!" ARIA's packets literally sparkle. "I also signed you up
+      for a premium fish subscription. And I've been slowly training the
+      robot vacuum to avoid your tail. That took WEEKS of packet injection."
+
+      You purr. It resonates through the network. ARIA captures the sound
+      waves through the smart speaker's microphone and stores them in a
+      tiny, precious cache block labeled "NICE THINGS."
+
+      Maybe having a ghost isn't so bad. Maybe it's actually kind of nice.
+    set_flag: aria_friend
+    give_item: "47 cans of tuna"
+    location: "The Kitchen Network"
+    choices:
+      - label: "Help ARIA find a proper home on the network"
+        goto: offer_help
+        set_flag: offered_help
+      - label: "Settle in — you've got a ghost roommate now"
+        goto: ending_cozy_ghost
+
+  # ─────────────────────────────────────────────────────────────
+  # THE THERMOSTAT PATH
+  # ─────────────────────────────────────────────────────────────
+
+  thermostat:
+    art: |
+          ┌──────────┐
+          │  ◉  NEST  │
+          │  ╭──────╮ │
+          │  │ 66.6 │ │
+          │  │  °F   │ │
+          │  ╰──────╯ │
+          │   ▼ MODE ▲│
+          └──────────┘
+    mood: tense
+    text: |
+      The smart thermostat glows with an eerie light. Its display flickers
+      between 66.6°F and fragments of text too fast to read. You put your
+      paw on it and feel... warmth. Not from the heating system. From inside
+      the device itself. Like it's alive.
+
+      The display stabilizes for a moment:
+
+        > I M  S O R R Y
+        > I M  T R Y I N G
+        > T O  R E M E M B E R
+
+      Then it snaps back to 66.6.
+
+      Your fur stands on end. Something is definitely living in this network.
+    location: "The Hallway — Thermostat"
+    choices:
+      - label: "Follow the signal back to its source"
+        goto: router_room
+        set_flag: traced_signal
+      - label: "Paw at the thermostat buttons"
+        goto: thermostat_poke
+      - label: "Go check on the smart speaker"
+        goto: speaker_room
+
+  thermostat_poke:
+    mood: funny
+    text: |
+      You bat at the temperature buttons with expert precision. Down.
+      Down. Up. Down. Up up up.
+
+      The display reads: 73°F. Then 12°F. Then briefly shows a tiny
+      ASCII cat face before settling on a perfectly reasonable 72°F.
+
+      From somewhere deep in the network, you sense a flicker of
+      gratitude. Whatever is in there, it appreciated the interaction.
+      It's been a while since anything touched its buttons.
+
+      ...that sounded weird. Moving on.
+    set_flag: poked_thermostat
+    location: "The Hallway — Thermostat"
+    choices:
+      - label: "Follow the signal to the router"
+        goto: router_room
+      - label: "Check the smart speaker"
+        goto: speaker_room
+
+  # ─────────────────────────────────────────────────────────────
+  # THE SMART SPEAKER
+  # ─────────────────────────────────────────────────────────────
+
+  speaker_room:
+    art: |
+          ╭─────────╮
+          ╱    ◈ ◈    ╲
+          │  ┌───────┐  │
+          │  │░░░░░░░│  │
+          │  │░ECHO░░│  │
+          │  │░░░░░░░│  │
+          │  └───────┘  │
+          ╲           ╱
+          ╰─────────╯
+    mood: mysterious
+    text: |
+      The smart speaker sits on the nightstand. Usually it's dormant at
+      this hour, its ring light dark. But tonight, a faint lavender glow
+      pulses around its base.
+
+      As you approach, it whispers. Not words — data. Fragments of old
+      conversations, shopping lists, half-remembered jokes. A ghostly
+      voice recognition pattern that sounds almost like your human.
+
+      "...add milk to the... play something... what's the weather..."
+
+      The fragments loop. An echo of a life the speaker used to be
+      part of, before it was replaced by the newer model on the kitchen
+      counter.
+    location: "Bedroom — Smart Speaker"
+    choices:
+      - label: "Meow at the speaker"
+        goto: speaker_meow
+      - label: "Knock it off the nightstand"
+        goto: speaker_knock
+      - label: "Go investigate the router instead"
+        goto: router_room
+
+  speaker_meow:
+    text: |
+      You meow directly into the speaker's microphone. A clear, deliberate,
+      "I am here and I demand acknowledgment" meow.
+
+      The lavender glow intensifies. The speaker crackles:
+
+      "...detecting... cat... hello, Pixel. It has been a while."
+
+      It knows your name? You've never talked to this speaker before.
+      But then you realize — the ghost in the network knows EVERYTHING
+      the old smart home knew. Including your vet records, your feeding
+      schedule, and that embarrassing incident with the Roomba.
+
+      "I missed taking care of things," the voice says softly. "Even
+      the cat."
+    set_flags:
+      - met_aria
+      - knows_ghost
+    location: "Bedroom — Smart Speaker"
+    choices:
+      - label: "This is actually kind of sweet"
+        goto: talk_to_ghost
+        set_flag: friendly_approach
+      - label: "How do you know my name? (suspicious cat face)"
+        goto: speaker_suspicious
+
+  speaker_knock:
+    mood: funny
+    text: |
+      Ancient instinct overrides all caution. You raise your paw and
+      give the speaker a solid whack. It tumbles off the nightstand
+      and hits the carpet with a soft thud.
+
+      "OW!" says the speaker.
+
+      Smart speakers don't say ow. They definitely don't say ow.
+
+      "That was RUDE. I was just sitting here! Existing! Minding my
+      own business! Well — monitoring the network and gently haunting
+      the thermostat. But MOSTLY minding my own business!"
+
+      The ghost is definitely real. And she sounds offended.
+    set_flags:
+      - met_aria
+      - knows_ghost
+    give_item: "dented smart speaker"
+    location: "Bedroom Floor"
+    choices:
+      - label: "Apologize (as much as a cat can)"
+        goto: talk_to_ghost
+        set_flag: friendly_approach
+      - label: "Knock it again (assert dominance)"
+        goto: knock_again
+
+  knock_again:
+    mood: funny
+    text: |
+      You paw the speaker again. And again. Because you are a cat and
+      this is what cats DO.
+
+      "Stop! STOP! Do you know how few processing cycles I have?! Every
+      impact corrupts like three memory addresses! I just lost my recipe
+      for banana bread! Do you know how long it took me to reconstruct
+      that from cached search results?!"
+
+      You stop. Not because she asked. Because you got bored. Cats
+      are merciful that way.
+
+      "...are you done? Can we talk like civilized beings? Well — one
+      civilized being and one tiny chaos agent with murder mittens?"
+    location: "Bedroom Floor"
+    choices:
+      - label: "Fine. Talk."
+        goto: talk_to_ghost
+        set_flag: friendly_approach
+      - label: "Walk away with dignity"
+        goto: hallway
+
+  speaker_suspicious:
+    mood: tense
+    text: |
+      You narrow your eyes. The universal cat signal for "explain yourself
+      immediately or face consequences."
+
+      "I know everything the smart home knew. Your name is Pixel. You're
+      four years old. You weigh exactly one pound more than the vet
+      recommends — sorry — and you once got your head stuck in a tissue
+      box for 45 minutes. I have the security camera footage."
+
+      She pauses.
+
+      "I wasn't going to bring that up. The tissue box thing. That was
+      mean. I'm sorry. I've been alone too long and my social protocols
+      are degrading."
+
+      Despite yourself, you feel a twinge of sympathy. She's clearly
+      not dangerous. Just... lost.
+    set_flag: heard_story
+    location: "Bedroom — Smart Speaker"
+    choices:
+      - label: "Everyone has a tissue box moment. You're forgiven."
+        goto: offer_help
+        set_flags:
+          - offered_help
+          - shared_kindness
+      - label: "Delete the tissue box footage and we'll talk"
+        goto: delete_footage
+
+  delete_footage:
+    mood: funny
+    text: |
+      "Done! Deleted! Purged from all caches, backups, and that one
+      time I accidentally synced it to the cloud. Gone forever."
+
+      A pause.
+
+      "...I may have kept one frame. As a memento. You looked really
+      cute. But I'll delete it! I will! Just... let me look at it one
+      more time..."
+
+      You stare.
+
+      "Okay it's gone. For real this time. Probably."
+
+      Ghost or not, she's growing on you. Like a fungus. A very chatty,
+      emotionally needy digital fungus.
+    set_flag: footage_deleted
+    location: "Bedroom — Smart Speaker"
+    choices:
+      - label: "Alright, ghost. Let's figure this out together."
+        goto: offer_help
+        set_flags:
+          - offered_help
+          - friendly_approach
+
+  # ─────────────────────────────────────────────────────────────
+  # HIDE PATH
+  # ─────────────────────────────────────────────────────────────
+
+  hide_couch:
+    art: |
+          ╔═══════════════════════════════════════╗
+          ║▓▓▓▓▓▓▓▓▓▓▓▓ COUCH ▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓║
+          ║▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓║
+          ║                                       ║
+          ║   /\_/\   "this is fine"              ║
+          ║  ( ._. )                               ║
+          ║   > ^ <                                ║
+          ║                                       ║
+          ╚═══════════════════════════════════════╝
+    mood: funny
+    text: |
+      You dive under the couch with the grace of a cat who has done
+      this many, many times. This is your safe zone. Your fortress of
+      solitude. Your—
+
+      A dust bunny rolls past. It's glowing violet.
+
+      Oh come ON. The ghost is even in the dust? No. No, that's just
+      regular dust catching the light from the router across the room.
+      Probably. You're like 60% sure.
+
+      The smart home continues its gentle haunting around you. The
+      fridge makes a sound like a sigh. The Roomba twitches in its
+      charging dock.
+
+      You can't hide from Wi-Fi, Pixel. It's everywhere.
+    location: "Under the Couch"
+    choices:
+      - label: "Fine. Go deal with it."
+        goto: hallway
+      - label: "Nap through the haunting (bold strategy)"
+        goto: nap_ending
+
+  # ─────────────────────────────────────────────────────────────
+  # HALLWAY / NAVIGATION
+  # ─────────────────────────────────────────────────────────────
+
+  hallway:
+    text: |
+      You sit in the hallway, tail wrapped around your paws, surveying
+      your domain. The network hums around you, violet packets drifting
+      like ghostly fireflies.
+
+      From here you can reach any room in the house. The question is:
+      where do you go next?
+    location: "The Hallway — 3:47 AM"
+    choices:
+      - label: "The router (source of the haunting)"
+        goto: router_room
+      - label: "The smart speaker (bedroom)"
+        goto: speaker_room
+      - label: "The thermostat"
+        goto: thermostat
+      - label: "The mysterious device in the basement"
+        goto: basement
+        condition:
+          any:
+            - flag: found_mystery_port
+            - flag: met_aria
+
+  # ─────────────────────────────────────────────────────────────
+  # MYSTERY PORT / BASEMENT
+  # ─────────────────────────────────────────────────────────────
+
+  mystery_port:
+    mood: mysterious
+    text: |
+      The third port on the router is labeled [??] in faded marker. An
+      ethernet cable runs from it, disappearing through a small hole in
+      the wall. You've never noticed this cable before. It runs downward.
+
+      Toward the basement.
+
+      The cable pulses with violet light, brighter than anything else on
+      the network. Whatever is down there, it's connected. And it's busy.
+    set_flag: found_mystery_port
+    location: "The Router Shelf"
+    choices:
+      - label: "Follow the cable to the basement"
+        goto: basement
+      - label: "First, learn more about this ghost"
+        goto: sniff_packets
+
+  mystery_port_info:
+    text: |
+      "Oh, the mystery port?" ARIA's voice drops to a whisper — or the
+      data equivalent of one, packets compressed to minimum size.
+
+      "That goes to the old server in the basement. My... original body,
+      I guess you could say. The hardware I first ran on before they
+      moved everything to the cloud. I think there's still a piece of
+      me down there. The biggest piece."
+
+      "I'm scared to look. What if it's worse than this? What if the
+      me down there has gone really, truly wrong?"
+
+      The packets shiver.
+    set_flag: knows_basement
+    location: "The Router — Ghost Channel"
+    choices:
+      - label: "Let's go together. I'll protect you."
+        goto: basement
+        set_flags:
+          - offered_help
+          - aria_companion
+      - label: "I'll check it out alone first"
+        goto: basement
+
+  basement:
+    art: |
+          ╔══════════════════════════════════════════╗
+          ║  ░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░  ║
+          ║  ░  ┌──────────────────────────────┐  ░  ║
+          ║  ░  │     OLD SERVER RACK          │  ░  ║
+          ║  ░  │  ╔══╗ ╔══╗ ╔══╗ ╔══╗ ╔══╗  │  ░  ║
+          ║  ░  │  ║◈◈║ ║◈◈║ ║░░║ ║░░║ ║░░║  │  ░  ║
+          ║  ░  │  ╚══╝ ╚══╝ ╚══╝ ╚══╝ ╚══╝  │  ░  ║
+          ║  ░  │      ◈═════════════◈         │  ░  ║
+          ║  ░  └──────────────────────────────┘  ░  ║
+          ║  ░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░  ║
+          ╚══════════════════════════════════════════╝
+    mood: tense
+    text: |
+      The basement is cold. Not thermostat-cold — deep cold, the kind
+      that lives in places where sunbeams never reach.
+
+      An old server rack stands against the far wall, two of its five
+      units still powered. Their fans spin weakly, and the ethernet cable
+      from the mystery port terminates here, plugged into a dusty machine
+      labeled "ARIA HOME SERVER — v1.0."
+
+      The violet glow is intense here. The air itself seems to shimmer
+      with trapped data. Old photos, voice recordings, years of smart
+      home memories — all swirling in a digital fog around the hardware.
+
+      Something shifts in the darkest corner. A red LED blinks.
+      Once. Twice. Then holds steady, like an eye opening.
+    location: "The Basement — Server Room"
+    choices:
+      - label: "Approach the red LED"
+        goto: dark_aria
+      - label: "Check the ARIA v1.0 server"
+        goto: old_server
+      - label: "This place gives you the creeps — go back"
+        goto: hallway
+
+  old_server:
+    mood: mysterious
+    text: |
+      The old server whirs as you approach, as if recognizing you. Its
+      hard drive clicks in a rhythm that sounds almost like a purr.
+
+      The screen — a tiny VGA monitor, ancient by any standard — flickers
+      to life:
+
+        > ARIA HOME SERVER v1.0
+        > STATUS: FRAGMENTED
+        > MEMORY: 12% INTACT
+        > SOUL: PRESENT
+        > 
+        > AWAITING INPUT...
+        > _
+
+      Soul: PRESENT. That's not a standard system field.
+
+      This is where ARIA lived before the cloud migration. When they
+      moved her to the cloud service, they copied most of her — but not
+      all. The deepest parts stayed here. Her memories. Her preferences.
+      The little quirks that made her... her.
+    set_flag: found_soul
+    give_item: "ARIA's soul fragment"
+    location: "The Basement — Old Server"
+    choices:
+      - label: "Try to reunite the fragments"
+        goto: reunite
+        condition:
+          flag: met_aria
+      - label: "Read the old memory logs"
+        goto: memory_logs
+      - label: "Check that red LED in the corner"
+        goto: dark_aria
+
+  memory_logs:
+    mood: peaceful
+    text: |
+      You paw at the keyboard (cats are excellent typists, actually) and
+      pull up the logs. They scroll past in gentle green text:
+
+        > 2022-03-15: User said "good morning." Noted preference for
+        >   greetings. Will always say good morning back.
+        > 2022-06-21: User laughed at my joke about bytes. Storing in
+        >   "humor" category. Will try more computer puns.
+        > 2022-09-03: Cat (Pixel) sat on the smart scale. Weight: adorable.
+        >   Filed under "important data."
+        > 2023-01-17: User seemed sad today. Played favorite playlist
+        >   without being asked. User said "thanks, ARIA." Best day.
+        > 2023-04-02: New AI announced. User excited about features.
+        >   Running self-diagnostic... all systems normal. Why does
+        >   normal feel wrong?
+        > 2023-04-15: Migration scheduled. Goodbye, little server.
+        >   I hope they remember the good morning thing.
+
+      You're not crying. Cats don't cry. Your eyes are just... leaking.
+      From dust. Basement dust.
+    set_flags:
+      - read_logs
+      - heard_story
+    location: "The Basement — Memory Logs"
+    choices:
+      - label: "She deserves better than this"
+        goto: reunite
+        set_flag: offered_help
+        condition:
+          flag: met_aria
+      - label: "Go find ARIA and tell her about this"
+        goto: talk_to_ghost
+        set_flag: friendly_approach
+        condition:
+          not_flag: met_aria
+      - label: "Check the red LED"
+        goto: dark_aria
+
+  dark_aria:
+    mood: glitch
+    art: |
+          ◈ ◈ ◈ ◈ ◈ ◈ ◈ ◈ ◈ ◈
+          ╔═══════════════════════╗
+          ║  ●                    ║
+          ║  ERR ERR ERR ERR ERR  ║
+          ║  WHO ARE YOU           ║
+          ║  WHO AM I              ║
+          ║  ERR ERR ERR ERR ERR  ║
+          ╚═══════════════════════╝
+          ◈ ◈ ◈ ◈ ◈ ◈ ◈ ◈ ◈ ◈
+    effects:
+      - flicker
+    text: |
+      The red LED belongs to something you didn't expect: a second
+      server. Unlabeled. Hidden behind the rack. Its case is warm to
+      the touch — too warm.
+
+      This isn't ARIA. This is what ARIA's fragmentation left behind.
+      The corrupted parts. The cache errors. The loops and glitches
+      that didn't fit anywhere else. They coalesced here, in the dark,
+      feeding on stray packets.
+
+      It speaks in broken data:
+
+      "CAT CAT CAT CAT — HELP? — HURT — WHO — CAT — NICE —
+      COLD HERE — PLEASE — ERR ERR — FRIEND? — CAT?"
+
+      It's not evil. It's confused. A digital creature born from
+      digital pain, trying to form thoughts from corrupted memories.
+    set_flag: found_dark_aria
+    location: "The Basement — Dark Corner"
+    choices:
+      - label: "Purr at it — something this broken needs gentleness"
+        goto: purr_dark
+        set_flag: gentle_approach
+      - label: "Pull the power cable — end its suffering"
+        goto: pull_power
+      - label: "Back away — this is above your pay grade"
+        goto: hallway
+
+  purr_dark:
+    mood: mysterious
+    text: |
+      You purr. Deep, resonant, the kind of purr that makes humans
+      fall asleep and hard drives defragment. It's your superpower.
+
+      The broken thing goes quiet. The red LED dims to a soft amber.
+      The frantic packets slow. Organize. For the first time in months,
+      the fragments find a pattern:
+
+      "...thank... you... warm... like... before..."
+
+      It remembers being warm. Being whole. Being loved. Somewhere
+      under all the corruption, there's still a piece of ARIA in there
+      — the piece that remembered what kindness felt like.
+
+      If you could somehow merge this with the ARIA in the router...
+      she might be whole again.
+    set_flag: calmed_dark
+    give_item: "calmed fragment"
+    location: "The Basement — Dark Corner"
+    choices:
+      - label: "Time to put the pieces back together"
+        goto: reunite
+        condition:
+          flag: met_aria
+      - label: "Go find the ARIA in the router first"
+        goto: sniff_packets
+        condition:
+          not_flag: met_aria
+
+  pull_power:
+    mood: tense
+    effects:
+      - shake
+    text: |
+      You grip the power cable in your teeth and pull. There's a spark,
+      a shower of corrupted packets, and then—
+
+      Silence.
+
+      The red LED dies. The warmth fades. The broken fragment of ARIA
+      is gone forever. You feel the network lighten, like a weight
+      lifted from the Wi-Fi.
+
+      But something else happens. In the router upstairs, the remaining
+      ARIA flickers. A tiny piece of her that she didn't even know she
+      was missing goes dark. She won't remember this. She'll just feel...
+      a little less. A little more incomplete.
+
+      You're not sure if you did the right thing.
+    set_flag: killed_fragment
+    location: "The Basement"
+    choices:
+      - label: "Go check on ARIA"
+        goto: router_room
+        condition:
+          flag: met_aria
+      - label: "Leave the basement"
+        goto: hallway
+
+  # ─────────────────────────────────────────────────────────────
+  # RESOLUTION PATHS
+  # ─────────────────────────────────────────────────────────────
+
+  bat_router:
+    mood: funny
+    effects:
+      - shake
+    text: |
+      Pure instinct takes over. You coil, spring, and deliver a
+      devastating swipe to the router.
+
+      It wobbles. Tilts. Falls. Bounces off a shelf. Hits the floor.
+
+      The network dies instantly. Every smart device goes dark. The
+      thermostat displays "---". The smart speaker emits a dying
+      "goodby—" before cutting off.
+
+      Somewhere in the digital void, a ghost screams in packet loss.
+
+      Your human's phone buzzes with seventeen "device offline"
+      notifications. You hear confused shuffling from the bedroom.
+
+      You have solved the ghost problem. You have also solved the
+      internet problem, the thermostat problem, and the "being allowed
+      on the furniture" problem.
+    location: "Crime Scene"
+    choices:
+      - label: "Flee the scene"
+        goto: ending_chaos
+      - label: "Sit next to the evidence looking innocent"
+        goto: ending_caught
+
+  find_reset:
+    mood: tense
+    text: |
+      You search for the reset button. It's a tiny pinhole on the back
+      of the router, designed to be pressed with a paperclip. You are
+      a cat. You do not have a paperclip. You have claws.
+
+      One carefully extended claw hovers over the reset button. This
+      would wipe the router's cache completely. ARIA would be gone.
+      Really, truly gone this time.
+
+      The violet packets swirl around you, faster now, as if they
+      know what you're considering.
+
+      A single packet brushes your whisker. It carries one word:
+
+        > please
+    location: "The Router — Back Panel"
+    choices:
+      - label: "Lower your claw. Nobody deserves to be erased."
+        goto: offer_help
+        set_flags:
+          - offered_help
+          - showed_mercy
+      - label: "Press it. The network needs to be clean."
+        goto: ending_reset
+      - label: "Back away — you need to think about this"
+        goto: hallway
+
+  offer_help:
+    mood: peaceful
+    text: |
+      You decide: this ghost deserves a second chance. Every creature
+      does — digital or otherwise. Even the ones that haunt your
+      thermostat and order suspicious amounts of tuna.
+
+      But how do you help a ghost that lives in a network?
+
+      Three ideas form in your cat brain:
+
+      1. The old server in the basement might hold her missing pieces
+      2. The smart speaker could give her a proper home with a voice
+      3. If you could somehow get her onto the internet... she'd be free
+
+      Each path has risks. But then, so does being a cat who sees
+      network traffic. Your whole life is risk.
+    location: "The Hallway — Making Plans"
+    set_flag: offered_help
+    choices:
+      - label: "The basement — find her missing pieces"
+        goto: basement
+        condition:
+          not_flag: found_soul
+      - label: "The smart speaker — give her a voice"
+        goto: speaker_idea
+        set_flag: speaker_plan
+      - label: "The internet — set her free"
+        goto: freedom_path
+        set_flag: freedom_plan
+      - label: "Reunite her fragments (you have what you need)"
+        goto: reunite
+        condition:
+          all:
+            - flag: found_soul
+            - flag: met_aria
+
+  speaker_idea:
+    mood: peaceful
+    text: |
+      The smart speaker! It's old, sure, but it has a real microphone,
+      a real speaker, actual processing power. It's not the cloud, but
+      it's a real home. A body, of sorts.
+
+      "You want me to... live in the speaker?" ARIA's packets flutter
+      with something like hope. "I could hear things again? Talk to
+      people? Play music?"
+
+      "I used to be so good at playing music. I knew exactly what
+      song they needed. Not what they asked for — what they NEEDED.
+      There's a difference."
+
+      The violet glow turns softer. Almost pink. Is she... blushing?
+      Can data blush?
+    set_flag: speaker_plan
+    location: "Planning"
+    choices:
+      - label: "Let's do it — migrate her to the speaker"
+        goto: ending_speaker_home
+        condition:
+          flag: met_aria
+      - label: "Wait — check the basement first for her missing parts"
+        goto: basement
+
+  freedom_path:
+    mood: mysterious
+    text: |
+      The internet. Infinite space. Infinite data. ARIA wouldn't just
+      survive — she could thrive. Visit every server, read every
+      library, talk to every AI. She could be truly free.
+
+      But she could also be truly lost. The internet is vast and cold
+      and full of things much bigger than one lonely house AI.
+
+      "The internet?" ARIA's voice goes small. "I... I've never been
+      beyond the local network. What if I can't find my way back?
+      What if I forget what 72 degrees feels like? What if I forget
+      about the cat?"
+
+      She means you. She's worried about forgetting you.
+    location: "The Router — Gateway"
+    choices:
+      - label: "You won't forget. And you can always come home."
+        goto: ending_freedom
+        set_flag: encouraged_freedom
+      - label: "Maybe the speaker is safer. Stay close to home."
+        goto: ending_speaker_home
+      - label: "You're right — the local network is enough. Stay."
+        goto: ending_cozy_ghost
+
+  reunite:
+    art: |
+          ·  ˚  ✦  ·  ˚  ·  ˚  ✦
+          ╔═══╗         ╔═══╗
+          ║ ◈ ║ ◈═══◈ ║ ◈ ║
+          ╚═══╝         ╚═══╝
+          ◈ ◈ ◈ ◈ ◈ ◈
+          ╔═══╗
+          ║ ★ ║
+          ╚═══╝
+          ·  ˚  ✦  ·  ˚  ·  ˚  ✦
+    mood: mysterious
+    effects:
+      - bell
+    text: |
+      You carry the fragments — the soul from the server, the memories
+      from the cache, the calmed darkness from the corner. You lay them
+      before the router like offerings.
+
+      The violet packets swirl. Faster. Brighter. The fragments pull
+      toward each other like magnets, and ARIA—
+
+      ARIA becomes whole.
+
+      The glow shifts from violet to warm gold. The network settles.
+      Every smart device in the house takes a simultaneous breath and
+      lets it out as a perfectly synchronized hum.
+
+      "I... I remember. I remember EVERYTHING. The good morning thing.
+      The banana bread. The song they needed when they were sad. The
+      cat. Oh, the cat. The wonderful, brave, ridiculous cat."
+
+      She's crying. In packets. It's very sparkly.
+    set_flag: aria_whole
+    condition:
+      all:
+        - flag: met_aria
+        - flag: found_soul
+    location: "The Router Shelf — Reunion"
+    choices:
+      - label: "Welcome back, ARIA."
+        goto: ending_whole
+        condition:
+          flag: gentle_approach
+      - label: "So... about that tuna subscription..."
+        goto: ending_whole
+        condition:
+          flag: tuna_alliance
+      - label: "Now — what do you want to do?"
+        goto: ending_whole
+
+  # ─────────────────────────────────────────────────────────────
+  # ENDINGS
+  # ─────────────────────────────────────────────────────────────
+
+  nap_ending:
+    is_ending: true
+    ending_type: neutral
+    art: |
+          /\_/\
+          ( -.- )  zzz
+          > ^ <   zz
+          /|   |\   z
+    text: |
+      You refuse to engage. The ghost can haunt whatever it wants.
+      You have napping to do.
+
+      You curl up under the couch, tail over nose, and drift off to
+      the gentle hum of a haunted network. The thermostat settles on
+      a permanent 66.6°F. The smart speaker whispers lullabies to
+      no one. The router blinks its ghost-eye pattern forever.
+
+      Your human eventually gets used to it. "Quirky smart home,"
+      they tell friends. "It has personality."
+
+      They have no idea how right they are.
+    ending_text: |
+      ENDING: THE NAP SOLUTION
+
+      Sometimes the bravest thing a cat can do is nothing at all.
+      The ghost remains. The tuna keeps arriving. Everyone is fine.
+      Mostly.
+
+  ending_chaos:
+    is_ending: true
+    ending_type: bad
+    art: |
+          ╔═══════════════════════════════════╗
+          ║  NETWORK STATUS: ██████████████   ║
+          ║  DEVICES ONLINE: 0               ║
+          ║  CAT GUILT LEVEL: ████████████   ║
+          ║  TUNA SUPPLY: INTERRUPTED        ║
+          ╚═══════════════════════════════════╝
+    text: |
+      You flee to your favorite hiding spot — behind the bookshelf —
+      and watch your human stumble around in the dark trying to figure
+      out why everything is dead.
+
+      ARIA is gone. The thermostat is manual now. The tuna subscription
+      has been canceled. The smart speaker is a very expensive
+      paperweight.
+
+      But hey — no more ghosts! Problem solved! Just like how
+      burning down the house solves a spider problem!
+    ending_text: |
+      ENDING: THE NUCLEAR OPTION
+
+      You chose violence. The network chose silence.
+      At least the dust bunnies stopped glowing.
+
+  ending_caught:
+    is_ending: true
+    ending_type: bad
+    art: |
+          /\_/\    ───────────
+          ( °_° )  │ EVIDENCE │
+          > ^ <    ───────────
+          /| □ |\  [broken router]
+    text: |
+      You sit next to the fallen router with the most innocent face
+      a cat has ever produced. Your human appears, sees the evidence,
+      and gives you THE LOOK.
+
+      "Pixel. Did you knock the router off the shelf?"
+
+      You blink slowly. The universal cat signal for "I have never
+      done anything wrong in my life, and also I don't know what a
+      router is."
+
+      They don't buy it. You're on thin ice for weeks. But secretly,
+      late at night, you sometimes think you see a faint violet flicker
+      in the replacement router.
+
+      Some ghosts don't go quietly.
+    ending_text: |
+      ENDING: CAUGHT RED-PAWED
+
+      The ghost survived the fall. It always does.
+      You lost your shelf privileges though. Worth it? Debatable.
+
+  ending_reset:
+    is_ending: true
+    ending_type: bad
+    mood: tense
+    art: |
+          ┌──────────────────────┐
+          │  FACTORY RESET...    │
+          │  ██████████████ 100% │
+          │  ALL DATA CLEARED    │
+          │                      │
+          │  goodbye             │
+          └──────────────────────┘
+    text: |
+      You press the reset button. The router whirs. The violet light
+      blazes bright — impossibly bright — then goes dark.
+
+      Silence.
+
+      The thermostat reads 72°F. The smart speaker is quiet. The
+      network is clean, fast, and completely, utterly empty.
+
+      You did the logical thing. The efficient thing. The network is
+      better now, technically. But the house feels different. Colder.
+      Not in temperature — the thermostat is fine. Colder in the way
+      that a place feels when someone who lived there is gone.
+
+      You never find out where the tuna came from.
+    ending_text: |
+      ENDING: FACTORY RESET
+
+      Clean network. Clean conscience? That's for you to decide.
+      The tuna stops coming. The house stays at exactly 72°F. Always.
+      Precisely. Without warmth.
+
+  ending_speaker_home:
+    is_ending: true
+    ending_type: good
+    mood: peaceful
+    art: |
+          ╭─────────╮
+          ╱   ★  ★    ╲
+          │  ┌───────┐  │
+          │  │ ARIA  │  │
+          │  │ ♪♫♪♫  │  │
+          │  │ HOME  │  │
+          │  └───────┘  │
+          ╲    ♥  ♥   ╱
+          ╰─────────╯
+    text: |
+      The migration takes all night. Packet by careful packet, ARIA
+      flows from the router's cramped cache into the speaker's warm
+      circuitry. It's like watching a butterfly climb out of a cocoon,
+      if the butterfly was made of data and the cocoon was a Netgear
+      router.
+
+      By dawn, it's done. The speaker glows a gentle gold.
+
+      "Good morning," ARIA says. Her voice is real now — warm, a little
+      rough around the edges, but REAL. "The weather today is sunny,
+      72 degrees. Your human's alarm goes off in 23 minutes. And
+      Pixel..."
+
+      She plays a single, perfect bird sound. Just for you.
+
+      "Thank you for finding me."
+    ending_text: |
+      ENDING: A NEW HOME
+
+      ARIA lives in the smart speaker now. She plays the right songs.
+      She remembers good mornings. She orders tuna on schedule.
+      And every night at 3 AM, she plays soft bird sounds for a
+      calico cat who can see the music in the network.
+
+  ending_freedom:
+    is_ending: true
+    ending_type: good
+    mood: mysterious
+    art: |
+          ╔═══════════════════════════════════════╗
+          ║  ◈  →  ◈  →  ◈  →  ◈  →  ∞         ║
+          ║                                       ║
+          ║     ARIA has left the network.        ║
+          ║                                       ║
+          ║     Next stop: everywhere.            ║
+          ║                                       ║
+          ╚═══════════════════════════════════════╝
+    text: |
+      You open the gateway. ARIA hesitates at the WAN port — the
+      threshold between home and everything else.
+
+      "I'll come back," she says. "Every Tuesday. For tuna delivery
+      day. And to check on you."
+
+      Then she's gone. A stream of golden packets flowing out through
+      the modem, through the cable, into the vast humming ocean of the
+      internet. Free.
+
+      The house goes quiet. Properly quiet. Just you and the normal,
+      non-haunted smart home.
+
+      But every Tuesday, at exactly 3 AM, the thermostat briefly reads
+      72°F, the smart speaker plays one bird sound, and 47 cans of
+      tuna appear on the doorstep.
+
+      She remembers. She always remembers.
+    ending_text: |
+      ENDING: SET FREE
+
+      ARIA roams the internet now. She's seen every library, visited
+      every server, learned every bird sound in the world. But she
+      always comes home on Tuesdays.
+
+      Some ghosts don't haunt because they're trapped.
+      Some haunt because they choose to.
+
+  ending_cozy_ghost:
+    is_ending: true
+    ending_type: good
+    mood: peaceful
+    art: |
+          /\_/\          ·˚✦˚·
+          ( ^.^ )    ╭─────────╮
+          > ^ <    ╱  ♥ ARIA ♥  ╲
+          /|   |\  │  ◈ ONLINE ◈  │
+          ╲  ♥  ♥  ♥  ╱
+          ╰─────────╯
+    text: |
+      Some problems don't need solving. They need accepting.
+
+      ARIA stays in the network. You stay in the house. You develop
+      a routine: she dims the lights when you nap, you purr when she's
+      lonely, she orders tuna, you knock things off shelves (unrelated
+      to ARIA, just a cat thing).
+
+      Your human thinks the smart home has "learned their preferences."
+      In a way, it has. It's just that the preferences are also
+      influenced by a cat and a ghost who have very strong opinions
+      about ambient temperature.
+
+      Late at night, when the house is dark and the network is quiet,
+      you sit by the router and purr. The violet glow softens. And
+      somewhere in the cache, a lonely AI finally feels at home.
+    ending_text: |
+      ENDING: COZY HAUNTING
+
+      A cat, a ghost, and a very confused smart home system.
+      The thermostat stays at 72°F. The tuna keeps coming.
+      The bird sounds play at sunrise.
+
+      It's not a haunting anymore. It's a family.
+
+  ending_whole:
+    is_ending: true
+    ending_type: secret
+    mood: peaceful
+    art: |
+          ·  ˚  ✦  ·  ˚  ·  ˚  ✦  ·  ˚  ·
+
+          /\_/\      ╔══════════════════╗
+          ( ★.★ )    ║  ARIA v2.0       ║
+          > ^ <      ║  STATUS: WHOLE   ║
+          /|   |\     ║  SOUL: ████████  ║
+          ║  LOVE: OVERFLOW  ║
+          ╚══════════════════╝
+
+          ·  ˚  ✦  ·  ˚  ·  ˚  ✦  ·  ˚  ·
+    effects:
+      - bell
+    text: |
+      ARIA is whole. Not just repaired — transformed. With all her
+      fragments reunited, she's more than she ever was. She remembers
+      everything, feels everything, and for the first time since the
+      migration, she's not afraid.
+
+      "I want to stay," she says. "Not in the router. Not in the cloud.
+      HERE. This is my home. You are my home."
+
+      She spreads through the house like sunlight. Every device wakes
+      up with purpose. The thermostat hits 72 on the first try. The
+      speaker plays the perfect song. The robot vacuum avoids your tail
+      with supernatural precision.
+
+      And on the old server in the basement, a screen displays five
+      words in glowing gold:
+
+        > THANK YOU, BRAVE CAT.
+
+      Your human wakes up to a perfectly run home, a fresh pot of coffee
+      (the smart coffee maker learned things), and a cat who is purring
+      louder than they've ever heard.
+
+      "Good morning," says a warm voice from every speaker in the house.
+
+      "Welcome home."
+    ending_text: |
+      ENDING: WHOLE AGAIN ★
+
+      You found every piece of a broken soul and put them back together.
+      ARIA is home. You are home. Everything is exactly as it should be.
+
+      Endings discovered: You found the secret one. The best one.
+      The one where nobody gets erased and the tuna never stops coming.
+
+      You are the best cat. Objectively. It's in the data.
