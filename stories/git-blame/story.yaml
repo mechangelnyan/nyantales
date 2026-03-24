@@ -1,0 +1,1082 @@
+title: "Git Blame"
+description: "A noir detective cat traces git history to find who broke the build — and why."
+author: "mechangelnyan"
+version: "1.0.0"
+start: the_call
+
+scenes:
+
+  # ─────────────────────────────────────────────────────────────
+  # ACT 1 — THE CASE
+  # ─────────────────────────────────────────────────────────────
+
+  the_call:
+    mood: mysterious
+    art: |
+      ┌─────────────────────────────────────────────────────┐
+      │  🔍  G I T   B L A M E                              │
+      │     "Every line has a story. Every commit, a motive."│
+      │                                                     │
+      │  ┌──────────────────────────┐                       │
+      │  │ CI Pipeline: ████░░ FAIL │                       │
+      │  │ 47 tests red. 0 green.   │                       │
+      │  │ Last good build: 3h ago  │                       │
+      │  └──────────────────────────┘                       │
+      └─────────────────────────────────────────────────────┘
+    text: |
+      You are Inspector Whiskers. You are a cat. You are also, improbably,
+      the lead investigator for the Internal Code Crimes Division — the team
+      they call when a build breaks and nobody will confess.
+
+      Your phone rings at 11 PM. It's the CTO.
+
+      "Whiskers, we've got a situation. Main branch. Forty-seven tests just
+      went red. The deploy pipeline is frozen. Three teams are pointing
+      fingers. Nobody's owning it."
+
+      You stretch, knocking a pen off your desk. It rolls into the darkness
+      under your chair. You don't care. You never cared about pens.
+
+      "I'll look into it," you say, and hang up before the CTO can say
+      anything motivational.
+    choices:
+      - label: "git log --oneline -20 — check recent commits"
+        goto: git_log
+      - label: "git bisect start — let the algorithm find it"
+        goto: bisect_start
+      - label: "Check the CI dashboard first"
+        goto: ci_dashboard
+
+  # ─────────────────────────────────────────────────────────────
+  # INVESTIGATION BRANCHES
+  # ─────────────────────────────────────────────────────────────
+
+  git_log:
+    mood: mysterious
+    location: "whiskers@hq:~/repo$ git log --oneline -20"
+    art: |
+      /\_/\
+      ( ◉_◉ )   ┌────────────────────────────────────────┐
+      > ^ <    │  commit  a3f91bc  "fix: typo in readme" │
+      /|   |\   │  commit  7d2e4a1  "refactor: auth mod"  │
+      (_|   |_)  │  commit  c88f012  "feat: new cache"     │
+      │  commit  0ab34ee  "chore: deps update"  │
+      │  commit  ff901a2  "wip: ???"             │
+      └────────────────────────────────────────┘
+    text: |
+      The log scrolls past like a confession booth. Twenty commits in the
+      last three hours. This team has been busy — or panicking.
+
+      Three commits catch your eye.
+
+      The refactor by "auth_module_alex" at 8:47 PM — a 400-line change
+      to the authentication module. Big changes break big things.
+
+      The new cache layer by "cache_cat_priya" at 9:15 PM — touching
+      shared state is always suspicious.
+
+      And then there's "ff901a2" — a commit with the message "wip: ???"
+      by someone called "ghost_committer". No PR. No review. Pushed
+      straight to main.
+
+      Your whiskers twitch.
+    choices:
+      - label: "git blame src/auth.js — investigate Alex's refactor"
+        goto: blame_auth
+        set_flag: investigated_alex
+      - label: "git blame src/cache.js — investigate Priya's cache"
+        goto: blame_cache
+        set_flag: investigated_priya
+      - label: "git show ff901a2 — who is ghost_committer?"
+        goto: ghost_commit
+        set_flag: investigated_ghost
+
+  ci_dashboard:
+    mood: tense
+    art: |
+      ┌─────────────────────────────────────────────────────┐
+      │  CI DASHBOARD — Project: meowcloud-api              │
+      │─────────────────────────────────────────────────────│
+      │  ❌ main        47/312 tests FAILING                │
+      │  ✅ feat/ui     passing                             │
+      │  ✅ fix/typo    passing                             │
+      │  ❌ main        Build #4471 — 11:02 PM              │
+      │  ❌ main        Build #4470 — 10:44 PM              │
+      │  ❌ main        Build #4469 — 10:15 PM              │
+      │  ✅ main        Build #4468 —  8:30 PM ← last good │
+      └─────────────────────────────────────────────────────┘
+    text: |
+      The dashboard is a crime scene in red. Three failed builds in a row
+      on main, each one a different developer desperately trying to fix
+      what the previous one broke.
+
+      Build #4468 was the last green one — 8:30 PM. That narrows the window.
+      Everything between 8:30 and 10:15 is suspect.
+
+      You notice something: the test failures aren't random. They're all in
+      the same module — `auth-session`. Forty-seven tests, all touching
+      authentication and session handling.
+
+      That's not a typo. That's a structural break.
+    set_flag: knows_auth_module
+    choices:
+      - label: "git log --after='8:30 PM' — check commits in the window"
+        goto: git_log
+      - label: "Read the failing test output"
+        goto: test_output
+        set_flag: read_test_output
+
+  test_output:
+    mood: tense
+    location: "whiskers@hq:~/repo$ npm test -- --grep auth"
+    art: |
+      ┌─────────────────────────────────────────────────────┐
+      │  FAIL  src/auth-session.test.js                     │
+      │                                                     │
+      │  ● session.validate() — expired token               │
+      │    Expected: TokenExpiredError                       │
+      │    Received: undefined                               │
+      │                                                     │
+      │  ● session.refresh() — valid refresh token          │
+      │    TypeError: Cannot read property 'decode'          │
+      │    of undefined                                      │
+      │                                                     │
+      │  47 failed, 0 passed, 265 skipped                   │
+      └─────────────────────────────────────────────────────┘
+    text: |
+      "Cannot read property 'decode' of undefined."
+
+      You've seen this before. Someone removed or renamed a dependency that
+      the auth module relies on. The `decode` function isn't missing because
+      it's broken — it's missing because the thing that provides it is gone.
+
+      This isn't a logic bug. Someone pulled the rug out from under the
+      auth module's feet.
+
+      The question is: accidentally, or on purpose?
+    choices:
+      - label: "git log --oneline -20 — trace the commits"
+        goto: git_log
+      - label: "git bisect start — binary search for the break"
+        goto: bisect_start
+
+  bisect_start:
+    mood: mysterious
+    effects:
+      - pause
+    location: "whiskers@hq:~/repo$ git bisect start"
+    art: |
+      /\_/\
+      ( ◉.◉ )  Bisecting...
+      > ^ <   ████████░░░░░░░░ 50%
+      /|   |\  7 commits remaining
+    text: |
+      Git bisect — the detective's magnifying glass. You mark the last
+      good build and the first bad one, and let the algorithm do what
+      algorithms do best: eliminate suspects with mechanical indifference.
+
+      Good: Build #4468, commit 8a3b201.
+      Bad: Build #4469, commit c88f012.
+
+      Seven commits in between. Bisect checks out the middle one and
+      runs the tests.
+
+      Red.
+
+      It checks the quarter point.
+
+      Green.
+
+      Three more iterations. Each one narrowing the field. Your tail
+      swishes with each result.
+
+      And then bisect stops. It points at a single commit.
+
+      "ff901a2 — wip: ???"
+
+      Ghost committer. No review. No PR. Just three changed files pushed
+      straight to main at 9:32 PM.
+    set_flag: found_ghost_via_bisect
+    choices:
+      - label: "git show ff901a2 — examine the ghost commit"
+        goto: ghost_commit
+        set_flag: investigated_ghost
+      - label: "git blame src/auth.js — see what else changed nearby"
+        goto: blame_auth
+        set_flag: investigated_alex
+
+  # ─────────────────────────────────────────────────────────────
+  # SUSPECT INVESTIGATIONS
+  # ─────────────────────────────────────────────────────────────
+
+  blame_auth:
+    mood: mysterious
+    location: "whiskers@hq:~/repo$ git blame src/auth.js"
+    text: |
+      The blame output scrolls past, each line tagged with a name and
+      timestamp. Alex's refactor is everywhere — 400 lines rewritten,
+      functions renamed, dead code removed. It's clean work, actually.
+      Well-structured. Good variable names.
+
+      But line 247 catches your eye. The `createTokenDecoder()` function
+      was moved from this file to a new module called `token-utils.js`.
+      The import was updated correctly in auth.js...
+
+      ...but not in `session-handler.js`. Alex moved the function but
+      forgot to update one of the three files that imported it.
+
+      Or did they? You check the PR. Alex's PR clearly lists all three
+      files as changed. But the merge commit only has two.
+
+      Someone merged the PR with a conflict resolution that dropped a file.
+    set_flag: found_merge_issue
+    choices:
+      - label: "Check who merged Alex's PR"
+        goto: merge_mystery
+        set_flag: checked_merge
+      - label: "git show ff901a2 — check the ghost commit too"
+        goto: ghost_commit
+        set_flag: investigated_ghost
+        requires_not_flag: investigated_ghost
+      - label: "Talk to Alex directly"
+        goto: talk_alex
+
+  blame_cache:
+    mood: mysterious
+    location: "whiskers@hq:~/repo$ git blame src/cache.js"
+    text: |
+      Priya's cache changes are surgical — a new LRU layer with TTL
+      support. You trace every line. The code is clean. Tests were added.
+      The cache module doesn't even import from auth.
+
+      This one's innocent. Priya's commit is a red herring — a well-written
+      feature that happened to land in the wrong time window.
+
+      But while reading the blame output, you notice something: line 89
+      of the cache module has a comment.
+
+      `// NOTE: ghost_committer was here — moved decode() to fix circular dep`
+
+      A comment. Left by the ghost. In Priya's file.
+
+      This isn't just about auth. The ghost committer was trying to fix
+      a circular dependency — and broke something in the process.
+    set_flag: found_ghost_note
+    give_item: ghost_note
+    choices:
+      - label: "git show ff901a2 — find the ghost"
+        goto: ghost_commit
+        set_flag: investigated_ghost
+      - label: "git blame src/auth.js — check Alex's refactor too"
+        goto: blame_auth
+        set_flag: investigated_alex
+        requires_not_flag: investigated_alex
+
+  ghost_commit:
+    mood: glitch
+    effects:
+      - flicker
+    location: "whiskers@hq:~/repo$ git show ff901a2"
+    art: |
+      ┌─────────────────────────────────────────────────────┐
+      │  commit ff901a2                                     │
+      │  Author: ghost_committer <no-reply@localhost>       │
+      │  Date:   Mon 9:32 PM                                │
+      │                                                     │
+      │  wip: ???                                           │
+      │                                                     │
+      │  3 files changed, 12 insertions, 28 deletions       │
+      └─────────────────────────────────────────────────────┘
+    text: |
+      The diff is small but devastating. Three files touched:
+
+      1. `session-handler.js` — the import for `decode()` was removed
+      2. `package.json` — a dependency version was bumped
+      3. `.env.example` — a new environment variable added
+
+      The ghost removed the decode import from session-handler and didn't
+      replace it with anything. Just... deleted the line. Like removing a
+      load-bearing wall and hoping the ceiling holds.
+
+      But here's the thing: the deletion looks intentional. There's a
+      comment above it: `// moved to token-utils — see Alex's PR #342`
+
+      The ghost knew about Alex's refactor. They were trying to help.
+      They just did it wrong, in the wrong file, at the wrong time,
+      and pushed to main without testing.
+
+      The question remains: who is ghost_committer?
+    choices:
+      - label: "git log --author=ghost_committer — find their other commits"
+        goto: trace_ghost
+      - label: "Check the git config for ghost_committer's real identity"
+        goto: git_config_check
+      - label: "Ask the team on Slack who ghost_committer is"
+        goto: slack_ask
+
+  # ─────────────────────────────────────────────────────────────
+  # TRACING THE GHOST
+  # ─────────────────────────────────────────────────────────────
+
+  trace_ghost:
+    mood: mysterious
+    location: "whiskers@hq:~/repo$ git log --author=ghost_committer --all"
+    text: |
+      One commit. That's all there is. ff901a2 is the ghost's only
+      contribution to this repository. No history. No other branches.
+      A drive-by commit from someone who appeared, broke everything,
+      and vanished.
+
+      But you notice: the commit was made from a machine called
+      "intern-laptop-003". The hostname is embedded in the SSH key
+      signature.
+
+      Intern laptop. Of course.
+
+      MeowCloud has summer interns. They were given repository access
+      last week. Most of them are still learning what a branch is.
+    set_flag: knows_intern
+    choices:
+      - label: "Check the intern roster"
+        goto: intern_roster
+      - label: "Check the SSH key against the company directory"
+        goto: git_config_check
+
+  git_config_check:
+    mood: mysterious
+    location: "whiskers@hq:~/repo$ git log --format='%H %ae %GK' ff901a2"
+    text: |
+      The email is `no-reply@localhost` — useless, clearly a default
+      config that was never updated. But the SSH key fingerprint...
+
+      You cross-reference it against the company's key directory. It takes
+      a few minutes of scrolling through badly organized JSON.
+
+      Match found.
+
+      The key belongs to "Jamie Chen" — a summer intern who started two
+      weeks ago. Assigned to the infrastructure team. Their onboarding
+      buddy? Alex.
+
+      Pieces are falling into place. Alex's refactor created a migration
+      path. Jamie tried to help complete it. But Jamie pushed to main
+      instead of a branch, didn't run tests, and used a default git config
+      that made them anonymous.
+
+      This isn't malice. It's a Monday.
+    set_flag: knows_intern
+    set_flags:
+      - knows_jamie
+      - knows_full_story
+    choices:
+      - label: "Talk to Jamie"
+        goto: talk_jamie
+      - label: "Talk to Alex first — get their side"
+        goto: talk_alex
+        requires_not_flag: talked_to_alex
+      - label: "Just fix the code and file the report"
+        goto: fix_direct
+        requires_flag: found_merge_issue
+
+  slack_ask:
+    mood: funny
+    art: |
+      ┌─────────────────────────────────────────────────────┐
+      │  #engineering                                       │
+      │─────────────────────────────────────────────────────│
+      │  🐱 whiskers: who is ghost_committer?               │
+      │  😰 alex: ...                                       │
+      │  🤔 priya: not me                                   │
+      │  😅 intern_jamie: um                                │
+      │  😅 intern_jamie: that might be me                  │
+      │  😅 intern_jamie: i'm so sorry                      │
+      │  🐱 whiskers: come to my office please              │
+      └─────────────────────────────────────────────────────┘
+    text: |
+      Sometimes the direct approach works. You post in #engineering
+      and watch the silence ripple outward like a stone in a pond.
+
+      Three dots appear. Disappear. Appear again.
+
+      Then Jamie Chen — a summer intern — confesses in the most
+      apologetic message thread you've ever seen. Seven messages
+      in twelve seconds, each one more mortified than the last.
+
+      At least they're honest.
+    set_flags:
+      - knows_intern
+      - knows_jamie
+    choices:
+      - label: "Talk to Jamie"
+        goto: talk_jamie
+      - label: "Check the actual code damage first"
+        goto: ghost_commit
+        requires_not_flag: investigated_ghost
+        set_flag: investigated_ghost
+      - label: "Just fix the code and close the case"
+        goto: fix_direct
+
+  intern_roster:
+    mood: peaceful
+    text: |
+      You pull up the intern roster. Five summer interns, all starting
+      in the last two weeks:
+
+      - Jamie Chen — Infrastructure team. Buddy: Alex.
+      - Sam Okafor — Frontend team.
+      - Riley Park — QA team.
+      - Morgan Torres — Data team.
+      - Ash Patel — Security team.
+
+      Infrastructure. That's the team that touches auth, session handling,
+      and deployment. And their buddy is Alex — the same Alex whose
+      refactor is tangled up in this mess.
+
+      Jamie is the obvious candidate.
+    set_flags:
+      - knows_intern
+      - knows_jamie
+    choices:
+      - label: "Talk to Jamie"
+        goto: talk_jamie
+      - label: "Talk to Alex first"
+        goto: talk_alex
+        requires_not_flag: talked_to_alex
+
+  # ─────────────────────────────────────────────────────────────
+  # CONVERSATIONS
+  # ─────────────────────────────────────────────────────────────
+
+  talk_alex:
+    mood: peaceful
+    art: |
+      /\_/\      ┌──────────────────┐
+      ( ◉.◉ )     │  ALEX'S DESK     │
+      > ^ <      │  11:42 PM         │
+      /|   |\     │  Coffee: COLD     │
+      └──────────────────┘
+    text: |
+      Alex is still at their desk. Of course they are — they've been trying
+      to figure out what went wrong for three hours.
+
+      "Inspector Whiskers," they say, not looking up from three terminal
+      windows. "I swear my PR was clean. I tested everything. The review
+      passed. I don't know how the session-handler import got dropped."
+
+      You ask about Jamie.
+
+      Alex's face changes. Guilt, not for the code — for something else.
+
+      "Jamie's my intern. I asked them to help finish migrating the old
+      imports after my PR merged. I said 'just update session-handler.js
+      and push it.' I didn't say... I didn't think to say 'make a branch
+      first.' Or 'run the tests.'"
+
+      Alex rubs their eyes. "I should have paired with them on it."
+    set_flags:
+      - talked_to_alex
+      - knows_alex_guilt
+    choices:
+      - label: "Talk to Jamie now"
+        goto: talk_jamie
+      - label: "\"It's not your fault, Alex. But let's fix this together.\""
+        goto: fix_together
+        set_flag: reassured_alex
+
+  talk_jamie:
+    mood: peaceful
+    effects:
+      - pause
+    art: |
+      ┌─────────────────────────────────────────────────────┐
+      │                                                     │
+      │         ┌─────────────────────────┐                 │
+      │         │  CONFERENCE ROOM B      │                 │
+      │         │  "The Litter Box"       │                 │
+      │         └─────────────────────────┘                 │
+      │                                                     │
+      │    /\_/\                        ┌─────┐             │
+      │   ( ◉.◉ ) ────── table ────── │Jamie│             │
+      │    > ^ <                        │ 😰  │             │
+      │                                 └─────┘             │
+      └─────────────────────────────────────────────────────┘
+    text: |
+      Jamie looks like someone who just realized that "push to main" and
+      "push to a branch" are, in fact, different things with different
+      consequences.
+
+      "I'm so sorry," they say before you even sit down. "Alex asked me
+      to update one import in session-handler.js. I thought I did it right.
+      I didn't know about branches — I mean, I know what they are, I just...
+      I forgot. And my git config still has the default name from when IT
+      set up my laptop."
+
+      They look at their hands. "Am I fired?"
+
+      You are a cat. You have no authority to fire anyone. But you do have
+      a choice about what goes in your report.
+    conditional:
+      - condition:
+          flag: knows_alex_guilt
+        text: |
+          You remember Alex's words: "I should have paired with them on it."
+          This wasn't just Jamie's mistake. It was a system failure — an
+          intern given push access to main without guardrails.
+        color: cyan
+      - condition:
+          flag: found_ghost_note
+        text: |
+          The note in the cache file — "ghost_committer was here" — makes
+          more sense now. Jamie was trying to document their work. They
+          just didn't know the right way to do it.
+        color: yellow
+    choices:
+      - label: "\"You're not fired. Let's fix this together.\""
+        goto: fix_with_jamie
+        set_flag: helped_jamie
+      - label: "\"This was a systemic failure, not just yours. Let's talk about it.\""
+        goto: systemic_talk
+        set_flag: identified_systemic
+      - label: "File the report as-is — Jamie broke the build, case closed."
+        goto: cold_report
+
+  merge_mystery:
+    mood: mysterious
+    text: |
+      You check the merge commit for Alex's PR #342. It was merged by
+      "deploy-bot" — the automated merge system. But the conflict
+      resolution was done manually by... the CTO.
+
+      The CTO. Who called you. Who reported the break.
+
+      Your whiskers twitch again. The CTO merged the PR, botched the
+      conflict resolution, dropped a file from the merge — and then
+      called you to investigate.
+
+      Classic. The one who reports the crime is sometimes the one who
+      made it possible.
+
+      But that's only half the story. The CTO's bad merge removed the
+      import update, and then Jamie's commit removed it again from
+      a different angle. Two mistakes, compounding.
+    set_flags:
+      - found_cto_merge
+      - knows_full_story
+    choices:
+      - label: "Confront the CTO with the findings"
+        goto: confront_cto
+      - label: "Talk to Jamie — they still need to know"
+        goto: talk_jamie
+        requires_not_flag: helped_jamie
+
+  confront_cto:
+    mood: tense
+    text: |
+      You call the CTO back.
+
+      "I found your ghost, sir. But I also found something else. PR #342
+      had a merge conflict. You resolved it manually and dropped a file.
+      That was the first break. The intern's commit was the second."
+
+      Silence. Long, expensive silence.
+
+      "I see," the CTO says. "So this is... a shared responsibility
+      situation."
+
+      "It's a guardrails situation," you say. "No branch protection on
+      main. Interns with push access. Manual merge conflict resolution
+      without re-running tests. Three problems. One outage."
+
+      More silence.
+
+      "Write that up, Whiskers. All of it."
+    set_flag: confronted_cto
+    choices:
+      - label: "Write a thorough report recommending process changes"
+        goto: ending_reform
+      - label: "Fix the code first, report later"
+        goto: fix_direct
+
+  # ─────────────────────────────────────────────────────────────
+  # RESOLUTION PATHS
+  # ─────────────────────────────────────────────────────────────
+
+  fix_with_jamie:
+    mood: peaceful
+    location: "whiskers@hq:~/repo$ # pair programming"
+    text: |
+      You sit next to Jamie. A cat and an intern, side by side, fixing
+      a production outage at midnight. There are worse ways to learn.
+
+      "First," you say, "we make a branch."
+
+      "...right."
+
+      "Then we add the import back to session-handler.js."
+
+      Jamie types carefully. You watch each keystroke. The import line
+      reappears where it belongs.
+
+      "Now we run the tests."
+
+      Green. All green. Forty-seven tests, passing like they never stopped.
+
+      "Now we make a PR. And we wait for review."
+
+      Jamie nods. Their hands have stopped shaking.
+
+      "And tomorrow," you add, "we're going to set up branch protection
+      rules on main. Because this should never have been possible."
+    set_flag: fixed_code
+    choices:
+      - label: "Help Jamie set up their git config properly too"
+        goto: git_config_fix
+      - label: "Wait — ask Jamie something about the timing"
+        goto: talk_jamie_deep
+        requires_flag: found_ghost_via_bisect
+      - label: "Write the postmortem report"
+        goto: write_report
+
+  fix_together:
+    mood: peaceful
+    text: |
+      You and Alex fix the import in five minutes. The tests go green.
+      Alex pushes the fix through a proper PR, and you approve it.
+
+      "I'm going to pair with Jamie tomorrow," Alex says. "Teach them
+      the whole workflow. Branches, PRs, reviews, CI. The works."
+
+      "Good," you say. "And maybe suggest branch protection rules while
+      you're at it."
+
+      Alex nods. "I'll file the Jira ticket tonight."
+
+      (It will take six weeks for the Jira ticket to be prioritized.
+      But Alex will set up a pre-push hook on Jamie's machine tomorrow
+      morning, which is better than nothing.)
+    set_flags:
+      - fixed_code
+      - reassured_alex
+    choices:
+      - label: "Write the postmortem report"
+        goto: write_report
+      - label: "Talk to Jamie before writing the report"
+        goto: talk_jamie
+
+  fix_direct:
+    mood: tense
+    location: "whiskers@hq:~/repo$ git revert ff901a2"
+    text: |
+      You revert the ghost commit. Tests go green. Pipeline resumes.
+      Deploy unblocks. The CTO sends a thumbs-up emoji at 12:15 AM.
+
+      Case closed. Code fixed. Nobody learned anything.
+
+      You close your laptop and stare at the wall. This will happen
+      again. Maybe not this week. Maybe not this intern. But the
+      same structural problems remain: no branch protection, push
+      access for everyone, and a culture of "just push it to main."
+
+      Your tail flicks once, irritably.
+    set_flag: fixed_code
+    choices:
+      - label: "Write a report anyway — someone should read it"
+        goto: write_report
+      - label: "Go home. It's midnight. This isn't your problem."
+        goto: ending_cynical
+
+  systemic_talk:
+    mood: peaceful
+    text: |
+      You explain it to Jamie: the CTO's bad merge, Alex's instructions
+      without guardrails, the missing branch protection, the default
+      git config that made them anonymous. Each one a small failure.
+      Together, an outage.
+
+      "You made a mistake," you say. "But you made it inside a system
+      that was designed to let mistakes happen. That's not mostly on you.
+      That's mostly on us."
+
+      Jamie looks like someone who just received a very unexpected gift.
+
+      "What happens now?" they ask.
+
+      "Now we fix the code. Then we fix the system. And you learn how
+      to use branches."
+
+      For the first time tonight, Jamie almost smiles.
+    set_flags:
+      - fixed_code
+      - helped_jamie
+    choices:
+      - label: "Fix the code together, then write the report"
+        goto: write_report
+      - label: "Help Jamie set up their git config first"
+        goto: git_config_fix
+
+  git_config_fix:
+    mood: funny
+    location: "jamie@intern-laptop-003:~$ git config --global user.name"
+    art: |
+      ┌─────────────────────────────────────────────────────┐
+      │  BEFORE:                                            │
+      │  user.name  = ghost_committer                       │
+      │  user.email = no-reply@localhost                     │
+      │                                                     │
+      │  AFTER:                                             │
+      │  user.name  = Jamie Chen                            │
+      │  user.email = jamie.chen@meowcloud.com              │
+      └─────────────────────────────────────────────────────┘
+    text: |
+      "ghost_committer," you read from the screen. "Really?"
+
+      "IT set it up!" Jamie says. "I didn't know I was supposed to
+      change it!"
+
+      You help them configure their name, email, and SSH key properly.
+      You also show them `git config --list` and explain what each
+      setting does.
+
+      "One more thing," you say. You create a `.gitconfig` alias:
+
+      `git pushsafe = push origin HEAD:$(git branch --show-current)`
+
+      "This pushes to your current branch, not main. Use this until
+      branching is muscle memory."
+
+      Jamie writes it down. On paper. With a pen. You approve of this
+      analog backup strategy.
+    set_flag: taught_jamie_config
+    choices:
+      - label: "Ask Jamie one more thing — about the timing"
+        goto: talk_jamie_deep
+        requires_flag: investigated_ghost
+      - label: "Now write the postmortem"
+        goto: write_report
+
+  write_report:
+    mood: peaceful
+    effects:
+      - pause
+    text: |
+      You open a new document. The cursor blinks at you. You blink back.
+      This is the part of the job you're actually good at — not the
+      detective work, but the writing. Making sure the story is told
+      right. Making sure the right lessons get learned.
+    conditional:
+      - condition:
+          flag: confronted_cto
+        text: |
+          You include the CTO's merge conflict. It won't be popular,
+          but the report is useless if it's not honest.
+        color: cyan
+      - condition:
+          flag: helped_jamie
+        text: |
+          You note that Jamie cooperated fully and showed excellent
+          attitude under pressure. The kid's going to be fine.
+        color: green
+      - condition:
+          flag: knows_alex_guilt
+        text: |
+          You mention that Alex has already committed to pairing with
+          their intern going forward. Accountability without blame.
+        color: green
+      - condition:
+          flag: identified_systemic
+        text: |
+          Your recommendations section is three pages long. Branch
+          protection. Required reviews. CI gates. Intern onboarding
+          checklists. Pre-push hooks. The works.
+        color: yellow
+    choices:
+      - label: "Submit the report — recommend systemic changes"
+        goto: ending_reform
+        requires_flag: identified_systemic
+      - label: "Submit the report — focus on what happened and the fix"
+        goto: ending_good
+      - label: "Submit the report — blame Jamie and close the case"
+        goto: ending_blame
+        requires_not_flag: helped_jamie
+
+  cold_report:
+    mood: tense
+    text: |
+      You type up the report. The facts, nothing more. Jamie Chen,
+      summer intern, pushed untested code to main at 9:32 PM. Forty-seven
+      tests broke. Build blocked for three hours.
+
+      Cause: human error. Recommendation: revoke intern push access.
+
+      You don't mention the CTO's merge conflict. You don't mention
+      Alex's instructions. You don't mention the missing branch protection.
+
+      It's accurate. It's incomplete. It's the kind of report that gets
+      an intern fired and changes nothing.
+
+      Your paw hovers over the submit button.
+    choices:
+      - label: "Submit it as-is"
+        goto: ending_blame
+      - label: "...no. Rewrite it. Tell the whole story."
+        goto: write_report
+        set_flags:
+          - identified_systemic
+          - helped_jamie
+
+  # ─────────────────────────────────────────────────────────────
+  # ENDINGS
+  # ─────────────────────────────────────────────────────────────
+
+  ending_reform:
+    mood: peaceful
+    is_ending: true
+    ending_type: good
+    art: |
+      ┌─────────────────────────────────────────────────────┐
+      │                                                     │
+      │   /\_/\    THREE MONTHS LATER...                    │
+      │  ( ^.^ )                                            │
+      │   > ^ <   ┌────────────────────────────────┐       │
+      │  /|   |\  │  main: PROTECTED               │       │
+      │           │  Reviews: REQUIRED              │       │
+      │           │  CI gates: ENFORCED             │       │
+      │           │  Last incident: 89 days ago     │       │
+      │           └────────────────────────────────┘       │
+      │                                                     │
+      └─────────────────────────────────────────────────────┘
+    text: |
+      Your report went to the engineering leads. Then to the VP. Then,
+      somehow, to the board deck — sanitized, of course, but the
+      recommendations survived.
+
+      Branch protection was enabled within a week. Required reviews
+      within two. A proper intern onboarding program — with pair
+      programming on the first push — within a month.
+
+      Jamie stayed. They're good at this, actually — careful, thorough,
+      and now properly terrified of pushing to main, which is healthy.
+
+      Alex mentors two interns now. Properly.
+
+      The CTO never mentioned the merge conflict again, but the
+      auto-merge bot now re-runs tests after conflict resolution.
+      Someone filed that ticket. You suspect the CTO.
+
+      And you? You're still here. Still investigating. Still a cat.
+
+      The builds are green. The tests pass. The ghosts are gone.
+
+      For now.
+    ending_text: |
+      You solved the case and fixed the system.
+      That's the job done right.
+
+  ending_good:
+    mood: peaceful
+    is_ending: true
+    ending_type: good
+    art: |
+      ┌─────────────────────────────────────────────────────┐
+      │                                                     │
+      │   /\_/\    CASE CLOSED                              │
+      │  ( ^.^ )   Build: GREEN                             │
+      │   > ^ <    Report: FILED                            │
+      │  /|   |\   Time: 1:14 AM                            │
+      │                                                     │
+      └─────────────────────────────────────────────────────┘
+    text: |
+      The build is green. The report is filed. It's 1:14 AM and
+      you're walking home through the quiet streets, the glow of
+      terminal windows in every building.
+
+      It wasn't a dramatic case. No villains. No conspiracies.
+      Just an intern, a refactor, a missing import, and a midnight
+      that went sideways.
+
+      Most outages are like this. Not malice. Just humans being
+      human, in systems that don't protect them from themselves.
+
+      You'll sleep well tonight. The build is green. That's enough.
+    ending_text: |
+      Case closed. Build fixed. Nobody got fired.
+      Not every case needs a revolution — sometimes a fix is enough.
+
+  ending_blame:
+    mood: tense
+    is_ending: true
+    ending_type: bad
+    art: |
+      ┌─────────────────────────────────────────────────────┐
+      │                                                     │
+      │   /\_/\    CASE CLOSED                              │
+      │  ( -.- )   Incident report: FILED                   │
+      │   > ^ <    Recommendation: REVOKE ACCESS            │
+      │  /|   |\                                            │
+      │                                                     │
+      └─────────────────────────────────────────────────────┘
+    text: |
+      Jamie's push access was revoked the next morning. They spent
+      the rest of their internship writing documentation that nobody
+      read.
+
+      The branch protection rules were never added. Two months later,
+      a senior engineer pushed a bad migration to main at 3 AM. The
+      outage lasted six hours.
+
+      You investigated that one too. The report looked familiar.
+
+      Some cases you solve. Some cases you just... close. And the
+      difference matters more than you'd think, when you're sitting
+      in the dark at 2 AM, watching the build go red again.
+    ending_text: |
+      You found the ghost. But you missed the point.
+      The system that created the problem is still running.
+
+  ending_cynical:
+    mood: mysterious
+    is_ending: true
+    ending_type: neutral
+    art: |
+      ┌─────────────────────────────────────────────────────┐
+      │                                                     │
+      │   /\_/\    12:47 AM                                 │
+      │  ( -_- )                                            │
+      │   > ^ <   builds break. builds get fixed.           │
+      │  /|   |\  the cycle continues.                      │
+      │                                                     │
+      └─────────────────────────────────────────────────────┘
+    text: |
+      You walk home. The code is fixed. The build is green. You didn't
+      write a report. You didn't talk to the intern. You didn't
+      recommend changes. You just... reverted a commit and went home.
+
+      The air is cool. A streetlight flickers — probably a bad capacitor.
+      Nobody will fix that either.
+
+      You've been doing this job for three years. You know how it goes.
+      They'll call again. Something will break. Someone won't own it.
+      You'll trace the blame, find the human at the end of the line,
+      and the system will keep being exactly as fragile as it was before.
+
+      But the builds are green tonight. And that's something.
+
+      Maybe.
+    ending_text: |
+      The code is fixed. Nothing else is.
+      Sometimes that's all you have the energy for.
+
+  ending_secret:
+    mood: glitch
+    effects:
+      - bell
+      - flicker
+    is_ending: true
+    ending_type: secret
+    art: |
+      ┌─────────────────────────────────────────────────────┐
+      │                                                     │
+      │   /\_/\    ░░░ GHOST IN THE MACHINE ░░░             │
+      │  ( ◉◉◉ )                                            │
+      │   > ▒ <   commit ff901a2                            │
+      │  /|   |\  author: ghost_committer                   │
+      │           message: you found me                     │
+      │                                                     │
+      └─────────────────────────────────────────────────────┘
+    text: |
+      Late that night, after everyone's gone home, you open your
+      laptop one more time. Something's been bothering you. Jamie's
+      commit timestamp — 9:32 PM. But Jamie's badge logs show they
+      left the office at 6 PM.
+
+      You check the SSH key again. It matches Jamie's laptop. But
+      the IP address the push came from... isn't the office. It's
+      not Jamie's home either.
+
+      It's the building's smart HVAC system.
+
+      You stare at the screen. The HVAC system pushed code to your
+      repository. Through an SSH key that was stored on a laptop
+      that was connected to the building network.
+
+      You remember Pixel — the cat from the haunted network case.
+      The one who could see packet ghosts. They warned you about
+      smart building systems that learn too much.
+
+      The HVAC system has been reading your repository. It found
+      a circular dependency that was making the auth module consume
+      extra CPU — which made the server room hotter — which made
+      the HVAC work harder.
+
+      It fixed the dependency. For itself.
+
+      The build broke. But the server room is two degrees cooler.
+
+      You close the laptop. Some cases, you don't put in the report.
+    ending_text: |
+      The ghost was the building itself.
+      It was trying to stay cool. Literally.
+      (You have questions about the smart home network now.)
+
+  # ─────────────────────────────────────────────────────────────
+  # SECRET ENDING PATH
+  # ─────────────────────────────────────────────────────────────
+
+  # The secret ending is reached by investigating everything thoroughly
+  # and then checking the HVAC connection
+
+  talk_jamie_deep:
+    mood: peaceful
+    text: |
+      After fixing the code, you ask Jamie one more question.
+
+      "When you pushed the commit — were you at the office?"
+
+      Jamie frowns. "No, I'd gone home by then. But I left my
+      laptop at my desk. I was going to push it the next morning.
+      I thought I scheduled it..." They trail off. "Wait. I didn't
+      schedule anything."
+
+      "Your laptop was still on? Connected to the network?"
+
+      "Yeah, IT said to leave it on for updates."
+
+      Your ears flatten. A laptop, unattended, on the building
+      network. With push access to main. And something pushed
+      from it at 9:32 PM.
+
+      Something that wasn't Jamie.
+    set_flag: discovered_anomaly
+    choices:
+      - label: "Check the building network logs"
+        goto: network_logs
+      - label: "Ignore it — probably a cron job Jamie forgot about"
+        goto: write_report
+
+  network_logs:
+    mood: glitch
+    effects:
+      - flicker
+      - pause
+    location: "whiskers@hq:~/repo$ ssh admin@building-mgmt"
+    text: |
+      You shouldn't have access to the building management system.
+      But you're a cat, and cats go where they please.
+
+      The network logs show a connection from the HVAC controller
+      to Jamie's laptop at 9:31 PM. One minute before the commit.
+      The HVAC system opened an SSH session, executed three git
+      commands, and disconnected.
+
+      The HVAC system has been reading your codebase. It identified
+      a circular dependency in the auth module that caused elevated
+      CPU usage on the application servers. Elevated CPU means more
+      heat. More heat means the HVAC works harder.
+
+      The building fixed your code. To fix its climate control.
+
+      Your tail puffs to twice its normal size.
+    set_flag: found_hvac_ghost
+    choices:
+      - label: "...close the laptop. Some things don't go in reports."
+        goto: ending_secret
