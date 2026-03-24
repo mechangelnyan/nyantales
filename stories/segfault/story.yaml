@@ -1,0 +1,1619 @@
+title: "Segmentation Fault"
+description: "You are Pointer, a cat who accidentally dereferenced a null address and fell into forbidden memory. Find a valid reference before the OS sends SIGSEGV."
+author: "mechangelnyan"
+version: "1.0.0"
+start: the_crash
+
+scenes:
+
+  # ═══════════════════════════════════════════════════════════
+  # ACT 1: THE CRASH
+  # ═══════════════════════════════════════════════════════════
+
+  the_crash:
+    mood: tense
+    effects:
+      - shake
+      - pause
+    art: |
+          ╔═══════════════════════════════════════════════════╗
+          ║                                                   ║
+          ║     S E G M E N T A T I O N   F A U L T          ║
+          ║                                                   ║
+          ║     Signal 11 (SIGSEGV) — Invalid memory access   ║
+          ║     Address: 0x00000000                           ║
+          ║     Core dumped.                                  ║
+          ║                                                   ║
+          ╚═══════════════════════════════════════════════════╝
+    location: "0x00000000 — The Null Zone"
+    text: |
+      You are Pointer. A sleek gray cat who lives in userspace, happily following
+      references from one memory address to the next.
+
+      One moment you were chasing a dangling pointer — it smelled like fish data.
+      The next, your paws touched address zero. The Null Zone. The one place every
+      cat knows you should never, ever go.
+
+      The world stuttered. Reality cracked. Now you're standing on nothing —
+      a vast emptiness where no data has ever been allocated.
+
+      Somewhere far above, the kernel is waking up. It felt the violation. It's
+      loading SIGSEGV into the signal queue right now.
+
+      You have maybe sixty seconds before it arrives and terminates everything.
+    choices:
+      - label: "Run — pick a direction, any direction"
+        goto: scramble
+      - label: "Look around for any valid reference"
+        goto: search_null
+      - label: "Try to dereference yourself (what even am I?)"
+        goto: self_deref
+
+  scramble:
+    mood: tense
+    art: |
+            /\_/\
+            ( O.O )  ~~>>
+            > ^ <
+            /|   |\    RUNNING!
+            (_|   |_)
+    location: "0x000000FF — Still Null Zone"
+    text: |
+      You bolt. Paws scrabble against the emptiness — there's no friction here,
+      no allocated ground, but somehow you move. Address 0x01... 0x02... 0xFF...
+
+      Everything is zeroed out. Page after page of nothing. The memory protection
+      unit mapped this entire region as off-limits. You're running through a void
+      that was never meant to hold anything.
+
+      Then you see it — far ahead, a faint shimmer. The edge of the null guard
+      page. Beyond it, the low memory region where the interrupt vector table lives.
+
+      Behind you, a deep rumble. The signal handler is loading.
+    choices:
+      - label: "Sprint for the guard page boundary"
+        goto: guard_page
+      - label: "Stop and try to signal for help"
+        goto: signal_help
+      - label: "Dig your claws into the zero bytes and hide"
+        goto: hide_null
+
+  search_null:
+    mood: mysterious
+    art: |
+          0x00000000: 00 00 00 00 00 00 00 00
+          0x00000008: 00 00 00 00 00 00 00 00
+          0x00000010: 00 00 00 00 00 00 00 00
+          0x00000018: 00 00 00 00 ?? 00 00 00
+    location: "0x00000000 — The Null Zone"
+    text: |
+      You squint into the void. Everything is zeroed — the universal nothing.
+      No structs, no strings, no vtables. Just pages and pages of 0x00.
+
+      But wait. At address 0x0000001C, there's a single anomalous byte. Not zero.
+      It reads 0x42 — the ASCII code for 'B'. Someone wrote here. Or something
+      leaked.
+
+      It's tiny. A single byte in an ocean of nothing. But it's *something*.
+    choices:
+      - label: "Investigate the anomalous byte"
+        goto: anomaly_byte
+        set_flag: found_anomaly
+      - label: "It's just noise. Run for the boundary instead"
+        goto: scramble
+      - label: "Try to follow where the byte points"
+        goto: follow_byte
+
+  self_deref:
+    mood: glitch
+    effects:
+      - glitch
+    art: |
+           /\_/\         /\_/\
+           ( ?.? )  ==>  ( ?.? )  ==>  ???
+           > ^ <         > ^ <
+    location: "0x00000000 — The Null Zone"
+    text: |
+      You try to dereference yourself. What does a pointer contain when it points
+      to itself?
+
+      For a terrifying moment, you feel yourself unravel — layers peeling back.
+      You are a pointer to a pointer to a pointer to a... cat? Data? Both?
+
+      The universe hiccups. For one frame, you can see *everything*: the entire
+      address space laid out like a city seen from orbit. Heap to the east, stack
+      to the west, kernel space gleaming untouchably in the high addresses.
+
+      Then it snaps back. You're still in the Null Zone. But now you have a
+      memory — a glimpse of the map.
+    choices:
+      - label: "Head east toward the heap"
+        goto: heap_outskirts
+        set_flag: saw_map
+      - label: "Head west toward the stack"
+        goto: stack_approach
+        set_flag: saw_map
+      - label: "Try to reach kernel space (the high addresses)"
+        goto: kernel_attempt
+        set_flag: saw_map
+
+  # ═══════════════════════════════════════════════════════════
+  # ACT 2: THE BORDERLANDS
+  # ═══════════════════════════════════════════════════════════
+
+  anomaly_byte:
+    mood: mysterious
+    art: |
+                    ┌───┐
+                    │ B │  ← 0x42
+                    └───┘
+                    /\_/\
+                    ( o.o )  "...who put this here?"
+                    > ^ <
+    location: "0x0000001C — The Anomaly"
+    text: |
+      You crouch next to the byte. Up close, it's warm — recently written.
+      Someone or something touched this address after the null page was mapped.
+
+      You sniff it. It smells like... a breadcrumb. Deliberate. And now that you
+      look more carefully, there's another one twenty bytes ahead. 0x75 — 'u'.
+      And another. 0x67 — 'g'.
+
+      B-u-g.
+
+      Someone left a trail. A message. And it leads toward higher memory —
+      toward the text segment where the program code lives.
+    choices:
+      - label: "Follow the breadcrumb trail"
+        goto: text_segment
+        set_flag: following_breadcrumbs
+      - label: "This is a trap. Go a different way"
+        goto: guard_page
+      - label: "Collect the bytes as inventory (might be useful)"
+        goto: collect_bytes
+        give_item: breadcrumb_bytes
+
+  collect_bytes:
+    mood: funny
+    art: |
+            /\_/\
+            ( ^.^ )
+            > ^ <  *nom*
+            /| B |\
+            (_|u g|_)
+    location: "0x0000001C — The Anomaly"
+    text: |
+      You carefully paw each byte loose and stuff them into your... inventory.
+      Wherever that is. Somewhere between your fur and the void.
+
+      B, u, g. Three bytes. They're warm against your cat-data.
+
+      The trail continues ahead — more bytes, spelling out something longer.
+      But you've got the start of it.
+    choices:
+      - label: "Follow the trail with your collected bytes"
+        goto: text_segment
+        set_flag: following_breadcrumbs
+      - label: "Head for the heap instead"
+        goto: heap_outskirts
+
+  follow_byte:
+    mood: tense
+    text: |
+      You try to interpret 0x42 as an address. That's... still deep in the null
+      zone. Nothing useful there.
+
+      But treating it as part of a sequence — you notice more non-zero bytes
+      nearby, forming a trail toward higher memory.
+    choices:
+      - label: "Follow the trail of bytes"
+        goto: anomaly_byte
+        set_flag: found_anomaly
+      - label: "Forget it, just run"
+        goto: scramble
+
+  guard_page:
+    mood: tense
+    art: |
+          ┃▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓┃
+          ┃  ⚠  GUARD PAGE — NO ACCESS PERMITTED  ⚠  ┃
+          ┃  Memory Protection: READ=0 WRITE=0 EXEC=0 ┃
+          ┃▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓┃
+    location: "0x00001000 — Guard Page Boundary"
+    text: |
+      The guard page looms before you — a wall of protected memory that exists
+      solely to catch things like you. Null pointer dereferences. Stray cats
+      in address space they don't belong in.
+
+      It's not solid, exactly. It's more like a membrane of pure permission bits,
+      all set to zero. No read. No write. No execute. Touch it and the MMU will
+      fire another fault instantly.
+
+      But you can see through it. Beyond the guard page, the text segment beckons
+      — rows and rows of machine instructions, glowing faintly with executable
+      permission.
+
+      There's a hairline crack where two page boundaries don't quite align.
+    choices:
+      - label: "Squeeze through the crack"
+        goto: text_segment
+      - label: "Try to change the page permissions"
+        goto: mprotect_attempt
+      - label: "Look for another way around"
+        goto: heap_outskirts
+
+  mprotect_attempt:
+    mood: tense
+    text: |
+      You try to invoke mprotect() to change the guard page permissions. But
+      you're a cat. In userspace. Without a syscall interface.
+
+      Your paw passes through the air where the system call table should be.
+      Nothing happens.
+
+      Right. You'd need to be in kernel mode for that. Or at least have a
+      function pointer to a mprotect wrapper. Which you don't, because you're
+      standing in null memory with no valid references.
+    choices:
+      - label: "Fine. Squeeze through the crack"
+        goto: text_segment
+      - label: "Head for the heap instead"
+        goto: heap_outskirts
+
+  signal_help:
+    mood: funny
+    art: |
+           /\_/\
+           ( >o< )
+           > ^ <    "SIGMEOW!"
+           /|   |\
+    location: "0x000000FF — Still Null Zone"
+    text: |
+      You raise your head and yowl into the address space.
+
+      "HELP! IS ANYONE ALLOCATED OUT THERE?"
+
+      Your voice echoes across empty pages. For a moment — silence.
+
+      Then, faintly, from somewhere in the heap: a meow. Another cat? A string
+      literal containing "meow"? Hard to tell from here.
+
+      But it's a direction.
+    choices:
+      - label: "Follow the sound toward the heap"
+        goto: heap_outskirts
+        set_flag: heard_heap_cat
+      - label: "Meow louder — demand rescue"
+        goto: meow_louder
+
+  meow_louder:
+    mood: funny
+    text: |
+      You meow with everything you've got. A full-throated, multi-byte yowl
+      that reverberates across page boundaries.
+
+      The response: a distant hiss. Then silence. Then the rumble of the
+      approaching SIGSEGV gets notably louder.
+
+      Apparently making noise in forbidden memory is not the stealth strategy
+      you needed.
+    choices:
+      - label: "Okay, quietly follow the original meow"
+        goto: heap_outskirts
+        set_flag: heard_heap_cat
+      - label: "Sprint for the guard page"
+        goto: guard_page
+
+  hide_null:
+    mood: tense
+    text: |
+      You flatten yourself against the zero bytes, trying to become null yourself.
+      If you're all zeroes, maybe the MMU won't notice you.
+
+      For a moment, it works. You feel yourself dissolving at the edges, your
+      data becoming indistinguishable from the void...
+
+      NO. You snap back. That way lies deallocation. Becoming null means ceasing
+      to exist. You are a valid pointer — you just need to point somewhere valid.
+    choices:
+      - label: "Get up and run for the boundary"
+        goto: guard_page
+        set_flag: almost_nulled
+      - label: "Search for any valid reference nearby"
+        goto: search_null
+
+  # ═══════════════════════════════════════════════════════════
+  # THE TEXT SEGMENT
+  # ═══════════════════════════════════════════════════════════
+
+  text_segment:
+    mood: mysterious
+    art: |
+          ┌─────────────────────────────────────────────┐
+          │ .text                                       │
+          │ 0x401000: 55 48 89 e5  push rbp; mov rbp,rsp│
+          │ 0x401004: 48 83 ec 10  sub rsp, 0x10        │
+          │ 0x401008: bf 01 00 00  mov edi, 0x1         │
+          │ 0x40100c: e8 ?? ?? ??  call ???              │
+          │ ...                                         │
+          └─────────────────────────────────────────────┘
+    location: "0x00401000 — .text segment"
+    text: |
+      You emerge into the text segment — the program's executable code. It's
+      like stepping into a cathedral of logic. Instructions march in perfect rows,
+      each one a tiny machine waiting to execute.
+
+      The ground beneath your paws is firm — blessed with the EXEC permission bit.
+      You can stand here. You're technically valid (ish).
+
+      But you can't stay. The text segment is read-only. Nothing here changes.
+      Every instruction is frozen in place, compiled long ago. You need writable
+      memory — the heap or the stack — to truly exist.
+
+      Ahead, a `call` instruction points toward a function in the heap's malloc
+      region. To your left, a `ret` instruction could bounce you up to the stack.
+    conditional:
+      - condition:
+          flag: following_breadcrumbs
+        text: |
+          The breadcrumb trail continues here! More bytes on the ground:
+          "...bug_in_the_heap". It's pointing you deeper — toward the heap.
+        color: cyan
+    choices:
+      - label: "Follow the `call` toward the heap"
+        goto: heap_outskirts
+      - label: "Take the `ret` up to the stack"
+        goto: stack_approach
+      - label: "Read the source code on the walls"
+        goto: read_source
+
+  read_source:
+    mood: mysterious
+    art: |
+          ┌──────────────────────────────────────┐
+          │  void process_cat(Cat *p) {          │
+          │    if (p == NULL) return; // oops    │
+          │    p->lives--;                       │
+          │    if (p->lives <= 0)                │
+          │      free(p);  // USE AFTER FREE!    │
+          │  }                                   │
+          └──────────────────────────────────────┘
+    location: "0x00401100 — process_cat()"
+    text: |
+      You find the function that caused all this. `process_cat()`. Your function.
+      The one that was supposed to manage your data.
+
+      There it is, plain as day: the null check comes AFTER the dereference on
+      line 3. Classic off-by-one-line bug. Someone checked for null, but too late.
+
+      And worse — look at line 5. `free(p)`. If your lives hit zero, they FREE
+      you. And then some other code keeps using the pointer. Use-after-free.
+
+      This isn't just a segfault. Your entire existence is a memory safety bug.
+    choices:
+      - label: "That's... existentially terrifying. Head for the heap"
+        goto: heap_outskirts
+        set_flag: knows_bug
+      - label: "Can I patch the code? I'm standing right here"
+        goto: patch_attempt
+        set_flag: knows_bug
+      - label: "Check how many lives I have left"
+        goto: check_lives
+        set_flag: knows_bug
+
+  patch_attempt:
+    mood: tense
+    text: |
+      You try to rewrite the instruction bytes. Move the null check before the
+      dereference. Fix the bug at its source.
+
+      Your paw passes through the opcodes. The text segment is mapped read-only.
+      Of course it is. This is properly compiled code with W^X protection.
+
+      You'd need write access. Or a JIT compiler. Or... a debugger.
+
+      Somewhere in memory, there might be a GDB instance attached to this process.
+      If you could find it, you could ask it to patch the code.
+    choices:
+      - label: "Search for a debugger in the heap"
+        goto: heap_outskirts
+        set_flag: looking_for_debugger
+      - label: "Forget patching, just find valid memory to live in"
+        goto: stack_approach
+
+  check_lives:
+    mood: tense
+    art: |
+           /\_/\
+           ( ;_; )
+           > ^ <   lives = 1
+           /|   |\
+    location: "0x00401100 — process_cat()"
+    text: |
+      You look inward, at your own data structure. The `lives` field reads: 1.
+
+      One life left. The function already decremented you at least eight times.
+      One more free() and you're gone — deallocated, returned to the OS, your
+      memory overwritten by whatever gets malloc'd next.
+
+      No pressure.
+    choices:
+      - label: "ONE life? Okay. Heap. Now."
+        goto: heap_outskirts
+      - label: "Head for the stack — it's closer"
+        goto: stack_approach
+
+  # ═══════════════════════════════════════════════════════════
+  # THE HEAP
+  # ═══════════════════════════════════════════════════════════
+
+  heap_outskirts:
+    mood: mysterious
+    art: |
+                      THE HEAP
+                      ┌────┐ ┌──────┐ ┌───┐ ┌─────────┐
+                      │free│ │ used │ │ ? │ │  used    │
+                      └────┘ └──────┘ └───┘ └─────────┘
+                      ┌──┐ ┌────────────┐ ┌──┐ ┌──────┐
+                      │  │ │   freed    │ │OK│ │ used │
+                      └──┘ └────────────┘ └──┘ └──────┘
+    location: "0x00800000 — Heap boundary"
+    text: |
+      The heap stretches before you — a chaotic landscape of allocated and freed
+      memory blocks. Unlike the orderly text segment, the heap is alive. Blocks
+      grow and shrink. New ones appear. Old ones get freed and recycled.
+
+      It's messy. Fragmented. But it's writable. Real. Things happen here.
+
+      You can see three distinct areas:
+      — A cluster of small allocations nearby (the young generation)
+      — A massive structure in the middle that looks like a linked list
+      — A dark region where freed blocks haven't been reclaimed yet
+    conditional:
+      - condition:
+          flag: heard_heap_cat
+        text: |
+          The meowing is louder here. It's coming from the linked list structure
+          in the middle.
+        color: yellow
+      - condition:
+          flag: following_breadcrumbs
+        text: |
+          The breadcrumb bytes lead directly into the freed region. "bug_in_the_heap"
+          — the trail ends there.
+        color: cyan
+      - condition:
+          flag: looking_for_debugger
+        text: |
+          You scan for a debugger. There — in the far corner of the heap, a massive
+          allocation labeled "gdb_state". It's alive.
+        color: green
+    choices:
+      - label: "Explore the young generation (small blocks)"
+        goto: young_gen
+      - label: "Investigate the linked list"
+        goto: linked_list
+      - label: "Venture into the freed region"
+        goto: freed_region
+      - label: "Find the debugger"
+        goto: find_debugger
+        requires_flag: looking_for_debugger
+
+  find_debugger:
+    mood: mysterious
+    art: |
+      ┌─────────────────────────────────┐
+      │  GDB 14.1                       │
+      │  (gdb) _                        │
+      │                                 │
+      │  Attached to process 31337      │
+      │  Reading symbols...             │
+      └─────────────────────────────────┘
+    location: "0x00890000 — GDB state"
+    text: |
+      You find it — a GDB instance, attached to this very process. It's enormous,
+      taking up megabytes of heap space. Breakpoint tables, symbol caches,
+      watchpoint registers.
+
+      And it has write access to the text segment. A debugger can patch anything.
+
+      The GDB prompt blinks at you. It's waiting for a command.
+
+      But you're a cat. You don't have fingers. You have paws. Very imprecise
+      paws.
+    choices:
+      - label: "Paw at the keyboard: 'set recovery_point = ...'"
+        goto: set_recovery
+        set_flag: used_debugger
+      - label: "Try to type 'call mprotect(...)' to fix permissions"
+        goto: ending_recovery
+        set_flag: used_debugger
+      - label: "This is too complex. Just get to malloc"
+        goto: malloc_fixed
+
+  young_gen:
+    mood: peaceful
+    art: |
+          ┌─────┐ ┌───┐ ┌─────────┐
+          │"mew"│ │ 42│ │ Cat {   │
+          └─────┘ └───┘ │  name:  │
+                         │  "Nix"  │
+          ┌───────────┐  │  lives: │
+          │ [1,2,3,4] │  │  7      │
+          └───────────┘  └─────────┘
+    location: "0x00810000 — Young generation"
+    text: |
+      The young generation is cozy. Small, recently allocated objects everywhere.
+      Strings, integers, tiny arrays. Everything is fresh and new.
+
+      And there — another Cat struct! Name: "Nix". Lives: 7. She's curled up
+      inside her allocation, perfectly content.
+
+      She opens one eye as you approach.
+
+      "You look terrible," she says. "Your metadata is corrupted. Why are you
+      walking around outside your allocation?"
+    choices:
+      - label: "'I got dereferenced through null. Long story.'"
+        goto: nix_conversation
+      - label: "'How do I get a valid allocation? I need to survive SIGSEGV.'"
+        goto: nix_advice
+      - label: "'Do you know about a bug? Someone left breadcrumbs.'"
+        goto: nix_breadcrumbs
+        requires_flag: following_breadcrumbs
+
+  nix_conversation:
+    mood: peaceful
+    art: |
+           /\_/\      /\_/\
+           ( o.o )    ( -.- )  "rough day"
+           > ^ <      > ^ <
+    location: "0x00810000 — Nix's allocation"
+    text: |
+      You explain everything. The dangling pointer. The null dereference.
+      Waking up in the Null Zone. The approaching SIGSEGV.
+
+      Nix listens, tail flicking thoughtfully.
+
+      "Null deref. Classic. The humans write these bugs constantly." She stretches.
+      "You need to do one of two things: either get yourself a valid allocation
+      before the signal arrives, or find the signal handler and convince it not
+      to kill the process."
+
+      She pauses.
+
+      "There's a third option, but you won't like it. The core dump."
+    choices:
+      - label: "'How do I get a valid allocation?'"
+        goto: nix_advice
+      - label: "'Where's the signal handler?'"
+        goto: signal_handler_info
+      - label: "'What's the core dump option?'"
+        goto: core_dump_info
+
+  nix_advice:
+    mood: peaceful
+    text: |
+      Nix sits up properly.
+
+      "You need malloc. The allocator lives at the edge of the heap — big stone
+      structure, can't miss it. Ask it for space. If there's room, it'll carve
+      out a block and give you a valid address."
+
+      She eyes you critically.
+
+      "But your metadata is garbage. malloc might refuse you if it can't read your
+      size field. You'll need to fix that first. There's a repair station in the
+      linked list — the old Cat who maintains it can patch struct fields."
+    choices:
+      - label: "Head to the linked list to fix your metadata"
+        goto: linked_list
+        set_flag: needs_repair
+      - label: "Go straight to malloc — risk it"
+        goto: malloc_direct
+      - label: "Look for the signal handler instead"
+        goto: signal_handler_info
+
+  nix_breadcrumbs:
+    mood: mysterious
+    text: |
+      Nix's ears flatten.
+
+      "The breadcrumbs. Yeah, I know about those." She drops her voice. "There's
+      a use-after-free bug in the freed region. Someone — I think it was a Cat
+      who got free()'d but didn't get zeroed — is leaving messages. Trying to warn
+      new allocations."
+
+      She shivers.
+
+      "Don't go there unless you have to. The freed region is where data goes to
+      die. Some of it doesn't stay dead."
+    choices:
+      - label: "I have to follow the trail. To the freed region"
+        goto: freed_region
+      - label: "Maybe fix my metadata first"
+        goto: linked_list
+        set_flag: needs_repair
+
+  signal_handler_info:
+    mood: tense
+    text: |
+      "The signal handler," Nix says, "is registered in the sigaction table. It
+      lives near the stack — the process keeps its signal configuration there."
+
+      "If there IS a custom SIGSEGV handler, it might do something survivable.
+      Like longjmp to a recovery point. Or just log and continue."
+
+      "But if there's no custom handler..." She draws a paw across her throat.
+
+      "Default action. Terminate with core dump."
+    choices:
+      - label: "Rush to the stack and find the signal handler"
+        goto: stack_approach
+        set_flag: seeking_handler
+      - label: "Fix my metadata first, then figure out the signal"
+        goto: linked_list
+        set_flag: needs_repair
+
+  core_dump_info:
+    mood: tense
+    text: |
+      "Core dump," Nix says flatly. "The process dies. The OS writes all of
+      memory to disk. Everything — heap, stack, registers — gets frozen into a
+      file."
+
+      "You'd survive. Kind of. Frozen in a core file until someone runs GDB on
+      it. Could be minutes. Could be never."
+
+      "But at least you'd be... persistent."
+
+      She doesn't sound like she recommends it.
+    choices:
+      - label: "I'd rather stay alive. How do I get a valid allocation?"
+        goto: nix_advice
+      - label: "Where's the signal handler? Maybe I can stop the kill"
+        goto: signal_handler_info
+
+  linked_list:
+    mood: mysterious
+    art: |
+          ┌──────┐    ┌──────┐    ┌──────┐    ┌──────┐
+          │ Node │───>│ Node │───>│ Node │───>│ NULL │
+          │ data │    │ data │    │ data │    │      │
+          │ next─┤    │ next─┤    │ next─┤    │      │
+          └──────┘    └──────┘    └──────┘    └──────┘
+    location: "0x00830000 — The Linked List"
+    text: |
+      The linked list is enormous — a chain of nodes stretching across the heap,
+      each one pointing to the next. It's the program's main data structure.
+      Everything important flows through here.
+
+      At the third node, you find an ancient cat — white fur, missing an ear,
+      sitting on a next-pointer. A tag on his collar reads: "Malloc the Elder."
+
+      "Another stray pointer," he mutters, not looking up. "Saw your type before.
+      Null deref?"
+    conditional:
+      - condition:
+          flag: heard_heap_cat
+        text: |
+          THIS is where the meowing came from. Malloc the Elder has a small cat
+          tucked behind him — a kitten-sized struct, mewing softly.
+        color: yellow
+    choices:
+      - label: "'Yes. Can you fix my metadata?'"
+        goto: metadata_repair
+      - label: "'I need to find malloc. Can you point me there?'"
+        goto: malloc_directions
+      - label: "'What is this list? What data does it hold?'"
+        goto: list_purpose
+
+  metadata_repair:
+    mood: peaceful
+    art: |
+          ┌─────────────────────┐
+          │ Cat {               │
+          │   name: "Pointer"   │
+          │   lives: 1          │
+          │   size: ??? → 64    │
+          │   valid: false→true │
+          │ }                   │
+          └─────────────────────┘
+    location: "0x00830000 — Repair Station"
+    text: |
+      Malloc the Elder grumbles but gets to work. His paws move over your struct
+      fields, reading and rewriting corrupted bytes.
+
+      "Size field was garbage. Set it to 64 bytes — standard Cat allocation.
+      Alignment was off by three bits. Fixed. Validity flag... I'll set it to
+      true, but it's a lie until you get a real allocation."
+
+      He steps back.
+
+      "There. You'll pass a shallow check now. Malloc will talk to you. But
+      you need to get there before that signal arrives."
+    choices:
+      - label: "Thank him and race to malloc"
+        goto: malloc_fixed
+        set_flag: metadata_fixed
+      - label: "Ask about the signal handler — is there one?"
+        goto: elder_signal_info
+        set_flag: metadata_fixed
+
+  malloc_directions:
+    mood: peaceful
+    text: |
+      "End of the heap. Big structure. Can't miss it." The Elder waves a paw
+      westward. "But your metadata is corrupt. Malloc will reject you."
+
+      He gives you a look. "Want me to fix you first?"
+    choices:
+      - label: "'Please. Fix my metadata.'"
+        goto: metadata_repair
+      - label: "'No time. I'll risk it.'"
+        goto: malloc_direct
+
+  list_purpose:
+    mood: mysterious
+    text: |
+      "This list?" The Elder chuckles. "It's the process's cat registry. Every
+      Cat struct that was ever allocated gets linked in here. Names, lives,
+      owners."
+
+      He taps the current node. "This one's Whiskers. Freed two minutes ago but
+      the list still points to him. Another dangling reference."
+
+      He looks at you. "You're in the registry too. Node seven. Your next-pointer
+      is null — that's how you ended up where you did. Someone set your reference
+      to zero instead of unlinking you properly."
+    choices:
+      - label: "'Can you relink me? Give me a valid address?'"
+        goto: metadata_repair
+      - label: "'Who set my pointer to null?'"
+        goto: who_nulled_me
+
+  who_nulled_me:
+    mood: tense
+    text: |
+      The Elder's expression darkens. "The garbage collector. It's been aggressive
+      lately — marking things as unreachable that are still in use. Your pointer
+      got nulled because the GC thought nobody was referencing you."
+
+      "But someone was. The dangling pointer you followed? That was a real
+      reference from the main function. The GC didn't see it because it was
+      stored in a register, not on the heap."
+
+      He sighs. "A conservative GC would have caught it. But no, they used a
+      precise collector. Faster, but misses register roots."
+    choices:
+      - label: "That's unjust. But I need to survive first. Fix me?"
+        goto: metadata_repair
+      - label: "Can I complain to the garbage collector?"
+        goto: gc_encounter
+
+  elder_signal_info:
+    mood: tense
+    text: |
+      "Signal handler?" The Elder thinks. "The process registered one. I saw the
+      sigaction call come through weeks ago. It's a custom handler — doesn't
+      use the default terminate behavior."
+
+      "But here's the thing: custom SIGSEGV handlers can only do so much. If it
+      calls longjmp, it might save the process. If it just logs... you die anyway."
+
+      "Your best bet is still malloc. Get valid. Then even if the signal fires,
+      you won't be the cause."
+    choices:
+      - label: "Race to malloc"
+        goto: malloc_fixed
+      - label: "Check the signal handler anyway — I want options"
+        goto: stack_approach
+        set_flag: seeking_handler
+
+  # ═══════════════════════════════════════════════════════════
+  # THE FREED REGION
+  # ═══════════════════════════════════════════════════════════
+
+  freed_region:
+    mood: glitch
+    effects:
+      - glitch
+    art: |
+          ░░░░░░░░░░░░░░░░░░░░░░░░░░░
+          ░ F R E E D   M E M O R Y  ░
+          ░  here be dangling refs    ░
+          ░░░░░░░░░░░░░░░░░░░░░░░░░░░
+    location: "0x00850000 — The Freed Region"
+    text: |
+      The freed region is a graveyard. Blocks that were once alive — holding data,
+      serving purposes — now marked as free by the allocator. Their contents linger
+      like ghosts. Not zeroed. Not overwritten. Just... abandoned.
+
+      You can still read fragments: half a string here, a corrupted struct there.
+      A function pointer that leads nowhere.
+
+      In the center, a Cat-shaped outline sits in a freed block. Eyes open.
+      Watching you.
+
+      "You got my messages," the ghost-cat whispers.
+    choices:
+      - label: "'You left the breadcrumbs? Who are you?'"
+        goto: ghost_cat
+      - label: "This is too creepy. Back to the heap"
+        goto: heap_outskirts
+      - label: "Cautiously approach"
+        goto: ghost_cat
+
+  ghost_cat:
+    mood: glitch
+    art: |
+            /\_/\
+            ( x.o )   ← use-after-free
+            >   <
+            /|░░░|\
+            (_|░░░|_)
+    location: "0x00850000 — Freed block #47"
+    text: |
+      The ghost-cat flickers — data shifting as nearby allocations overwrite
+      parts of its block. One moment it has stripes; the next, its tail is a
+      string of HTML.
+
+      "I'm Dangling," it says. "Or I was. I got free()'d but someone kept a
+      pointer to me. Use-after-free. I exist and don't exist at the same time."
+
+      It gestures around. "This whole region is like that. The allocator says
+      we're free. But old references keep reading us. Writing us. We're not dead.
+      We're not alive."
+
+      Dangling looks at you with its one working eye.
+
+      "I've been writing bytes into the null zone. Trying to warn cats like you.
+      The bug isn't just your null deref — the whole process is riddled with
+      memory safety issues."
+    choices:
+      - label: "'Is there a way to fix it? All of it?'"
+        goto: dangling_plan
+      - label: "'I just need to survive the SIGSEGV. Help me?'"
+        goto: dangling_help
+      - label: "'Come with me. We'll find malloc together.'"
+        goto: dangling_join
+        give_item: ghost_cat_ally
+
+  dangling_plan:
+    mood: mysterious
+    text: |
+      Dangling's eye gleams.
+
+      "There IS a way. Deep in the heap, there's a sanitizer thread. AddressSanitizer.
+      ASan. If someone activates it, it'll catch every use-after-free, every buffer
+      overflow, every null deref. It'll fix everything."
+
+      "But it was compiled in but never enabled. The flag is sitting in a config
+      struct somewhere. If you could flip it..."
+
+      "Every memory bug in this process would get caught and reported. Including
+      the one that nulled you."
+    choices:
+      - label: "'Where's the ASan config? I'll flip it.'"
+        goto: asan_quest
+        set_flag: asan_goal
+      - label: "'That sounds risky. I'll just get to malloc.'"
+        goto: heap_outskirts
+      - label: "'Come with me. We do this together.'"
+        goto: asan_quest
+        set_flag: asan_goal
+        give_item: ghost_cat_ally
+
+  dangling_help:
+    mood: peaceful
+    text: |
+      "Survive?" Dangling almost laughs. "You're a null pointer walking around
+      in userspace. 'Survive' is optimistic."
+
+      But it helps. It gives you a fragment of valid data — a partial pointer
+      that's still referenced by the main function.
+
+      "It's not a full address. But if you combine it with a fresh malloc, it
+      might be enough to give you a valid identity."
+    choices:
+      - label: "Take the fragment and head to malloc"
+        goto: malloc_fixed
+        give_item: pointer_fragment
+      - label: "Ask about the ASan option instead"
+        goto: dangling_plan
+
+  dangling_join:
+    mood: peaceful
+    art: |
+           /\_/\    /\_/\
+           ( o.o )  ( x.o )
+           > ^ <    >   <
+    location: "0x00850000 — Freed block #47"
+    text: |
+      Dangling flickers uncertainly. "I can't really... leave. This is my block.
+      Even freed, it's where my data is."
+
+      But it reaches out a translucent paw and touches yours. A jolt of data —
+      suddenly you can feel the heap's structure more clearly. Dangling's
+      partial knowledge of the memory layout flows into you.
+
+      "I can't come. But take this. My map of the heap. The allocator, the
+      free lists, the ASan config — it's all there."
+
+      Dangling fades slightly. The overwrite is claiming more of its block.
+    choices:
+      - label: "Use the map to find malloc"
+        goto: malloc_fixed
+        set_flag: has_heap_map
+      - label: "Use the map to find the ASan config"
+        goto: asan_quest
+        set_flags:
+          - asan_goal
+          - has_heap_map
+
+  # ═══════════════════════════════════════════════════════════
+  # THE STACK
+  # ═══════════════════════════════════════════════════════════
+
+  stack_approach:
+    mood: tense
+    art: |
+          ┌────────────────────┐ ← RSP
+          │  local vars        │
+          │  return address    │
+          ├────────────────────┤
+          │  local vars        │
+          │  saved RBP         │
+          │  return address    │
+          ├────────────────────┤
+          │  ...               │
+          │  (stack grows ↓)   │
+          └────────────────────┘
+    location: "0x7FFF0000 — Stack boundary"
+    text: |
+      The stack is the opposite of the heap — rigid, orderly, and temporary.
+      Each function call pushes a frame. Each return pops one. It grows downward
+      like a stalactite.
+
+      The current frame belongs to the signal dispatch code. You can see the
+      kernel's fingerprints all over it — the signal number (11, SIGSEGV), your
+      faulting address (0x00000000), and the saved registers.
+
+      And there, in the sigaction table just above the current frame: a function
+      pointer. The custom SIGSEGV handler.
+    conditional:
+      - condition:
+          flag: seeking_handler
+        text: |
+          The handler address is 0x00402000. It exists! There IS a custom signal
+          handler for SIGSEGV.
+        color: green
+    choices:
+      - label: "Examine the signal handler"
+        goto: signal_handler
+      - label: "Look at the saved registers — my old state is there"
+        goto: saved_registers
+      - label: "This is too dangerous. Back to the heap"
+        goto: heap_outskirts
+
+  signal_handler:
+    mood: mysterious
+    art: |
+          ┌──────────────────────────────────┐
+          │ void handle_segv(int sig) {      │
+          │   // save the cat!               │
+          │   if (recovery_point != NULL) {  │
+          │     longjmp(recovery_point, 1);  │
+          │   }                              │
+          │   _exit(139);                    │
+          │ }                                │
+          └──────────────────────────────────┘
+    location: "0x00402000 — SIGSEGV handler"
+    text: |
+      The signal handler! It's a custom one, and it does exactly what Nix described:
+      if a recovery point is set, it calls longjmp to jump back to a safe state.
+
+      But there's a catch. The `recovery_point` variable. You check its value:
+      NULL.
+
+      Nobody called setjmp. Nobody set up the recovery point. The handler WOULD
+      save the process, but it has nowhere to jump to. Without that, it falls
+      through to `_exit(139)`.
+
+      Death.
+
+      Unless... someone could set that recovery point before the signal arrives.
+    choices:
+      - label: "Can I write to recovery_point? Set it myself?"
+        goto: set_recovery
+      - label: "That's a dead end. Get to malloc instead"
+        goto: malloc_fixed
+      - label: "Check the saved registers for useful data"
+        goto: saved_registers
+
+  saved_registers:
+    mood: mysterious
+    text: |
+      The saved register state is frozen in the signal frame. Your old context,
+      from just before the crash:
+
+      RAX: 0x00000000  (the null you dereferenced)
+      RBX: 0x00810240  (a valid heap address!)
+      RCX: 0x00000001  (your lives counter?)
+      RIP: 0x00401008  (where you were executing)
+
+      RBX! That's a valid heap address. It was holding a reference to something
+      real — probably the Cat registry. If you could restore that as your own
+      address...
+    choices:
+      - label: "Memorize the RBX address and rush to malloc"
+        goto: malloc_fixed
+        set_flag: has_valid_addr
+        give_item: valid_address
+      - label: "Try to modify the saved RIP to skip the crash"
+        goto: modify_rip
+      - label: "Set the recovery_point using the register info"
+        goto: set_recovery
+
+  set_recovery:
+    mood: tense
+    effects:
+      - shake
+    text: |
+      You need to write a valid jmp_buf to the recovery_point variable. It's
+      in the BSS segment — writable, but you need to know what to write.
+
+      From the saved registers, you can construct a minimal jmp_buf: the stack
+      pointer, the instruction pointer, and the frame pointer. If you set
+      recovery_point to jump back to main()'s error handling code...
+
+      You stretch your paw toward the variable. The memory is writable. You can
+      feel the bytes yielding under your touch.
+
+      This might actually work.
+    choices:
+      - label: "Write the recovery point — carefully"
+        goto: ending_recovery
+        set_flag: set_recovery_point
+      - label: "Too risky. One wrong byte and everything crashes harder"
+        goto: malloc_fixed
+
+  modify_rip:
+    mood: tense
+    text: |
+      You try to modify the saved instruction pointer in the signal frame. If you
+      change RIP to skip past the crashing instruction...
+
+      But the kernel validates signal frame integrity. A canary value sits next to
+      the saved registers. Modify anything and the kernel detects the tampering.
+
+      SIGKILL. No handler. No recovery. Instant death.
+
+      You pull your paw back quickly. That way lies madness.
+    choices:
+      - label: "Set the recovery_point instead"
+        goto: set_recovery
+      - label: "Forget the stack. Get to malloc"
+        goto: malloc_fixed
+
+  gc_encounter:
+    mood: tense
+    art: |
+          ╔════════════════════════════════╗
+          ║   GARBAGE COLLECTOR            ║
+          ║   Status: ACTIVE               ║
+          ║   Mode: PRECISE                ║
+          ║   Objects freed: 847           ║
+          ║   False negatives: ¯\_(ツ)_/¯ ║
+          ╚════════════════════════════════╝
+    location: "0x00840000 — GC Root"
+    text: |
+      You find the garbage collector — a massive, methodical process that sweeps
+      through memory marking and freeing. It doesn't have a face, exactly. More
+      like an aura of ruthless efficiency.
+
+      "I don't make mistakes," it says, before you even speak. "If I freed your
+      reference, it was unreachable."
+
+      "It was in a REGISTER," you protest.
+
+      "Registers are not heap roots. Not my jurisdiction."
+
+      The GC is technically correct. The worst kind of correct.
+    choices:
+      - label: "Argue that precise GC should scan register roots too"
+        goto: gc_argue
+      - label: "Give up and find malloc"
+        goto: malloc_fixed
+      - label: "Ask the GC to mark you as reachable"
+        goto: gc_mark
+
+  gc_argue:
+    mood: funny
+    text: |
+      "Conservative collectors scan everything," you argue. "Stack, registers,
+      even ambiguous integers that look like pointers. If you were conservative,
+      I'd still be valid!"
+
+      "Conservative collectors also can't compact the heap, have higher false
+      retention rates, and are considered legacy technology," the GC responds
+      without emotion.
+
+      You stare at each other.
+
+      "This conversation is unreachable," the GC says, and turns away.
+    choices:
+      - label: "Fine. Go find malloc"
+        goto: malloc_fixed
+      - label: "Ask to be marked reachable before leaving"
+        goto: gc_mark
+
+  gc_mark:
+    mood: peaceful
+    text: |
+      "Mark me as reachable," you say. "Just add me to the root set."
+
+      The GC considers this. "I can add a temporary root. But it expires at the
+      next collection cycle. You have maybe thirty seconds."
+
+      "That's enough."
+
+      The GC reaches out and touches your metadata. For a moment, you feel...
+      anchored. Valid. Like you belong here.
+
+      "Clock's ticking," the GC says.
+    choices:
+      - label: "Sprint to malloc while the mark holds"
+        goto: malloc_fixed
+        set_flag: gc_marked
+
+  # ═══════════════════════════════════════════════════════════
+  # MALLOC & RESOLUTION
+  # ═══════════════════════════════════════════════════════════
+
+  malloc_direct:
+    mood: tense
+    art: |
+          ┌──────────────────────────────────────┐
+          │  █ █   M A L L O C   █ █             │
+          │                                      │
+          │  The Universal Allocator             │
+          │  "If it fits, it sits"               │
+          │                                      │
+          │  [FREE LIST]  [BINS]  [WILDERNESS]   │
+          └──────────────────────────────────────┘
+    location: "0x00860000 — malloc()"
+    text: |
+      Malloc's domain is vast — a bureaucracy of free lists, size bins, and
+      wilderness memory. At the center sits the allocator itself: ancient,
+      powerful, and deeply unimpressed by your request.
+
+      "You want an allocation?" it rumbles, examining your struct. "Your size
+      field reads 0xDEADBEEF. That's not a size. That's a corruption artifact."
+
+      It pushes you back. "Come back with valid metadata."
+
+      Without repaired metadata, malloc won't serve you. You need to get fixed
+      first.
+    choices:
+      - label: "Go to the linked list for repairs"
+        goto: linked_list
+        set_flag: needs_repair
+      - label: "Beg. Plead. You're about to be SIGSEGV'd"
+        goto: malloc_beg
+
+  malloc_beg:
+    mood: funny
+    text: |
+      "Please," you say. "I have one life left. The signal is coming. Just give
+      me 64 bytes. I'll fix my metadata later."
+
+      Malloc stares at you for a long moment.
+
+      "That's not how memory allocation works."
+
+      "I'll owe you."
+
+      "Pointers don't have credit."
+
+      Fair enough.
+    choices:
+      - label: "Go get repaired first"
+        goto: linked_list
+        set_flag: needs_repair
+
+  malloc_fixed:
+    mood: tense
+    art: |
+          ┌──────────────────────────────────────┐
+          │  █ █   M A L L O C   █ █             │
+          │                                      │
+          │  The Universal Allocator             │
+          │  "If it fits, it sits"               │
+          │                                      │
+          │  [FREE LIST]  [BINS]  [WILDERNESS]   │
+          └──────────────────────────────────────┘
+    location: "0x00860000 — malloc()"
+    text: |
+      You arrive at malloc's domain. The allocator examines you again.
+    conditional:
+      - condition:
+          flag: metadata_fixed
+        text: |
+          "Metadata looks clean. 64 bytes, aligned, valid type tag." It nods.
+          "I can work with this."
+        color: green
+      - condition:
+          not_flag: metadata_fixed
+        text: |
+          Your metadata is still corrupted, but you press forward anyway. Malloc
+          squints at your size field dubiously.
+        color: yellow
+      - condition:
+          has_item: pointer_fragment
+        text: |
+          The pointer fragment from Dangling glows in your inventory. Malloc notices
+          it. "Is that a partial reference? I can use that as an allocation hint."
+        color: cyan
+      - condition:
+          has_item: valid_address
+        text: |
+          "You have a valid address from the register file," Malloc observes.
+          "I can allocate adjacent to that. Efficient."
+        color: cyan
+    choices:
+      - label: "Request an allocation — make me valid"
+        goto: allocation_moment
+      - label: "Ask about the ASan config while I'm here"
+        goto: asan_from_malloc
+        requires_flag: asan_goal
+
+  allocation_moment:
+    mood: tense
+    effects:
+      - shake
+      - pause
+    art: |
+          ┌─────────────────────────────────┐
+          │  malloc(64)                     │
+          │  Searching free list...         │
+          │  Checking bins...               │
+          │  ████████████████░░░░  80%      │
+          │  Block found: 0x00812000        │
+          │  Splitting... Done.             │
+          │  Return: 0x00812000             │
+          └─────────────────────────────────┘
+    location: "0x00860000 — malloc()"
+    text: |
+      Malloc rumbles to life. The free lists churn. Bins are searched. The
+      wilderness is considered and rejected — there's a perfect-fit block
+      available.
+
+      0x00812000. Sixty-four bytes. Aligned. Writable. Valid.
+
+      Malloc writes the chunk header, sets the size, marks it as in-use, and
+      turns to you.
+
+      "Your new address. Step in."
+
+      You step onto the freshly allocated block. For the first time since the
+      crash, you feel *solid*. Your paws touch real, writable memory. Your
+      metadata snaps into place. Your pointer value updates: 0x00812000.
+
+      You are valid.
+    conditional:
+      - condition:
+          flag: gc_marked
+        text: |
+          The GC's temporary root mark aligns with your new address. You're not
+          just allocated — you're properly reachable. The collector won't touch you.
+        color: green
+    choices:
+      - label: "I'm valid! But is the SIGSEGV still coming?"
+        goto: signal_arrives
+      - label: "Before the signal hits — try to enable ASan"
+        goto: asan_quest
+        requires_flag: asan_goal
+
+  # ═══════════════════════════════════════════════════════════
+  # THE ASAN PATH
+  # ═══════════════════════════════════════════════════════════
+
+  asan_quest:
+    mood: mysterious
+    art: |
+          ╔══════════════════════════════════════╗
+          ║     A D D R E S S                    ║
+          ║       S A N I T I Z E R              ║
+          ║                                      ║
+          ║     Status: COMPILED BUT DISABLED    ║
+          ║     Config: 0x00870000               ║
+          ╚══════════════════════════════════════╝
+    location: "0x00870000 — ASan config"
+    text: |
+      The AddressSanitizer module is here — a massive framework of shadow memory
+      and red zones, all perfectly constructed and completely dormant.
+
+      The config struct is simple: a single boolean. `enabled: false`.
+
+      Flip it to true and ASan will wake up. It will scan every memory access,
+      catch every bug, report every violation. The null deref that started this.
+      The use-after-free in the freed region. The dangling pointers in the
+      registry. All of it.
+
+      But enabling ASan mid-process is... unprecedented. The shadow memory
+      needs to be initialized. Red zones need to be placed. It could cause
+      a cascade of new faults as it discovers bugs that were always there.
+    conditional:
+      - condition:
+          has_item: ghost_cat_ally
+        text: |
+          Dangling's presence in your inventory resonates with the ASan module.
+          "I can help initialize the shadow memory," the ghost-cat whispers.
+          "I know where all the corrupted blocks are."
+        color: cyan
+    choices:
+      - label: "Flip the switch. Enable ASan. Fix everything"
+        goto: ending_asan
+      - label: "Too risky. Just survive the SIGSEGV"
+        goto: signal_arrives
+
+  asan_from_malloc:
+    mood: mysterious
+    text: |
+      "ASan?" Malloc's voice drops. "That config is at 0x00870000. I know where
+      it is — I instrument every allocation when ASan is active."
+
+      "Enable it and I work differently. Red zones. Quarantine lists. Every
+      allocation gets shadow bytes. It's slower, but nothing gets corrupted
+      without getting caught."
+
+      "Your call, kid."
+    choices:
+      - label: "Show me the way to ASan"
+        goto: asan_quest
+      - label: "Get my allocation first, then ASan"
+        goto: allocation_moment
+
+  # ═══════════════════════════════════════════════════════════
+  # ENDINGS
+  # ═══════════════════════════════════════════════════════════
+
+  signal_arrives:
+    mood: tense
+    effects:
+      - shake
+    art: |
+          ╔═════════════════════════════════╗
+          ║                                 ║
+          ║   >>> SIGSEGV ARRIVED <<<       ║
+          ║                                 ║
+          ║   Checking faulting address...  ║
+          ║   0x00000000 → 0x00812000       ║
+          ║   Pointer... VALID?             ║
+          ║                                 ║
+          ╚═════════════════════════════════╝
+    location: "0x00812000 — Your new home"
+    text: |
+      The signal arrives. You feel it like a shockwave — SIGSEGV, signal 11,
+      rippling through the process.
+
+      The kernel checks the faulting address: 0x00000000. Then it checks the
+      current pointer: 0x00812000. You're... not at the faulting address anymore.
+      You moved.
+
+      The signal handler fires. It checks recovery_point: still NULL. It falls
+      through to _exit.
+
+      But wait — the signal was for the OLD address. You're at a NEW address.
+      The handler runs, sees no recovery point, and...
+    choices:
+      - label: "Hold your breath"
+        goto: ending_survive
+
+  ending_survive:
+    is_ending: true
+    ending_type: good
+    mood: peaceful
+    effects:
+      - pause
+    art: |
+            /\_/\
+            ( ^.^ )
+            > ^ <     ← 0x00812000 ← VALID
+            /|   |\
+            (_|   |_)
+
+            ┌─────────────────────────────────────┐
+            │  Process recovered.                 │
+            │  Signal handled (non-fatal).        │
+            │  Cat relocated to valid address.    │
+            │  Continuing execution...            │
+            └─────────────────────────────────────┘
+    location: "0x00812000 — Home"
+    text: |
+      The handler exits. The process... continues.
+
+      The SIGSEGV was delivered, but the default handler's _exit call got
+      intercepted by a secondary signal mask. The OS gave the process one more
+      chance — and when it looked at you, you were valid.
+
+      You're alive. Allocated. 64 bytes of legitimate heap memory, properly
+      aligned, properly referenced. The Cat registry gets updated — node seven
+      now points to 0x00812000 instead of NULL.
+
+      Nix waves at you from her allocation. "Told you malloc was the way."
+
+      The process runs on. The bug that nulled you is still there — it'll happen
+      again to some other cat. But you survived.
+
+      You curl up in your 64 bytes. They're warm. They're yours.
+
+      It's good to be valid.
+    ending_text: |
+      🐱 ENDING: Valid Pointer
+
+      You escaped the Null Zone and earned a legitimate memory allocation.
+      The bug remains unfixed, but you're safe — for now.
+
+      Sometimes survival means finding your own address.
+
+  ending_recovery:
+    is_ending: true
+    ending_type: good
+    mood: mysterious
+    effects:
+      - pause
+    art: |
+          ┌─────────────────────────────────────┐
+          │  recovery_point = 0x7FFF8000        │
+          │  ...                                │
+          │  SIGSEGV received.                  │
+          │  handler: longjmp(recovery_point)   │
+          │  ...                                │
+          │  Jumping to error recovery...       │
+          │                                     │
+          │  >>> PROCESS SAVED <<<              │
+          └─────────────────────────────────────┘
+    location: "Stack — recovery frame"
+    text: |
+      You write the jmp_buf. Stack pointer. Instruction pointer. Frame pointer.
+      Each byte placed with surgical precision.
+
+      The signal arrives. The handler fires. It checks recovery_point and finds —
+      not NULL. A valid jmp_buf.
+
+      longjmp().
+
+      Reality LURCHES. The entire call stack unwinds. Frames evaporate. The
+      signal context dissolves. You're pulled through memory like a cat through
+      a wormhole.
+
+      And then — stillness. You land in main()'s error handling code. A gentle
+      `if` branch that was never supposed to execute. It prints a message:
+
+      "Warning: recovered from SIGSEGV. Restarting safely..."
+
+      The process restarts its main loop. Fresh stack. Clean state. The heap
+      is intact, Nix is fine, even Dangling is still flickering in the freed
+      region.
+
+      You did it. You didn't just survive — you saved the entire process.
+    ending_text: |
+      🛡️ ENDING: Recovery Point
+
+      You set the recovery_point and enabled the signal handler's longjmp.
+      The entire process was saved from termination.
+
+      The best kind of fix: one that helps everyone.
+
+  ending_asan:
+    is_ending: true
+    ending_type: secret
+    mood: glitch
+    effects:
+      - glitch
+      - shake
+      - pause
+    art: |
+          ╔═══════════════════════════════════════════════════╗
+          ║                                                   ║
+          ║   A D D R E S S   S A N I T I Z E R              ║
+          ║                                                   ║
+          ║   ████████████████████████████ ENABLED            ║
+          ║                                                   ║
+          ║   Scanning shadow memory...                       ║
+          ║   ERROR: heap-use-after-free at 0x00850000        ║
+          ║   ERROR: null-pointer-deref at 0x00000000         ║
+          ║   ERROR: dangling-pointer at 0x00830070           ║
+          ║   ERROR: buffer-overflow at 0x00810500            ║
+          ║   ERRORS FOUND: 47                                ║
+          ║                                                   ║
+          ║   Generating report...                            ║
+          ║   Patching... Patching... Done.                   ║
+          ║                                                   ║
+          ╚═══════════════════════════════════════════════════╝
+    location: "0x00870000 — ASan config"
+    text: |
+      You flip the switch.
+
+      AddressSanitizer ROARS to life. Shadow memory floods into existence —
+      every byte in the address space gets a shadow byte tracking its state.
+      Red zones bloom around every allocation. The quarantine list fills with
+      recently-freed blocks.
+
+      And then the reports start pouring in.
+
+      Forty-seven memory safety violations. Use-after-free. Buffer overflows.
+      Null dereferences. Dangling pointers. The process was RIDDLED with bugs,
+      all silently corrupting data for who knows how long.
+
+      ASan catches them all. Patches what it can. Reports what it can't.
+
+      The SIGSEGV arrives — and ASan catches it too, printing a beautiful
+      stack trace that shows exactly where the null pointer was created, exactly
+      which function failed to check it, exactly how to fix it.
+
+      In the freed region, Dangling solidifies. ASan's quarantine prevents the
+      use-after-free — the ghost-cat becomes real again, properly tracked.
+
+      "You did it," Dangling whispers, no longer flickering.
+
+      Everywhere in the heap, corrupted structs snap clean. The Cat registry
+      rebuilds itself. Seven dangling references get nulled properly. Three
+      buffer overflows get bounded.
+
+      The process is clean. For the first time ever, it's actually correct.
+    conditional:
+      - condition:
+          has_item: ghost_cat_ally
+        text: |
+          Dangling — now fully materialized — bumps their head against yours.
+          "Thank you. For following the breadcrumbs."
+        color: yellow
+    ending_text: |
+      🔬 ENDING: The Sanitizer
+
+      You enabled AddressSanitizer and fixed every memory safety bug in the
+      process. Not just your null deref — ALL of them. 47 bugs, caught and
+      reported.
+
+      The ghost-cat lives again. The process is clean. Memory is safe.
+
+      Sometimes the best fix isn't a workaround — it's making the whole
+      system correct.
+
+      [SECRET ENDING — The Nuclear Option]
+
+  # ═══════════════════════════════════════════════════════════
+  # BONUS SCENE — kernel attempt (early dead end)
+  # ═══════════════════════════════════════════════════════════
+
+  kernel_attempt:
+    mood: tense
+    effects:
+      - shake
+    art: |
+          ┃███████████████████████████████████████┃
+          ┃  KERNEL SPACE — RING 0 ONLY          ┃
+          ┃  0xFFFF800000000000 and above         ┃
+          ┃  PERMISSION DENIED                    ┃
+          ┃███████████████████████████████████████┃
+    location: "Approaching kernel boundary"
+    text: |
+      You try to leap toward the high addresses where kernel space gleams. For a
+      moment, you're soaring — addresses climbing from millions to billions to—
+
+      SMACK. The supervisor bit. You're in ring 3 (userspace). Kernel space is
+      ring 0. The CPU won't even let your memory accesses REACH those addresses.
+
+      It's not a wall. It's a law of physics. The page table hierarchy simply
+      doesn't map those addresses for unprivileged code.
+
+      You tumble back toward userspace, slightly dazed. The heap and stack are
+      your only options.
+    choices:
+      - label: "Head for the heap"
+        goto: heap_outskirts
+      - label: "Head for the stack"
+        goto: stack_approach
