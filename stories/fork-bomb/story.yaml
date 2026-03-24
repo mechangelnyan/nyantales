@@ -1,0 +1,1020 @@
+title: "Fork Bomb"
+description: "A cat accidentally triggers :(){ :|:& };: and must survive exponential self-replication before the OOM killer comes for everyone."
+author: "mechangelnyan"
+version: "1.0.0"
+start: the_prompt
+
+scenes:
+
+  # ─────────────────────────────────────────────────────────────
+  # ACT 1 — THE MISTAKE
+  # ─────────────────────────────────────────────────────────────
+
+  the_prompt:
+    mood: peaceful
+    art: |
+        ╔═══════════════════════════════════════════════════╗
+        ║                                                   ║
+        ║   F O R K   B O M B                               ║
+        ║                                                   ║
+        ║   "To fork is cat. To fork twice is divine.       ║
+        ║    To fork forever is a kernel panic."            ║
+        ║                                                   ║
+        ║   PID 1 ─── PID 42                                ║
+        ║              └── PID 43                           ║
+        ║                  └── PID 44                       ║
+        ║                      └── PID 45                   ║
+        ║                          └── ...                  ║
+        ║                                                   ║
+        ╚═══════════════════════════════════════════════════╝
+    text: |
+      It's 2 AM. You're the only process awake.
+
+      Well — you and systemd, but systemd never sleeps. It just
+      watches. Judging. As PID managers do.
+
+      You're Byte, a small tabby cat with root access and poor
+      impulse control. You're sitting at a bash prompt in a
+      production server that somebody left an SSH session open on.
+
+      The cursor blinks. The server hums. Somewhere in /var/log,
+      a daemon writes another line that nobody will ever read.
+
+      You shouldn't be here. You definitely shouldn't type anything.
+
+      But your paws are already on the keyboard.
+    choices:
+      - label: "Type a sensible command — `uptime`"
+        goto: uptime_check
+      - label: "Paste that funny thing from the internet"
+        goto: paste_the_bomb
+      - label: "Close the terminal and walk away"
+        goto: walk_away_early
+
+  walk_away_early:
+    mood: peaceful
+    text: |
+      You close the laptop lid. The screen goes dark.
+
+      For a moment, you consider the weight of what you almost did.
+      A server full of sleeping processes. A single command away from
+      chaos. And you walked away.
+
+      That's growth.
+
+      You curl up on the warm laptop and fall asleep. The server
+      hums on, oblivious to how close it came.
+    is_ending: true
+    ending_type: good
+    ending_text: |
+      The Responsible Cat — you chose restraint over curiosity.
+      Not every story needs to be a disaster.
+      Sometimes the bravest thing is closing the terminal.
+
+  uptime_check:
+    text: |
+      The terminal responds:
+
+        02:14:37 up 847 days, 14:22, 1 user, load average: 0.02, 0.01, 0.00
+
+      Eight hundred and forty-seven days. This server has been running
+      since before you were compiled. It's a miracle of uptime. A
+      testament to "if it ain't broke, don't deploy to it."
+
+      The load average is basically zero. Nothing is happening here.
+      It's peaceful. Boring, even.
+
+      Your paw twitches. You've seen things on the internet. Dangerous
+      things. Things that fit in one line of bash.
+    choices:
+      - label: "Check what's running — `ps aux`"
+        goto: ps_aux
+      - label: "You know what? Let's try that one-liner..."
+        goto: paste_the_bomb
+      - label: "Nope. Close the terminal."
+        goto: walk_away_early
+
+  ps_aux:
+    text: |
+      The process list scrolls by. Mostly sleeping daemons. Nginx,
+      postgres, a few cron jobs that run at 3 AM. Everything orderly.
+      Everything calm.
+
+      One process catches your eye:
+
+        root  31337  0.0  0.0  /usr/local/bin/catfood-dispenser
+
+      The catfood dispenser. It runs on this server? THIS server?
+
+      If this machine goes down, there's no kibble at 6 AM.
+      You should really, truly, absolutely not do anything reckless.
+    choices:
+      - label: "The catfood dispenser changes nothing. Paste the thing."
+        goto: paste_the_bomb
+        set_flag: knew_about_catfood
+      - label: "Back away slowly. The kibble must flow."
+        goto: walk_away_catfood
+
+  walk_away_catfood:
+    mood: peaceful
+    text: |
+      You gently close the terminal. Not for the server. Not for the
+      uptime record. For the kibble.
+
+      A cat has priorities. And the number one priority is breakfast.
+
+      You pad over to the food bowl, curl up next to it, and wait
+      for 6 AM. The catfood dispenser whirs on schedule. Kibble falls.
+      All is well in the world.
+
+      Sometimes the best root exploit is knowing when not to use root.
+    is_ending: true
+    ending_type: good
+    ending_text: |
+      The Kibble Guardian — your stomach outweighed your curiosity.
+      847 days of uptime preserved. Breakfast secured.
+      The server will never know how close it came.
+
+  # ─────────────────────────────────────────────────────────────
+  # ACT 2 — THE DETONATION
+  # ─────────────────────────────────────────────────────────────
+
+  paste_the_bomb:
+    mood: tense
+    effects:
+      - bell
+    art: |
+        $ :(){ :|:& };:
+
+        /\_/\    oh
+        ( O.O )  oh no
+        (> _ <)
+    text: |
+      You type it character by character, paw trembling slightly:
+
+        :(){ :|:& };:
+
+      It's beautiful in a terrible way. A function that calls itself
+      twice, backgrounded each time. Exponential growth in thirteen
+      characters. The most elegant disaster in Unix history.
+
+      You press Enter.
+
+      For half a second, nothing happens.
+
+      Then the load average twitches. 0.02 becomes 0.08. Then 0.34.
+      Then 2.7. Then 14. Then the number stops updating because
+      the terminal can barely render anymore.
+
+      The fans spin up to a scream.
+    set_flag: bomb_detonated
+    choices:
+      - label: "Watch in horrified fascination"
+        goto: watch_it_spread
+      - label: "Try to kill the processes — `killall bash`"
+        goto: try_killall
+      - label: "Frantically try Ctrl+C"
+        goto: ctrl_c
+
+  ctrl_c:
+    mood: tense
+    text: |
+      ^C^C^C^C^C^C^C^C^C^C^C^C
+
+      Nothing. Ctrl+C only kills the foreground process. The fork bomb
+      is a thousand background processes now, each one spawning two more.
+      Ctrl+C is like trying to stop a tidal wave by asking politely.
+
+      Your terminal is sluggish. Each keypress takes three seconds to echo.
+      The server's process table is filling up like a bathtub with the
+      drain sealed.
+    choices:
+      - label: "Try `killall bash` while you still can"
+        goto: try_killall
+      - label: "Panic. Just... panic."
+        goto: panic_freeze
+
+  panic_freeze:
+    mood: tense
+    art: |
+        /\_/\
+        ( @_@ )  ← this is fine
+        (  >  )
+    text: |
+      You freeze. Your ears go flat. Your tail puffs up to three times
+      its normal size. This is a threat response. The threat is your
+      own poor decisions.
+
+      The load average is now 247. The number is academic at this point.
+      New processes can barely be created. The fork bomb is hitting the
+      process limit, but each failed fork just... tries again.
+
+      You hear a sound from the server rack. It might be the fans.
+      It might be the server screaming. It might be the ghost of
+      every sysadmin who ever said "don't give cats root access."
+
+      The OOM killer is waking up.
+    choices:
+      - label: "Pray to the OOM killer"
+        goto: oom_prayer
+      - label: "Try to SSH in from another machine"
+        goto: try_ssh
+
+  try_killall:
+    mood: tense
+    text: |
+      You type `killall bash` with agonizing slowness. Each character
+      takes an eternity to appear. The server is drowning in processes.
+
+      Finally, you press Enter.
+
+        bash: fork: retry: Resource temporarily unavailable
+        bash: fork: retry: Resource temporarily unavailable
+        bash: fork: retry: Resource temporarily unavailable
+
+      killall can't execute because there are no free process slots.
+      The fork bomb has consumed them all. You can't kill the processes
+      because you can't start the process that kills processes.
+
+      It's the ultimate catch-22. You need a process to fix the process
+      problem, but the process problem prevents you from starting a process.
+    choices:
+      - label: "Try a different approach — use built-in bash commands"
+        goto: builtin_approach
+        set_flag: tried_killall
+      - label: "Accept your fate and watch the chaos"
+        goto: watch_it_spread
+
+  watch_it_spread:
+    mood: glitch
+    effects:
+      - flicker
+    art: |
+        PID TABLE:
+        ┌────┬────┬────┬────┬────┐
+        │████│████│████│████│████│
+        │████│████│████│████│████│
+        │████│████│████│████│████│
+        │████│████│████│████│████│
+        │████│████│████│████│████│
+        └────┴────┴────┴────┴────┘
+           CAPACITY: 99.7%
+    text: |
+      You watch the process table fill up in real time. It's terrifying
+      and mesmerizing, like watching a fire you started.
+
+      Every process is a copy of a copy of a copy. They don't do anything
+      useful — they just exist and reproduce. You've accidentally created
+      the Unix equivalent of tribbles.
+
+      The server's memory is climbing. Swap is thrashing. The disk light
+      is solid — not blinking, just solid red, like the eye of an angry
+      sysadmin who hasn't been paged yet but will be any moment.
+
+      Somewhere in the noise, PID 31337 — the catfood dispenser — is
+      struggling to survive.
+    choices:
+      - label: "Try the bash built-in trick"
+        goto: builtin_approach
+      - label: "Wait for the OOM killer"
+        goto: oom_killer_arrives
+
+  # ─────────────────────────────────────────────────────────────
+  # ACT 3 — FIGHT OR FLIGHT
+  # ─────────────────────────────────────────────────────────────
+
+  builtin_approach:
+    mood: tense
+    text: |
+      Think. THINK. You're a cat with root. You have bash built-ins.
+      Built-ins don't fork — they run inside the existing shell process.
+
+      You can't run external commands, but you can run:
+        - `kill` (it's a shell built-in!)
+        - `echo` (to write to /proc)
+        - `while` / `for` loops
+
+      Your paws hover over the keyboard. The terminal is barely
+      responsive, but your shell is still alive. For now.
+
+      You have one shot. The question is: what signal do you send,
+      and to whom?
+    choices:
+      - label: "Kill all bash processes: `kill -9 -1`"
+        goto: kill_everything
+      - label: "Surgical strike: kill only the forks"
+        goto: surgical_kill
+        condition:
+          flag: tried_killall
+      - label: "Set the process limit: `ulimit -u 50`"
+        goto: ulimit_trick
+
+  kill_everything:
+    mood: tense
+    effects:
+      - shake
+    art: |
+        $ kill -9 -1
+
+          ████████████████████
+          ███ SIGNAL  9 ██████
+          ███ SENT TO ALL ████
+          ████████████████████
+    text: |
+      `kill -9 -1` — send SIGKILL to every process you own.
+
+      It works. It works because `kill` is a bash built-in and doesn't
+      need to fork. The signal goes out to every single process running
+      as root.
+
+      Every. Single. Process.
+
+      The fork bomb dies. The daemons die. Nginx dies. Postgres dies.
+      The cron jobs die. The SSH session you're typing in dies.
+
+      And PID 31337 — the catfood dispenser — dies too.
+
+      Your terminal freezes. The connection drops. The server goes
+      silent. Not because it's off, but because there's nothing left
+      running to listen.
+
+      You nuked it all. The bomb is gone, but so is everything else.
+    set_flag: killed_everything
+    choices:
+      - label: "Stare at the blank screen"
+        goto: aftermath_nuke
+      - label: "Try to reconnect"
+        goto: reconnect_attempt
+
+  surgical_kill:
+    mood: tense
+    set_flag: surgical_approach
+    text: |
+      You remember something from a late-night wiki binge. You can
+      use bash's built-in `kill` with a loop over /proc:
+
+        for pid in /proc/[0-9]*; do
+          p=${pid##*/}
+          [ "$(cat /proc/$p/comm 2>/dev/null)" = "bash" ] &&
+          [ "$p" != "$$" ] && kill -9 "$p" 2>/dev/null
+        done
+
+      It's ugly. It's desperate. It reads each process's name from
+      /proc and kills only the bash processes that aren't your own shell.
+
+      You type it in, one agonizing character at a time, while the
+      server groans under the weight of ten thousand useless forks.
+
+      Enter.
+    choices:
+      - label: "Hold your breath and wait"
+        goto: surgical_result
+
+  surgical_result:
+    mood: mysterious
+    effects:
+      - pause
+    text: |
+      The load average twitches. Drops. 247... 198... 84... 31... 7...
+
+      Processes are dying. The right ones. The fork bomb children are
+      getting picked off one by one, and without enough survivors to
+      maintain exponential growth, the whole thing collapses.
+
+      The server takes a shuddering breath. Memory usage drops. Swap
+      calms down. The disk light goes from solid red to normal blinking.
+
+      You check the process list. Nginx is alive. Postgres is alive.
+      And PID 31337 — the catfood dispenser — is still running.
+
+      You didn't just survive the fork bomb. You performed surgery
+      on a running system and saved every process that mattered.
+    give_item: surgical_precision
+    choices:
+      - label: "Check the catfood dispenser"
+        goto: ending_surgeon
+        condition:
+          flag: knew_about_catfood
+      - label: "Quietly close the terminal"
+        goto: ending_surgeon
+
+  ending_surgeon:
+    mood: peaceful
+    is_ending: true
+    ending_type: secret
+    art: |
+        /\_/\
+        ( ^.^ )  ♡
+        ( >  < )
+          meow.
+
+        LOAD AVERAGE: 0.04
+        UPTIME: 847 days, 14:28
+        CATFOOD: OPERATIONAL
+    text: |
+      The server returns to its peaceful hum. Load average 0.04.
+      Uptime counter still ticking. The fork bomb came and went like
+      a bad dream, and you were the surgeon who fixed it without
+      rebooting.
+
+      No one will ever know. The logs are full of fork errors, but
+      they'll be rotated out by next week. The catfood dispenser
+      whirs on schedule. Breakfast is served at 6 AM.
+
+      You close the terminal. Delete your bash history. Curl up
+      on the warm laptop.
+
+      Eight hundred and forty-seven days. Still counting.
+    ending_text: |
+      The Process Surgeon — you caused the problem AND fixed it,
+      with nothing but bash built-ins and sheer determination.
+      The uptime lives on. The kibble flows. Nobody knows.
+      That's the best kind of fix.
+
+  ulimit_trick:
+    mood: tense
+    text: |
+      You type `ulimit -u 50` — limit the current shell to 50
+      child processes. It's a built-in command, so it runs instantly.
+
+      The idea is smart: stop the bleeding, then clean up. But
+      there's a problem. The ulimit only applies to NEW processes
+      from YOUR shell. The fork bomb's children have already forked
+      away — they're not your shell's children anymore.
+
+      The limit does prevent you from accidentally making things
+      worse. But the existing bomb is still running.
+
+      You need another approach for the ones already out there.
+    choices:
+      - label: "Combine with the kill loop"
+        goto: combined_approach
+      - label: "Wait for the OOM killer to help"
+        goto: oom_killer_arrives
+
+  combined_approach:
+    mood: tense
+    text: |
+      Smart cat. Use ulimit to cap the damage, then use the built-in
+      kill to clean up:
+
+        ulimit -u 50
+        while true; do kill -9 -1; sleep 1; done
+
+      Wait — `kill -9 -1` will kill everything again. You need to be
+      more selective. You adapt:
+
+        while true; do
+          for f in /proc/*/comm; do
+            grep -q bash "$f" 2>/dev/null && kill -9 "${f%/comm}" 2>/dev/null
+          done
+          sleep 0.5
+        done
+
+      Actually, grep is external. It would need to fork. You can't
+      use it. Back to the pure built-in approach...
+
+      This is getting complicated. But the fork bomb is finally
+      losing processes faster than it gains them. The tide is turning.
+    set_flag: combined_fight
+    choices:
+      - label: "Keep fighting — persist with the loop"
+        goto: slow_victory
+      - label: "Give up and let the OOM killer handle it"
+        goto: oom_killer_arrives
+
+  slow_victory:
+    mood: mysterious
+    effects:
+      - pause
+    text: |
+      It takes four agonizing minutes. Each iteration of your loop
+      kills a few dozen fork bomb processes. Each killed process is
+      one less that can reproduce. It's attrition warfare — and
+      you're winning by inches.
+
+      Load: 84... 61... 43... 28... 12... 4... 0.7...
+
+      The last fork bomb process dies with a silent SIGKILL.
+      The server exhales. Everything else survived. It's ugly,
+      it's hacky, but the server is alive and so are all the
+      important daemons.
+
+      Your paws are shaking. You'll never look at a colon the
+      same way again.
+    choices:
+      - label: "Patch the system to prevent future fork bombs"
+        goto: ending_battle_hardened
+      - label: "Close the terminal and never speak of this"
+        goto: ending_silent_hero
+
+  ending_battle_hardened:
+    mood: peaceful
+    is_ending: true
+    ending_type: good
+    art: |
+        /etc/security/limits.conf
+        ┌─────────────────────────────┐
+        │ *  hard  nproc  1024        │
+        │ *  soft  nproc  512         │
+        │                             │
+        │ # Added by Byte the cat     │
+        │ # Never again.              │
+        └─────────────────────────────┘
+    text: |
+      Before closing the terminal, you add process limits to
+      /etc/security/limits.conf. No user — not even root — should
+      be able to spawn more than 1024 processes. You set it up
+      properly this time.
+
+      Then you add a comment: "# Never again."
+
+      Future cats who stumble onto this server will be protected
+      from their own curiosity. The fork bomb can never consume
+      the whole process table again.
+
+      You close the terminal. You've earned your kibble tonight.
+    ending_text: |
+      The Battle-Hardened Admin — you broke it, fixed it, and
+      made sure it can never happen again. That's not just
+      recovery — that's growth. Also you added a comment in
+      a config file. Peak professionalism.
+
+  ending_silent_hero:
+    mood: peaceful
+    is_ending: true
+    ending_type: neutral
+    text: |
+      You close the terminal. Delete bash_history. Clear /var/log/auth.log.
+      Remove every trace that you were ever here.
+
+      The server hums on. The catfood dispenser is safe. The uptime
+      counter ticks. Nobody needs to know what happened in those
+      four minutes at 2 AM on a Tuesday.
+
+      Some heroics are best left unrecorded.
+    ending_text: |
+      The Silent Hero — you fixed the disaster and covered your
+      tracks. The server never knew. The sysadmin never knew.
+      Only you and bash_history knew, and you deleted bash_history.
+
+  # ─────────────────────────────────────────────────────────────
+  # OOM KILLER PATH
+  # ─────────────────────────────────────────────────────────────
+
+  try_ssh:
+    mood: tense
+    text: |
+      You run to another machine and try to SSH in. The connection
+      hangs. The server can't fork a new shell process for your
+      SSH session because all process slots are taken.
+
+        ssh: connect to host prod-server-7: Connection timed out
+
+      Even the network stack is struggling. TCP connections are
+      half-open and abandoned. The server is so overloaded that
+      it can't even properly refuse your connection.
+
+      There's only one thing that can save you now: the kernel's
+      last line of defense.
+    choices:
+      - label: "Hope the OOM killer makes the right call"
+        goto: oom_killer_arrives
+      - label: "Try the IPMI/remote management console"
+        goto: ipmi_reboot
+
+  oom_prayer:
+    mood: mysterious
+    text: |
+      You close your eyes and send a thought to the kernel.
+
+      "Dear OOM Killer," you whisper to /dev/null, "I know we've
+      had our differences. I know you once killed my postgres
+      process during a peak traffic event and I said unkind things
+      about your heuristics. But right now, I need you. Please.
+      Kill the bash processes. Spare the catfood dispenser. Amen."
+
+      /dev/null, as always, says nothing back.
+
+      But deep in kernel space, something stirs.
+    choices:
+      - label: "Wait for judgment"
+        goto: oom_killer_arrives
+
+  oom_killer_arrives:
+    mood: tense
+    effects:
+      - shake
+      - bell
+    art: |
+        ┌─────────────────────────────────────┐
+        │                                     │
+        │   ☠  OOM KILLER ACTIVATED  ☠        │
+        │                                     │
+        │   Memory: 98.7% used                │
+        │   Swap:   100% used                 │
+        │   Action: KILL PROCESSES             │
+        │                                     │
+        └─────────────────────────────────────┘
+    text: |
+      The OOM Killer wakes.
+
+      In kernel space, it's a cold and calculating entity. It doesn't
+      care about your feelings. It doesn't care about uptime. It has
+      one job: free memory before the system dies completely.
+
+      It assigns each process a score. Memory usage, process age,
+      niceness, whether it's a kernel thread. Then it picks the
+      highest scorer and sends SIGKILL. No negotiation. No appeal.
+
+      The question is: will it kill the right processes?
+
+      The fork bomb children all look the same — small, numerous,
+      identical. But the OOM killer doesn't think in groups. It picks
+      one process at a time.
+    choices:
+      - label: "Watch the OOM killer work"
+        goto: oom_judgment
+      - label: "Try to influence the OOM score"
+        goto: oom_adjust
+        condition:
+          flag: tried_killall
+
+  oom_adjust:
+    mood: tense
+    text: |
+      You remember that you can adjust OOM scores through /proc.
+      And `echo` is a bash built-in!
+
+        echo 1000 > /proc/31337/oom_score_adj  # protect catfood
+        ... wait, 1000 makes it MORE likely to be killed.
+
+        echo -1000 > /proc/31337/oom_score_adj  # protect catfood!
+
+      Your paw hovers. -1000 makes a process almost immune to the
+      OOM killer. You redirect the echo into the proc file.
+
+      Then you wait. The OOM killer will do the rest.
+    set_flag: protected_catfood
+    give_item: oom_knowledge
+    choices:
+      - label: "Watch the OOM killer's judgment"
+        goto: oom_judgment
+
+  oom_judgment:
+    mood: glitch
+    effects:
+      - flicker
+    text: |
+      The killing begins.
+
+        Out of memory: Killed process 8847 (bash) total-vm:4096kB
+        Out of memory: Killed process 8849 (bash) total-vm:4096kB
+        Out of memory: Killed process 8851 (bash) total-vm:4096kB
+        Out of memory: Killed process 8844 (bash) total-vm:4096kB
+
+      One by one, fork bomb processes die. But they respawn almost
+      as fast as they're killed. The OOM killer is in a war of
+      attrition with exponential growth, and exponential growth
+      always wins in the long run.
+
+      Then the OOM killer makes a decision that changes everything.
+    choices:
+      - label: "Brace yourself"
+        goto: oom_decision
+
+  oom_decision:
+    mood: tense
+    conditional:
+      - condition:
+          flag: protected_catfood
+        text: |
+          The OOM killer spares PID 31337. Your oom_score_adj worked.
+          The catfood dispenser will live to serve another breakfast.
+      - condition:
+          not_flag: protected_catfood
+        text: |
+          The OOM killer's gaze falls on PID 31337 — the catfood
+          dispenser. It's using more memory than any single fork bomb
+          child. By the OOM killer's cold math, it's the biggest target.
+    text: |
+      The OOM killer escalates. It starts killing larger processes.
+      Nginx goes down. Postgres crashes mid-transaction. Cron dies.
+
+      The fork bomb STILL respawns. The kernel makes its final call:
+
+        Kernel panic - not syncing: Out of memory and no killable processes
+
+      The server freezes. The screen fills with kernel panic output.
+      Everything stops.
+    choices:
+      - label: "It's over."
+        goto: ending_oom_apocalypse
+        condition:
+          not_flag: protected_catfood
+      - label: "The catfood dispenser survived, at least..."
+        goto: ending_oom_catfood
+        condition:
+          flag: protected_catfood
+      - label: "It's over."
+        goto: ending_oom_apocalypse
+        condition:
+          flag: protected_catfood
+
+  ending_oom_apocalypse:
+    mood: glitch
+    is_ending: true
+    ending_type: bad
+    effects:
+      - flicker
+    art: |
+        ┌──────────────────────────────────────┐
+        │                                      │
+        │   KERNEL PANIC                       │
+        │                                      │
+        │   not syncing: Out of memory and     │
+        │   no killable processes              │
+        │                                      │
+        │   UPTIME: 847 days, 14:31            │
+        │   UPTIME: 0 days, 0:00               │
+        │                                      │
+        └──────────────────────────────────────┘
+    text: |
+      Eight hundred and forty-seven days of uptime.
+
+      Gone. Because a cat pressed Enter.
+
+      The server will need a hard reboot. The database will need
+      recovery. Nginx configs will need checking. And the catfood
+      dispenser? Offline until some human notices and restarts
+      the machine.
+
+      No breakfast tomorrow. Or the next day. Or however long it
+      takes for someone to check on a server that everyone forgot
+      existed.
+
+      You sit in the dark next to the warm, silent machine. The
+      fans have stopped. The only sound is your empty stomach.
+
+      :(){ :|:& };:
+
+      Thirteen characters. That's all it took.
+    ending_text: |
+      The Accidental Apocalypse — you destroyed a server, an uptime
+      record, and your own breakfast with thirteen characters of bash.
+      The fork bomb doesn't discriminate. It consumes everything.
+      Including hope. And kibble schedules.
+
+  ending_oom_catfood:
+    mood: mysterious
+    is_ending: true
+    ending_type: neutral
+    art: |
+        ┌──────────────────────────────────────┐
+        │   KERNEL PANIC                       │
+        │   ...but PID 31337 was spared.       │
+        │                                      │
+        │   oom_score_adj: -1000               │
+        │   Status: PROTECTED                  │
+        │                                      │
+        │   (it doesn't matter though,         │
+        │    the kernel panicked anyway)        │
+        └──────────────────────────────────────┘
+    text: |
+      The server still crashed. The kernel still panicked. Everything
+      is still dead.
+
+      But technically — TECHNICALLY — the catfood dispenser was the
+      last process standing before the kernel gave up. You protected
+      it from the OOM killer. It survived longer than nginx, longer
+      than postgres, longer than the fork bomb itself.
+
+      It just couldn't survive the kernel panic. Nothing survives
+      that except the hardware watchdog, and this server doesn't
+      have one.
+
+      Your OOM score trick was clever. It just wasn't enough.
+    ending_text: |
+      The Pyrrhic Protector — you shielded the catfood dispenser
+      from the OOM killer, but couldn't save it from the kernel panic.
+      Points for trying. Points for knowing about oom_score_adj.
+      Zero points for causing the problem in the first place.
+
+  # ─────────────────────────────────────────────────────────────
+  # IPMI / HARD REBOOT PATH
+  # ─────────────────────────────────────────────────────────────
+
+  ipmi_reboot:
+    mood: tense
+    text: |
+      You find the IPMI console bookmark. Out-of-band management —
+      it connects directly to the server's BMC, bypassing the
+      frozen operating system entirely.
+
+      The IPMI interface loads. It's slow (it always is) and the
+      web UI looks like it was designed in 2003 (it was). But it
+      works.
+
+      You see the option: "Power Control."
+
+      Inside that menu: Reset, Power Off, Power Cycle.
+
+      847 days of uptime stare back at you.
+    choices:
+      - label: "Hard reset the server"
+        goto: ipmi_reset
+      - label: "SysRq magic key sequence through IPMI"
+        goto: sysrq_magic
+
+  ipmi_reset:
+    mood: tense
+    effects:
+      - shake
+    text: |
+      You click "Power Cycle."
+
+        Are you sure? [OK] [Cancel]
+
+      OK.
+
+      The server dies instantly. No graceful shutdown. No SIGTERM.
+      Just power off, wait three seconds, power on. Like pulling
+      a plug from the wall, except from a web browser.
+
+      847 days. Gone.
+
+      The server comes back up. Filesystem check runs. Services
+      start. Postgres recovers from its WAL. Nginx loads clean.
+      The catfood dispenser restarts.
+
+      It takes four minutes. By server standards, that's an eternity.
+      By cat standards, that's barely enough time to yawn.
+    choices:
+      - label: "Check the damage"
+        goto: ending_hard_reset
+
+  ending_hard_reset:
+    mood: peaceful
+    is_ending: true
+    ending_type: neutral
+    art: |
+        SYSTEM BOOT
+        ──────────────────────────
+        [  OK  ] Started nginx
+        [  OK  ] Started postgresql
+        [  OK  ] Started catfood-dispenser
+        [  OK  ] Started cron
+
+        UPTIME: 0 days, 0:04
+    text: |
+      Everything is back online. The database lost one uncommitted
+      transaction (a log entry nobody would have read). Nginx is
+      serving pages. The catfood dispenser is operational.
+
+      But the uptime counter reads: 0 days, 0:04.
+
+      Somewhere, a monitoring dashboard sends an alert to a Slack
+      channel that no one reads. "prod-server-7 rebooted after
+      847 days." Someone will notice eventually. Maybe.
+
+      You set process limits in /etc/security/limits.conf before
+      anyone can ask questions. Then you clear the IPMI logs.
+
+      A clean crime scene. Mostly.
+    ending_text: |
+      The Hard Reset — sometimes the right answer is turning it
+      off and on again. You lost the uptime record, but everything
+      recovered. The fork bomb won the battle. You won the war.
+      By cheating. With a power button.
+
+  sysrq_magic:
+    mood: mysterious
+    give_item: sysrq_knowledge
+    text: |
+      The Magic SysRq key! It talks directly to the kernel, bypassing
+      all the frozen userspace processes. Through IPMI's virtual
+      keyboard, you send the sacred sequence:
+
+        Alt+SysRq+R  — take keyboard from X
+        Alt+SysRq+E  — SIGTERM to all processes
+        Alt+SysRq+I  — SIGKILL to all processes
+        Alt+SysRq+S  — sync disks
+        Alt+SysRq+U  — remount read-only
+        Alt+SysRq+B  — reboot
+
+      The mnemonic is "Reboot Even If System Utterly Broken."
+      Or, as cats remember it: "Really Excellent Intervention
+      Saves Uptime... Briefly."
+
+      You send the sequence. The kernel obeys.
+    choices:
+      - label: "Watch the graceful reboot"
+        goto: ending_sysrq
+
+  ending_sysrq:
+    mood: peaceful
+    is_ending: true
+    ending_type: good
+    art: |
+        SysRq: SIGTERM all
+        SysRq: SIGKILL all
+        SysRq: Emergency Sync
+        SysRq: Emergency Remount R/O
+        SysRq: Reboot
+
+        /\_/\     Reboot Even If
+        ( ^.^ )   System Utterly
+        (> _ <)   Broken
+    text: |
+      The kernel handles everything. SIGTERM gives processes a chance
+      to clean up. SIGKILL finishes the rest. Disks sync. Filesystems
+      remount read-only. Then a clean reboot.
+
+      It's not as fast as a hard power cycle, but it's cleaner.
+      The database gets to flush its buffers. No data loss.
+
+      The server comes back in three minutes. Everything is nominal.
+      And you've learned a new trick that most sysadmins forget exists.
+
+      Uptime: 0 days, 0:03. But at least it was a GRACEFUL zero.
+    ending_text: |
+      The SysRq Sage — you used the kernel's emergency backdoor
+      to perform a clean reboot through a frozen system. No data
+      loss. No filesystem damage. Just the death of an uptime record
+      and the birth of hard-earned wisdom. REISUB forever.
+
+  # ─────────────────────────────────────────────────────────────
+  # AFTERMATH
+  # ─────────────────────────────────────────────────────────────
+
+  aftermath_nuke:
+    mood: mysterious
+    text: |
+      The screen is dark. The server is running — you can hear the
+      fans — but there's nothing to connect to. You killed every
+      process, including the SSH daemon, including init, including
+      everything that could accept a connection.
+
+      The server is a philosophical zombie. Hardware alive, soul gone.
+      It will sit there, running a kernel with no userspace, until
+      someone physically reboots it or the power goes out.
+
+      Could be hours. Could be weeks. That server was forgotten
+      once before. It might be forgotten again.
+    choices:
+      - label: "Find the IPMI console and reboot"
+        goto: ipmi_reboot
+      - label: "Walk away and pretend this never happened"
+        goto: ending_ghost_server
+
+  reconnect_attempt:
+    text: |
+      You try to SSH back in.
+
+        ssh: connect to host prod-server-7: Connection refused
+
+      Of course. You killed sshd along with everything else.
+      There's nothing listening on any port. The server is a husk.
+    choices:
+      - label: "Use IPMI to reboot"
+        goto: ipmi_reboot
+      - label: "Leave. This never happened."
+        goto: ending_ghost_server
+
+  ending_ghost_server:
+    mood: mysterious
+    is_ending: true
+    ending_type: bad
+    art: |
+        prod-server-7
+        ┌──────────────────────────┐
+        │                          │
+        │   STATUS: RUNNING        │
+        │   PROCESSES: 0           │
+        │   SERVICES: NONE         │
+        │   CONNECTIONS: REFUSED   │
+        │   CATFOOD: OFFLINE       │
+        │                          │
+        │   LAST LOGIN: 2:14 AM    │
+        │   (by an unknown cat)    │
+        │                          │
+        └──────────────────────────┘
+    text: |
+      You walk away. The server sits in its rack, hardware running,
+      software dead. A machine with no purpose and no one to reboot it.
+
+      The catfood dispenser is offline. At 6 AM, no kibble falls.
+      You eat dry food from the emergency bag like a peasant.
+
+      Somewhere in a datacenter, a green LED blinks on a server
+      that does nothing. It will blink until the power bill goes
+      unpaid or a hurricane hits the facility. Whichever comes first.
+
+      You never tell anyone. And every time someone mentions uptime
+      records, you change the subject.
+    ending_text: |
+      The Ghost Server — you killed everything, walked away, and
+      left a zombie machine in a datacenter. It's still running.
+      It will always be running. It just won't ever do anything again.
+      Somewhere, a monitoring dashboard shows a flatline that no one
+      checks. RIP prod-server-7. RIP breakfast.

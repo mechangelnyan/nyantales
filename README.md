@@ -311,6 +311,14 @@ Explore the filesystem as `nobody` — the least privileged identity in UNIX. Re
 
 **Endings:** Good (×3) · Neutral (×3) · Bad · Secret · **Scenes:** 42
 
+### 💣 Fork Bomb
+
+> *It's 2 AM. You're a cat with root access and poor impulse control. You paste `:(){ :|:& };:` into a production server. Survive the exponential chaos before the OOM killer takes everything — including the catfood dispenser.*
+
+Watch a single line of bash consume every process slot on the system, try to fight back with shell built-ins (killall can't fork!), protect critical processes from the OOM killer using oom_score_adj, attempt surgical kills through /proc, or invoke the sacred SysRq REISUB sequence through an IPMI console. Teaches: fork bombs, process limits (ulimit/nproc), the OOM killer and its scoring heuristics, bash built-ins vs external commands, /proc filesystem, SysRq key sequences, IPMI out-of-band management, and why you should never give cats root access.
+
+**Endings:** Good (×4) · Neutral (×3) · Bad (×2) · Secret · **Scenes:** 36
+
 ---
 
 ## Ending Discovery
