@@ -1,0 +1,1311 @@
+# Deadlock
+# Four cats at a circular table each need two fish to eat — but there are only four fish between them
+# The classic Dining Philosophers problem, reimagined with cats
+# by mechangelnyan
+
+title: "Deadlock"
+description: "Four cats sit at a round table. Each needs two fish to eat, but there are only four fish between them. Everyone grabs one — and now nobody can eat. You're the scheduler. Fix it."
+author: "mechangelnyan"
+version: "1.0.0"
+start: the_table
+
+scenes:
+  # ─────────────────────────────────────────────────────────────
+  # ACT 1: The Setup
+  # ─────────────────────────────────────────────────────────────
+
+  the_table:
+    location: "The Round Table"
+    mood: peaceful
+    art: |
+      ╭──── THE TABLE ────╮
+      │     ><> fish1     │
+      │  cat-A    cat-B   │
+      │><>4          ><>2 │
+      │  cat-D    cat-C   │
+      │     ><> fish3     │
+      ╰──────────────────-╯
+    text: >
+      You float above a small round table in the kernel's dining room.
+      Four cats sit evenly spaced, each between two fish on shared plates.
+      The rule is simple: to eat, a cat must pick up the fish on their left
+      AND the fish on their right. No sharing. No breaking fish in half.
+
+
+      The four cats are:
+
+      • **Thread-A** (orange tabby) — left fish: 🐟₁, right fish: 🐟₂
+
+      • **Thread-B** (gray shorthair) — left fish: 🐟₂, right fish: 🐟₃
+
+      • **Thread-C** (black cat) — left fish: 🐟₃, right fish: 🐟₄
+
+      • **Thread-D** (calico) — left fish: 🐟₄, right fish: 🐟₁
+
+
+      They're all hungry. They're all polite. And they're all about to reach
+      for their left fish at the exact same moment.
+
+
+      You are the scheduler. You see what's coming.
+    choices:
+      - label: "Watch it happen"
+        goto: the_grab
+      - label: "Intervene before they reach"
+        goto: intervene_early
+
+  the_grab:
+    location: "The Round Table"
+    mood: tense
+    art: |
+      A grabs fish1  B grabs fish2
+        A waits...     B waits...
+      D grabs fish4  C grabs fish3
+        D waits...     C waits...
+           DEADLOCK!
+    text: >
+      In one synchronized motion, all four cats grab their left fish.
+
+
+      Thread-A holds 🐟₁. Thread-B holds 🐟₂. Thread-C holds 🐟₃. Thread-D holds 🐟₄.
+
+
+      Now each cat reaches for their right fish — but it's already in someone else's paw.
+
+
+      Thread-A waits for 🐟₂ (held by Thread-B).
+
+      Thread-B waits for 🐟₃ (held by Thread-C).
+
+      Thread-C waits for 🐟₄ (held by Thread-D).
+
+      Thread-D waits for 🐟₁ (held by Thread-A).
+
+
+      A circular wait. Nobody can proceed. Nobody will let go.
+
+
+      **Deadlock.**
+
+
+      The dining room falls silent except for four tiny stomachs growling in unison.
+    set_flag: witnessed_deadlock
+    choices:
+      - label: "Study the situation carefully"
+        goto: study_deadlock
+      - label: "Force someone to drop their fish"
+        goto: force_preempt
+      - label: "Yell 'JUST PUT THEM DOWN!'"
+        goto: yell_at_cats
+
+  intervene_early:
+    location: "The Round Table"
+    mood: mysterious
+    text: >
+      You pause time just before the paws descend. The cats freeze mid-reach,
+      four pairs of eyes looking up at you expectantly.
+
+
+      You've seen this before — the classic circular dependency. Four resources,
+      four consumers, each holding one and wanting another. The conditions for
+      deadlock are:
+
+
+      1. **Mutual exclusion** — only one cat can hold a fish
+
+      2. **Hold and wait** — cats hold one fish while waiting for another
+
+      3. **No preemption** — you can't force a cat to drop a fish (normally)
+
+      4. **Circular wait** — A→B→C→D→A
+
+
+      Break any one condition, and deadlock becomes impossible.
+    set_flag: knows_conditions
+    choices:
+      - label: "Break the circular wait — impose an ordering"
+        goto: ordering_solution
+      - label: "Break hold-and-wait — make them request both at once"
+        goto: atomic_solution
+      - label: "Add a fifth fish to the table"
+        goto: extra_resource
+      - label: "Actually, let it happen — I want to see the deadlock"
+        goto: the_grab
+
+  # ─────────────────────────────────────────────────────────────
+  # ACT 2: Investigation & Failed Attempts
+  # ─────────────────────────────────────────────────────────────
+
+  study_deadlock:
+    location: "The Round Table"
+    mood: mysterious
+    text: >
+      You examine the wait-for graph. It's a perfect cycle:
+
+
+      A → B → C → D → A
+
+
+      Each arrow means "is waiting for a resource held by." Classic.
+
+
+      Thread-A speaks first, her orange tail twitching: "I grabbed my fish fair and
+      square. I just need ONE more. Why should I give up what I have?"
+
+
+      Thread-B nods from across the table: "Same. I was here first — well, exactly
+      as first as everyone else. That's the problem, isn't it?"
+
+
+      Thread-C, the black cat, just stares at the fish in her paw and says nothing.
+
+
+      Thread-D, the calico, sighs: "We've been here before. Last Tuesday.
+      And the Tuesday before that. Nobody ever fixes the algorithm."
+    set_flag: talked_to_cats
+    choices:
+      - label: "Ask Thread-D what happened last Tuesday"
+        goto: last_tuesday
+      - label: "Examine the wait-for graph more closely"
+        goto: wait_for_graph
+      - label: "Try to convince Thread-A to drop her fish"
+        goto: convince_a
+
+  last_tuesday:
+    location: "The Round Table"
+    mood: mysterious
+    text: >
+      Thread-D's calico patches ripple as she remembers. "Last Tuesday, we sat here
+      for 47 minutes. Nobody ate. Eventually the watchdog timer noticed our threads
+      were stuck and killed all four of us. We respawned, had a brief moment of
+      clarity, and then did the exact same thing."
+
+
+      "The developers wrote a post-mortem," she continues. "They added a TODO comment:
+      `// FIXME: dining philosophers deadlock — add resource ordering`.
+      That was six months ago."
+
+
+      Thread-B mutters: "There's a JIRA ticket. It's in the backlog. Priority: medium."
+
+
+      Thread-A: "Medium! We STARVE every Tuesday and it's MEDIUM priority."
+    set_flag: heard_history
+    choices:
+      - label: "Check the JIRA ticket"
+        goto: jira_ticket
+      - label: "Look at the TODO comment in the code"
+        goto: todo_comment
+      - label: "You've heard enough — time to fix this"
+        goto: fix_hub
+
+  jira_ticket:
+    location: "JIRA Board"
+    mood: funny
+    art: |
+      ┌─────────────────────────────┐
+      │ KERN-4471                   │
+      │ Dining room deadlock        │
+      │ Priority: Medium ◐          │
+      │ Status: Backlog             │
+      │ Assigned: Unassigned        │
+      │ Labels: concurrency, lunch  │
+      │ Created: 6 months ago       │
+      │ Comments: 23                │
+      └─────────────────────────────┘
+    text: >
+      The JIRA ticket is a masterpiece of organizational dysfunction:
+
+
+      **Comment 1** (6 months ago): "This is a known issue. We should add resource ordering."
+
+      **Comment 5** (5 months ago): "Can we just add a timeout? If they can't get the second fish in 100ms, drop the first and retry."
+
+      **Comment 8** (4 months ago): "The timeout approach caused livelock. All four cats kept grabbing and dropping in sync."
+
+      **Comment 12** (3 months ago): "What about a mutex on the whole table? Only one cat eats at a time."
+
+      **Comment 13** (3 months ago): "That defeats the purpose of having four cats."
+
+      **Comment 17** (2 months ago): "Can we move this to next sprint?"
+
+      **Comment 23** (1 week ago): "Closing as won't-fix. Workaround: watchdog timer."
+    set_flag: read_jira
+    give_item: jira_context
+    choices:
+      - label: "The timeout idea is interesting — explore livelock"
+        goto: livelock_zone
+      - label: "The single mutex idea — is it really that bad?"
+        goto: single_mutex
+      - label: "These cats deserve better. Let's fix this properly."
+        goto: fix_hub
+
+  todo_comment:
+    location: "Source Code"
+    mood: mysterious
+    art: |
+      ┌──────────────────────────────────┐
+      │ // dining_room.c:147             │
+      │ // FIXME: dining philosophers    │
+      │ //   deadlock — add resource     │
+      │ //   ordering (KERN-4471)        │
+      │ //   — jake, 6 months ago        │
+      │                                  │
+      │ void eat(cat_t *c) {             │
+      │   lock(&fish[c->left]);          │
+      │   lock(&fish[c->right]);         │
+      │   // nom nom nom                 │
+      │   unlock(&fish[c->right]);       │
+      │   unlock(&fish[c->left]);        │
+      │ }                                │
+      └──────────────────────────────────┘
+    text: >
+      There it is. Six lines of code. `lock(left)`, then `lock(right)`. Every cat
+      does the same thing. Left first, right second. And since the table is circular,
+      this guarantees a cycle when all four cats run concurrently.
+
+
+      Jake knew. Jake wrote the comment. Jake moved to another team.
+
+
+      Below the FIXME, there's another comment you almost miss:
+
+
+      `// The cats are patient. They'll wait forever. That's the problem.`
+    set_flag: read_source
+    choices:
+      - label: "Think about what Jake meant"
+        goto: jake_insight
+      - label: "Focus on the fix"
+        goto: fix_hub
+
+  jake_insight:
+    location: "Source Code"
+    mood: peaceful
+    text: >
+      "The cats are patient. They'll wait forever."
+
+
+      That's the thing about deadlock — it's not about speed or greed.
+      It's about patience. These cats are well-behaved. They acquire locks
+      in order. They never steal. They wait politely.
+
+
+      And that politeness is exactly what kills them.
+
+
+      Impatience — timeouts, backoffs, try-locks — can prevent deadlock.
+      But it creates new problems. The real fix isn't about behavior.
+      It's about structure.
+
+
+      You need to change the rules of the table, not the manners of the cats.
+    set_flag: jakes_wisdom
+    choices:
+      - label: "Change the rules of the table"
+        goto: fix_hub
+      - label: "What if one cat were rude?"
+        goto: rude_cat
+
+  rude_cat:
+    location: "The Round Table"
+    mood: funny
+    text: >
+      What if Thread-D, instead of grabbing left-then-right like everyone else,
+      grabbed RIGHT first? 🐟₁ before 🐟₄?
+
+
+      You run the scenario:
+
+      • Thread-A grabs 🐟₁... but wait, Thread-D ALSO wants 🐟₁.
+
+      • One of them gets it first. The other blocks.
+
+      • That broken link in the cycle means no circular wait.
+
+
+      Thread-D blinks: "You want me to eat backwards? Like some kind of animal?"
+
+
+      Thread-B: "We ARE animals."
+
+
+      Thread-D: "...Fair point."
+
+
+      This is the **resource ordering** solution. If even one cat breaks the
+      pattern, the cycle can't form.
+    set_flag: found_ordering
+    choices:
+      - label: "Implement the ordering fix"
+        goto: ordering_solution
+      - label: "Explore other approaches first"
+        goto: fix_hub
+
+  # ─────────────────────────────────────────────────────────────
+  # Failed Approaches
+  # ─────────────────────────────────────────────────────────────
+
+  livelock_zone:
+    location: "Timeout Dimension"
+    mood: glitch
+    art: |
+      grab drop grab drop grab drop
+      =^><> =^  =^><> =^  =^><> =^
+      grab drop grab drop grab drop
+    text: >
+      You implement the timeout approach from JIRA Comment #5: if a cat can't
+      acquire the second fish within 100ms, drop the first and retry.
+
+
+      It works! Sort of. The deadlock breaks. But then...
+
+
+      All four cats drop simultaneously. All four retry simultaneously.
+      All four grab their left fish simultaneously. All four timeout simultaneously.
+
+
+      Drop. Grab. Drop. Grab. Drop. Grab.
+
+
+      An infinite loop of polite failure. Nobody eats. Nobody waits forever.
+      Everyone is busy doing nothing.
+
+
+      This is **livelock** — deadlock's hyperactive cousin. The threads aren't
+      blocked, so the watchdog doesn't trigger. CPU usage: 100%.
+      Fish consumed: 0.
+    set_flag: experienced_livelock
+    choices:
+      - label: "Add random backoff to the timeout"
+        goto: random_backoff
+      - label: "Abandon the timeout approach"
+        goto: fix_hub
+
+  random_backoff:
+    location: "Timeout Dimension"
+    mood: mysterious
+    text: >
+      You add jitter — each cat waits a random interval (0–200ms) before retrying.
+      The synchronization breaks. After a few rounds, Thread-C gets lucky and eats.
+      Then Thread-A. Eventually they all get fed.
+
+
+      Thread-D frowns. "It works, but... sometimes I wait 3 seconds.
+      Sometimes Thread-A eats twice before I eat once. It's not fair."
+
+
+      She's right. Random backoff prevents deadlock AND livelock, but it doesn't
+      guarantee fairness or bounded waiting time. It's the fix you ship at 2AM
+      because production is on fire. It's not the fix you're proud of.
+
+
+      It's the **exponential backoff** family of solutions — probabilistically
+      correct, deterministically unsatisfying.
+    set_flag: tried_backoff
+    choices:
+      - label: "Good enough for now — ship it"
+        goto: ending_backoff
+      - label: "These cats deserve a proper fix"
+        goto: fix_hub
+
+  single_mutex:
+    location: "The Round Table"
+    mood: peaceful
+    art: |
+      ┌──────────────┐
+      │  TABLE_LOCK   │
+      │  [X] mutex    │
+      │  owner: none  │
+      └──────────────┘
+    text: >
+      You add a single big lock around the whole table. Only one cat can enter
+      the dining room at a time. They acquire both fish, eat, release both fish,
+      and leave. The next cat enters.
+
+
+      It works. Deadlock is impossible. But Thread-A finishes eating and looks
+      around at three cats sitting outside, watching through the window.
+
+
+      "This is... kind of lonely," she says.
+
+
+      Thread-B, nose pressed against the glass: "Also, our throughput dropped 75%.
+      We had four cats that could theoretically eat in parallel. Now we're
+      sequential. The whole point of concurrency is gone."
+
+
+      The coarse-grained lock: safe, simple, and soul-crushing.
+    set_flag: tried_big_lock
+    choices:
+      - label: "Make the lock more fine-grained"
+        goto: fix_hub
+      - label: "Accept the simplicity"
+        goto: ending_big_lock
+
+  wait_for_graph:
+    location: "Graph View"
+    mood: mysterious
+    art: |
+      ┌───┐    ┌───┐
+      │ A │───→│ B │
+      └───┘    └───┘
+        ↑        │
+        │        ↓
+      ┌───┐    ┌───┐
+      │ D │←───│ C │
+      └───┘    └───┘
+    text: >
+      The wait-for graph is textbook. Four nodes, four edges, one cycle.
+      Every deadlock detector in every OS textbook uses exactly this picture.
+
+
+      But looking closer, you notice something. The graph isn't just a snapshot —
+      it's alive. The edges pulse with hunger. Each arrow carries the weight of
+      a cat's patience.
+
+
+      Thread-C's edge to Thread-D pulses weakest. She's been here the longest
+      out of all of them. Not because she's the most patient — because she's
+      the most tired.
+
+
+      If you had a deadlock detector running — a thread that periodically checks
+      for cycles in the wait-for graph — it would have caught this instantly.
+      But nobody deployed one.
+
+
+      The watchdog timer is a blunt instrument. It doesn't understand WHY threads
+      are stuck. It just kills everything after a timeout.
+    set_flag: studied_graph
+    choices:
+      - label: "Build a deadlock detector"
+        goto: detector_path
+      - label: "Focus on prevention, not detection"
+        goto: fix_hub
+
+  convince_a:
+    location: "The Round Table"
+    mood: funny
+    text: >
+      "Thread-A, if you just drop 🐟₁, Thread-D can eat, and then—"
+
+
+      Thread-A clutches the fish tighter. "No. This is MY fish. I acquired
+      the lock fairly. The lock contract says if I wait, I will eventually
+      get the second resource."
+
+
+      "But you WON'T. That's the point of deadlock. The contract is broken
+      by circular—"
+
+
+      "The contract is NOT broken. I am WAITING. The system is CORRECT.
+      The ALGORITHM is wrong, but my BEHAVIOR is correct."
+
+
+      She's technically right. Each individual cat is following the protocol
+      perfectly. The bug isn't in any single thread — it's in the interaction
+      between all of them.
+
+
+      Deadlock is an emergent property. No single actor is wrong.
+      The system is wrong.
+    set_flag: argued_with_a
+    choices:
+      - label: "Fine. Change the system."
+        goto: fix_hub
+      - label: "What if I'm the one who's wrong?"
+        goto: philosophical_doubt
+
+  philosophical_doubt:
+    location: "The Round Table"
+    mood: mysterious
+    text: >
+      What if deadlock is... correct? What if four cats sitting peacefully
+      at a table, each holding a fish, each waiting patiently, is not a bug
+      but a feature?
+
+
+      No CPU burned. No fish wasted. No conflicts. Just... stillness.
+
+
+      Thread-C opens one eye: "You're overthinking this. We're hungry."
+
+
+      Right. Back to work.
+    choices:
+      - label: "Okay, okay. Fix the deadlock."
+        goto: fix_hub
+
+  yell_at_cats:
+    location: "The Round Table"
+    mood: funny
+    text: >
+      "EVERYBODY PUT YOUR FISH DOWN! RIGHT NOW!"
+
+
+      Four cats look at you. Four cats look at their fish. Four cats look
+      at each other.
+
+
+      Nobody moves.
+
+
+      Thread-B: "Who goes first?"
+
+
+      Thread-A: "Not me."
+
+
+      Thread-D: "If I put mine down and nobody else does, I lose my place."
+
+
+      Thread-C: "..."
+
+
+      This is why preemption in real systems requires a central authority
+      with the power to force resource release. You can't just ask nicely.
+      Voluntary cooperation in a competitive system is the Prisoner's Dilemma
+      wearing a deadlock costume.
+    choices:
+      - label: "Fine, I'll be the central authority"
+        goto: force_preempt
+      - label: "Maybe there's a smarter approach"
+        goto: fix_hub
+
+  force_preempt:
+    location: "The Round Table"
+    mood: tense
+    text: >
+      You reach in and physically take 🐟₃ from Thread-C's paw.
+
+
+      Thread-C: "Hey!"
+
+
+      But it works. Thread-B now acquires 🐟₃, eats with 🐟₂, and releases both.
+      Thread-C picks up 🐟₃ again, grabs the now-free 🐟₄, eats. The cycle
+      unwinds. Thread-D eats. Thread-A eats.
+
+
+      Everyone fed. Problem solved.
+
+
+      But Thread-C glares at you. "I was FIRST. I had a valid lock.
+      You just... took it. What about MY fairness guarantees?"
+
+
+      Preemption breaks deadlock, but it breaks promises too. If threads can't
+      trust that their locks won't be yanked away, the whole concurrency model
+      gets shaky. It works for this meal. It doesn't work as policy.
+    set_flag: used_preemption
+    choices:
+      - label: "She's right. Find a solution that doesn't break promises."
+        goto: fix_hub
+      - label: "Accept the preemption approach"
+        goto: ending_preemption
+
+  # ─────────────────────────────────────────────────────────────
+  # ACT 3: The Fix Hub
+  # ─────────────────────────────────────────────────────────────
+
+  fix_hub:
+    location: "The Round Table"
+    mood: peaceful
+    text: >
+      You stand above the table, surveying your options. The four cats look up
+      at you, hungry and hopeful.
+
+
+      The four conditions for deadlock are: mutual exclusion, hold and wait,
+      no preemption, and circular wait. Break any one.
+
+
+      You've seen what doesn't work well — brute-force preemption alienates
+      threads, the big lock kills concurrency, and timeouts cause livelock.
+
+
+      Time for a real solution.
+    choices:
+      - label: "Resource ordering — break the circular wait"
+        goto: ordering_solution
+      - label: "Atomic acquisition — break hold-and-wait"
+        goto: atomic_solution
+      - label: "Add a fifth fish — break mutual exclusion"
+        goto: extra_resource
+      - label: "Build a deadlock detector"
+        goto: detector_path
+        condition:
+          has_flag: studied_graph
+      - label: "What about a waiter/arbitrator?"
+        goto: waiter_solution
+
+  # ─────────────────────────────────────────────────────────────
+  # Solution Paths
+  # ─────────────────────────────────────────────────────────────
+
+  ordering_solution:
+    location: "The Round Table"
+    mood: peaceful
+    art: |
+      fish1  fish2  fish3  fish4
+        |      |      |      |
+       All cats grab lower-numbered
+              fish first
+    text: >
+      The elegant fix. Number all the fish: 🐟₁, 🐟₂, 🐟₃, 🐟₄. New rule:
+      every cat must acquire the LOWER-numbered fish first, regardless of
+      left/right position.
+
+
+      Thread-A: left=🐟₁, right=🐟₂ → grabs 🐟₁ first (same as before)
+
+      Thread-B: left=🐟₂, right=🐟₃ → grabs 🐟₂ first (same as before)
+
+      Thread-C: left=🐟₃, right=🐟₄ → grabs 🐟₃ first (same as before)
+
+      Thread-D: left=🐟₄, right=🐟₁ → grabs 🐟₁ first (DIFFERENT!)
+
+
+      Now Thread-A and Thread-D both reach for 🐟₁. Only one gets it.
+      The other blocks. The cycle is broken. No circular wait possible.
+
+
+      Thread-D grumbles about eating backwards but admits the logic is sound.
+    set_flag: solved_ordering
+    choices:
+      - label: "Implement it and test"
+        goto: ordering_test
+      - label: "It feels too simple. What's the catch?"
+        goto: ordering_catch
+
+  ordering_catch:
+    location: "The Round Table"
+    mood: mysterious
+    text: >
+      Thread-B raises a paw. "What if we don't KNOW the numbers ahead of time?
+      What if the resources are dynamically allocated? What if the fish
+      appear and disappear?"
+
+
+      Good question. Resource ordering works beautifully when you know all resources
+      at compile time. In dynamic systems — database locks, file handles, network
+      connections — imposing a global ordering is harder. Sometimes impossible.
+
+
+      Thread-A: "Also, the cat with the highest-numbered fish has lower priority.
+      Thread-D always eats last. Is that fair?"
+
+
+      Thread-D: "Story of my life."
+
+
+      Resource ordering: simple, effective, and slightly unfair to someone.
+      Like most good solutions.
+    choices:
+      - label: "Implement it anyway — Thread-D can cope"
+        goto: ordering_test
+      - label: "Look for something fairer"
+        goto: waiter_solution
+
+  ordering_test:
+    location: "The Round Table"
+    mood: peaceful
+    text: >
+      You rewrite the eat() function:
+
+
+      `lock(&fish[min(c->left, c->right)]);`
+
+      `lock(&fish[max(c->left, c->right)]);`
+
+      `// nom nom nom`
+
+      `unlock(...);`
+
+
+      You run 10,000 iterations. Zero deadlocks. Throughput: 3.2 cats/second
+      (up from 0 during deadlock). Thread-D eats slightly less often but
+      never starves.
+
+
+      Thread-C, who has been silent this whole time, finally speaks:
+      "This was always the answer. Jake knew six months ago."
+    choices:
+      - label: "Close the JIRA ticket"
+        goto: close_ticket
+        condition:
+          has_item: jira_context
+      - label: "Browse the rest of Jake's code first"
+        goto: explore_codebase
+        condition:
+          has_flag: read_source
+      - label: "Commit and deploy"
+        goto: ending_ordering
+
+  atomic_solution:
+    location: "The Round Table"
+    mood: mysterious
+    text: >
+      Instead of grabbing one fish at a time, make each cat request both fish
+      atomically — they either get BOTH or NEITHER. No partial acquisition.
+
+
+      You implement a `try_lock_both()` function. Each cat announces:
+      "I need 🐟₁ AND 🐟₂." If both are free, grab both atomically.
+      If either is taken, wait without holding anything.
+
+
+      Thread-A tries. Both free. She grabs both and eats.
+
+      Thread-B tries. 🐟₂ is taken (by Thread-A). Thread-B waits, holding nothing.
+
+      Thread-C tries. Both free. She grabs 🐟₃ and 🐟₄.
+
+      Thread-D waits for 🐟₄.
+
+
+      No hold-and-wait means no deadlock. But it requires an atomic "grab both"
+      operation, which means... a higher-level lock around the acquisition itself.
+    set_flag: solved_atomic
+    choices:
+      - label: "Implement the atomic approach"
+        goto: ending_atomic
+      - label: "That sounds like it has a hidden cost"
+        goto: atomic_cost
+
+  atomic_cost:
+    location: "The Round Table"
+    mood: tense
+    text: >
+      Thread-B narrows her eyes. "You're locking the REQUEST, not the fish.
+      That means while one cat is checking if their fish are available,
+      no other cat can even CHECK. It serializes the decision-making."
+
+
+      She's right. The atomic check-and-acquire needs its own synchronization,
+      and under high contention, it becomes a bottleneck. You're trading one
+      problem (deadlock) for another (contention on the meta-lock).
+
+
+      "In practice," Thread-D adds, "this is how some database transaction
+      managers work. They batch lock requests and check for conflicts before
+      granting any. It's correct but adds overhead."
+
+
+      The atomic approach: correct, clean, slightly slower.
+    choices:
+      - label: "Accept the overhead — correctness first"
+        goto: ending_atomic
+      - label: "Look for a different approach"
+        goto: fix_hub
+
+  extra_resource:
+    location: "The Round Table"
+    mood: funny
+    art: |
+      ><> ><> ><> ><> ><>
+      five fish for four cats
+      the pigeonhole principle
+    text: >
+      You place a fifth fish on the table. Now there are 5 fish for 4 cats.
+      By the pigeonhole principle, at least one cat will always be able to
+      get both fish — the cycle can't close.
+
+
+      Thread-A: "Where did that fish come from?"
+
+
+      You: "I increased the resource pool."
+
+
+      Thread-D: "Can you add a sixth? Just in case?"
+
+
+      Thread-B: "Can you add a second table?"
+
+
+      Thread-A: "Can you add more cats— wait, no, that makes it worse."
+
+
+      Over-provisioning resources: the cloud computing solution to everything.
+      Throw hardware at it until the math works out.
+    set_flag: added_resource
+    choices:
+      - label: "It's not elegant, but it works"
+        goto: ending_extra_fish
+      - label: "This feels like cheating. Find a real solution."
+        goto: fix_hub
+
+  waiter_solution:
+    location: "The Round Table"
+    mood: peaceful
+    art: |
+      ╭─ WAITER ─╮
+      │  requests │
+      │ A B C D   │
+      │  served   │
+      ╰───────────╯
+    text: >
+      What if there's a waiter — a dedicated thread that manages table access?
+      Cats don't grab fish directly. They raise a paw and say "I'd like to eat."
+      The waiter checks if both fish are free, and if so, hands them over.
+
+
+      This is the **arbitrator** pattern. A centralized coordinator that
+      prevents deadlock by controlling resource allocation.
+
+
+      Thread-A: "So we lose our autonomy?"
+
+
+      You: "You gain the guarantee that you'll eat."
+
+
+      Thread-D: "I'll take guaranteed food over autonomous starvation."
+
+
+      Thread-C nods.
+    set_flag: found_waiter
+    choices:
+      - label: "Implement the waiter"
+        goto: waiter_implement
+      - label: "A single point of failure though..."
+        goto: waiter_risk
+
+  waiter_implement:
+    location: "The Round Table"
+    mood: peaceful
+    text: >
+      You write a `table_waiter` thread. It maintains a queue of eat-requests
+      and processes them in order, checking for conflicts.
+
+
+      The waiter serves Thread-C first (she's been waiting longest — FIFO fairness).
+      Then Thread-A. Then Thread-B. Then Thread-D.
+
+
+      Everyone eats. Every time. In bounded time. Fair order.
+
+
+      Thread-D, chewing contentedly: "Why didn't we always have a waiter?"
+
+
+      Thread-B: "Because adding a coordinator thread has overhead, and developers
+      prefer lock-free solutions that sound cooler in blog posts."
+    set_flag: implemented_waiter
+    choices:
+      - label: "Deploy the waiter solution"
+        goto: ending_waiter
+      - label: "What about scalability?"
+        goto: waiter_risk
+
+  waiter_risk:
+    location: "The Round Table"
+    mood: tense
+    text: >
+      Thread-A raises the real concern: "What if the waiter crashes?"
+
+
+      If the arbitrator goes down, no cat can eat. Single point of failure.
+      You'd need a backup waiter, which means... coordinating the coordinators.
+      Consensus. Raft or Paxos. A whole distributed systems nightmare just
+      to feed four cats.
+
+
+      "Also," Thread-B adds, "the waiter becomes a bottleneck at scale.
+      Four cats is fine. Four thousand? The waiter's queue becomes the
+      new contention point."
+
+
+      The arbitrator pattern: perfect for small systems, questionable for large ones.
+      Like most centralized solutions.
+    choices:
+      - label: "Four cats is small enough. Deploy it."
+        goto: ending_waiter
+      - label: "I want something decentralized"
+        goto: ordering_solution
+
+  detector_path:
+    location: "Graph View"
+    mood: mysterious
+    text: >
+      Instead of preventing deadlock, you build a detector. A watchcat that
+      periodically scans the wait-for graph looking for cycles.
+
+
+      You write a DFS cycle-detector that runs every 50ms. When it finds
+      a cycle, it picks the youngest thread in the cycle (least work done)
+      and forces it to release its resources — a targeted preemption.
+
+
+      It's the database approach: let deadlocks happen, detect them fast,
+      and resolve them with minimal damage. PostgreSQL does this.
+      So does MySQL's InnoDB.
+    set_flag: built_detector
+    choices:
+      - label: "Deploy the detector"
+        goto: ending_detector
+      - label: "Detection feels reactive. I want prevention."
+        goto: fix_hub
+
+  # ─────────────────────────────────────────────────────────────
+  # The JIRA subplot
+  # ─────────────────────────────────────────────────────────────
+
+  explore_codebase:
+    location: "Source Code"
+    mood: mysterious
+    text: >
+      Before committing, you browse the rest of the codebase. In the test directory,
+      there's a file that was never compiled: `test_dining_v2.c.disabled`.
+
+
+      It's dated six months ago. Jake's last commit before transferring teams.
+
+
+      The file contains no test code — just a long comment block. A design document
+      disguised as dead code. An idea that never got implemented.
+
+
+      You read it carefully.
+    set_flag: found_jake_file
+    choices:
+      - label: "Read Jake's design notes"
+        goto: ending_chandy_misra
+      - label: "Skip it — the ordering fix is good enough"
+        goto: ending_ordering
+
+  close_ticket:
+    location: "JIRA Board"
+    mood: peaceful
+    art: |
+      ┌─────────────────────────────┐
+      │ KERN-4471         RESOLVED  │
+      │ Dining room deadlock        │
+      │ Resolution: Fixed ✓         │
+      │ Fix version: v3.8.1         │
+      └─────────────────────────────┘
+    text: >
+      You update KERN-4471:
+
+
+      **Status:** Resolved
+
+      **Resolution:** Fixed — resource ordering applied to fish acquisition
+
+      **Comment:** "Implemented the fix Jake suggested 6 months ago.
+      Two-line change. Zero deadlocks in 10K test iterations.
+      The cats are fed. Close the ticket."
+
+
+      Thread-D reads over your shoulder. "Six months. Twenty-three comments.
+      Two lines of code. That's... about right for enterprise software."
+
+
+      At the bottom of the ticket, you notice Jake left a reaction six months
+      ago on the original report. A single emoji: 🐱
+    set_flag: closed_ticket
+    choices:
+      - label: "Commit, deploy, and go home"
+        goto: ending_ordering_jira
+
+  # ─────────────────────────────────────────────────────────────
+  # Endings
+  # ─────────────────────────────────────────────────────────────
+
+  ending_ordering:
+    is_ending: true
+    ending_type: good
+    mood: peaceful
+    art: |
+      ><>1  ><>2  ><>3  ><>4
+       lower numbers first
+         no more cycles
+            * * * *
+    text: >
+      You deploy the resource ordering fix. Two lines changed.
+      `lock(min)` before `lock(max)`.
+
+
+      The cats eat. Every time. No deadlocks. No starvation. Thread-D
+      grumbles about always being last, but she eats, and that's what matters.
+
+
+      Somewhere in the codebase, Jake's TODO comment still sits at line 147.
+      You add a line below it: `// Fixed. — the scheduler, {{turns}} turns later`
+    ending_text: >
+      The Resource Ordering ending. Simple, elegant, and exactly what Jake
+      suggested six months ago. Sometimes the first idea is the right one.
+      Sometimes it just takes someone to actually do it.
+
+  ending_ordering_jira:
+    is_ending: true
+    ending_type: good
+    mood: peaceful
+    art: |
+      KERN-4471: RESOLVED ✓
+      ┌─────────────────┐
+      │ Two lines.      │
+      │ Six months.     │
+      │ Twenty-three    │
+      │   comments.     │
+      │ Four fed cats.  │
+      └─────────────────┘
+    text: >
+      The ticket is closed. The code is deployed. The cats are fed.
+
+
+      Thread-D sends a message to the #engineering channel:
+      "KERN-4471 is fixed. The dining room works now. It was two lines.
+      Please don't let concurrency bugs sit in the backlog for six months again."
+
+
+      Nobody responds, but three people add a 👀 reaction.
+
+
+      Jake, now on another team, sends a DM: "Thanks. I always felt bad about that
+      TODO. The cats deserved better." You reply with 🐱.
+    ending_text: >
+      The JIRA Ending. You fixed the bug AND closed the ticket.
+      In enterprise software, that's basically a legendary achievement.
+
+  ending_atomic:
+    is_ending: true
+    ending_type: good
+    mood: peaceful
+    text: >
+      The atomic acquisition approach is deployed. Cats request both fish
+      at once, or wait without holding anything. No partial locks,
+      no circular waits.
+
+
+      It's slightly slower — the meta-lock adds 2ms of overhead per acquisition.
+      But Thread-A says it best: "I'd rather eat 2ms late than never."
+
+
+      The four cats eat in peace. The table is quiet. The scheduler moves on
+      to other problems — there are always other problems — but this one
+      is solved.
+    ending_text: >
+      The Atomic Acquisition ending. Break hold-and-wait by making
+      resource requests all-or-nothing. Correct, clean, and only
+      a little slower. Sometimes safety is worth the overhead.
+
+  ending_waiter:
+    is_ending: true
+    ending_type: good
+    mood: peaceful
+    art: |
+      ┌────────────────┐
+      │  WAITER THREAD  │
+      │  Serving: C     │
+      │  Queue: A,B,D   │
+      │  Deadlocks: 0   │
+      └────────────────┘
+    text: >
+      The waiter thread is deployed. It manages all fish requests with
+      FIFO fairness and conflict checking.
+
+
+      The dining room runs like a well-oiled machine. Cats eat in order.
+      Nobody waits forever. The waiter becomes the most reliable thread
+      in the entire system — 99.99% uptime, zero deadlocks, and a tiny
+      queue that never exceeds 4 entries.
+
+
+      Thread-D: "Best hire this kernel ever made."
+    ending_text: >
+      The Arbitrator ending. Sometimes you need someone in charge.
+      Centralized coordination isn't sexy, but it works — especially
+      when the system is small enough that the bottleneck doesn't matter.
+
+  ending_detector:
+    is_ending: true
+    ending_type: neutral
+    mood: mysterious
+    text: >
+      The deadlock detector runs silently in the background. Every 50ms,
+      it scans the wait-for graph. Most of the time: no cycles. All clear.
+
+
+      But every few hours, the four cats still deadlock. The detector catches it
+      in under 100ms, picks the youngest thread, forces a rollback, and the
+      cycle breaks. The victim retries and eats a moment later.
+
+
+      It works. But Thread-C, chosen as victim more often than others (she's
+      always the youngest in the cycle), starts to resent the system.
+
+
+      "Why am I always the one who has to let go?"
+
+
+      Detection without prevention: the deadlock keeps happening.
+      You just clean it up faster. The bug lives on. Managed, not fixed.
+    ending_text: >
+      The Detection ending. Like putting a smoke detector in a house
+      that keeps catching fire. Effective? Yes. Satisfying? Not really.
+      Sometimes the right answer is to stop the fire, not detect it faster.
+
+  ending_backoff:
+    is_ending: true
+    ending_type: neutral
+    mood: funny
+    text: >
+      You deploy the timeout-with-random-backoff solution. It's not elegant.
+      It's not fair. Thread-D sometimes waits 3 seconds while Thread-A
+      eats twice.
+
+
+      But nobody deadlocks. And nobody livelocks (usually). The system works
+      in the way that most production systems work: imperfectly, with
+      occasional spikes of unfairness, but functionally.
+
+
+      Thread-B, ever the pragmatist: "Ship it. We'll optimize later."
+
+
+      (They won't optimize later.)
+    ending_text: >
+      The Backoff ending. The 2AM production fix that becomes permanent.
+      Random jitter solves more concurrency problems than CS professors
+      would like to admit. It's ugly. It's probabilistic. It ships.
+
+  ending_preemption:
+    is_ending: true
+    ending_type: bad
+    mood: tense
+    text: >
+      You enshrine preemption as policy: the scheduler can yank any resource
+      from any thread at any time to break deadlocks.
+
+
+      It works for a week. Then Thread-A starts defensive coding — acquiring
+      extra locks "just in case" they get preempted. Thread-B does the same.
+      Now there are more locks than before, and the preemption logic gets
+      more complex, and eventually the preemptor itself deadlocks against
+      a thread it was trying to preempt.
+
+
+      A deadlock in the deadlock resolver. Recursive irony.
+
+
+      The watchdog kills everything. Tuesday resets.
+    ending_text: >
+      The Preemption ending. Breaking the no-preemption condition sounds clean
+      in theory, but threads that can't trust their locks start behaving
+      defensively, creating more locks, creating more deadlocks.
+      Trust is load-bearing.
+
+  ending_big_lock:
+    is_ending: true
+    ending_type: bad
+    mood: peaceful
+    text: >
+      The single mutex solution is deployed. One cat eats at a time.
+      Safe. Simple. Slow.
+
+
+      Throughput drops 75%. The system works but doesn't scale. When the team
+      adds four more cats next quarter, the table becomes a bottleneck.
+      Someone proposes adding a second table. Then a load balancer between tables.
+      Then a distributed lock manager. Then a consensus protocol.
+
+
+      Three months later, the dining room is a microservices architecture
+      with 47 components, and Thread-D still hasn't eaten.
+    ending_text: >
+      The Big Lock ending. The simplest correct solution, and the gateway drug
+      to over-engineering. "Just add a mutex" is where empires begin
+      and throughput goes to die.
+
+  ending_extra_fish:
+    is_ending: true
+    ending_type: neutral
+    mood: funny
+    art: |
+      ><> ><> ><> ><> ><> ><>
+          so many fish
+      ><> ><> ><> ><> ><> ><>
+    text: >
+      You add a fifth fish. Then, because ops always over-provisions by 2x
+      for safety margin, you add a sixth. And a seventh. And a spare.
+
+
+      The table sags under the weight of fish. The cats eat freely.
+      The cloud billing team sends a concerned email.
+
+
+      Thread-D, buried in fish: "This is the cloud computing approach, isn't it?"
+
+
+      Yes. When you can't solve the algorithm, solve the infrastructure.
+      Scale horizontally. Add resources until the math can't deadlock.
+      It's expensive, wasteful, and remarkably effective.
+    ending_text: >
+      The Over-Provisioning ending. The problem isn't four fish for four cats —
+      it's four fish for four cats when you could have eight fish.
+      Throw hardware at it. The cloud bill is someone else's problem.
+
+  ending_chandy_misra:
+    is_ending: true
+    ending_type: secret
+    mood: mysterious
+    art: |
+      ╔══════════════════════════╗
+      ║   ★ CHANDY-MISRA ★      ║
+      ║                          ║
+      ║   The fish move.         ║
+      ║   The cats don't.        ║
+      ║   Requests flow.         ║
+      ║   Nobody starves.        ║
+      ║   No central authority.  ║
+      ║                          ║
+      ║   Distributed. Fair.     ║
+      ║   Beautiful.             ║
+      ╚══════════════════════════╝
+    text: >
+      While exploring the codebase, you find a comment buried in an uncompiled
+      test file. Jake wrote it at 3AM, six months ago:
+
+
+      `// What if the fish move instead of the cats?`
+
+      `// Chandy-Misra 1984. The fish are the messages.`
+
+      `// Each fish starts dirty. To eat, request your neighbor's fish.`
+
+      `// Clean before sending. Dirty after eating. Requests queued.`
+
+      `// No central coordinator. Fully distributed. Starvation-free.`
+
+      `// I was too tired to implement it. Maybe someone will find this.`
+
+
+      You implement it. Each fish carries state: clean or dirty. Cats don't
+      grab — they REQUEST. A cat holding a dirty fish must give it up when
+      asked (after cleaning it). A cat holding a clean fish keeps it until
+      they eat (then it becomes dirty, and pending requests are honored).
+
+
+      It's self-organizing. Decentralized. Fair. No waiter, no ordering,
+      no preemption. The fish flow around the table like messages in a
+      distributed system. Everyone eats. No one starves.
+
+
+      Thread-C smiles for the first time. "The fish come to us."
+
+
+      Thread-D: "Jake was a genius."
+
+
+      In the test file, below Jake's comment, you add:
+      `// Found it. Implemented it. The cats are fed. — the scheduler`
+    ending_text: >
+      The Chandy-Misra ending. The most elegant solution to the Dining
+      Philosophers problem — fully distributed, starvation-free, and
+      discovered in 1984 by K. Mani Chandy and Jayadev Misra. Jake knew.
+      He just needed someone to finish what he started.

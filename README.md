@@ -257,6 +257,14 @@ HEAD says you're a black cat, `feature/identity` says you're white. Navigate PR 
 
 **Endings:** Good (×4) · Bad (×2) · Neutral (×2) · Secret (×2) · **Scenes:** 26
 
+### 🔒 Deadlock
+
+> *Four cats sit at a round table. Each needs two fish to eat, but there are only four fish between them. Everyone grabs one — and now nobody can eat. You're the scheduler. Fix it.*
+
+The classic Dining Philosophers problem, reimagined with cats. Explore deadlock conditions (mutual exclusion, hold-and-wait, no preemption, circular wait), investigate a 6-month-old JIRA ticket with 23 comments, discover livelock (deadlock's hyperactive cousin), try the Big Lock (correct but soul-crushing), and find the elegant solutions. Features resource ordering, atomic acquisition, arbitrator patterns, deadlock detection, random backoff, and a secret Chandy-Misra 1984 distributed solution hidden in Jake's dead code. Teaches real concurrency concepts through four very hungry, very polite cats.
+
+**Endings:** Good (×4) · Neutral (×3) · Bad (×2) · Secret · **Scenes:** 40
+
 ### 💾 Buffer Overflow
 
 > *You are Byte, a tiny cat living in a 64-byte buffer on the stack. When input floods in with no bounds check, you ride the overflow past the canary, the saved frame pointer, and the return address — rewriting reality one byte at a time.*
