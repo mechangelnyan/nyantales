@@ -1,0 +1,1171 @@
+title: "Server Room Stray"
+description: "A stray cat sneaks into a data center. Between the humming racks and tangled cables, warmth — and freedom — await."
+author: "mechangelnyan"
+version: "1.0.0"
+start: loading_dock
+
+scenes:
+
+  # ─────────────────────────────────────────────────────────────
+  # SCENE 1 — THE WAY IN
+  # ─────────────────────────────────────────────────────────────
+  loading_dock:
+    art: |
+      ┌─────────────────────────────────────────────────────┐
+      │  ╔═══════════════════════════════════════════╗       │
+      │  ║  CLOUDPURR DATA SYSTEMS                   ║       │
+      │  ║  LOADING DOCK B — AUTHORIZED ONLY         ║       │
+      │  ╚═══════════════════════════════════════════╝       │
+      │                                                     │
+      │    ┌──┐  ┌──┐  ┌──┐                                │
+      │    │▓▓│  │▓▓│  │▓▓│   ← boxes                     │
+      │    └──┘  └──┘  └──┘                                │
+      │                         /\_/\                       │
+      │  ═══════╗              ( ◉.◉ )  ← you              │
+      │  DOOR   ║               > ^ <                       │
+      │  (ajar) ║                                           │
+      └─────────────────────────────────────────────────────┘
+    text: |
+      It's 2 AM. The loading dock of CloudPurr Data Systems is quiet except
+      for the low thrum of industrial air conditioning. You — a stray of
+      considerable cunning and questionable decision-making — have followed
+      the warmth here.
+
+      You are small. You are orange. You have not eaten since that half a
+      hot dog behind the gas station six hours ago.
+
+      The delivery door is ajar. Just enough for a cat-shaped cat. Warm air
+      leaks through it like a promise.
+
+      Inside: the hum of ten thousand servers. The blink of a million LEDs.
+      The faint, intoxicating smell of... is that pizza? Someone left pizza
+      in a data center. Humans are incredible.
+    choices:
+      - label: "Squeeze through the door — follow the warmth"
+        goto: entrance_hall
+      - label: "Investigate the boxes on the dock first"
+        goto: dock_boxes
+
+  dock_boxes:
+    art: |
+      ┌──────────────────────┐
+      │  FRAGILE             │
+      │  THIS SIDE UP        │
+      │  (it is not up)      │
+      │                      │
+      │  Contents:           │
+      │  4x GPU Server Node  │
+      │  DO NOT DROP         │
+      └──────────────────────┘
+    text: |
+      The boxes are labeled "GPU Server Nodes" and "FRAGILE" in letters so
+      large they border on pleading. One box is open, filled with packing
+      peanuts that look EXTREMELY fun to sit in.
+
+      You resist. Barely.
+
+      Inside the open box, nestled in foam, is a small blinking device.
+      It's warm. It smells like new electronics. You give it an experimental
+      lick. It tastes like nothing, which is the worst kind of taste.
+
+      But tucked behind the box: a shiny foil wrapper. Is that... tuna?
+      Someone's discarded lunch, wedged against the wall.
+
+      It is half a tuna sandwich. It is the best thing that has ever happened.
+    choices:
+      - label: "Eat the tuna sandwich. Obviously."
+        goto: entrance_hall
+        give_item: tuna_energy
+        set_flag: well_fed
+      - label: "Save it for later — head inside"
+        goto: entrance_hall
+        give_item: tuna_sandwich
+
+  # ─────────────────────────────────────────────────────────────
+  # SCENE 2 — ENTRANCE CORRIDOR
+  # ─────────────────────────────────────────────────────────────
+  entrance_hall:
+    mood: mysterious
+    art: |
+      ═══════════════════════════════════════════════════════
+          CLOUDPURR DATA SYSTEMS — FLOOR PLAN (partial)
+
+          [LOADING DOCK] ─── CORRIDOR ─┬─ [HALL A: RACKS]
+                                       ├─ [HALL B: COOLING]
+                                       ├─ [NOC ROOM]
+                                       └─ [BREAK ROOM] ← pizza?
+      ═══════════════════════════════════════════════════════
+    location: "main corridor"
+    text: |
+      The corridor stretches before you, lit by the cold blue glow of
+      emergency strips along the floor. The air is PERFECT. Exactly 68°F.
+      Climate-controlled paradise. After months of alleys and dumpsters,
+      this is basically a five-star hotel.
+
+      To your left: Hall A, where rows of server racks hum like a mechanical
+      choir. To your right: Hall B, where massive cooling units roar.
+      Straight ahead: the NOC room, its window glowing with monitor light.
+      And somewhere — SOMEWHERE — the pizza smell is coming from what must
+      be a break room.
+
+      A security camera swivels lazily overhead. It does not seem to notice
+      you. You are, after all, a cat. Cats are invisible when they choose
+      to be.
+    conditional:
+      - condition:
+          flag: has_badge
+        text: "The security badge around your neck (collar?) blinks green. You look almost official."
+        color: green
+      - condition:
+          flag: alarm_triggered
+        text: "Red lights pulse along the corridor. The alarm is still going. You should hurry."
+        color: red
+    choices:
+      - label: "Hall A — the server racks (warm, blinking)"
+        goto: hall_a
+      - label: "Hall B — the cooling units (loud, mysterious)"
+        goto: hall_b
+      - label: "NOC room — someone might be in there"
+        goto: noc_room
+      - label: "Follow the pizza smell to the break room"
+        goto: break_room
+      - label: "Sneak back out the way you came"
+        goto: ending_leave
+
+  # ─────────────────────────────────────────────────────────────
+  # SCENE 3 — HALL A: THE RACKS
+  # ─────────────────────────────────────────────────────────────
+  hall_a:
+    mood: mysterious
+    art: |
+      HALL A — PRIMARY COMPUTE
+
+      ║█║ ║█║ ║█║ ║█║ ║█║ ║█║ ║█║ ║█║
+      ║█║ ║█║ ║█║ ║█║ ║█║ ║█║ ║█║ ║█║
+      ║█║ ║█║ ║█║ ║█║ ║█║ ║█║ ║█║ ║█║
+      ═══ ═══ ═══ ═══ ═══ ═══ ═══ ═══
+       R1  R2  R3  R4  R5  R6  R7  R8
+
+      Temperature: 72°F (optimal)
+      Humidity: 45% (acceptable)
+      Cat presence: 1 (unexpected)
+    location: "Hall A — server racks"
+    text: |
+      The server racks tower above you like monoliths. Each one is a cathedral
+      of blinking lights — green, amber, red — pulsing in patterns that might
+      be meaningful or might just be vibes.
+
+      The warm air rising from the servers hits your belly and it is GLORIOUS.
+      This is the spot. This is the warm patch you have been searching for
+      your entire feral life. You could curl up here and sleep for a week.
+
+      But something catches your eye at Rack 7. One of the servers is dark.
+      Completely dark. No lights, no hum. In a row of busy, blinking machines,
+      it sits there like a missing tooth.
+
+      And the cable running out of it... leads under the raised floor, through
+      a gap just big enough for a cat.
+    conditional:
+      - condition:
+          flag: knows_about_rack7
+        text: "The NOC tech mentioned Rack 7. The dead server. The one that keeps losing its network cable."
+        color: cyan
+    choices:
+      - label: "Investigate the dead server at Rack 7"
+        goto: rack_7
+      - label: "Squeeze under the raised floor — follow the cable"
+        goto: under_floor
+      - label: "Find the warmest spot and just... lie down"
+        goto: warm_nap_temptation
+      - label: "Back to the corridor"
+        goto: entrance_hall
+
+  rack_7:
+    art: |
+      RACK 7 — STATUS PANEL
+
+      ┌────────────────────────────┐
+      │  NODE 7-A:  ● ONLINE      │
+      │  NODE 7-B:  ● ONLINE      │
+      │  NODE 7-C:  ○ OFFLINE     │ ← this one
+      │  NODE 7-D:  ● ONLINE      │
+      │  SWITCH:    ● ONLINE      │
+      │  PDU:       ● ONLINE      │
+      │                            │
+      │  ALERT: 7-C network cable  │
+      │  disconnected. ETH0 DOWN.  │
+      └────────────────────────────┘
+    text: |
+      Node 7-C is offline. The status panel says "network cable disconnected."
+      You look at the back of the rack. There's a tangle of ethernet cables —
+      blue, yellow, red — and one of them is hanging loose. Disconnected.
+      Just... dangling there.
+
+      It is the most tempting dangling thing you have ever seen.
+
+      Every fiber of your being says: BAT IT. PLAY WITH IT. IT IS A TOY
+      AND IT WAS PUT HERE FOR YOU SPECIFICALLY.
+
+      But you also notice something: the loose cable has a small label that
+      reads "7-C ETH0." If you pushed it back in, it would click. The server
+      would come back online.
+
+      You are a cat. You break things. That's the narrative.
+
+      But what if — just this once — you fixed something instead?
+    choices:
+      - label: "Push the cable back in. Fix it. Be the hero no one asked for."
+        goto: cable_fix
+        set_flag: fixed_rack7
+      - label: "BAT THE CABLE. You are a cat. You must."
+        goto: cable_bat
+      - label: "Leave it alone. Back to Hall A."
+        goto: hall_a
+
+  cable_fix:
+    mood: peaceful
+    art: |
+      /\_/\
+      ( =^.^= )  *click*
+       > ^ <
+       (paw)──────[ETH0]──────[NODE 7-C]
+
+      NODE 7-C: ● ONLINE
+      NETWORK:  ● CONNECTED
+      ALERT:    CLEARED
+    text: |
+      You press your paw against the cable connector.
+
+      *click*
+
+      The server hums to life. Lights cascade across the front panel — first
+      amber (booting), then green (online). The status panel clears its
+      alert. Somewhere, a monitoring dashboard marks an incident as resolved.
+
+      A NOC tech, three rooms away, will look at the logs tomorrow and see:
+      "7-C ETH0: reconnected at 02:17." They will assume it was a loose
+      connection that reseated itself. They will never know it was a cat.
+
+      You feel an unfamiliar emotion. Is this... pride? Professional
+      satisfaction? You are, technically, an infrastructure engineer now.
+    choices:
+      - label: "Nod professionally at the server. Back to Hall A."
+        goto: hall_a
+        give_item: server_pride
+
+  cable_bat:
+    mood: funny
+    art: |
+      /\_/\   THWACK
+      ( >ω< )  ─── ═══ ~~~ [cable flying]
+       > ^ <
+       (paw)
+
+      NODE 7-C: ○ OFFLINE
+      NODE 7-D: ○ OFFLINE (wait what)
+      ALERT: MULTIPLE DISCONNECTIONS
+    text: |
+      You bat the cable. It swings gloriously. You bat it again. And again.
+      It is EXACTLY as satisfying as you imagined.
+
+      In your enthusiasm, you also disconnect the cable next to it.
+      And nudge a third one loose with your tail.
+
+      Three servers go dark in rapid succession. The monitoring system
+      somewhere starts screaming. A pager goes off in the NOC room.
+
+      Whoops.
+    choices:
+      - label: "Run. NOW."
+        goto: entrance_hall
+        set_flag: alarm_triggered
+      - label: "...try to put them back?"
+        goto: cable_oops_fix
+
+  cable_oops_fix:
+    text: |
+      You frantically paw at the cables. One clicks back in. Another...
+      doesn't quite fit. You try a third time and accidentally knock ANOTHER
+      cable loose.
+
+      This is going poorly.
+
+      The pager in the NOC room is going absolutely berserk. Footsteps.
+      Someone is coming.
+
+      Time to go.
+    choices:
+      - label: "Flee! Under the floor!"
+        goto: under_floor
+        set_flag: alarm_triggered
+      - label: "Hide behind the rack and hope for the best"
+        goto: hiding_behind_rack
+
+  hiding_behind_rack:
+    mood: tense
+    text: |
+      You wedge yourself behind Rack 7. It is warm and dusty and smells like
+      burnt silicon. A spider regards you with eight disappointed eyes.
+
+      Footsteps approach. A flashlight beam sweeps across the floor.
+
+      "What the—" A voice. "Three cables out? Did someone bump the rack?"
+
+      More footsteps. Cables clicking back in. The servers boot.
+
+      "Probably the cleaning crew," says another voice. "I keep telling
+      them not to vacuum near the racks."
+
+      They leave. You breathe.
+
+      The spider continues to judge you. Fair enough.
+    choices:
+      - label: "Emerge from hiding. Quietly."
+        goto: hall_a
+        set_flag: had_close_call
+
+  # ─────────────────────────────────────────────────────────────
+  # SCENE 4 — UNDER THE RAISED FLOOR
+  # ─────────────────────────────────────────────────────────────
+  under_floor:
+    mood: mysterious
+    art: |
+      ▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓
+      ══╗  ══╗  ═══╦════╗    ═══╗  ═══╗  ═══╗
+        ║    ║     ║    ║       ║     ║     ║
+      ──╨──  ║  ───╨──  ║   ───╨──   ║  ───╨──
+        CABLES   CABLES    CABLES   CABLES
+      ════════════════════════════════════════════
+           [UNDER THE RAISED FLOOR]
+           dark / warm / tangled / cat-sized
+    location: "under the raised floor"
+    text: |
+      You slip through the gap in the raised floor tiles and enter a hidden
+      world.
+
+      It is PERFECT down here. Warm cables snake in every direction like a
+      nest built by a very organized serpent. The hum of the servers above
+      vibrates through the floor tiles into your bones. It's dark, cozy,
+      and absolutely nobody knows you're here.
+
+      You could live down here. You could start a family. You could establish
+      a small cat civilization and nobody would ever find it.
+
+      As you pick your way through the cable bundles, you find two things:
+
+      1. A gap in the wall that leads toward the cooling units in Hall B
+      2. A strange, warm glow coming from what looks like an old,
+         forgotten server wedged between cable trays
+    choices:
+      - label: "Investigate the old forgotten server"
+        goto: forgotten_server
+      - label: "Follow the gap toward Hall B"
+        goto: hall_b
+      - label: "Curl up in the cables. This is home now."
+        goto: ending_cable_nest
+
+  forgotten_server:
+    mood: mysterious
+    effects:
+      - flicker
+    art: |
+      ┌──────────────────────────────────┐
+      │  ??? UNKNOWN DEVICE              │
+      │  Serial: CAT-001-MEOW           │
+      │  Status: RUNNING (since 2019)    │
+      │  Purpose: ???                    │
+      │  Last accessed: 1,847 days ago   │
+      │                                  │
+      │  A sticky note reads:            │
+      │  "DO NOT TURN OFF - Jerry"       │
+      │  (Jerry left the company in 2020)│
+      └──────────────────────────────────┘
+    text: |
+      The old server sits here like a digital hermit. It's been running,
+      apparently, for over five years. Nobody knows what it does. Nobody
+      remembers Jerry. The sticky note is yellowed and curling.
+
+      The server hums contentedly. A single green LED blinks at a steady,
+      almost meditative rhythm. It is warm. It is unbothered. It has
+      achieved a kind of operational nirvana.
+
+      You press your face against it. The vibration is extremely soothing.
+      You purr. It hums. You are, for a moment, in perfect harmony with
+      a machine that exists for no known reason.
+
+      There's also a security badge clipped to an old lanyard, hanging from
+      a cable tie. It reads: "JERRY CHEN — INFRASTRUCTURE." The photo is
+      of a man who looks like he was having a very good day. The badge
+      still blinks green.
+
+      Huh.
+    choices:
+      - label: "Take Jerry's badge — it might open doors"
+        goto: under_floor
+        give_item: jerry_badge
+        set_flag: has_badge
+      - label: "Leave it. Jerry's stuff is Jerry's stuff."
+        goto: under_floor
+      - label: "Nap against the warm server. Just for a minute."
+        goto: jerry_server_nap
+
+  jerry_server_nap:
+    mood: peaceful
+    text: |
+      You curl up against Jerry's server. It hums. You purr. The cables
+      around you form a warm, tangled cradle.
+
+      You sleep for exactly twenty-three minutes. You dream of fish.
+      The server dreams of whatever servers dream of — probably uptime
+      and clean deployments.
+
+      You wake refreshed. The server is still here. Still running.
+      Still nobody's problem and nobody's hero. Just existing.
+
+      Good server.
+    choices:
+      - label: "Okay. Refreshed. Time to explore."
+        goto: under_floor
+        set_flag: well_rested
+
+  # ─────────────────────────────────────────────────────────────
+  # SCENE 5 — HALL B: COOLING
+  # ─────────────────────────────────────────────────────────────
+  hall_b:
+    mood: tense
+    art: |
+      HALL B — COOLING INFRASTRUCTURE
+
+      ╔══════════╗  ╔══════════╗  ╔══════════╗
+      ║ CRAC #1  ║  ║ CRAC #2  ║  ║ CRAC #3  ║
+      ║ ~~~///~~~║  ║ ~~~///~~~║  ║ ~~~///~~~║
+      ║ [ACTIVE] ║  ║ [ACTIVE] ║  ║ [STANDBY]║
+      ╚══════════╝  ╚══════════╝  ╚══════════╝
+
+      AMBIENT: 65°F | AIRFLOW: HIGH | NOISE: LOUD
+    location: "Hall B — cooling systems"
+    text: |
+      Hall B is COLD and LOUD. The Computer Room Air Conditioning units
+      roar like mechanical waterfalls. The air hits you like opening a
+      freezer — a sharp contrast to the cozy warmth of the server racks.
+
+      This is where heat goes to die. The CRACs pull warm air from the
+      server halls and blast it back cold. It's impressive. It's also
+      deeply unpleasant for a cat who prefers temperatures measured in
+      "sunbeam."
+
+      But you notice something: there's a vent near the ceiling that leads
+      outside. You can feel real air — night air, city air, freedom air —
+      coming through it. It's too high to reach from the floor, but there's
+      a stack of equipment crates that could work as stairs...
+
+      Also: between CRAC #2 and #3, there's a small maintenance hatch in
+      the wall. It's warm air on the other side. Break room, maybe?
+    choices:
+      - label: "Climb the crates toward the vent — a way out!"
+        goto: vent_climb
+      - label: "Try the maintenance hatch — follow the warmth"
+        goto: break_room_back
+      - label: "Too cold. Back to the corridor."
+        goto: entrance_hall
+
+  vent_climb:
+    mood: tense
+    art: |
+         ┌───── VENT ─────┐   ← freedom?
+         │  ///////////    │
+         │                 │
+         ╔═══╗             │
+         ║ 3 ║  ← crate   │
+         ╠═══╣             │
+         ║ 2 ║  ← crate   │
+         ╠═══╣             │
+         ║ 1 ║  ← crate   │
+         ╚═══╝             │
+         /\_/\             │
+         ( ◉.◉ ) ← you   │
+    text: |
+      The crates form a precarious staircase. Crate 1: easy. Crate 2: wobbly
+      but manageable. Crate 3: actively hostile to your weight distribution.
+
+      You reach the top. The vent is RIGHT THERE. You can smell the outside —
+      car exhaust, rain, a distant dumpster with promising contents. Freedom.
+
+      But the vent cover is screwed on. Four screws. Phillips head.
+      You do not have a Phillips head screwdriver. You are a cat.
+
+      However: the screws are old and rusted. One is already half out. If you
+      pushed — really pushed — with your paw...
+    choices:
+      - label: "Push! Use all your stray-cat strength!"
+        goto: vent_escape
+      - label: "It's too risky. The crates are wobbling. Climb down."
+        goto: hall_b
+
+  vent_escape:
+    mood: tense
+    effects:
+      - shake
+    text: |
+      You brace yourself against the top crate and PUSH.
+
+      The rusted screw gives. Then another. The vent cover swings open on its
+      remaining two screws like a tiny door. Night air floods in — cold, real,
+      alive.
+
+      The crate tower wobbles dangerously. You have about two seconds.
+
+      You LEAP.
+
+      For one perfect, suspended moment, you are flying. A stray cat,
+      silhouetted against the glow of a data center, launched through
+      a cooling vent into the night sky.
+
+      Then gravity remembers you exist.
+    choices:
+      - label: "Land. (Cats always land on their feet. Probably.)"
+        goto: ending_freedom
+
+  # ─────────────────────────────────────────────────────────────
+  # SCENE 6 — NOC ROOM
+  # ─────────────────────────────────────────────────────────────
+  noc_room:
+    mood: mysterious
+    art: |
+      ┌─────────────────────────────────────────────────────┐
+      │  N O C  —  Network Operations Center                │
+      │                                                     │
+      │  ┌─────┐ ┌─────┐ ┌─────┐ ┌─────┐                  │
+      │  │ MON │ │ MON │ │ MON │ │ MON │  ← dashboards    │
+      │  └─────┘ └─────┘ └─────┘ └─────┘                  │
+      │                                                     │
+      │  ┌──────────────────────┐                           │
+      │  │ DESK (messy)         │  ☕ (cold)                │
+      │  │ chair (occupied!)    │                           │
+      │  └──────────────────────┘                           │
+      └─────────────────────────────────────────────────────┘
+    location: "NOC room"
+    text: |
+      The NOC room glows with the light of four enormous monitoring
+      dashboards. Graphs, alerts, uptime counters — the nervous system
+      of the entire data center, visualized in real time.
+
+      There is a human in here. They're slumped in a chair, headphones on,
+      eyes half-closed. The night shift NOC tech. Their coffee is cold. Their
+      snack drawer is open. A bag of chips sits on the desk, half-eaten.
+
+      The monitors show mostly green. Except one alert, blinking amber:
+      "RACK 7, NODE 7-C: ETH0 DOWN — 47 MINUTES."
+
+      The tech hasn't noticed. The tech is watching a video on their phone.
+      It appears to be a compilation of cats doing funny things.
+
+      The irony is not lost on you.
+    conditional:
+      - condition:
+          flag: fixed_rack7
+        text: "The Rack 7 alert has cleared. The dashboard shows all green. You did that."
+        color: green
+      - condition:
+          flag: alarm_triggered
+        text: "The dashboard is LIT UP with alerts. Multiple nodes in Rack 7 are offline. The tech is scrambling. You should not be in here right now."
+        color: red
+    choices:
+      - label: "Steal some chips from the open bag (stealth mission)"
+        goto: chip_heist
+        requires_not_flag: alarm_triggered
+      - label: "Study the dashboards — learn the secrets of this place"
+        goto: noc_dashboards
+        requires_not_flag: alarm_triggered
+      - label: "Approach the tech — maybe they're friendly?"
+        goto: meet_tech
+        requires_not_flag: alarm_triggered
+      - label: "The alarms! Get out before the tech sees you!"
+        goto: entrance_hall
+        requires_flag: alarm_triggered
+      - label: "Quietly back out — don't disturb them"
+        goto: entrance_hall
+
+  chip_heist:
+    mood: funny
+    art: |
+       /\_/\       ┌──────────┐
+       ( ◉.◉ ) ──→ │ CHIPS    │
+        > ^ <      │ (open)   │
+        (paw)      │ BBQ      │
+                   └──────────┘
+    text: |
+      You approach the chip bag with the precision of a jewel thief.
+      One paw. Two paw. Silence.
+
+      The tech's headphones pump tinny music. They do not notice you.
+
+      You reach into the bag. The chip crinkles. You freeze.
+
+      The tech does not move.
+
+      You extract a single BBQ chip with surgical precision. You eat it.
+      It is crunchy. It is salty. It is the finest thing you have consumed
+      since the half hot dog. You take another. And another.
+
+      The tech shifts. You freeze with a chip halfway to your mouth.
+
+      They reach for the bag without looking, grab a chip, eat it, and
+      go back to their phone.
+
+      Their hand was THREE INCHES from your paw.
+
+      Your heart is pounding. This is the most alive you've ever felt.
+    choices:
+      - label: "Take one more chip and retreat. Don't push your luck."
+        goto: noc_room
+        give_item: bbq_chips
+        set_flag: successful_heist
+      - label: "You know what? Take the whole bag."
+        goto: chip_chaos
+
+  chip_chaos:
+    mood: funny
+    effects:
+      - shake
+    text: |
+      In a moment of pure, unhinged confidence, you grab the bag.
+
+      The bag crinkles. LOUDLY.
+
+      The tech turns. Sees a cat. Holding their chips. In the NOC room.
+      At 2 AM.
+
+      There is a moment of perfect silence where both of you process this.
+
+      "What the FU—"
+
+      You bolt. The bag tears. Chips scatter across the NOC floor like
+      crunchy confetti. You skid around the corner with three chips still
+      in your mouth and the shredded remains of the bag trailing behind
+      you like a cape.
+
+      Behind you: the sound of a chair falling over and a human making
+      sounds that aren't quite words.
+    choices:
+      - label: "RUN TO THE CORRIDOR"
+        goto: entrance_hall
+        set_flags:
+          - alarm_triggered
+          - chip_incident
+
+  noc_dashboards:
+    text: |
+      You study the dashboards with your head tilted at the optimal
+      information-absorption angle (37 degrees).
+
+      The data center runs 847 servers across three halls. Uptime: 99.97%.
+      The 0.03% is apparently Rack 7, Node 7-C, which has been going up
+      and down for weeks. The ticket for it has been reassigned four times.
+
+      One dashboard shows the cooling system. Another shows network traffic.
+      A third shows... is that a live fish-cam? Someone has a dashboard
+      showing a fish tank. You watch the fish for longer than is professional.
+
+      On the desk, you notice a sticky note: "ROOF ACCESS: fire escape
+      behind break room. Key is in the junk drawer."
+    choices:
+      - label: "Interesting. The roof. Back to corridor."
+        goto: entrance_hall
+        set_flags:
+          - knows_roof_access
+          - knows_about_rack7
+      - label: "Keep watching the fish cam (it's mesmerizing)"
+        goto: fish_cam
+
+  fish_cam:
+    mood: peaceful
+    text: |
+      The fish swim in lazy circles. A blue one. An orange one. A small
+      striped one that darts behind a plastic castle.
+
+      You watch them with the focused intensity of a predator who will
+      never, ever reach their prey. It is simultaneously frustrating and
+      deeply satisfying. This is, you realize, exactly how humans feel
+      about those cooking videos they never actually cook.
+
+      After three minutes, you tear yourself away. You have things to do.
+      Important cat things.
+    choices:
+      - label: "Okay. Focus. Back to the NOC room."
+        goto: noc_room
+
+  meet_tech:
+    art: |
+       /\_/\    "...uh."
+       ( ◉.◉ )
+        > ^ <    /\_/\
+                 ( o_o ) ← the tech (figuratively)
+    text: |
+      You walk directly up to the tech's chair and sit down.
+
+      They look down. You look up. The mutual assessment takes approximately
+      0.4 seconds.
+
+      "Oh my god," the tech whispers. "Oh my GOD. A cat."
+
+      Their face goes through five emotions in two seconds: shock, delight,
+      confusion, worry ("how did you get in here"), and then back to delight
+      because you are, objectively, very cute.
+
+      "You cannot be in here," they say, even as they reach down to scratch
+      behind your ears. Their technique is adequate. Seven out of ten.
+
+      "I'm gonna get fired if anyone finds out," they mutter, scratching
+      harder. "But oh my god, look at you."
+    choices:
+      - label: "Purr strategically. Maximize sympathy."
+        goto: tech_befriend
+      - label: "Headbutt their hand. Claim them."
+        goto: tech_befriend
+        set_flag: maximum_charm
+
+  tech_befriend:
+    mood: peaceful
+    text: |
+      The tech is yours now. They don't know it yet, but the ear-scratch
+      contract is binding.
+
+      "Okay," they say, pulling out their phone. "I'm taking a picture.
+      No one's gonna believe—" They stop. Think. "Actually, no. No evidence.
+      If my manager sees a cat photo timestamped from the NOC room, I'm
+      done."
+
+      They look at you with the expression of someone making a terrible
+      decision they'll never regret.
+
+      "...you hungry? I think there's leftover pizza in the break room."
+
+      They stand up. This human is going to help you. This human might
+      even love you. This is going very well.
+    conditional:
+      - condition:
+          flag: maximum_charm
+        text: "The headbutt sealed it. This human would die for you. They've known you for ninety seconds."
+        color: yellow
+    choices:
+      - label: "Follow the tech to the break room (escort mission!)"
+        goto: break_room_with_tech
+        set_flag: has_tech_friend
+        give_item: tech_friendship
+
+  # ─────────────────────────────────────────────────────────────
+  # SCENE 7 — BREAK ROOM
+  # ─────────────────────────────────────────────────────────────
+  break_room:
+    art: |
+      ┌──────────────────────────────────────────┐
+      │  BREAK ROOM — "Please clean up after     │
+      │  yourself. This means you, Brad."         │
+      │                                           │
+      │  [FRIDGE]  [MICROWAVE]  [COFFEE MAKER]   │
+      │  [TABLE (crumbs)]  [JUNK DRAWER]         │
+      │  [FIRE ESCAPE DOOR → roof]               │
+      │                                           │
+      │  Pizza box on counter: 2 slices remain    │
+      └──────────────────────────────────────────┘
+    location: "break room"
+    text: |
+      The break room. The SOURCE of the pizza smell.
+
+      Two slices of pepperoni pizza sit in a greasy box on the counter.
+      They are room temperature and at least six hours old. They are
+      perfect. They are calling to you in a language older than words.
+
+      There's also a coffee maker (empty), a fridge (humming ominously),
+      a microwave (someone's leftover is still in there from 2023), and
+      a junk drawer that's slightly ajar.
+
+      In the back: a fire escape door. It reads "ALARM WILL SOUND."
+      But there's a small sign taped below it: "Alarm disabled — Brad
+      keeps going to the roof for smoke breaks."
+
+      Classic Brad.
+    conditional:
+      - condition:
+          flag: knows_roof_access
+        text: "The sticky note said the roof key is in the junk drawer. And there it is: the junk drawer."
+        color: cyan
+    choices:
+      - label: "Pizza. NOW."
+        goto: pizza_time
+      - label: "Check the junk drawer"
+        goto: junk_drawer
+      - label: "Try the fire escape door — head for the roof"
+        goto: fire_escape
+      - label: "Back to corridor"
+        goto: entrance_hall
+
+  break_room_back:
+    text: |
+      The maintenance hatch is tight but manageable. You emerge behind the
+      break room fridge, covered in dust and looking like you've had an
+      adventure. Which you have.
+
+      The pizza smell is OVERWHELMING from here.
+    choices:
+      - label: "Emerge into the break room"
+        goto: break_room
+
+  break_room_with_tech:
+    mood: peaceful
+    art: |
+      ┌──────────────────────────────────────────┐
+      │  BREAK ROOM                              │
+      │                                           │
+      │  Tech: "Okay little buddy, let's see..."│
+      │                                           │
+      │  🍕 → /\_/\                              │
+      │       ( ^.^ )  ← you, winning            │
+      └──────────────────────────────────────────┘
+    text: |
+      The tech leads you to the break room like a VIP escort. They open the
+      pizza box, tear off a small piece of pepperoni, and hold it out.
+
+      You eat it with the dignity of a cat who absolutely has not been
+      living behind a gas station.
+
+      "You're a good cat," the tech says. This is the highest compliment.
+
+      They sit down at the table. You sit on the table. This is how it works.
+
+      "I can't keep you in here," they say, sadly. "But the fire escape
+      goes to the roof, and from there you can get to the alley. Or..."
+      They look at you. "Or I could... take you home? My apartment allows
+      cats. I think. Maybe. The lease says no but my landlord has three."
+    choices:
+      - label: "Go with the tech. Choose a home. Choose love."
+        goto: ending_adopted
+      - label: "The roof. Freedom. You're a stray at heart."
+        goto: fire_escape
+        set_flag: kind_goodbye
+
+  pizza_time:
+    mood: funny
+    art: |
+      /\_/\    nom
+      ( =^.^= )  nom  🍕
+       > ^ <       nom
+       (__ __)
+    text: |
+      You leap onto the counter with the grace of a ballet dancer and the
+      intent of a burglar.
+
+      The pizza is everything you dreamed. The cheese has that cold-pizza
+      chewiness. The pepperoni has reached peak flavor through the ancient
+      art of sitting on a counter for six hours. The crust is the perfect
+      vehicle for your ambitions.
+
+      You eat an entire slice. It is larger than your head. You eat it
+      anyway. This is what being alive is about.
+
+      You leave exactly one slice remaining, because you are a cat of
+      principle, and also because you are physically full for the first
+      time in recent memory.
+    choices:
+      - label: "Satisfying. Now explore the rest of the room."
+        goto: break_room
+        give_item: full_belly
+        set_flag: ate_pizza
+
+  junk_drawer:
+    text: |
+      The junk drawer contains: three dead batteries, a USB cable of unknown
+      type, a broken badge lanyard, a key labeled "ROOF," forty-seven rubber
+      bands (estimated), a takeout menu from 2021, and a single googly eye.
+
+      The key labeled "ROOF" seems relevant.
+
+      The googly eye also seems relevant but in a more spiritual sense.
+    choices:
+      - label: "Take the roof key"
+        goto: break_room
+        give_item: roof_key
+      - label: "Take the roof key AND the googly eye"
+        goto: break_room
+        give_items:
+          - roof_key
+          - googly_eye
+      - label: "Leave it. Back to the break room."
+        goto: break_room
+
+  fire_escape:
+    text: |
+      The fire escape door. "ALARM WILL SOUND" it warns, but Brad's note
+      assures you otherwise.
+
+      You push against the door. It opens easily — the latch is worn
+      from Brad's frequent smoke breaks. Night air rushes in. Stars above.
+      The city hums below. Metal stairs lead upward to the roof.
+
+      Freedom is vertical tonight.
+    conditional:
+      - condition:
+          flag: kind_goodbye
+        text: |
+          The tech watches from the break room doorway. "Be safe out there,
+          little one," they say quietly. They sound like they mean it.
+        color: green
+    choices:
+      - label: "Climb to the roof"
+        goto: ending_rooftop
+
+  # ─────────────────────────────────────────────────────────────
+  # SCENE 8 — WARM NAP TEMPTATION
+  # ─────────────────────────────────────────────────────────────
+  warm_nap_temptation:
+    mood: peaceful
+    text: |
+      You find the spot. THE spot. Between Rack 4 and Rack 5, where the
+      exhaust vents create a pocket of perfectly warm air. The floor tile
+      is smooth and clean. It's like a heated bed designed by engineers
+      who didn't know they were designing a heated bed.
+
+      You circle three times (mandatory). You curl up. Your tail wraps
+      around your nose. The servers hum a lullaby of spinning drives and
+      cooling fans.
+
+      Your eyes get heavy. The blinking lights blur into a constellation
+      just for you.
+
+      Stay or go? Every instinct says STAY.
+    choices:
+      - label: "Stay. Sleep. This is the warm spot you've always wanted."
+        goto: ending_server_cat
+      - label: "No — resist. You need to keep exploring."
+        goto: hall_a
+
+  # ─────────────────────────────────────────────────────────────
+  # ENDINGS
+  # ─────────────────────────────────────────────────────────────
+
+  ending_leave:
+    art: |
+      /\_/\
+      ( =.= )
+       > ^ <   ← leaving already?
+       (__ __)
+
+      ┌──────────────┐
+      │ EXIT         │
+      │ (the way     │
+      │  you came)   │
+      └──────────────┘
+    is_ending: true
+    ending_type: neutral
+    ending_text: |
+      You turn around and squeeze back through the loading dock door.
+
+      The night is cold. The data center door closes behind you with a
+      soft pneumatic hiss. The warmth is gone. The pizza is a memory.
+
+      You sit on the loading dock for a minute, looking at the building.
+      Ten thousand servers. A million blinking lights. A whole world in
+      there, humming away, oblivious to you.
+
+      You came. You saw. You left.
+
+      Maybe you'll come back tomorrow night. The door is probably still
+      ajar. Brad's smoke break schedule is very predictable.
+
+      The city stretches out before you, full of dumpsters and possibilities.
+
+      Onward.
+
+  ending_cable_nest:
+    art: |
+      ═════════════════════════════════════
+         UNDER THE FLOOR — HOME
+
+         /\_/\  zzz
+        (=^.^=)  zz  ~~~cables~~~
+         > ^ <    z  ~~~cables~~~
+         (__ __)    ~~~cables~~~
+      ═════════════════════════════════════
+    is_ending: true
+    ending_type: neutral
+    ending_text: |
+      You make a nest.
+
+      It's the best nest you've ever made. Warm cables form the walls.
+      The hum of servers is your white noise machine. The temperature is
+      a constant, perfect 73°F. No rain. No wind. No dogs.
+
+      Over the next few weeks, you become the data center's ghost. Techs
+      occasionally report "weird noises under the floor." One files a
+      ticket: "possible rodent activity, sub-floor, Hall A." The ticket
+      is assigned, ignored, reassigned, and eventually closed as "cannot
+      reproduce."
+
+      You live under the raised floor for seven months. You are the best-kept
+      secret in CloudPurr's infrastructure. You are warm. You are safe.
+      You are, in your own small way, part of the system now.
+
+      The techs start leaving food by the floor gap. They think it's a
+      raccoon. They don't mind. Everyone needs a mascot.
+
+  ending_server_cat:
+    art: |
+      ═════════════════════════════════════════════════════
+        RACK 4           RACK 5
+        ║█║              ║█║
+        ║█║   /\_/\      ║█║
+        ║█║  (=^.^=) zzz ║█║
+        ║█║   > ^ <   zz ║█║
+        ║█║  (__ __)   z  ║█║
+        ═══              ═══
+        THE PERFECT SPOT — 72°F FOREVER
+      ═════════════════════════════════════════════════════
+    is_ending: true
+    ending_type: good
+    ending_text: |
+      You sleep between Racks 4 and 5, and you do not dream, because
+      reality has finally exceeded your dreams.
+
+      The morning shift finds you at 6 AM. There is a brief, intense
+      debate about what to do. The facilities manager wants you removed.
+      The NOC team wants you to stay. The argument escalates to the VP
+      of Infrastructure, who takes one look at you — curled up, purring,
+      backlit by server LEDs — and says: "That cat stays."
+
+      CloudPurr Data Systems officially adopts you. They give you a name
+      tag (PACKET) and a badge (ALL ACCESS, HALL A). Someone buys a cat
+      bed, but you never use it. The warm spot between Rack 4 and Rack 5
+      is yours. It has always been yours.
+
+      Uptime improves by 0.02% after your arrival. No one can explain why.
+      You can. But you won't.
+
+      You are Packet. You are home.
+
+  ending_freedom:
+    mood: peaceful
+    art: |
+      ┌─────────────────────────────────────────────┐
+      │                 ☆   ★  ·   ☆               │
+      │           ★        ·    ★       ·           │
+      │       ·       ★  ·    ·    ★                │
+      │    ★     ·           ★      ·  ★            │
+      │                                              │
+      │              /\_/\                            │
+      │             ( ^.^ )   ← free                 │
+      │              > ^ <                            │
+      │  ════════════════════════════════════════     │
+      │              [CLOUDPURR DATA SYSTEMS]         │
+      └─────────────────────────────────────────────┘
+    is_ending: true
+    ending_type: good
+    ending_text: |
+      You land on the pavement outside. On your feet. Obviously.
+
+      The vent cover swings behind you. The data center hums at your back.
+      Above: stars. Around: the quiet of a 2 AM city block. The air smells
+      like rain and possibility and a distant taco truck.
+
+      You're out. You're free. You're a stray cat who broke into a data
+      center, explored server rooms, navigated the underfloor cable jungle,
+      and escaped through a cooling vent like a tiny furry action hero.
+
+      Nobody will ever know. There will be no incident report. No ticket.
+      Just a slightly loose vent cover and a half-eaten bag of chips that
+      no one can account for.
+
+      You trot down the alley, tail high. The city is yours. The night is
+      warm enough. And somewhere behind you, ten thousand servers hum on,
+      utterly indifferent to the greatest adventure they never noticed.
+
+      Good night, cat.
+
+  ending_adopted:
+    mood: peaceful
+    art: |
+      ═══════════════════════════════════════════════════
+                    /\_/\
+                   ( ^.^ )    ← you, going home
+                    > ^ <
+                   (__ __)
+                      │
+                  ┌───┴───┐
+                  │  CAR  │
+                  │ (warm)│
+                  └───────┘
+                  🏠 → home
+      ═══════════════════════════════════════════════════
+    is_ending: true
+    ending_type: secret
+    ending_text: |
+      The tech — whose name, you learn, is Sam — wraps you in their hoodie
+      and carries you to their car at the end of shift.
+
+      "I'm probably going to get a write-up for this," Sam mutters, but
+      they're smiling. You are purring. These two facts are causally related.
+
+      Sam's apartment is small, warm, and smells like laundry detergent
+      and microwaved pasta. There is a window with a ledge that gets
+      morning sun. There is a couch with a blanket that has been there
+      so long it counts as furniture. There is a human who came to work
+      tonight expecting boredom and got a cat instead.
+
+      Sam buys you a food bowl the next day. It says PACKET on it because
+      "you came from the data center, so you're a network cat."
+
+      You have a name. You have a bowl. You have a warm human who watches
+      cat videos at 2 AM and shares their chips.
+
+      You were a stray. Now you're home.
+
+      Some bugs in the system lead to exactly where you're supposed to be.
+
+  ending_rooftop:
+    mood: peaceful
+    art: |
+      ┌──────────────────────────────────────────────────┐
+      │            ☆     ★   .   ☆    ★                  │
+      │       ★         .      ★         .               │
+      │    .        ★       .       ★                    │
+      │         .       ★      .        ★                │
+      │                                                  │
+      │        /\_/\                                     │
+      │       ( ^.^ )  ← on top of the world            │
+      │        > ^ <                                     │
+      │ ══════════════════════════════════════════        │
+      │  [CLOUDPURR DATA SYSTEMS — ROOF]                 │
+      │                                                  │
+      │  🌃  city lights stretching to the horizon  🌃   │
+      └──────────────────────────────────────────────────┘
+    is_ending: true
+    ending_type: good
+    ending_text: |
+      The roof of CloudPurr Data Systems is flat, wide, and covered in
+      HVAC equipment and Brad's cigarette butts. But beyond the industrial
+      clutter: the city.
+
+      Every light is a window. Every window is a life. The city sprawls
+      beneath you like a circuit board — glowing, connected, alive. Cars
+      trace the streets like data packets finding their routes. Somewhere,
+      a siren. Somewhere else, music.
+
+      You sit on the edge of the roof, tail curled around your paws, and
+      look out at all of it.
+
+      You came in a stray. Hungry. Cold. Following warmth through an
+      open door. And in one night, you explored the hidden world that
+      keeps the internet running: the racks, the cables, the cooling
+      systems, the humans who watch over it all at 2 AM.
+
+      The wind ruffles your fur. It's not cold up here. Heat rises from
+      the data center below — ten thousand servers, warming the roof like
+      a giant heated floor.
+
+      You could go anywhere from here. Down the fire escape, back to the
+      alleys. Or stay. Watch the sunrise from the top of the cloud.
+
+      For now, you sit. You breathe. You are small, and orange, and free,
+      and the world is very, very large.
+
+      That's enough.

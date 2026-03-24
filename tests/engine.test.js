@@ -299,7 +299,7 @@ describe('Engine.loadStory', () => {
 describe('discoverStories', () => {
   it('finds stories in the stories directory', () => {
     const stories = discoverStories(STORIES_DIR);
-    assert.ok(stories.length >= 2, `expected at least 2 stories, got ${stories.length}`);
+    assert.ok(stories.length >= 3, `expected at least 3 stories, got ${stories.length}`);
 
     const slugs = stories.map(s => s.slug);
     assert.ok(slugs.includes('the-terminal-cat'), 'should find the-terminal-cat');
@@ -327,7 +327,7 @@ describe('discoverStories', () => {
 // ─────────────────────────────────────────────────────────────
 
 describe('Story integrity', () => {
-  for (const storySlug of ['the-terminal-cat', 'cafe-debug']) {
+  for (const storySlug of ['the-terminal-cat', 'cafe-debug', 'server-room-stray']) {
     describe(storySlug, () => {
       let story;
 

@@ -45,7 +45,9 @@ nyantales play the-terminal-cat --debug   # show scene/flag debug info
 
 ---
 
-## Included Story: The Terminal Cat
+## Included Stories
+
+### 🐱 The Terminal Cat
 
 > *A cat wakes up inside a computer and must navigate the filesystem to find home.*
 
@@ -53,10 +55,27 @@ Navigate through directories, talk to the `cat` command, face zombie processes,
 and confront the legendary SIGSEGV. Features multiple endings — your choices
 and what you pick up along the way determine the outcome.
 
-**Endings:** Good · Bad · Secret · Neutral
-**Scenes:** 15
-**Items:** fish_treat
-**Flags:** has_wisdom · knows_sudo_password · knows_danger · and more
+**Endings:** Good · Bad · Secret · Neutral · **Scenes:** 15
+
+### ☕ Café Debug
+
+> *A cozy mystery in a digital café — the espresso machine is corrupted and you, cat barista Mochi, must find the bug before everything crashes.*
+
+Gather clues from grep, curl, and daemon to diagnose a NullPointerException
+deep inside the CoffeeBot 3000. Features mood-based atmosphere, glitch effects,
+and an ending where the bug becomes a menu item.
+
+**Endings:** Good · Bad · Secret · **Scenes:** 25
+
+### 🏢 Server Room Stray
+
+> *A stray cat sneaks into a data center. Between the humming racks and tangled cables, warmth — and freedom — await.*
+
+Explore CloudPurr Data Systems at 2 AM: steal chips from the NOC tech, fix
+(or catastrophically break) a disconnected server, befriend a forgotten machine
+named Jerry, and decide whether freedom or a warm home is what you really want.
+
+**Endings:** Good (×3) · Neutral (×2) · Secret · **Scenes:** 35
 
 ---
 
@@ -160,8 +179,12 @@ nyantales/
 │   ├── cli.js          CLI entry point
 │   └── engine.js       Core engine (load, render, state)
 ├── stories/
-│   └── the-terminal-cat/
-│       └── story.yaml  Demo story
+│   ├── the-terminal-cat/
+│   │   └── story.yaml  Story 1 — filesystem adventure
+│   ├── cafe-debug/
+│   │   └── story.yaml  Story 2 — café debugging mystery
+│   └── server-room-stray/
+│       └── story.yaml  Story 3 — data center exploration
 ├── package.json
 └── README.md
 ```
