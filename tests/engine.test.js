@@ -382,7 +382,7 @@ describe('discoverStories', () => {
 // ─────────────────────────────────────────────────────────────
 
 describe('Story integrity', () => {
-  for (const storySlug of ['the-terminal-cat', 'cafe-debug', 'server-room-stray']) {
+  for (const storySlug of ['the-terminal-cat', 'cafe-debug', 'server-room-stray', 'midnight-deploy']) {
     describe(storySlug, () => {
       let story;
 

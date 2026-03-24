@@ -1,0 +1,873 @@
+title: "Midnight Deploy"
+description: "A tense ops tale — you're Byte, the on-call cat sysadmin, and the 2AM production deploy just went sideways."
+author: "mechangelnyan"
+version: "1.0.0"
+start: pager_goes_off
+
+scenes:
+
+  # ─────────────────────────────────────────────────────────────
+  # ACT 1 — THE ALERT
+  # ─────────────────────────────────────────────────────────────
+  pager_goes_off:
+    mood: tense
+    effects: [bell]
+    art: |
+      ┌─────────────────────────────────────────────────────┐
+      │  🚨  M I D N I G H T   D E P L O Y                 │
+      │     "Nothing bad ever happens at 2AM."              │
+      │                                                     │
+      │  ALERT: prod-cluster-7 — HTTP 503 — all services   │
+      └─────────────────────────────────────────────────────┘
+    text: |
+      You are Byte. You are a cat. You are also, regrettably, the on-call
+      sysadmin for MeowCloud Inc. — the world's third-largest cat-operated
+      cloud infrastructure provider.
+
+      It is 2:07 AM. You were having a dream about an infinite bowl of tuna
+      when your pager went off like a fire alarm in a library. The screen
+      of your phone is doing that thing where every pixel seems angry at you
+      personally.
+
+      CRITICAL: prod-cluster-7 unresponsive. All services returning 503.
+      Last deploy: 01:45 AM by deploy-bot (v2.41.0 → v2.42.0)
+
+      You blink. v2.42.0. That's the "big one" — the migration to the new
+      purring engine that nobody wanted to ship on a Monday but got shipped
+      on a Monday anyway because someone merged to main and the pipeline
+      doesn't care about your feelings.
+
+      Your terminal is already open. Your coffee is cold. Your tail is puffed.
+    choices:
+      - label: "Check the dashboard first — get the lay of the land"
+        goto: dashboard
+      - label: "SSH into prod-cluster-7 immediately — no time for dashboards"
+        goto: ssh_direct
+      - label: "Check the deploy logs — see what v2.42.0 actually changed"
+        goto: deploy_logs
+
+  # ─────────────────────────────────────────────────────────────
+  # ACT 1 — INVESTIGATION BRANCHES
+  # ─────────────────────────────────────────────────────────────
+  dashboard:
+    mood: tense
+    art: |
+      ┌─────────────────────────────────────────────────────┐
+      │  MEOWCLOUD STATUS          ░░░░░░░░░░░░░░░░░░░░░░  │
+      │  ──────────────────────────────────────────────────  │
+      │  prod-cluster-1..6:  ✅ ✅ ✅ ✅ ✅ ✅              │
+      │  prod-cluster-7:     🔴 503  ▂▂▅▅█████████████████  │
+      │  prod-cluster-8..12: ✅ ✅ ✅ ✅ ✅                  │
+      │  staging:            ✅ (v2.42.0 — deployed 18:30)  │
+      │  ──────────────────────────────────────────────────  │
+      │  Error rate: 34% ↑↑↑   Latency p99: 12.4s  ↑↑↑    │
+      └─────────────────────────────────────────────────────┘
+    location: "monitoring dashboard"
+    text: |
+      The dashboard tells a grim story. Cluster 7 is the only one down, but
+      it's handling about a third of all traffic. The error rate graph looks
+      like a cat arching its back — steep and hostile.
+
+      Interesting: staging has been running v2.42.0 since 18:30 with zero
+      issues. Whatever broke, it's specific to prod-cluster-7's environment.
+
+      You notice something else. The memory graph for cluster 7 shows a
+      slow climb starting at 01:45, then a near-vertical spike at 02:01.
+      Classic memory leak pattern — but the code passed staging fine.
+
+      Your Slack is already a warzone. The CEO (a very large Maine Coon named
+      Chairman Whiskers) has posted "???" in #incidents. Three engineers have
+      reacted with 😰.
+    set_flag: saw_dashboard
+    choices:
+      - label: "SSH in — that memory spike is suspicious"
+        goto: ssh_direct
+      - label: "Check the deploy logs first"
+        goto: deploy_logs
+      - label: "Look at cluster 7's config — maybe it's different from staging"
+        goto: config_diff
+        set_flag: sharp_eye
+
+  ssh_direct:
+    mood: tense
+    art: |
+        .---------.
+        :         :  $ ssh byte@prod-cluster-7
+        :         :  Warning: load average 47.2
+        :         :  Last login: Mon 01:45 deploy-bot
+        '---------'
+    location: "prod-cluster-7 shell"
+    text: |
+      You SSH in. The login takes an uncomfortable eight seconds — this box
+      is suffering. The load average is 47.2 on a 16-core machine, which is
+      the server equivalent of a cat trying to carry twelve mice at once.
+
+      A quick `top` reveals the culprit: the new purring-engine process is
+      eating memory like it's Thanksgiving. It's already at 94% of available
+      RAM and climbing. The OOM killer is circling like a vulture.
+
+      The logs are scrolling fast — really fast. You catch fragments:
+
+        [purring-engine] WARN: cache miss on /whiskers/v2/meow
+        [purring-engine] WARN: cache miss on /whiskers/v2/meow
+        [purring-engine] WARN: cache miss on /whiskers/v2/meow
+
+      The same cache miss, thousands of times. That's not a leak — that's a
+      cache that's not caching. Every request is allocating fresh memory
+      and never freeing it.
+    set_flag: saw_memory_issue
+    choices:
+      - label: "Check the purring-engine config — maybe the cache is misconfigured"
+        goto: config_diff
+      - label: "Kill the runaway process and restart the old version — stop the bleeding"
+        goto: rollback_attempt
+      - label: "Dig into the deploy logs to understand what changed"
+        goto: deploy_logs
+        requires_not_flag: saw_deploy_logs
+
+  deploy_logs:
+    mood: mysterious
+    art: |
+      ┌─────────────────────────────────────────────────────┐
+      │  DEPLOY LOG — v2.42.0                               │
+      │  ──────────────────────────────────────────────────  │
+      │  01:43  Pipeline started (triggered by merge→main)  │
+      │  01:44  Tests passed (394/394)  ✅                  │
+      │  01:44  Staging canary: healthy                     │
+      │  01:45  Rolling deploy to prod — batch 1/3          │
+      │  01:47  Batch 2/3...                                │
+      │  01:49  Batch 3/3...                                │
+      │  01:50  Deploy complete. All health checks green.   │
+      └─────────────────────────────────────────────────────┘
+    location: "deploy pipeline"
+    text: |
+      The deploy log looks... clean. Suspiciously clean. All 394 tests
+      passed, the staging canary was fine, and the rolling deploy completed
+      without a single health check failure.
+
+      But you scroll back further and find the actual diff for v2.42.0.
+      It's a big PR — 847 lines changed — but the core change is the new
+      "purring engine" cache layer. Instead of the old in-memory LRU cache,
+      it uses a new distributed cache backed by Redis.
+
+      Wait. Redis.
+
+      You check the PR description:
+
+      "Requires REDIS_URL environment variable. Falls back to in-memory
+      cache if not set (same behavior as v2.41.0)."
+
+      Falls back to in-memory cache. But what if the fallback is broken?
+      What if it's "falling back" by creating a new in-memory cache for
+      every single request?
+
+      That would explain everything.
+    set_flag: saw_deploy_logs
+    choices:
+      - label: "Check if REDIS_URL is set on cluster 7"
+        goto: config_diff
+        set_flag: redis_hunch
+      - label: "SSH into the box and verify the theory"
+        goto: ssh_direct
+        requires_not_flag: saw_memory_issue
+      - label: "Just roll back — you've seen enough"
+        goto: rollback_attempt
+
+  # ─────────────────────────────────────────────────────────────
+  # ACT 2 — THE ROOT CAUSE
+  # ─────────────────────────────────────────────────────────────
+  config_diff:
+    mood: mysterious
+    art: |
+      $ diff prod-cluster-7.env staging.env
+
+      --- staging.env
+      +++ prod-cluster-7.env
+      @@ -12,7 +12,6 @@
+       MEOW_LEVEL=maximum
+       PURR_FREQUENCY=60
+      -REDIS_URL=redis://cache.internal:6379
+      +# REDIS_URL — TODO: set up redis on cluster 7
+       LOG_LEVEL=info
+    location: "config comparison"
+    text: |
+      There it is.
+
+      Staging has REDIS_URL configured. Every other prod cluster has it too —
+      they were migrated to Redis months ago. But cluster 7? Cluster 7 has
+      a comment. A TODO comment. Someone meant to configure Redis on this
+      cluster and then... didn't.
+
+      So when v2.42.0 deployed to cluster 7, the purring engine couldn't
+      find Redis, "fell back" to in-memory caching, and the fallback code
+      has a bug: it creates a new cache instance per request instead of
+      reusing one. Every request allocates memory. Nothing gets freed. The
+      box fills up like a litter box that nobody scoops.
+
+      You now know the problem. The question is what to do about it.
+    set_flag: found_root_cause
+    choices:
+      - label: "Quick fix: add REDIS_URL to cluster 7 and restart the service"
+        goto: redis_fix
+      - label: "Roll back to v2.41.0 first, then fix properly"
+        goto: rollback_attempt
+      - label: "Fix the fallback code so this can never happen again"
+        goto: fix_fallback_code
+        condition:
+          flag: saw_deploy_logs
+
+  redis_fix:
+    mood: tense
+    location: "cluster 7 terminal"
+    text: |
+      You add the REDIS_URL to cluster 7's environment config and restart
+      the purring engine. The memory graph immediately flattens. Error rates
+      start dropping. Within two minutes, cluster 7 is serving traffic again.
+
+      Your Slack lights up:
+        🐱 Chairman Whiskers: "Is it fixed?"
+        🐱 deploy-bot: "prod-cluster-7 health check: ✅"
+        🐱 Someone in #general: "THE SITE IS BACK 🎉"
+
+      Crisis averted. But you're staring at that TODO comment. Someone left
+      a loaded gun in the config, and the deploy pipeline didn't catch it
+      because the health checks passed during the brief window before memory
+      filled up.
+
+      This will happen again if you don't fix the underlying issues.
+    set_flag: service_restored
+    choices:
+      - label: "Write up the incident and go back to bed"
+        goto: write_postmortem
+      - label: "Stay up and fix the fallback code too — no half measures"
+        goto: fix_fallback_code
+      - label: "Add a config validation check to the deploy pipeline"
+        goto: pipeline_fix
+
+  rollback_attempt:
+    mood: tense
+    location: "deploy pipeline"
+    art: |
+      $ meowctl rollback prod-cluster-7 --to v2.41.0
+      Rolling back...
+      ██████████████████████████░░░░░░  78%
+    text: |
+      You trigger the rollback. The pipeline starts unwinding v2.42.0 on
+      cluster 7. Progress bar crawls forward.
+
+      Then it stops at 78%.
+
+      ERROR: Rollback blocked — v2.42.0 includes database migration
+      (purr_cache_schema_v2). Cannot safely roll back without data loss.
+      Use --force to override (DANGER: may corrupt cache tables).
+
+      Of course. The "big one" included a schema migration. Rolling back
+      cleanly isn't an option without potentially corrupting the cache
+      database. You could force it, but if the cache tables get corrupted,
+      you'll be dealing with a much bigger mess.
+
+      Your tail puffs up even more. You didn't think that was possible.
+    choices:
+      - label: "Force the rollback — the cache can be rebuilt, the outage can't wait"
+        goto: force_rollback
+      - label: "Don't force it — find another way to fix v2.42.0 in place"
+        goto: config_diff
+        requires_not_flag: found_root_cause
+      - label: "Add the missing REDIS_URL config instead — fix forward"
+        goto: redis_fix
+        condition:
+          flag: found_root_cause
+      - label: "Check the config — there must be a reason staging works"
+        goto: config_diff
+        condition:
+          not_flag: found_root_cause
+
+  force_rollback:
+    mood: tense
+    effects: [shake]
+    location: "deploy pipeline — forced rollback"
+    text: |
+      You type --force and hit enter. The pipeline resumes, blowing past the
+      migration safety check. Cluster 7 rolls back to v2.41.0.
+
+      The memory pressure drops immediately. Services come back online.
+      Error rates plummet. For about thirty seconds, you feel like a hero.
+
+      Then the alerts start again:
+
+        CRITICAL: purr_cache table corrupted on prod-cluster-7
+        CRITICAL: cache reads returning stale data (24h+ old)
+        WARNING: some user sessions referencing deleted cache entries
+
+      The forced rollback corrupted the cache tables, just like it warned.
+      The old version is running, but it's serving stale and broken data.
+      Users are seeing other users' cached profiles. Chairman Whiskers'
+      "???" in Slack has been upgraded to "?!?!?!"
+
+      You need to rebuild the cache from scratch. This is going to be a
+      long night.
+    set_flag: cache_corrupted
+    choices:
+      - label: "Flush the entire cache and let it rebuild organically"
+        goto: cache_rebuild_slow
+      - label: "Write a script to rebuild the cache from the primary database"
+        goto: cache_rebuild_fast
+      - label: "Panic quietly"
+        goto: panic
+
+  panic:
+    mood: funny
+    location: "under your desk"
+    art: |
+      ╔══════════════════════════════════════════════════╗
+      ║                                                  ║
+      ║       /\_/\                                      ║
+      ║      ( o.o )  <-- this is you right now          ║
+      ║       > ^ <                                      ║
+      ║                                                  ║
+      ╚══════════════════════════════════════════════════╝
+    text: |
+      You slide off your chair and onto the floor. The carpet smells like
+      old coffee and regret. Your cat brain briefly considers abandoning
+      technology entirely and becoming a barn cat.
+
+      Your phone buzzes. It's a DM from Patch, the senior engineer:
+
+      "hey Byte, saw the alerts. need help? i'm already up (insomnia lol)"
+
+      Patch. Wonderful, reliable Patch. Patch who wrote the original cache
+      system. Patch who always has insomnia at the most convenient times.
+
+      You have two options: accept help and fix this together, or tell
+      Patch you've got it and keep spiraling alone.
+    choices:
+      - label: "Accept Patch's help — swallow the pride, save the servers"
+        goto: pair_with_patch
+        set_flag: asked_for_help
+      - label: "Tell Patch you've got it — you made this mess, you'll clean it up"
+        goto: solo_rebuild
+
+  pair_with_patch:
+    mood: peaceful
+    location: "voice call with Patch"
+    text: |
+      You hop on a call with Patch. Within five minutes, Patch has
+      diagnosed the full situation and is already typing.
+
+      "Okay, the cache corruption is only in the v2 tables — the primary
+      data is fine. We can flush just the corrupted entries and rebuild.
+      I actually wrote a script for this exact scenario after the last
+      incident. Never merged it because, y'know, who'd need it."
+
+      Patch shares the script. You review it together, make two small
+      adjustments for the new schema, and run it. The rebuild takes four
+      minutes. Clean data starts flowing. Error rates drop to zero.
+
+      "There," Patch says. "Now go write the postmortem and get some sleep.
+      I'll watch the metrics."
+
+      You feel a wave of gratitude so strong it almost makes you purr.
+    set_flag: service_restored
+    set_flags: [cache_fixed]
+    choices:
+      - label: "Write the postmortem — do this properly"
+        goto: write_postmortem
+      - label: "Thank Patch and just go to bed — the postmortem can wait"
+        goto: sleep_ending
+
+  solo_rebuild:
+    mood: tense
+    location: "your desk, alone"
+    text: |
+      "All good, thanks though!" you type to Patch. The lie sits on
+      your screen like a dead mouse on a doorstep.
+
+      You start writing a cache rebuild script from scratch. It takes
+      forty minutes because you keep second-guessing the query logic.
+      By 3:30 AM, you have something that works, mostly. You run it.
+
+      Rebuild takes twelve minutes. Most of the data comes back clean,
+      but about 2% of cache entries are still showing stale data. Good
+      enough for now. You'll fix the rest in the morning.
+
+      The error rate drops to 0.4%. Not zero, but livable. Chairman
+      Whiskers has gone to bed. The crisis is... mostly over.
+    set_flag: service_restored
+    choices:
+      - label: "Write the postmortem while it's fresh"
+        goto: write_postmortem
+      - label: "Collapse into bed — deal with it tomorrow"
+        goto: sleep_ending
+
+  cache_rebuild_slow:
+    mood: peaceful
+    location: "cluster 7 terminal"
+    text: |
+      You flush the cache entirely. It's the nuclear option but it's
+      clean — no corrupted data, no stale entries. Just... nothing.
+
+      The cache starts rebuilding as users hit the service. It's slow
+      at first — every request is a cache miss, which means every request
+      hits the primary database. The database starts to groan.
+
+      But it holds. Barely. After about twenty minutes, the cache is
+      warm enough that response times are almost normal. After an hour,
+      you'd never know anything happened.
+
+      The approach was brute-force but honest. Sometimes the simplest
+      fix is the right one.
+    set_flag: service_restored
+    set_flags: [cache_fixed]
+    choices:
+      - label: "Write the postmortem"
+        goto: write_postmortem
+      - label: "Fix the deploy pipeline so this doesn't happen again"
+        goto: pipeline_fix
+
+  cache_rebuild_fast:
+    mood: mysterious
+    location: "your desk — writing code at 3 AM"
+    text: |
+      You crack your knuckles (all eighteen of them — cat hands are
+      complicated) and start writing a targeted rebuild script. You
+      pull clean data from the primary database and reconstruct the
+      cache entries, skipping anything that was part of the v2 migration.
+
+      It's delicate work. One wrong JOIN and you'll make things worse.
+      But this is what you're good at — surgery, not demolition.
+
+      Twenty minutes later, the script is ready. You run it in dry-run
+      mode first (you're panicked, not stupid). The output looks clean.
+      You run it for real.
+
+      Cache rebuilt in 3 minutes 42 seconds. Error rate drops to zero.
+      Stale data: gone. The service is fully healthy.
+
+      You allow yourself one (1) fist pump.
+    set_flag: service_restored
+    set_flags: [cache_fixed, wrote_rebuild_script]
+    choices:
+      - label: "Write the postmortem while the details are fresh"
+        goto: write_postmortem
+      - label: "Now fix the deploy pipeline — prevent future disasters"
+        goto: pipeline_fix
+
+  # ─────────────────────────────────────────────────────────────
+  # ACT 2.5 — FIXING THE CODE
+  # ─────────────────────────────────────────────────────────────
+  fix_fallback_code:
+    mood: mysterious
+    location: "your editor — src/purring-engine/cache.js"
+    art: |
+      // THE BUG:
+      function handleRequest(req) {
+        const cache = new MemoryCache();  // ← NEW instance every call!
+        return cache.get(req.key) ?? fetchAndStore(cache, req);
+      }
+
+      // THE FIX:
+      const cache = new MemoryCache();    // ← ONE instance, reused
+      function handleRequest(req) {
+        return cache.get(req.key) ?? fetchAndStore(cache, req);
+      }
+    text: |
+      You open the purring engine source code and find the bug in about
+      forty seconds. It's so obvious it hurts.
+
+      The fallback code path — the one used when REDIS_URL isn't set —
+      creates a new MemoryCache() inside the request handler. Not outside
+      it. Inside. Every. Single. Request.
+
+      This means every request gets its own empty cache, looks up the key,
+      finds nothing (because the cache was just born), fetches from the
+      database, stores it in the cache, and then the cache gets garbage
+      collected. Except the GC can't keep up with the allocation rate, so
+      memory climbs until the OOM killer ends everyone's suffering.
+
+      The fix is one line: move the cache instantiation outside the function.
+
+      You make the fix, write a test that specifically validates the
+      fallback path reuses a single cache instance, and push it to a branch.
+    set_flag: fixed_fallback
+    choices:
+      - label: "Deploy the fix to cluster 7"
+        goto: deploy_fix
+        condition:
+          not_flag: service_restored
+      - label: "Open a PR and also fix the deploy pipeline"
+        goto: pipeline_fix
+        condition:
+          flag: service_restored
+      - label: "Push the fix and write the postmortem"
+        goto: write_postmortem
+        condition:
+          flag: service_restored
+
+  deploy_fix:
+    mood: tense
+    location: "deploy pipeline"
+    text: |
+      You push your fix as v2.42.1 and trigger a targeted deploy to
+      cluster 7 only. This time you watch the memory graph like a hawk.
+
+      The deploy completes. Memory usage: flat. Cache hits: climbing.
+      Error rate: dropping. Within two minutes, everything is green.
+
+      v2.42.1 is stable. The fallback code path works correctly now,
+      and cluster 7 is serving traffic with the in-memory cache until
+      someone finally sets up Redis on it.
+
+      (That someone should be you. That someone will probably not be you.
+      That TODO comment will probably outlive the sun.)
+    set_flag: service_restored
+    choices:
+      - label: "Fix the deploy pipeline too — belt and suspenders"
+        goto: pipeline_fix
+      - label: "Write the postmortem and call it a night"
+        goto: write_postmortem
+
+  # ─────────────────────────────────────────────────────────────
+  # ACT 3 — THE PIPELINE FIX
+  # ─────────────────────────────────────────────────────────────
+  pipeline_fix:
+    mood: peaceful
+    location: "CI/CD config"
+    art: |
+      ┌─────────────────────────────────────────────────────┐
+      │  .meowcloud/pipeline.yaml                           │
+      │  ──────────────────────────────────────────────────  │
+      │  + - name: "Validate required env vars"             │
+      │  +   run: |                                         │
+      │  +     for cluster in $(get-clusters); do           │
+      │  +       check-required-env $cluster REDIS_URL      │
+      │  +     done                                         │
+      │  +   fail_on_missing: true                          │
+      └─────────────────────────────────────────────────────┘
+    text: |
+      You add an environment validation step to the deploy pipeline. Before
+      any deploy rolls out, the pipeline will now check that every target
+      cluster has all required environment variables configured. Missing
+      a required var? Deploy blocked.
+
+      It's not glamorous work. It's not the kind of thing that gets you
+      promoted. But it's the kind of thing that prevents a 2 AM catastrophe
+      from happening again.
+
+      You also add a pre-deploy "config diff" step that compares each
+      cluster's env against staging and flags any discrepancies. If staging
+      has REDIS_URL and prod-cluster-7 doesn't, the pipeline will scream
+      before it deploys.
+
+      Two safety nets. Because one is never enough at 3 AM.
+    set_flag: fixed_pipeline
+    choices:
+      - label: "Write the postmortem — document everything"
+        goto: write_postmortem
+      - label: "One more thing: fix the fallback code too"
+        goto: fix_fallback_code
+        condition:
+          not_flag: fixed_fallback
+      - label: "You've done enough — go to bed"
+        goto: sleep_ending
+
+  # ─────────────────────────────────────────────────────────────
+  # ACT 4 — ENDINGS
+  # ─────────────────────────────────────────────────────────────
+  write_postmortem:
+    mood: peaceful
+    location: "incident doc"
+    art: |
+      ┌─────────────────────────────────────────────────────┐
+      │  📝 INCIDENT REPORT #742                            │
+      │  "The One Where Cluster 7 Forgot About Redis"      │
+      │                                                     │
+      │  Duration: ~45 min                                  │
+      │  Impact: 34% of traffic affected                    │
+      │  Root cause: Missing REDIS_URL + fallback bug       │
+      │  Resolution: _______________                        │
+      └─────────────────────────────────────────────────────┘
+    text: |
+      You open the incident template and start typing. The postmortem
+      writes itself — you lived it, after all.
+
+      Root cause: clear. Timeline: documented. Action items: listed.
+
+      As you write, you realize this incident was really three failures
+      stacked on top of each other: a missing config variable, a buggy
+      fallback path, and a deploy pipeline that didn't validate either.
+      No single failure would have caused an outage. It took all three.
+
+      Classic Swiss cheese model. The holes lined up.
+
+      You list your action items and check off what you've already done.
+    conditional:
+      - condition:
+          flag: fixed_fallback
+        text: "✅ Fix fallback cache code (v2.42.1 — deployed)"
+        color: green
+      - condition:
+          not_flag: fixed_fallback
+        text: "⬜ Fix fallback cache code — TODO"
+        color: yellow
+      - condition:
+          flag: fixed_pipeline
+        text: "✅ Add env validation to deploy pipeline"
+        color: green
+      - condition:
+          not_flag: fixed_pipeline
+        text: "⬜ Add env validation to deploy pipeline — TODO"
+        color: yellow
+      - condition:
+          flag: cache_fixed
+        text: "✅ Cache rebuilt clean"
+        color: green
+      - condition:
+          flag: asked_for_help
+        text: "✅ Thanked Patch (seriously, thank Patch)"
+        color: green
+    choices:
+      - label: "Submit the postmortem and finally sleep"
+        goto: good_ending
+        condition:
+          all:
+            - { flag: fixed_fallback }
+            - { flag: fixed_pipeline }
+      - label: "Submit the postmortem — good enough for tonight"
+        goto: decent_ending
+        condition:
+          any:
+            - { not_flag: fixed_fallback }
+            - { not_flag: fixed_pipeline }
+      - label: "Add one more section: 'What We Learned'"
+        goto: lessons_learned
+
+  lessons_learned:
+    mood: peaceful
+    location: "incident doc — lessons learned"
+    text: |
+      You add a section at the end of the postmortem:
+
+      "What We Learned"
+
+      1. Config drift between environments is silent and deadly. If staging
+         and prod don't match, your tests are lying to you.
+
+      2. Fallback code paths are the least-tested, most-dangerous code you
+         have. If you write a fallback, test the fallback.
+
+      3. Asking for help is not a weakness. It's an engineering skill.
+         (Byte may or may not be writing this one for personal reasons.)
+
+      4. Health checks that only verify "the process is running" are
+         necessary but not sufficient. Check that the process is running
+         AND doing the right thing.
+
+      5. Never deploy on a Monday. (This one will be ignored. It is
+         always ignored. It is the sysadmin's prayer, unanswered.)
+
+      You save the document. It's thorough, honest, and blameless — just
+      like a good postmortem should be.
+    set_flag: wrote_lessons
+    choices:
+      - label: "Submit everything and sleep — you've earned it"
+        goto: postmortem_complete
+        condition:
+          all:
+            - { flag: fixed_fallback }
+            - { flag: fixed_pipeline }
+      - label: "Submit and sleep — tomorrow's problems are tomorrow's"
+        goto: decent_ending
+
+  sleep_ending:
+    is_ending: true
+    ending_type: neutral
+    mood: peaceful
+    art: |
+      ╔══════════════════════════════════════════════════╗
+      ║         /\_/\                                    ║
+      ║        ( -.- )  zzz...                           ║
+      ║         > ^ <                                    ║
+      ║                         🌙                       ║
+      ╚══════════════════════════════════════════════════╝
+    text: |
+      You close your laptop, curl up in your chair, and fall asleep
+      almost instantly. The servers are stable. The crisis is over.
+
+      Your postmortem will be... late. The TODO items will linger.
+      But you're a cat, and cats know when to stop.
+
+      The pager stays silent for the rest of the night.
+    ending_text: |
+      Byte survived the midnight deploy. The servers recovered, the
+      customers barely noticed, and the snooze was well-earned.
+
+      But somewhere in the config, a TODO comment waits patiently
+      for someone who will never come.
+
+      Some bugs aren't in the code. They're in the process.
+      And the process... is a work in progress.
+
+  decent_ending:
+    is_ending: true
+    ending_type: neutral
+    mood: peaceful
+    art: |
+      ┌─────────────────────────────────────────────────────┐
+      │                                                     │
+      │    📋 POSTMORTEM SUBMITTED                          │
+      │    ✅ Service restored                              │
+      │    ⬜ Some action items pending                     │
+      │                                                     │
+      │         /\_/\                                       │
+      │        ( =.= )  "good enough for 3 AM"             │
+      │         > ^ <                                       │
+      │                                                     │
+      └─────────────────────────────────────────────────────┘
+    text: |
+      You submit the postmortem and close your laptop. It's 3:47 AM.
+      The service is healthy. The postmortem is filed. Not everything
+      is fixed, but the fires are out and the remaining work is
+      clearly documented.
+
+      Chairman Whiskers will read the postmortem in the morning and
+      say something like "good work, let's make sure this doesn't
+      happen again." The action items will go into Jira. Some will
+      get done. Some won't.
+
+      But tonight, you did your job. You kept the servers running
+      and you didn't make it worse. That's more than enough.
+    ending_text: |
+      Byte handled the incident with professionalism and composure
+      (mostly). The service was restored, the postmortem was honest,
+      and the remaining fixes are documented.
+
+      Not every night needs a hero. Sometimes it just needs someone
+      who shows up, does the work, and knows when to stop.
+
+      Grade: solid B+. And at 2 AM, a B+ is an A.
+
+  good_ending:
+    is_ending: true
+    ending_type: good
+    mood: peaceful
+    art: |
+      ┌─────────────────────────────────────────────────────┐
+      │                                                     │
+      │    📋 POSTMORTEM SUBMITTED                          │
+      │    ✅ Service restored                              │
+      │    ✅ Fallback code fixed                           │
+      │    ✅ Pipeline hardened                             │
+      │                                                     │
+      │         /\_/\                                       │
+      │        ( ^.^ )  "nailed it"                         │
+      │         > ^ <                                       │
+      │        /|   |\   🌟                                 │
+      │                                                     │
+      └─────────────────────────────────────────────────────┘
+    text: |
+      You submit the postmortem, push the last commit, and close your
+      laptop. It's 4:12 AM. You've been at this for two hours.
+
+      In that time, you diagnosed the root cause, restored the service,
+      fixed the buggy fallback code, hardened the deploy pipeline, and
+      wrote a postmortem so thorough it could be published as a blog post.
+
+      Tomorrow, Chairman Whiskers will read it and forward it to the
+      whole company with the subject line "This is how we do incidents."
+      The engineers who reacted with 😰 will change their reactions to 🫡.
+
+      You curl up in your chair. The pager is silent. The servers are
+      healthy. The code is better than it was before the incident.
+
+      Not every disaster is a loss. Sometimes it's a gift — a chance to
+      find the cracks and fill them before they break something bigger.
+    ending_text: |
+      Byte turned a 2 AM disaster into a masterclass in incident response.
+      Every problem was found, fixed, and documented. The system is stronger
+      now than it was before the deploy.
+
+      This is the way: fix it, understand it, prevent it, document it.
+      And then — finally, mercifully — sleep.
+
+      Grade: A+. Go to bed, Byte. You earned it. 🐱
+
+  secret_ending:
+    is_ending: true
+    ending_type: secret
+    mood: funny
+    art: |
+      ┌─────────────────────────────────────────────────────┐
+      │                                                     │
+      │          🏆 THE LEGENDARY SRE 🏆                    │
+      │                                                     │
+      │         /\_/\                                       │
+      │        ( ★.★ )                                      │
+      │         > ^ <                                       │
+      │        /|🏅|\                                       │
+      │       (_|   |_)                                     │
+      │                                                     │
+      │    "Is it possible to learn this power?"            │
+      │    "Not from a developer."                          │
+      │                                                     │
+      └─────────────────────────────────────────────────────┘
+    text: |
+      At 4:30 AM, you push the last commit and lean back. Let's review:
+
+      ✅ Root cause identified through methodical investigation
+      ✅ Service restored without data loss
+      ✅ Fallback code bug fixed and tested
+      ✅ Deploy pipeline hardened with config validation
+      ✅ Cache rebuild script written (and committed for next time)
+      ✅ Postmortem submitted with lessons learned
+      ✅ Asked for help when you needed it
+
+      You did everything right. Not just "put out the fire" right, but
+      "made the system fundamentally better" right. You even wrote a
+      rebuild script for the next person who'll face this at 2 AM.
+
+      Patch DMs you: "that was clean work tonight. you should write
+      this up for the engineering blog."
+
+      Chairman Whiskers DMs you: "Byte. Excellent work. Take tomorrow off."
+
+      (You will not take tomorrow off. There's a TODO comment about Redis
+      on cluster 7, and you're going to fix it if it kills you.)
+    ending_text: |
+      Byte achieved legendary SRE status. Every aspect of the incident
+      was handled with precision, empathy, and thoroughness. The system
+      is stronger, the team is informed, and the cat got some sleep.
+
+      Some say Byte is still out there, somewhere, writing config
+      validation scripts and refusing to take days off.
+
+      The TODO comment about Redis was fixed the next morning at 9:01 AM.
+      It took four minutes.
+
+      Grade: S-tier. 🌟
+
+  # ─────────────────────────────────────────────────────────────
+  # SECRET ENDING GATE
+  # ─────────────────────────────────────────────────────────────
+  postmortem_complete:
+    text: |
+      As you're about to submit, you glance at your checklist one more time...
+    condition:
+      all:
+        - { flag: fixed_fallback }
+        - { flag: fixed_pipeline }
+        - { flag: wrote_rebuild_script }
+        - { flag: asked_for_help }
+        - { flag: wrote_lessons }
+    fallback_goto: good_ending
+    choices:
+      - label: "Submit — this is the most complete postmortem you've ever written"
+        goto: secret_ending
+        condition:
+          all:
+            - { flag: fixed_fallback }
+            - { flag: fixed_pipeline }
+            - { flag: wrote_rebuild_script }
+            - { flag: asked_for_help }
+            - { flag: wrote_lessons }
+      - label: "Submit and sleep"
+        goto: good_ending

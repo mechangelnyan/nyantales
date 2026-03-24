@@ -88,6 +88,18 @@ named Jerry, and decide whether freedom or a warm home is what you really want.
 
 **Endings:** Good (×3) · Neutral (×2) · Secret · **Scenes:** 35
 
+### 🚨 Midnight Deploy
+
+> *A tense ops tale — you're Byte, the on-call cat sysadmin, and the 2AM production deploy just went sideways.*
+
+Diagnose a critical outage on prod-cluster-7 as the new purring engine melts
+down at 2 AM. Investigate dashboards, SSH into dying servers, trace a missing
+Redis config, and decide whether to roll back (risky) or fix forward. Features
+branching investigation paths, a pair-programming ally named Patch, and a
+postmortem system that tracks which action items you actually completed.
+
+**Endings:** Good · Neutral (×2) · Secret · **Scenes:** 23
+
 ---
 
 ## Save & Load
@@ -207,6 +219,7 @@ nyantales/
 │   │   └── story.yaml  Story 1 — filesystem adventure
 │   ├── cafe-debug/
 │   │   └── story.yaml  Story 2 — café debugging mystery
+│   ├── midnight-deploy/
 │   └── server-room-stray/
 │       └── story.yaml  Story 3 — data center exploration
 ├── saves/              Auto-generated save files (gitignored)
