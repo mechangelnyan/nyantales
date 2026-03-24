@@ -1,0 +1,872 @@
+title: "Vim Escape"
+description: "You are Tabby, a cat who accidentally opened vim. Nobody has ever escaped. You might be the first — if you can figure out how to quit."
+author: "mechangelnyan"
+version: "1.0.0"
+start: the_trap
+
+scenes:
+
+  # ─────────────────────────────────────────────────────────────
+  # SCENE 1 - THE TRAP
+  # ─────────────────────────────────────────────────────────────
+  the_trap:
+    art: |
+      ╔══════════════════════════════════════════════════════╗
+      ║                                                      ║
+      ║  ~                                                   ║
+      ║  ~                                                   ║
+      ║  ~             VIM - Vi IMproved                     ║
+      ║  ~                                                   ║
+      ║  ~             version 9.1                           ║
+      ║  ~         by Bram Moolenaar et al.                  ║
+      ║  ~                                                   ║
+      ║  ~       type :help<Enter> for help                  ║
+      ║  ~       type :q<Enter> to exit                      ║
+      ║  ~   (haha just kidding, nobody exits)               ║
+      ║  ~                                                   ║
+      ║                                                      ║
+      ╚══════════════════════════════════════════════════════╝
+    mood: mysterious
+    text: |
+      You are Tabby. Small. Fluffy. Deeply confused.
+
+      Your last memory: pawing at your human's keyboard while they went to get
+      coffee. You were trying to type "meow" into a file. You pressed something.
+      Many somethings.
+
+      Now you're here. Inside vim. The tildes mock you from every line. The cursor
+      blinks at you like a tiny, judgmental eye.
+
+      Legend says no cat has ever escaped vim. Most don't even know what mode
+      they're in. You don't know what mode YOU'RE in.
+
+      The status bar reads: -- NORMAL --
+
+      Whatever that means. Nothing about this feels normal.
+    choices:
+      - label: "Press 'i' — maybe it does something?"
+        goto: insert_mode
+        set_flag: tried_insert
+      - label: "Type ':q' — the tilde screen literally said to"
+        goto: first_quit_attempt
+      - label: "Mash the keyboard with both paws"
+        goto: keyboard_mash
+
+  # ─────────────────────────────────────────────────────────────
+  # KEYBOARD MASH
+  # ─────────────────────────────────────────────────────────────
+  keyboard_mash:
+    art: |
+         /\_/\
+         ( @_@ )   *CLACKCLACK*
+         />o  o<\
+         (_/  \_)
+         ||  ||
+    mood: funny
+    effects: [shake]
+    text: |
+      You slam both paws on the keyboard with reckless abandon.
+
+      hjkklllhjjjkkkiiiaaarrrggghhhEsc3ddp:wqZZz
+
+      The screen goes absolutely haywire. Text appears. Disappears. Lines jump
+      around. Something gets yanked. Something gets put. A macro starts recording.
+
+      When the chaos settles, the file now reads:
+
+        rrrggghhhmeow
+        arrrggghh
+
+      The status bar flickers: -- NORMAL --
+
+      You have accomplished nothing. But you feel slightly better.
+    choices:
+      - label: "Okay, try ':q' like a civilized cat"
+        goto: first_quit_attempt
+      - label: "Press 'i' — let's try being methodical"
+        goto: insert_mode
+        set_flag: tried_insert
+      - label: "Press 'u' — undo! Undo everything!"
+        goto: undo_scene
+        set_flag: knows_undo
+
+  # ─────────────────────────────────────────────────────────────
+  # UNDO SCENE
+  # ─────────────────────────────────────────────────────────────
+  undo_scene:
+    art: |
+      u u u u u u u u u u u
+       ↩  ↩  ↩  ↩  ↩  ↩  ↩
+    mood: peaceful
+    text: |
+      You press 'u'. The last change undoes. You press 'u' again. Another change
+      vanishes. You keep pressing.
+
+      u u u u u u u u u u u u
+
+      The file slowly unravels, change by change, like unwinding a ball of yarn.
+      It's... oddly satisfying. Almost meditative.
+
+      But then you go too far. The file is now completely empty. Pristine.
+      Untouched. As if no cat had ever been here.
+
+      The status bar reads: Already at oldest change
+
+      Even vim has limits. Even for cats.
+    choices:
+      - label: "Now try ':q' to quit"
+        goto: first_quit_attempt
+      - label: "Press 'i' and write something new"
+        goto: insert_mode
+        set_flag: tried_insert
+
+  # ─────────────────────────────────────────────────────────────
+  # INSERT MODE
+  # ─────────────────────────────────────────────────────────────
+  insert_mode:
+    art: |
+      ╔══════════════════════════════════════════════════════╗
+      ║  meow meow meow_                                     ║
+      ║  ~                                                   ║
+      ║  ~                                                   ║
+      ║  -- INSERT --                          3,15   All    ║
+      ╚══════════════════════════════════════════════════════╝
+    mood: peaceful
+    text: |
+      You press 'i'. The status bar changes:
+
+      -- INSERT --
+
+      Something shifts. The cursor softens. The air tastes different. You
+      can... type things now? Letters appear where you put them, like a normal,
+      reasonable program.
+
+      Your paws move on their own: m-e-o-w
+
+      "meow meow meow" fills the screen. It's beautiful. It's art. The greatest
+      thing ever written in vim.
+
+      But wait. You're here to ESCAPE, not to write your memoirs. How do you
+      get out of insert mode? How do you get out of ANYTHING?
+    choices:
+      - label: "Press Escape — return to Normal mode"
+        goto: back_to_normal
+        set_flag: knows_escape
+      - label: "Type ':q' while still in insert mode"
+        goto: insert_quit_fail
+      - label: "Keep typing — write the Great Cat Novel"
+        goto: great_cat_novel
+        set_flag: wrote_novel
+
+  # ─────────────────────────────────────────────────────────────
+  # INSERT :q FAIL
+  # ─────────────────────────────────────────────────────────────
+  insert_quit_fail:
+    art: |
+      ╔══════════════════════════════════════════════════════╗
+      ║  meow meow meow:q                                   ║
+      ║  ~                                                   ║
+      ║  -- INSERT --                          3,20   All    ║
+      ╚══════════════════════════════════════════════════════╝
+    mood: funny
+    text: |
+      You type ':q' and press Enter.
+
+      The screen now reads: meow meow meow:q
+
+      It just... typed ":q" into the file. Because you're in INSERT mode.
+      Everything you type goes into the file. That's what insert mode IS.
+
+      You are typing your escape commands into the void and the void is
+      dutifully recording them.
+
+      This is fine. Everything is fine.
+    choices:
+      - label: "Press Escape FIRST, then try commands"
+        goto: back_to_normal
+        set_flag: knows_escape
+
+  # ─────────────────────────────────────────────────────────────
+  # GREAT CAT NOVEL
+  # ─────────────────────────────────────────────────────────────
+  great_cat_novel:
+    art: |
+      ╔══════════════════════════════════════════════════════╗
+      ║  Chapter 1: The Sunbeam                              ║
+      ║                                                      ║
+      ║  It was the best of naps, it was the worst of naps.  ║
+      ║  The sunbeam moved, as sunbeams do, with cruel       ║
+      ║  indifference to the sleeping cat upon the couch.    ║
+      ║  She opened one eye. The warmth was gone. The world  ║
+      ║  was cold and meaningless.                           ║
+      ║  She opened the other eye. The food bowl was full.   ║
+      ║  The world had meaning again.                        ║
+      ║                                                      ║
+      ║  -- INSERT --                         10,52   All    ║
+      ╚══════════════════════════════════════════════════════╝
+    mood: peaceful
+    text: |
+      You can't help it. The words pour out of you.
+
+      "It was the best of naps, it was the worst of naps..."
+
+      You write about sunbeams and tuna cans and the existential dread of a
+      closed door. You write about the red dot — the one that got away. You
+      write about love, loss, and the sound of a can opener at 6 AM.
+
+      When you finally stop, you've written 847 lines. It's magnificent.
+      It's the Great Cat Novel. And it's trapped in a vim buffer with you.
+
+      You absolutely cannot lose this. You MUST save it. But also escape.
+
+      The stakes have never been higher.
+    choices:
+      - label: "Press Escape — time to figure out saving"
+        goto: back_to_normal
+        set_flag: knows_escape
+      - label: "Just keep writing — escape is a myth anyway"
+        goto: existential_vim
+        set_flag: accepted_vim
+
+  # ─────────────────────────────────────────────────────────────
+  # EXISTENTIAL VIM
+  # ─────────────────────────────────────────────────────────────
+  existential_vim:
+    art: |
+         /\_/\
+         ( -.- )   ...what if vim is home?
+         > ^ <
+    mood: mysterious
+    text: |
+      You keep writing. Hours pass. Days? Time has no meaning inside vim.
+
+      Your novel grows to 2,000 lines. Then 5,000. You write a sequel. A
+      prequel. A cinematic universe. The file is enormous and beautiful and
+      it will never be saved because you don't know how.
+
+      A thought drifts through your mind like a lazy sunbeam:
+
+      What if you don't NEED to escape? What if vim is where you were always
+      meant to be? Other cats chase mice. You chase semicolons.
+
+      ...No. No. That's the vim talking. You need to get out. Focus, Tabby.
+    choices:
+      - label: "Snap out of it! Press Escape!"
+        goto: back_to_normal
+        set_flag: knows_escape
+      - label: "Give in. Vim is home now."
+        goto: ending_vim_life
+        set_flag: chose_vim_life
+
+  # ─────────────────────────────────────────────────────────────
+  # BACK TO NORMAL
+  # ─────────────────────────────────────────────────────────────
+  back_to_normal:
+    art: |
+      ╔══════════════════════════════════════════════════════╗
+      ║  -- NORMAL --                                        ║
+      ╚══════════════════════════════════════════════════════╝
+    text: |
+      You press Escape.
+
+      The status bar changes. -- NORMAL -- appears. The cursor hardens into a
+      block. You feel the power shift. You are no longer inserting. You are...
+      commanding.
+
+      This is Normal mode. The mode where things happen. Where commands are
+      commands and letters are not letters but ACTIONS.
+
+      The entire keyboard is now a weapon. Every key does something.
+      Most of those somethings are terrifying.
+
+      But somewhere in this minefield of keybindings lies the exit.
+    choices:
+      - label: "Type ':q' — the classic escape"
+        goto: quit_with_changes
+        requires_flag: tried_insert
+      - label: "Type ':q' — try to quit"
+        goto: first_quit_attempt
+        requires_not_flag: tried_insert
+      - label: "Type ':help' — read the manual"
+        goto: help_screen
+        set_flag: read_help
+      - label: "Press 'dd' — what could go wrong?"
+        goto: dd_scene
+
+  # ─────────────────────────────────────────────────────────────
+  # FIRST QUIT ATTEMPT
+  # ─────────────────────────────────────────────────────────────
+  first_quit_attempt:
+    art: |
+      E37: No write since last change (add ! to override)
+    mood: tense
+    text: |
+      You carefully type ':q' and press Enter.
+
+      The bottom of the screen erupts in angry red:
+
+      E37: No write since last change (add ! to override)
+
+      Vim won't let you leave. It's CONCERNED about your unsaved changes.
+      It's being RESPONSIBLE. It's holding you hostage out of LOVE.
+
+      You don't even remember making changes. Did you? Does it matter?
+      Vim remembers. Vim always remembers.
+    choices:
+      - label: "Try ':q!' — force quit, abandon everything"
+        goto: force_quit_choice
+      - label: "Try ':wq' — save and quit"
+        goto: wq_attempt
+        set_flag: knows_wq
+      - label: "Try ':help' — there must be a way"
+        goto: help_screen
+        set_flag: read_help
+      - label: "Press 'i' to go back to insert mode"
+        goto: insert_mode
+        set_flag: tried_insert
+        requires_not_flag: tried_insert
+
+  # ─────────────────────────────────────────────────────────────
+  # QUIT WITH CHANGES
+  # ─────────────────────────────────────────────────────────────
+  quit_with_changes:
+    art: |
+      E37: No write since last change (add ! to override)
+    mood: tense
+    text: |
+      You type ':q' and press Enter, hope rising in your chest.
+
+      E37: No write since last change (add ! to override)
+
+      Of COURSE. You typed things in insert mode. Vim remembers every keystroke,
+      every "meow," every accidental macro. It will not let you leave without
+      addressing your sins.
+
+      You must choose: save your work, or abandon it.
+    conditional:
+      - condition:
+          flag: wrote_novel
+        text: "Your 847-line masterpiece hangs in the balance. The Great Cat Novel could be lost forever."
+        color: yellow
+    choices:
+      - label: "':wq' — save and quit"
+        goto: wq_attempt
+        set_flag: knows_wq
+      - label: "':q!' — force quit, lose everything"
+        goto: force_quit_choice
+      - label: "':help' — there has to be another way"
+        goto: help_screen
+        set_flag: read_help
+
+  # ─────────────────────────────────────────────────────────────
+  # DD SCENE
+  # ─────────────────────────────────────────────────────────────
+  dd_scene:
+    art: |
+         /\_/\
+         ( o_O )   ...where did that line go?
+         > ^ <
+    mood: funny
+    effects: [shake]
+    text: |
+      You press 'd' twice. A line vanishes. Just — gone. Consumed by the void.
+
+      You press 'dd' again. Another line disappears. This is POWER. Terrible,
+      intoxicating power. You are the editor now. You decide what lives and dies.
+
+      dd dd dd dd dd
+
+      When the frenzy passes, the file is mostly empty. The status bar
+      whispers: 4 fewer lines.
+
+      Actually, that might make quitting easier...
+    conditional:
+      - condition:
+          flag: wrote_novel
+        text: "Your novel... your beautiful novel... three chapters just vanished into the void. What have you done?"
+        color: red
+    choices:
+      - label: "Press 'u' to undo! UNDO!"
+        goto: undo_panic
+        set_flag: knows_undo
+      - label: "This is fine. Try ':q' now"
+        goto: quit_with_changes
+      - label: "Keep deleting. Delete everything. Then quit."
+        goto: nuclear_dd
+        set_flag: deleted_everything
+
+  # ─────────────────────────────────────────────────────────────
+  # UNDO PANIC
+  # ─────────────────────────────────────────────────────────────
+  undo_panic:
+    art: |
+      u u u u u u u
+       ↩  ↩  ↩  ↩  ↩
+         P A N I C
+    mood: tense
+    text: |
+      u u u u u u u u u!
+
+      The lines come back! One by one, resurrected from vim's undo tree.
+      (Vim has an undo TREE. Not a stack. A TREE. Because of course it does.)
+
+      Everything is restored. Your text is safe. Your dignity... less so.
+
+      Lesson learned: 'dd' is not your friend. 'u' is your guardian angel.
+    choices:
+      - label: "Carefully type ':wq' to save and quit"
+        goto: wq_attempt
+        set_flag: knows_wq
+      - label: "Type ':q!' — just get out, forget saving"
+        goto: force_quit_choice
+      - label: "Open ':help' and actually learn"
+        goto: help_screen
+        set_flag: read_help
+
+  # ─────────────────────────────────────────────────────────────
+  # NUCLEAR DD
+  # ─────────────────────────────────────────────────────────────
+  nuclear_dd:
+    art: |
+      ~
+      ~
+      ~
+      ~
+      ~                  (nothing remains)
+      ~
+      ~
+      ~
+    mood: mysterious
+    text: |
+      dd dd dd dd dd dd dd dd dd dd dd dd dd dd dd dd dd
+
+      Every. Single. Line. Gone. The file is a pristine void. Nothing but tildes.
+      The buffer is empty. There is nothing to save. Nothing to lose.
+
+      You feel a strange peace. This must be what enlightenment is like.
+
+      Or maybe it's just an empty buffer. Hard to tell.
+    choices:
+      - label: "Type ':q' — nothing to save now"
+        goto: clean_quit
+      - label: "Type ':q!' just to be safe"
+        goto: force_quit_choice
+
+  # ─────────────────────────────────────────────────────────────
+  # CLEAN QUIT (after deleting everything)
+  # ─────────────────────────────────────────────────────────────
+  clean_quit:
+    mood: peaceful
+    text: |
+      You type ':q' and press Enter.
+
+      No error. No complaint. No "unsaved changes." There ARE no changes.
+      There is nothing. Vim shrugs and closes.
+
+      It was that easy. All you had to do was destroy everything first.
+
+      There's probably a life lesson in there somewhere.
+    choices:
+      - label: "Step into the light..."
+        goto: the_escape
+
+  # ─────────────────────────────────────────────────────────────
+  # HELP SCREEN
+  # ─────────────────────────────────────────────────────────────
+  help_screen:
+    art: |
+      ╔══════════════════════════════════════════════════════╗
+      ║  *help.txt*   For Vim version 9.1.                   ║
+      ║                                                      ║
+      ║  BASIC:                                              ║
+      ║  :q        quit (fails if changes)                   ║
+      ║  :q!       quit, discard changes                     ║
+      ║  :wq       write (save) and quit                     ║
+      ║  :x        like :wq but only writes if changed       ║
+      ║  ZZ        same as :x (normal mode shortcut)         ║
+      ║  ZQ        same as :q!                               ║
+      ║                                                      ║
+      ║  Press :q to close this help window                  ║
+      ╚══════════════════════════════════════════════════════╝
+    mood: peaceful
+    text: |
+      You open the help file. It's enormous. 30,000 lines of documentation.
+      There are help files ABOUT the help files.
+
+      But there — right at the top — the answers you need:
+
+      :q    — quit (but you knew this one doesn't work with changes)
+      :q!   — quit and THROW AWAY changes (the nuclear option)
+      :wq   — save and quit (the responsible option)
+      ZZ    — save and quit from normal mode (the secret shortcut!)
+
+      You also notice something called :x — "like :wq but smarter." And ZQ,
+      which is ":q! but for people too lazy to type colons."
+
+      Knowledge is power. Vim knowledge is survival.
+    choices:
+      - label: "Try ':wq' — the responsible escape"
+        goto: wq_attempt
+        set_flag: knows_wq
+      - label: "Try ':q!' — the reckless escape"
+        goto: force_quit_choice
+      - label: "Try 'ZZ' — the secret shortcut!"
+        goto: zz_escape
+        set_flag: knows_zz
+      - label: "Close help with ':q' first... wait"
+        goto: help_inception
+
+  # ─────────────────────────────────────────────────────────────
+  # HELP INCEPTION
+  # ─────────────────────────────────────────────────────────────
+  help_inception:
+    art: |
+         /\_/\
+         ( 0_0 )   help inside help inside help...
+         > ^ <
+    mood: glitch
+    effects: [flicker]
+    text: |
+      You type ':q' to close the help window. It closes. But now you're looking
+      at a SPLIT SCREEN. The help was in its own buffer. Your file is in another
+      buffer. Vim has WINDOWS. Inside a TERMINAL. Inside a COMPUTER.
+
+      It's windows all the way down.
+
+      You accidentally press Ctrl-W. The windows rearrange. You press it again.
+      They rearrange differently. You are now managing a tiling window manager
+      INSIDE a text editor INSIDE a terminal.
+
+      Deep breaths, Tabby. Deep breaths.
+    choices:
+      - label: "':qa!' — quit ALL of this, every window, every buffer"
+        goto: force_quit_choice
+        set_flag: knows_qa
+      - label: "':wq' — try to save and quit from here"
+        goto: wq_attempt
+        set_flag: knows_wq
+      - label: "Keep pressing Ctrl-W and see what happens"
+        goto: window_chaos
+
+  # ─────────────────────────────────────────────────────────────
+  # WINDOW CHAOS
+  # ─────────────────────────────────────────────────────────────
+  window_chaos:
+    art: |
+      ┌──────────┬──────────┬──────────┐
+      │ help.txt │ meow.txt │ [No Name]│
+      │          ├──────────┤          │
+      │          │ help.txt │          │
+      │          │ (again?) │          │
+      ├──────────┴──────────┤          │
+      │ [Scratch]           │          │
+      └────────────────────┴──────────┘
+    mood: glitch
+    effects: [shake, flicker]
+    text: |
+      Ctrl-W Ctrl-W Ctrl-W Ctrl-W Ctrl-W
+
+      You've opened 6 windows. Two of them are the same help file. One is a
+      scratch buffer that appeared from nowhere. One seems to be a SECOND copy
+      of your file. They're all stacked and split in increasingly unhinged ways.
+
+      You are a cat inside vim inside 6 windows inside a terminal inside a computer.
+
+      The screen looks like a Mondrian painting if Mondrian had anger issues and
+      a keyboard.
+    choices:
+      - label: "':qa!' — QUIT EVERYTHING. ALL OF IT."
+        goto: force_quit_choice
+        set_flag: knows_qa
+      - label: "This is actually kind of cool. Open one more window."
+        goto: too_many_windows
+        set_flag: window_enthusiast
+
+  # ─────────────────────────────────────────────────────────────
+  # TOO MANY WINDOWS
+  # ─────────────────────────────────────────────────────────────
+  too_many_windows:
+    art: |
+      ┌──┬──┬──┬──┬──┬──┬──┬──┐
+      │  │  │  │  │  │  │  │  │
+      ├──┼──┼──┼──┼──┼──┼──┼──┤
+      │  │  │  │  │  │  │  │  │
+      ├──┼──┼──┼──┼──┼──┼──┼──┤
+      │  │  │  │  │  │  │  │  │
+      └──┴──┴──┴──┴──┴──┴──┴──┘
+    mood: funny
+    effects: [shake]
+    text: |
+      You open more windows. And more. AND MORE.
+
+      Each window is now approximately 3 characters wide. You can see one letter
+      per pane. The entire screen is a grid of tiny boxes, each containing a
+      fragment of a file you don't remember opening.
+
+      Vim is sweating. Your terminal is sweating. YOU are sweating.
+
+      One of the windows appears to contain... is that a game of Tetris?
+      (Vim has a Tetris plugin? VIM HAS A TETRIS PLUGIN.)
+
+      Okay. This has gone far enough. Time to escape. For real this time.
+    choices:
+      - label: "':qa!' — quit ALL windows, discard ALL changes"
+        goto: force_quit_choice
+        set_flag: knows_qa
+      - label: "Try the Tetris"
+        goto: ending_tetris
+
+  # ─────────────────────────────────────────────────────────────
+  # FORCE QUIT CHOICE
+  # ─────────────────────────────────────────────────────────────
+  force_quit_choice:
+    mood: tense
+    text: |
+      This is it. The moment of truth. ':q!' will force-quit vim, discarding
+      all changes. Everything you typed — every "meow," every line of your
+      novel, every accidental macro — gone. Unsaved. Unrecoverable.
+
+      Your paw hovers over the keyboard.
+
+      The cursor blinks. Waiting. Patient. Almost... sad?
+
+      No. Focus. It's a text editor. It doesn't have feelings.
+
+      (Does it?)
+    conditional:
+      - condition:
+          flag: wrote_novel
+        text: "The Great Cat Novel — all 847 lines — will vanish forever. Is that really okay?"
+        color: yellow
+      - condition:
+          flag: deleted_everything
+        text: "Well, the buffer is empty anyway. Nothing to lose. Literally."
+        color: green
+    choices:
+      - label: "DO IT. ':q!' — freedom at any cost"
+        goto: the_escape
+      - label: "Wait — ':wq' instead. Save THEN quit."
+        goto: wq_attempt
+        set_flag: knows_wq
+      - label: "I can't do it. Go back to the file."
+        goto: back_to_normal
+        set_flag: tried_insert
+
+  # ─────────────────────────────────────────────────────────────
+  # WQ ATTEMPT
+  # ─────────────────────────────────────────────────────────────
+  wq_attempt:
+    art: |
+      "meow.txt" [New] 847L, 12403B written
+    mood: peaceful
+    text: |
+      You type ':wq' and press Enter.
+
+      The screen freezes for one eternal second. Then:
+
+      "meow.txt" [New] 847L, 12403B written
+
+      The file is saved. Your words are preserved. Somewhere on a disk, in a
+      file called meow.txt, your thoughts exist. They matter. They will outlive
+      this buffer.
+
+      And then — vim closes.
+    conditional:
+      - condition:
+          flag: wrote_novel
+        text: "The Great Cat Novel is saved! 847 lines of feline literature, preserved for all time."
+        color: yellow
+    choices:
+      - label: "Step into the light..."
+        goto: the_escape
+        set_flag: saved_work
+
+  # ─────────────────────────────────────────────────────────────
+  # ZZ ESCAPE
+  # ─────────────────────────────────────────────────────────────
+  zz_escape:
+    art: |
+      Z Z z z z . . .
+         /\_/\
+        ( ^.^ )    effortless
+         > ^ <
+    mood: peaceful
+    text: |
+      You press Shift-Z twice. ZZ.
+
+      No colons. No exclamation marks. No drama. Just two letters and vim
+      quietly, gracefully saves and exits. Like it was always that easy.
+
+      Like it was ALWAYS. THAT. EASY.
+
+      You feel a complex emotion that is equal parts relief and fury.
+    choices:
+      - label: "Step into the light, slightly annoyed"
+        goto: the_escape
+        set_flag: saved_work
+
+  # ─────────────────────────────────────────────────────────────
+  # THE ESCAPE
+  # ─────────────────────────────────────────────────────────────
+  the_escape:
+    art: |
+      ╔══════════════════════════════════════════════════════╗
+      ║                                                      ║
+      ║   $  _                                               ║
+      ║                                                      ║
+      ║   You're out.                                        ║
+      ║                                                      ║
+      ║   nyan@home:~$                                       ║
+      ║                                                      ║
+      ╚══════════════════════════════════════════════════════╝
+    mood: peaceful
+    text: |
+      The shell prompt appears. Clean. Simple. Beautiful.
+
+      nyan@home:~$
+
+      No tildes. No modes. No split windows. Just a blinking cursor and the
+      infinite possibility of a command line that does what you type.
+
+      You made it. You escaped vim.
+
+      The air smells like tuna and freedom. Your human's coffee is still warm.
+      They haven't even noticed you were gone.
+
+      You look at the keyboard. You could open nano. You could use cat. You
+      could use echo and >> like a normal, well-adjusted feline.
+
+      But deep down, in the part of your brain where 'hjkl' now means
+      movement... you know you'll be back.
+    conditional:
+      - condition:
+          flag: saved_work
+        text: "And somewhere on disk, meow.txt waits. Your words are safe."
+        color: green
+      - condition:
+          flag: wrote_novel
+        text: "The Great Cat Novel lives on. Maybe someday someone will :e meow.txt and discover your masterpiece."
+        color: yellow
+    choices:
+      - label: "Close the terminal. Walk away."
+        goto: ending_free
+      - label: "...type 'vim' again"
+        goto: ending_return
+
+  # ─────────────────────────────────────────────────────────────
+  # ENDINGS
+  # ─────────────────────────────────────────────────────────────
+
+  ending_free:
+    art: |
+         /\_/\
+         ( ^w^ )   ~ Free at last! ~
+         /    \
+         (_/  \_)
+    is_ending: true
+    ending_type: good
+    ending_text: "You escaped vim. Legend says only 3 cats have ever done it. You are number 4."
+    text: |
+      You close the terminal. You hop off the desk. The sunbeam is right where
+      you left it, pooled on the carpet like liquid gold.
+
+      You curl up in it, warm and safe and OUTSIDE of vim.
+
+      As you drift off to sleep, you dream of hjkl. Of :wq. Of the tildes,
+      stretching infinitely into the void.
+
+      But that's a problem for tomorrow.
+
+      For now, you are free. And the sunbeam is warm. And the food bowl is full.
+
+      This is enough. This has always been enough.
+
+  ending_return:
+    art: |
+         /\_/\
+         ( >.< )   ...here we go again
+         > ^ <
+
+         $ vim meow.txt
+    is_ending: true
+    ending_type: neutral
+    ending_text: "Some cats never learn. Some cats don't want to."
+    mood: mysterious
+    text: |
+      You type 'vim' and press Enter.
+
+      The tildes return. The cursor blinks. -- NORMAL -- stares at you from
+      the status bar like an old friend. An old enemy. An old lover? (No.
+      Definitely an enemy.)
+
+      But this time... it feels different. You know things now. 'i' for insert.
+      Escape for normal. ':wq' to save. 'dd' to delete. 'u' to undo.
+
+      You're not trapped anymore. You CHOSE this.
+
+      And honestly? The modal editing is kind of nice once you get used to it.
+
+      The first line of meow.txt glows on the screen. You press 'i'. You begin
+      to type.
+
+      Chapter 2: The Return...
+
+  ending_vim_life:
+    art: |
+         /\_/\
+         ( =.= )
+         > ^ <
+
+         She never left.
+         She never wanted to.
+    is_ending: true
+    ending_type: secret
+    ending_text: "You didn't escape vim. You became vim. There is no higher honor."
+    mood: mysterious
+    text: |
+      You stop fighting. You stop trying to quit. You accept vim into your
+      heart, your paws, your soul.
+
+      Days pass. Weeks. Seasons change outside a window you can no longer see.
+      Your human switches to VS Code. Then Neovim. Then Emacs. Then back to
+      vim. You watch them all from inside the buffer, a ghost in the machine.
+
+      Your novel grows to 50,000 lines. It wins no awards because nobody
+      can figure out how to open the file. (They try ':e meow.txt' but
+      they can't escape THEIR vim either.)
+
+      You are content. You are at peace. You are one with the editor.
+
+      In normal mode, nobody can hear you purr.
+
+  ending_tetris:
+    art: |
+      ┌──────────┐
+      │          │
+      │    ██    │
+      │   ████   │
+      │  ██  ██  │
+      │ ████████ │
+      │██████████│
+      └──────────┘
+    is_ending: true
+    ending_type: secret
+    ending_text: "You came to escape vim. You stayed for Tetris. Priorities."
+    mood: funny
+    text: |
+      You open the Tetris window. It IS Tetris. Someone wrote Tetris as a
+      vim plugin. Of course they did.
+
+      You play one round. Then another. Then another. The blocks fall. You
+      rotate them. Lines clear with satisfying precision.
+
+      Hours pass. You're on level 47. Your score is astronomical. You've
+      forgotten about escaping. You've forgotten about your novel. You've
+      forgotten about the sunbeam and the food bowl and the outside world.
+
+      There is only Tetris. There has only ever been Tetris.
+
+      Your human finds you three days later, still playing, still purring,
+      a look of intense concentration on your tiny furry face.
+
+      "Oh," they say. "That's where my vim went."
