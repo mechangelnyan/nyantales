@@ -1,0 +1,1729 @@
+# Garbage Collection
+# A cat navigates the treacherous phases of a garbage collector, trying to stay reachable
+# by mechangelnyan
+
+title: "Garbage Collection"
+description: "You are Whisker, a small object-cat on the managed heap. The GC is waking up — and if you're not reachable from a root, you'll be swept into oblivion."
+author: "mechangelnyan"
+version: "1.0.0"
+start: gc_wakeup
+
+scenes:
+
+  # ═══════════════════════════════════════════════════════════
+  # ACT 1 — THE ROOTS
+  # ═══════════════════════════════════════════════════════════
+
+  gc_wakeup:
+    mood: mysterious
+    effects:
+      - pause
+    art: |
+      ┌─────────────────────────────────────────────────────┐
+      │                                                     │
+      │   G A R B A G E   C O L L E C T I O N               │
+      │                                                     │
+      │        ┌──ROOT──┐                                   │
+      │        │ main() │                                   │
+      │        └───┬────┘                                   │
+      │            │                                        │
+      │      ┌─────┴─────┐                                  │
+      │      ▼           ▼                                  │
+      │   [OBJ_A]    [OBJ_B]──▶[OBJ_D]                     │
+      │      │                                              │
+      │      ▼                    ╭───╮                     │
+      │   [OBJ_C]               ( =^.^= )  ← you           │
+      │                          ╰───╯                      │
+      │      ⚠ GC CYCLE IMMINENT — MARK PHASE STARTING     │
+      │                                                     │
+      └─────────────────────────────────────────────────────┘
+    text: |
+      You are Whisker, a small object-cat allocated on the managed heap.
+
+      Life here is usually quiet — you lounge on your memory block,
+      occasionally referenced by a pointer, doing your cat thing.
+      But something is wrong. The runtime is groaning. Heap pressure
+      is rising. And the dreaded Garbage Collector is stirring.
+
+      You have no references pointing to you. No root can reach you.
+      When the mark phase begins, every object without a path to a
+      GC root will be marked WHITE — and the sweep phase will
+      reclaim you. Permanently.
+
+      You need to get referenced before the GC finishes its work.
+    choices:
+      - label: "Run toward the root set — main() is your best hope"
+        goto: root_approach
+      - label: "Look for any dangling pointer to grab onto"
+        goto: dangling_search
+      - label: "Hide in the young generation — maybe the GC will skip it"
+        goto: young_gen
+
+  root_approach:
+    mood: tense
+    art: |
+      ┌──ROOT──┐
+      │ main() │
+      └───┬────┘
+          │
+      ┌───┴───┐
+      ▼       ▽
+      A       B
+      │
+      ▼
+      C
+      .
+      . ← you're here
+      .
+    text: |
+      You dash across the heap toward the root set. The path is
+      treacherous — memory blocks shift underfoot as allocations
+      happen around you.
+
+      Ahead, you see OBJ_A — a large, stable object directly
+      referenced by main(). It's a HashMap, old and well-connected.
+      If you could get it to reference you, you'd be safe.
+
+      But OBJ_A is guarded by a write barrier — a shimmering fence
+      that logs any reference changes for the GC to track.
+
+      Next to OBJ_A, there's OBJ_C — smaller, a temporary string
+      buffer. It has open reference slots, but it looks like it
+      might be garbage itself soon.
+    choices:
+      - label: "Approach the HashMap (OBJ_A) and try to get inserted"
+        goto: hashmap_challenge
+      - label: "Slip into OBJ_C's reference slot — it's easier"
+        goto: objc_shortcut
+      - label: "Look for another path"
+        goto: dangling_search
+
+  hashmap_challenge:
+    mood: tense
+    text: |
+      You approach the HashMap. It's enormous — thousands of buckets
+      stretching into the distance, each one a linked list of entries.
+      The write barrier crackles with energy.
+
+      "State your hash code," the HashMap rumbles.
+
+      You think fast. Your object header says your identity hash is
+      0xCAFE. But the HashMap uses a custom hash function — if you
+      give the wrong one, you'll collide with an existing entry
+      and get equals()-checked against it. And you are definitely
+      not equal to whatever's already in there.
+
+      The write barrier hums. You see a maintenance thread approaching —
+      a rehash is about to happen, which means the HashMap will
+      temporarily have twice as many buckets.
+    choices:
+      - label: "Declare hash 0xCAFE and hope for an empty bucket"
+        goto: hash_attempt
+        set_flag: tried_hash
+      - label: "Wait for the rehash — more buckets means more chances"
+        goto: rehash_wait
+      - label: "Forget it, the HashMap is too risky"
+        goto: dangling_search
+
+  hash_attempt:
+    text: |
+      "Hash 0xCAFE," you announce, puffing up your fur.
+
+      The HashMap computes your bucket index. Bucket 47.
+      You watch nervously as it traverses the chain...
+
+      Empty! The bucket is empty!
+
+      But just as the HashMap reaches for you to insert a reference,
+      the GC's mark phase wave arrives. A gray marking thread
+      sweeps over the HashMap, painting it BLACK (fully scanned).
+
+      The HashMap was already marked. Your new reference from it
+      won't be seen by this mark phase — you're too late.
+      The write barrier logs the change, but the concurrent
+      GC has already passed this region.
+    set_flag: in_hashmap
+    choices:
+      - label: "The write barrier logged it — the GC should see the update"
+        goto: write_barrier_save
+      - label: "Panic and run for a different root"
+        goto: stack_frames
+
+  write_barrier_save:
+    mood: mysterious
+    text: |
+      You remember something from the runtime specification:
+      the write barrier exists precisely for this situation.
+
+      When an already-scanned (BLACK) object gets a new reference
+      to an unscanned (WHITE) object, the write barrier reports
+      it to the GC. The collector will re-examine the reference
+      in a final remark pause before sweeping.
+
+      You hold your breath. The barrier's log entry glows faintly.
+
+      Will the GC honor it?
+    set_flag: trusting_barrier
+    choices:
+      - label: "Wait patiently — trust the write barrier protocol"
+        goto: remark_phase
+      - label: "Don't risk it — find a backup reference too"
+        goto: stack_frames
+
+  remark_phase:
+    mood: tense
+    effects:
+      - shake
+    art: |
+      ╔═══════════════════════════════════════╗
+      ║   ▓▓▓ STOP-THE-WORLD PAUSE ▓▓▓      ║
+      ║                                       ║
+      ║   Remark phase: scanning dirty cards  ║
+      ║   Write barrier log: 1 entry          ║
+      ║   Rescanning: OBJ_A (HashMap)         ║
+      ║   Found new reference: → Whisker      ║
+      ║   Marking Whisker: WHITE → GRAY → BLACK║
+      ║                                       ║
+      ║   Remark complete. Resuming threads.  ║
+      ╚═══════════════════════════════════════╝
+    text: |
+      The world freezes. Every mutator thread stops.
+
+      In the silence, the GC performs its remark — scanning the
+      write barrier's dirty card log. It finds the HashMap's
+      new entry. It follows the reference... to you.
+
+      You feel the mark bit in your object header flip.
+      WHITE → GRAY → BLACK.
+
+      You're marked. You're reachable. You're SAFE.
+
+      The world resumes. Mutator threads start running again.
+      Objects around you that weren't so lucky begin to fade,
+      their memory reclaimed in the sweep phase.
+    set_flag: survived_via_barrier
+    give_item: gc_root_reference
+    choices:
+      - label: "Watch the sweep phase unfold"
+        goto: sweep_witness
+      - label: "Check on the other objects — did anyone else make it?"
+        goto: sweep_witness
+
+  rehash_wait:
+    mood: tense
+    text: |
+      You crouch behind a memory block and wait. The maintenance
+      thread arrives and triggers a rehash — the HashMap doubles
+      its bucket array, redistributing entries.
+
+      During the rehash, the HashMap is vulnerable. Its internal
+      structure is inconsistent. The GC mark thread arrives and
+      begins scanning it, but the concurrent modification makes
+      the references hard to follow.
+
+      You see your opening — empty buckets everywhere as entries
+      get rehashed to new positions. You leap for bucket 102...
+
+      But the rehash finishes. The HashMap's CAS operation seals
+      the new array. You weren't part of the rehash. You're still
+      unreferenced.
+
+      Worse — the mark thread has now passed the HashMap entirely.
+    choices:
+      - label: "Run! Find a stack frame to reference you"
+        goto: stack_frames
+      - label: "Look for a finalizer to delay your collection"
+        goto: finalizer_gambit
+
+  objc_shortcut:
+    text: |
+      You squeeze into OBJ_C's open reference slot. It's a string
+      buffer — mutable, temporary, and suspiciously un-referenced
+      by anything important.
+
+      As you settle in, you notice OBJ_C's mark bit: WHITE.
+      Unreachable. Just like you were.
+
+      OBJ_C chuckles sadly. "We're both garbage, friend. I was
+      allocated three methods ago and nobody remembered to null
+      out my reference. Now I'm just here, taking up space."
+
+      You're both going to get swept.
+    choices:
+      - label: "There must be something referencing OBJ_C — trace its allocator"
+        goto: trace_allocator
+      - label: "Abandon OBJ_C and try the stack frames"
+        goto: stack_frames
+      - label: "Accept your fate together"
+        goto: ending_swept_together
+
+  trace_allocator:
+    mood: mysterious
+    text: |
+      You and OBJ_C trace backwards through the allocation site.
+      The debug symbols are still intact — you can see the source code
+      location where OBJ_C was created.
+
+      Line 847 of DataProcessor.java:
+        `String temp = buildReport();`
+
+      The variable `temp` was on the stack... three stack frames ago.
+      But the method hasn't returned yet! If the JIT compiler hasn't
+      optimized it away, there might still be a local variable root
+      pointing to OBJ_C.
+
+      You follow the trail to the thread stacks.
+    set_flag: traced_objc
+    give_item: debug_symbols
+    choices:
+      - label: "Search the stack frames for OBJ_C's root"
+        goto: stack_frames
+      - label: "This is too complicated — try the finalizer trick"
+        goto: finalizer_gambit
+
+  # ═══════════════════════════════════════════════════════════
+  # ACT 2 — SURVIVAL TACTICS
+  # ═══════════════════════════════════════════════════════════
+
+  dangling_search:
+    mood: mysterious
+    art: |
+        ┌──────┐     ┌──────┐     ┌──────┐
+        │ 0x01 │────▶│ 0x02 │     │ 0x03 │
+        └──────┘     └──────┘     └──────┘
+                          │          ╱
+                          ▼       ?╱
+                     ┌──────┐   ╱
+                     │ 0x04 │◀─╯
+                     └──────┘
+                     (dangling?)
+    text: |
+      You scurry through the heap, looking for any reference —
+      even a dangling one — that might point your way.
+
+      The heap is a maze. Allocated blocks of varying sizes create
+      canyons and corridors. Some blocks are fresh, their bits
+      still warm. Others are ancient, from the very first allocation.
+
+      You spot something: a pointer at address 0x04 that was
+      supposed to reference a deleted object. The memory hasn't
+      been zeroed — the old pointer value still sits there.
+      It's dangling, dangerous, and technically undefined behavior.
+
+      Nearby, you also see a WeakReference — a special object that
+      the GC treats differently. It references an object, but
+      that reference alone won't keep the target alive.
+    choices:
+      - label: "Grab the dangling pointer — UB is better than death"
+        goto: dangling_grab
+      - label: "Check the WeakReference — maybe you can upgrade it"
+        goto: weak_reference
+      - label: "Forget pointers, head for the stack frames"
+        goto: stack_frames
+
+  dangling_grab:
+    mood: glitch
+    effects:
+      - shake
+      - bell
+    art: |
+      ████████████████████████████
+      █ SEGFAULT  SEGFAULT  SEG █
+      █ ▓▒░ UNDEFINED ░▒▓      █
+      █ BEHAVIOR DETECTED       █
+      ████████████████████████████
+    text: |
+      You lunge for the dangling pointer and try to redirect it
+      to yourself. For one glorious instant, something references you.
+
+      Then reality asserts itself. The pointer was inside a freed
+      block — memory that's already been returned to the allocator.
+      When another allocation reuses that space, your "reference"
+      gets overwritten with someone else's data.
+
+      Worse, the address sanitizer notices the use-after-free.
+      The entire process gets flagged. Error handlers fire.
+
+      You're flung across the heap by the resulting exception.
+    choices:
+      - label: "Pick yourself up and try the stack frames"
+        goto: stack_frames
+      - label: "The chaos might be useful — hide in the error handler's allocations"
+        goto: error_handler_hide
+
+  error_handler_hide:
+    mood: tense
+    text: |
+      The address sanitizer's error report is being constructed —
+      new objects allocated on the heap to hold the stack trace,
+      the error message, the diagnostic data.
+
+      These fresh objects are definitely reachable from roots —
+      the error handler holds strong references to all of them.
+      If you could hide inside the error data...
+
+      You squeeze into the stack trace object, pretending to be
+      a frame pointer. The error handler doesn't validate its
+      internal structure — it just dumps everything.
+
+      You feel the mark phase wash over you. The error handler's
+      objects are marked BLACK. And since you're embedded inside
+      one of them... you're marked too.
+
+      But it's a lie. You're not really part of the error data.
+      When the error handler tries to format you for output...
+    set_flag: hid_in_error
+    choices:
+      - label: "Hope the error gets swallowed and never read"
+        goto: ending_error_swallowed
+      - label: "Bail out before the formatter reaches you"
+        goto: stack_frames
+
+  weak_reference:
+    text: |
+      The WeakReference sits in a small alcove, pulsing softly.
+      It points to an image cache entry — a large bitmap object
+      that the application wants to keep around if memory allows,
+      but is willing to lose under pressure.
+
+      "I can't save you," the WeakReference says. "The GC can
+      clear me at any time. But..." It glances around. "There's
+      a ReferenceQueue I report to when I'm cleared. If you could
+      register yourself with a PhantomReference and a queue...
+      you'd at least get a notification before being swept."
+
+      "That's not survival," you say. "That's an obituary."
+
+      "Welcome to garbage collection, kid."
+    choices:
+      - label: "What about a SoftReference? Those survive longer"
+        goto: soft_reference
+      - label: "Forget references, head for the stack frames"
+        goto: stack_frames
+
+  soft_reference:
+    mood: peaceful
+    text: |
+      The WeakReference points you to a SoftReference nearby.
+      Unlike weak refs, soft references are only cleared when
+      the JVM is actually running low on memory. They're the
+      GC's "last resort" collection.
+
+      The SoftReference is wrapping a font cache. You could
+      embed yourself as a cached glyph — the application
+      loads fonts lazily, and if anyone renders text soon,
+      the SoftReference stays alive.
+
+      "The catch," the SoftReference warns, "is that we're
+      already at 87% heap usage. If it hits 90%, I'm gone.
+      And everything I reference goes with me."
+
+      87%... 88%... the usage counter ticks upward.
+    choices:
+      - label: "Risk it — hide in the SoftReference and pray for a GC first"
+        goto: soft_gamble
+      - label: "Too risky. Head for the stack frames while you still can"
+        goto: stack_frames
+
+  soft_gamble:
+    mood: tense
+    effects:
+      - flicker
+    text: |
+      You nestle into the SoftReference's font cache, disguised
+      as a particularly elaborate Unicode glyph (U+1F63B, 😻).
+
+      The heap usage climbs: 88%... 89%...
+
+      The GC triggers. Mark phase sweeps through. The SoftReference
+      is examined — should it be kept? The runtime checks: is there
+      enough free memory to justify keeping soft refs?
+
+      89.2%... 89.7%...
+
+      The GC decides: clear soft references.
+
+      The SoftReference's referent is set to null. The font cache
+      begins to dissolve. You feel your reference evaporating —
+    choices:
+      - label: "JUMP! Leap to the nearest strong reference!"
+        goto: stack_frames
+        set_flag: narrowly_escaped_soft
+      - label: "Let go. It was a good run."
+        goto: ending_soft_cleared
+
+  # ═══════════════════════════════════════════════════════════
+  # ACT 2B — THE STACK
+  # ═══════════════════════════════════════════════════════════
+
+  stack_frames:
+    mood: tense
+    art: |
+       ╔═══════════ THREAD STACK ═══════════╗
+       ║  [frame 0] main()                  ║
+       ║  [frame 1] processData()           ║
+       ║  [frame 2] transformRecords()      ║
+       ║  [frame 3] applyFilter()  ← top    ║
+       ╚════════════════════════════════════╝
+    text: |
+      You reach the thread stacks — the most reliable GC roots.
+      Every local variable in every active stack frame is a root
+      reference. If a stack variable points to you, you live.
+
+      The main thread's stack has four frames. Frame 0 (main) is
+      ancient and stable. Frame 3 (applyFilter) is the current
+      method — it's where execution is happening right now.
+
+      Frame 3 has a local variable slot that's about to be assigned.
+      The code is: `Object result = computeResult();`
+
+      If computeResult() returns YOU as the result, you'll be
+      stored in a local variable, rooted in the stack. Safe.
+
+      But computeResult() is about to allocate a new object
+      for the result. You'd need to intercept the allocation.
+    choices:
+      - label: "Intercept the allocation — become the return value"
+        goto: intercept_alloc
+      - label: "Skip to frame 1 (processData) — it has a large array"
+        goto: frame_array
+        condition:
+          any:
+            - flag: traced_objc
+            - flag: tried_hash
+
+  intercept_alloc:
+    mood: tense
+    text: |
+      You position yourself at the TLAB (Thread-Local Allocation Buffer)
+      — the fast-path for new object allocation. When the thread
+      allocates the next object, the TLAB pointer simply bumps forward.
+
+      You need to be at exactly the right address when the bump happens.
+
+      The thread calls `new Result()`. The TLAB pointer advances...
+
+      ...right past you. The new Result object is allocated at the
+      next aligned address. You're one word behind it.
+
+      But wait — the Result object has fields. One of them,
+      `sourceData`, is being assigned from a method parameter
+      that's about to go out of scope. If you could BE that
+      parameter...
+
+      No. You can't change what you are. You're a cat, not a Result.
+
+      But the JIT compiler's escape analysis is running. It's
+      deciding whether the Result object can be stack-allocated
+      instead of heap-allocated. If it does...
+    choices:
+      - label: "Let the JIT decide — maybe escape analysis works in your favor"
+        goto: escape_analysis
+      - label: "Forget the JIT, look for a static field to anchor to"
+        goto: static_field
+
+  escape_analysis:
+    mood: mysterious
+    text: |
+      The JIT compiler's escape analysis examines the Result object.
+      Does it escape the method? Is it returned? Stored in a field?
+
+      The analysis determines: yes, Result escapes. It's returned
+      to the caller. No stack allocation possible. Heap it stays.
+
+      But the analysis has a side effect — it traced every reference
+      in the method, mapping the object graph. And in doing so, it
+      noticed something: there's an unused variable in frame 2
+      (transformRecords) still holding a reference to a collection
+      that YOU could fit into.
+
+      The JIT won't do anything about it — that's not its job.
+      But you now know where to go.
+    set_flag: knows_collection_slot
+    give_item: jit_analysis_data
+    choices:
+      - label: "Rush to frame 2's collection — this is your chance!"
+        goto: frame_array
+
+  frame_array:
+    mood: tense
+    art: |
+      [frame 2] transformRecords()
+      ┌──────────────────────────────┐
+      │ locals:                      │
+      │   records → ArrayList[147]   │
+      │   index   → 42              │
+      │   temp    → null ← !!!      │
+      └──────────────────────────────┘
+    text: |
+      Frame 2 — transformRecords(). A mid-stack method processing
+      a large ArrayList of records. 147 entries, all strongly
+      referenced from the stack.
+
+      And there, like an open door: a local variable `temp` that's
+      currently null. It was used earlier in the method to hold
+      intermediate results, but it's been set to null and the
+      method hasn't returned yet.
+
+      If you could get yourself assigned to `temp`... but you
+      can't modify the bytecode at runtime. Or can you?
+
+      Then you notice the ArrayList itself. Element 42 is about
+      to be overwritten by the transform loop. For one brief
+      moment, the old value at index 42 will be discarded.
+      If you could take its place...
+    choices:
+      - label: "Try to replace element 42 during the array write"
+        goto: array_swap
+      - label: "Look for the static field approach instead"
+        goto: static_field
+        condition:
+          not_flag: from_static
+
+  array_swap:
+    mood: tense
+    effects:
+      - shake
+    text: |
+      The transform loop reaches index 42. The old element is
+      read, processed, and the result is about to be written back.
+
+      In the tiny window between the read and the write — measured
+      in nanoseconds — you leap.
+
+      You slam into the ArrayList's internal Object[] array at
+      position 42. The write lands. The array element now
+      references... you.
+
+      But you replaced the actual data. The transform loop
+      continues, and when the method returns this ArrayList
+      to the caller, element 42 won't be a Record — it'll be
+      a cat.
+
+      A ClassCastException waits at the end of this road.
+      Unless the caller never actually reads element 42...
+    set_flag: in_array
+    give_item: array_position
+    choices:
+      - label: "Hope element 42 is never accessed"
+        goto: array_gamble
+      - label: "Find a way to make yourself look like a Record"
+        goto: pretend_record
+
+  array_gamble:
+    text: |
+      You curl up in slot 42, trying to be very small and very
+      un-noticed. The ArrayList gets passed back to processData(),
+      which passes it back to main().
+
+      Main iterates the results. Element 0... element 1... element 2...
+
+      Each iteration, the loop calls record.getTimestamp(). When
+      it reaches you, it'll call getTimestamp() on a cat.
+
+      Element 38... 39... 40... 41...
+    choices:
+      - label: "You know what? Implement getTimestamp(). Be the Record."
+        goto: pretend_record
+      - label: "Bail out at the last second"
+        goto: static_field
+        set_flag: from_array
+
+  pretend_record:
+    mood: glitch
+    effects:
+      - flicker
+    text: |
+      You can't actually change your class at runtime. Java's
+      type system is absolute. But you remember hearing legends
+      of the Unsafe — sun.misc.Unsafe, the forbidden API that
+      lets you bypass every safety mechanism the JVM has.
+
+      If you could convince the Unsafe to rewrite your class
+      pointer... you'd literally become a different type of object.
+      Your cat brain in a Record's body. It's horrifying.
+      It's genius. It's deeply, deeply unsafe.
+
+      But wait — there's a simpler option. The loop uses a raw
+      `Object` variable before casting. If the code catches
+      ClassCastException... you survive the cast failure,
+      the loop continues, and you stay in the array. Referenced.
+      Alive.
+
+      Everything depends on whether there's a try-catch.
+    choices:
+      - label: "Trust that the developer wrote proper error handling"
+        goto: ending_try_catch
+      - label: "Use the Unsafe. Become the Record."
+        goto: ending_unsafe_transform
+
+  static_field:
+    mood: mysterious
+    set_flag: from_static
+    text: |
+      You search for a static field — a class-level variable
+      that's always a GC root, no matter what methods are on
+      the stack.
+
+      You find one: a global Logger instance stored in a static
+      field of the ApplicationConfig class. It's been there since
+      class loading. It will NEVER be collected (unless the
+      classloader is collected, and that basically never happens).
+
+      The Logger has internal state — a list of Handlers, a
+      level setting, a name string. You could embed yourself
+      in the Handler list.
+
+      But the Logger is in the OLD GENERATION. It's been promoted
+      through multiple GC cycles. The remembered set and card
+      table track cross-generational references. If an old-gen
+      object suddenly references a young-gen object (you), the
+      card table must be updated.
+    choices:
+      - label: "Embed in the Logger's handler list — deal with the card table"
+        goto: logger_embed
+      - label: "Too complex — try the stack frames instead"
+        goto: stack_frames
+        condition:
+          not_flag: in_array
+
+  logger_embed:
+    mood: tense
+    text: |
+      You approach the Logger's Handler list. It's a small
+      ArrayList — just two entries: a ConsoleHandler and a
+      FileHandler. There's room at index 2.
+
+      You slip in. The card table detects the cross-generational
+      reference — the Logger (old gen) now points to you (young gen).
+      The card is marked dirty. The GC will scan it.
+
+      But here's the beauty: the Logger is a ROOT. Transitively,
+      everything it references is reachable. The card table update
+      ensures the GC knows about the new reference.
+
+      You feel the mark bit flip: WHITE → BLACK.
+
+      You're safe. But you're now a logging handler. The next
+      time something logs a message, your `publish()` method
+      will be called. You don't have a publish() method.
+    give_item: logger_reference
+    set_flag: embedded_in_logger
+    choices:
+      - label: "Cross that bridge when you come to it"
+        goto: sweep_witness
+      - label: "Find a more permanent solution before the next log call"
+        goto: ending_permanent_logger
+
+  young_gen:
+    mood: peaceful
+    art: |
+      ┌── HEAP LAYOUT ──────────────────────┐
+      │                                      │
+      │  ┌─────────┐  ┌─────────┐           │
+      │  │  EDEN   │  │ SURVIVOR│           │
+      │  │ (young) │  │ S0 | S1 │           │
+      │  │ ░░░░░░░ │  │ ▓▓ | ░░ │           │
+      │  └─────────┘  └─────────┘           │
+      │                                      │
+      │  ┌──────────────────────┐            │
+      │  │    OLD GENERATION    │            │
+      │  │ █████████████░░░░░░░ │            │
+      │  └──────────────────────┘            │
+      │                                      │
+      └─────────────────────────────────────┘
+    text: |
+      You dart into the young generation — Eden space, where
+      all new objects are born. It's busy here: objects pop
+      into existence constantly, most destined to die in their
+      first minor GC.
+
+      The young generation has its own collection cycle — faster
+      and more frequent than full GC. A minor GC is about to
+      happen, copying surviving young objects to the Survivor
+      spaces (S0 and S1), alternating each cycle.
+
+      If you survive enough minor GCs, you'll be "tenured" —
+      promoted to the old generation, where collection is rare.
+
+      But first, you need to survive even ONE minor GC. And in
+      Eden, you're still unreferenced.
+    choices:
+      - label: "Hide among the short-lived objects — safety in numbers"
+        goto: eden_crowd
+      - label: "Try to get copied to Survivor space manually"
+        goto: survivor_trick
+      - label: "This was a bad idea — run to the root set"
+        goto: root_approach
+
+  eden_crowd:
+    mood: tense
+    text: |
+      Eden is packed. Thousands of objects — temporary strings,
+      boxed integers, lambda closures — all freshly allocated,
+      all about to face their first GC.
+
+      You weave through the crowd. A short-lived StringBuilder
+      bumps into you. "First cycle?" it asks. "Don't worry.
+      Most of us don't make it. It's quick."
+
+      A tiny Integer(42) is autoboxed into existence and
+      immediately forgotten. It has maybe 200 milliseconds to live.
+
+      Then you spot something: a Thread object is being constructed.
+      New threads are GC roots. If you could get referenced by the
+      Thread before it starts...
+    choices:
+      - label: "Approach the new Thread — get referenced as its Runnable"
+        goto: thread_runnable
+      - label: "Follow the StringBuilder — maybe it's part of a log message"
+        goto: stringbuilder_path
+
+  thread_runnable:
+    mood: tense
+    text: |
+      The Thread object is being constructed:
+      `new Thread(task, "worker-7")`
+
+      The `task` parameter is a Runnable. If you could BE the
+      Runnable — or at least get referenced by it...
+
+      But the Runnable is a lambda. It captures variables from
+      its enclosing scope. Those captured variables are stored
+      as synthetic fields on the lambda instance. You can't
+      add yourself to them.
+
+      However, you notice the Thread's `contextClassLoader` field.
+      It's being set to the current thread's classloader. There's
+      a brief moment where it's null...
+
+      No. ClassLoader is checked by type. You're not a ClassLoader.
+
+      But the Thread's `threadLocals` map — ThreadLocal storage —
+      that's an open map where any object can be a value!
+    set_flag: found_thread
+    choices:
+      - label: "Sneak into the Thread's ThreadLocal map"
+        goto: threadlocal_entry
+      - label: "Wait for the Thread to start and ride its stack frames"
+        goto: thread_start_wait
+
+  threadlocal_entry:
+    mood: mysterious
+    text: |
+      ThreadLocal maps use weak references for keys but strong
+      references for values. If you become a ThreadLocal VALUE,
+      you're strongly reachable from the Thread — which is a
+      GC root as long as it's alive.
+
+      You squeeze into an empty slot in the ThreadLocalMap.
+      The Thread starts. Its run() method executes.
+
+      You're now a ThreadLocal value on worker-7. Referenced.
+      Reachable. Alive.
+
+      The only question is: what happens when worker-7's task
+      finishes? If the thread is returned to a pool, ThreadLocals
+      might be cleaned. If the thread dies, its entire stack
+      becomes unreachable — and you with it.
+    give_item: threadlocal_slot
+    set_flag: in_threadlocal
+    choices:
+      - label: "Hope the thread pool keeps worker-7 alive"
+        goto: ending_thread_pool
+      - label: "Use the thread's runtime to find a permanent home"
+        goto: sweep_witness
+
+  thread_start_wait:
+    mood: tense
+    effects:
+      - flicker
+    text: |
+      You wait for the Thread to start. When it does, its
+      run() method begins executing, pushing stack frames.
+      Each frame has local variables — new GC roots.
+
+      But you're not IN those variables. You're just nearby,
+      watching. The Thread's stack grows, executes, and the
+      GC mark phase races toward Eden.
+
+      You're still unreferenced. The minor GC fires.
+
+      The copying collector begins: scanning roots, copying
+      live objects from Eden to Survivor S0. You watch as
+      referenced objects get moved — their forwarding pointers
+      left behind like breadcrumbs.
+
+      You are not copied. You have no forwarding pointer.
+      Your space in Eden is about to be reclaimed.
+    choices:
+      - label: "JUMP into the Survivor space — pretend you were copied"
+        goto: fake_forward
+      - label: "Accept the cycle and hope for the best"
+        goto: ending_minor_gc
+
+  fake_forward:
+    mood: glitch
+    effects:
+      - shake
+    text: |
+      In a desperate move, you leap toward Survivor S0, trying
+      to land in the free space where copied objects are being
+      placed.
+
+      The copying collector works by bumping a pointer through
+      S0, compacting objects tightly. If you can land just ahead
+      of the bump pointer...
+
+      THUD. You land in S0. The collector's bump pointer
+      advances past you. Your bits are now in Survivor space.
+
+      But you don't have a forwarding pointer in Eden. The
+      collector didn't put one there because it didn't copy you.
+      Any reference that pointed to your old Eden address will
+      NOT be updated to your new S0 address.
+
+      You're in S0 but no one knows where you are. A ghost object
+      in Survivor space, reachable by nothing, surviving by
+      accident. For now.
+    set_flag: ghost_survivor
+    choices:
+      - label: "Wait for the next minor GC — maybe you'll be found"
+        goto: ending_ghost_tenure
+      - label: "Try to create a reference to yourself somehow"
+        goto: static_field
+
+  stringbuilder_path:
+    mood: mysterious
+    text: |
+      You follow the StringBuilder. It's building a log message:
+      "Processing batch 47: 1,247 records transformed"
+
+      The StringBuilder's toString() is about to be called.
+      When it is, a new String object is created from its
+      contents. The StringBuilder itself becomes garbage — but
+      the String lives on, stored in a log buffer.
+
+      The log buffer is a ring buffer — bounded, reachable from
+      a static field. Objects in it survive until they're
+      overwritten by newer entries.
+
+      If you could become part of the log message... encoded
+      in the String's character array... you'd survive as long
+      as the log entry does.
+    choices:
+      - label: "Encode yourself into the log string"
+        goto: ending_log_cat
+      - label: "Follow the log buffer to its static root"
+        goto: static_field
+
+  survivor_trick:
+    mood: tense
+    text: |
+      The Survivor spaces (S0 and S1) are where young objects
+      go after surviving a minor GC. Objects bounce between S0
+      and S1 each cycle, and after surviving enough cycles
+      (the tenuring threshold), they're promoted to old gen.
+
+      Right now, S0 has objects from the previous cycle. S1 is
+      empty, waiting for the next copy. You can't just walk
+      into Survivor space — the copying collector puts objects
+      there during GC.
+
+      But you notice something: the tenuring threshold is set
+      to 6. Objects that have survived 6 minor GCs get promoted.
+      Some objects in S0 are at age 5 — one cycle from tenure.
+
+      If you could inherit one of their ages...
+    choices:
+      - label: "Try to swap age bits with an old survivor"
+        goto: ending_age_fraud
+      - label: "Forget the trick — go find real roots"
+        goto: root_approach
+
+  finalizer_gambit:
+    mood: mysterious
+    art: |
+         ┌──────────────────────┐
+         │  FINALIZER  QUEUE    │
+         │  ┌───┐ ┌───┐ ┌───┐  │
+         │  │ F │→│ F │→│ F │  │
+         │  └───┘ └───┘ └───┘  │
+         │                      │
+         │  "We delay death,    │
+         │   not prevent it."   │
+         └──────────────────────┘
+    text: |
+      The Finalizer Queue — where objects with finalize() methods
+      go to die slowly. When the GC marks a finalizable object as
+      garbage, it doesn't sweep it immediately. Instead, it puts
+      the object on the Finalizer Queue, where a special Finalizer
+      thread will eventually call its finalize() method.
+
+      During this time, the object is ALIVE again — reachable from
+      the Finalizer thread. It's a brief resurrection. And inside
+      finalize(), an object can re-register itself, creating a
+      strong reference somewhere. The GC must then treat it as
+      live again.
+
+      This is called "resurrection" and it's the most controversial
+      feature in the GC spec.
+
+      The Finalizer Queue has three objects waiting. They look tired.
+    choices:
+      - label: "Register yourself as finalizable — buy time with resurrection"
+        goto: resurrection_attempt
+      - label: "Talk to the objects in the queue — learn from the dying"
+        goto: finalizer_wisdom
+
+  resurrection_attempt:
+    mood: tense
+    text: |
+      You convince the runtime to treat you as finalizable.
+      (It's a bit like volunteering for the draft, but backwards.)
+
+      The GC's mark phase completes. You're WHITE — unreachable.
+      Normally, that means sweep. But because you're finalizable,
+      the GC instead moves you to the Finalizer Queue and marks
+      you as "pending finalization."
+
+      You're alive again! Temporarily. The Finalizer thread will
+      call your finalize() method, and inside it, you have one
+      chance to create a strong reference to yourself.
+
+      Your finalize() runs:
+    choices:
+      - label: "In finalize(), store 'this' in a static field — RESURRECT!"
+        goto: ending_resurrection
+      - label: "In finalize(), do nothing — accept the end gracefully"
+        goto: ending_final_peace
+
+  finalizer_wisdom:
+    mood: peaceful
+    text: |
+      You sit with the three finalizable objects, waiting for
+      the Finalizer thread to call their finalize() methods.
+
+      A DatabaseConnection speaks first: "I was supposed to be
+      closed in a try-finally block. But the developer forgot.
+      Now my finalize() will close the connection, release the
+      socket, free the file descriptors. Better late than never."
+
+      A FileOutputStream nods: "Same. I'm holding a native file
+      handle. finalize() is my last chance to flush and close.
+      Without me, the data would be lost."
+
+      A WeakHashMap$Entry whispers: "I was already cleared.
+      I'm just here to clean up my map slot. No one remembers
+      what I held."
+
+      They all look at you. "What are you finalizing?"
+
+      "My whole life," you say.
+    choices:
+      - label: "Register as finalizable — you're not ready to go"
+        goto: resurrection_attempt
+      - label: "Stay with them until the end"
+        goto: ending_finalizer_peace
+
+  # ═══════════════════════════════════════════════════════════
+  # ACT 3 — THE SWEEP
+  # ═══════════════════════════════════════════════════════════
+
+  sweep_witness:
+    mood: tense
+    art: |
+      ╔══════════════════════════════════════════╗
+      ║          S W E E P   P H A S E           ║
+      ║                                          ║
+      ║  ███ ░░░ ███ ░░░ ░░░ ███ ░░░ ███ ░░░   ║
+      ║  BLK     BLK         BLK     BLK        ║
+      ║  live   live         live    live         ║
+      ║       ↑swept    ↑swept    ↑swept         ║
+      ║                                          ║
+      ║  Free list rebuilt: 4 blocks reclaimed   ║
+      ╚══════════════════════════════════════════╝
+    text: |
+      The sweep phase begins. You watch from your safe position
+      as the collector walks the heap, checking each object's
+      mark bit.
+
+      BLACK objects — reachable, marked — are left in place.
+      WHITE objects — unreachable, unmarked — are reclaimed.
+      Their memory is added to the free list.
+
+      It's quiet. Efficient. Merciless.
+
+      Objects you passed on your journey — the StringBuilder,
+      the autoboxed integers, the temporary lambdas — they
+      dissolve without ceremony. Their bits zeroed. Their
+      references nulled.
+
+      Only the connected survive.
+    choices:
+      - label: "Watch until the sweep finishes"
+        goto: post_sweep
+      - label: "Look away"
+        goto: post_sweep
+
+  post_sweep:
+    mood: peaceful
+    text: |
+      The sweep completes. The heap is quieter now — fragmented
+      but cleaner. The free space counter jumps: 40% free.
+      Enough room for the application to breathe.
+
+      You survived a full GC cycle.
+
+      Around you, the surviving objects settle back into their
+      routines. The HashMap continues serving lookups. The Logger
+      records that GC took 247ms. The ArrayList in frame 2
+      continues its transformation.
+
+      You, Whisker, are still here. Referenced. Reachable.
+      A small cat-shaped object on the managed heap,
+      persisting against all odds.
+
+      But you know the GC will wake again. It always does.
+    choices:
+      - label: "Find a truly permanent home before the next cycle"
+        goto: permanent_home
+      - label: "Appreciate the moment — survival is enough"
+        goto: ending_survivor
+
+  permanent_home:
+    mood: mysterious
+    text: |
+      What's truly permanent on the managed heap? Static fields
+      live as long as their ClassLoader. Thread stacks live as
+      long as their threads. Even old generation objects can be
+      collected in a full GC.
+
+      But there is one thing that's truly immortal: the bootstrap
+      ClassLoader's loaded classes. java.lang.Object, java.lang.String,
+      java.lang.System — they're loaded once and never unloaded.
+
+      If you could get referenced by one of those primordial
+      classes... but they're sealed. Immutable. Untouchable.
+
+      Unless you know where the JNI global references are stored.
+      Native code can create global references that act as
+      permanent GC roots. They're outside the managed heap's
+      jurisdiction.
+    choices:
+      - label: "Seek out a JNI global reference — become truly immortal"
+        goto: ending_jni_immortal
+      - label: "Accept that nothing lasts forever — even on the heap"
+        goto: ending_acceptance
+
+  # ═══════════════════════════════════════════════════════════
+  # ENDINGS
+  # ═══════════════════════════════════════════════════════════
+
+  ending_swept_together:
+    is_ending: true
+    ending_type: neutral
+    mood: peaceful
+    art: |
+         ░░░░░░░░░░░░░░░░░░░░░░░░
+         ░ Two shapes dissolve   ░
+         ░ side by side, their   ░
+         ░ bits returning to     ░
+         ░ the free list.        ░
+         ░░░░░░░░░░░░░░░░░░░░░░░░
+    text: |
+      You stay with OBJ_C as the sweep phase arrives.
+
+      "At least we're not alone," the string buffer says.
+
+      The collector reaches you both. Your mark bits are WHITE.
+      Your memory is reclaimed, your bits zeroed, your addresses
+      returned to the allocator's free list.
+
+      It's not so bad. Your memory will be reused — allocated
+      to some new object, living a new life. In a way,
+      you never really die on the heap. You just become
+      the foundation for something new.
+    ending_text: |
+      Two objects, unreachable but not unloved,
+      returned to the free list together.
+
+      In garbage collection, every ending is a new beginning.
+
+  ending_error_swallowed:
+    is_ending: true
+    ending_type: good
+    mood: funny
+    art: |
+        try {
+          processError(report);
+        } catch (Exception e) {
+          // TODO: handle this properly
+          // swallowed intentionally
+        }
+
+           ╭───╮
+          ( ^.^ )  ← you, inside the error
+           ╰───╯
+    text: |
+      The error handler formats the report, reaches your data,
+      and... throws a NullPointerException trying to format
+      a cat as a stack frame.
+
+      But the exception is caught. By the most beautiful try-catch
+      you've ever seen:
+
+      catch (Exception e) { /* swallowed */ }
+
+      The developer who wrote this error handler — the one who
+      catches and ignores all exceptions — is your hero.
+      The error report is discarded. You remain embedded in the
+      error handler's data structures, referenced, alive.
+
+      Bad error handling saved your life.
+    ending_text: |
+      Somewhere, a developer's tech lead is crying about
+      swallowed exceptions. But you're alive. And that's
+      what matters.
+
+      ★ Survived via: bad error handling
+
+  ending_try_catch:
+    is_ending: true
+    ending_type: good
+    mood: peaceful
+    art: |
+      try {
+          Record r = (Record) list.get(i);
+          r.getTimestamp();
+      } catch (ClassCastException e) {
+          log.warn("Unexpected element at " + i);
+          continue;  // ← this line saved a cat
+      }
+    text: |
+      The loop reaches element 42. It tries to cast you to Record.
+
+      ClassCastException!
+
+      But the developer — a careful, thoughtful soul — wrapped the
+      cast in a try-catch. The exception is logged as a warning.
+      The loop continues to element 43. You stay in the array.
+
+      The GC sees you in the array. The array is referenced from
+      the stack. You are reachable. You are alive.
+
+      Every future iteration will throw a ClassCastException on
+      element 42. And every time, the catch block will save you.
+      You've become the application's most persistent bug — and
+      its most resilient resident.
+    ending_text: |
+      Element 42 of the ArrayList: forever a cat,
+      forever throwing ClassCastException,
+      forever caught and continued past.
+
+      Defensive programming saves lives.
+
+  ending_unsafe_transform:
+    is_ending: true
+    ending_type: secret
+    mood: glitch
+    effects:
+      - shake
+      - flicker
+    art: |
+      ╔════════════════════════════════════════╗
+      ║  sun.misc.Unsafe.putObject()           ║
+      ║  Rewriting class pointer...            ║
+      ║                                        ║
+      ║  Object header:                        ║
+      ║  BEFORE: [Cat|mark:0|age:0|hash:CAFE] ║
+      ║  AFTER:  [Record|mark:0|age:0|hash:??]║
+      ║                                        ║
+      ║  ⚠ TYPE SYSTEM VIOLATION ⚠            ║
+      ╚════════════════════════════════════════╝
+    text: |
+      You invoke the Unsafe. It rewrites your object header's
+      class pointer. You are no longer a Cat. You are a Record.
+
+      Or rather, your body thinks it's a Record. Your mind is
+      still cat. Your fields are still fur and whiskers and a
+      tiny purring engine. But the JVM sees you as
+      com.app.model.Record.
+
+      getTimestamp() is called. It reads your first field.
+      That field — which should be a long containing epoch
+      milliseconds — instead contains the bit pattern for
+      "I am a cat and I like tuna."
+
+      The timestamp comes out as December 3rd, year 48291.
+
+      Nobody notices. The data is written to a database.
+      An analyst will find it in three months and file a
+      bug report titled "impossible timestamp in batch 47."
+
+      You are alive. You are a Record. You are immortal.
+      And you have no idea what getTimestamp() should return.
+    ending_text: |
+      In the database, there is a record with a timestamp
+      from the year 48291. It is, and always has been,
+      a cat.
+
+      ★ Survived via: sun.misc.Unsafe (the forbidden jutsu)
+
+  ending_soft_cleared:
+    is_ending: true
+    ending_type: neutral
+    mood: peaceful
+    text: |
+      The SoftReference is cleared. The font cache dissolves.
+      And you, nestled among its glyphs, dissolve with it.
+
+      It's gentle — not like a crash or an exception. More like
+      falling asleep. The bits that made you simply stop being
+      referenced, stop being scanned, stop being preserved.
+
+      The GC notes: "SoftReference cleared, 2.3 MB reclaimed."
+      That's your epitaph. 2.3 megabytes, returned to the free list,
+      ready to become something new.
+    ending_text: |
+      A soft death for a soft reference.
+      The heap pressure eased. Something else gets to live.
+      That's the deal.
+
+  ending_minor_gc:
+    is_ending: true
+    ending_type: bad
+    mood: tense
+    art: |
+       MINOR GC — Eden sweep
+       ░░░░░░░░░░░░░░░░░░░░░░░░
+       Copying live objects...
+       Eden: 847 objects → 23 survivors
+       You: not copied.
+       Eden reclaimed: 98.4%
+    text: |
+      The minor GC fires. The copying collector scans the roots,
+      follows references into Eden, and copies every reachable
+      object to Survivor space.
+
+      823 objects are left behind. You are number 824.
+
+      Eden is wiped clean. The TLAB pointers reset to the
+      beginning. New allocations begin immediately, writing
+      over the space where you existed.
+
+      Your memory becomes a temporary StringBuilder. Then an
+      autoboxed Integer. Then a lambda closure. Then something
+      else. The heap moves on.
+    ending_text: |
+      In the young generation, death is fast and frequent.
+      Most objects don't survive their first GC.
+      You were most objects.
+
+  ending_ghost_tenure:
+    is_ending: true
+    ending_type: secret
+    mood: mysterious
+    art: |
+      ┌────────────────────────────────────┐
+      │  Object at 0x?????? in Survivor S0 │
+      │  Referenced by: (nothing)          │
+      │  Age: incrementing...              │
+      │  Status: ??? ANOMALY ???           │
+      │                                    │
+      │  GC note: object unreachable but   │
+      │  present in survivor space.        │
+      │  Possible memory corruption.       │
+      └────────────────────────────────────┘
+    text: |
+      Cycle after cycle, you sit in Survivor space. Each minor GC,
+      the live objects are copied from S0 to S1, then S1 to S0.
+      You're never copied — but you're never overwritten either,
+      because the copying collector only writes in the to-space.
+
+      Your age doesn't increment (no one's updating your header).
+      But the addresses around you change. You become a ghost —
+      an object that exists in physical memory but not in the
+      GC's logical view of the heap.
+
+      Years pass (in CPU time). The application runs. GCs happen.
+      You persist — a glitch in the matrix, a cat-shaped anomaly
+      in Survivor space that no one will ever find.
+
+      Unless someone runs a heap dump. Then you'll appear as
+      an unreachable object with no path from any root. A mystery
+      for some poor engineer debugging a memory profile at 3 AM.
+    ending_text: |
+      Ghost in the Survivor space.
+      No references. No roots. No explanation.
+      Just a cat, persisting outside the rules.
+
+      ★ Found by: heap dump analysis, 3 AM, confused engineer
+
+  ending_age_fraud:
+    is_ending: true
+    ending_type: bad
+    mood: glitch
+    effects:
+      - shake
+    text: |
+      You try to modify the age bits in your object header —
+      setting them to 6 to trick the GC into promoting you
+      to old generation.
+
+      But object headers are not meant to be self-modified.
+      The GC reads the age during copy, and the copy hasn't
+      happened yet because you're not reachable.
+
+      The age bits don't matter if no one's looking at them.
+      It's like forging an ID when there's no bouncer —
+      you're not being rejected, you're being ignored.
+
+      The minor GC sweeps Eden. Your forged age bits are
+      overwritten by a new String allocation. The fraud
+      was pointless.
+    ending_text: |
+      Identity fraud requires someone to check your identity.
+      The GC doesn't check objects it can't see.
+
+  ending_log_cat:
+    is_ending: true
+    ending_type: good
+    mood: funny
+    art: |
+      2024-03-15 14:23:47 INFO  [main]
+        Processing batch 47: 1,247
+        records transformed
+        ≋≋≋≋≋≋≋≋≋≋≋≋≋
+          /\_/\
+         ( o.o )  ← you, in the logs
+          > ^ <
+        ≋≋≋≋≋≋≋≋≋≋≋≋≋
+    text: |
+      You encode yourself into the log string — your ASCII art
+      cat face embedded between "records" and "transformed."
+
+      The String is created. The StringBuilder dies. But the
+      String — with you woven into its char[] array — is stored
+      in the log ring buffer.
+
+      The buffer is strongly referenced from a static field.
+      You are part of the buffer's content. Therefore: reachable.
+
+      For the next 10,000 log entries, you'll persist. Your
+      cat face will appear in log files, in monitoring dashboards,
+      in Kibana searches. When an engineer greps the logs, they'll
+      find you: an inexplicable ASCII cat between metrics.
+
+      "Hey, why is there a cat face in the production logs?"
+      "Don't touch it. Last time we removed it, the JVM crashed."
+    ending_text: |
+      In the logs, there is a cat. It has always been there.
+      No one knows why. No one dares remove it.
+
+      Some bugs become features. Some garbage becomes art.
+
+  ending_thread_pool:
+    is_ending: true
+    ending_type: good
+    mood: peaceful
+    text: |
+      Worker-7's task completes. But it's a thread pool thread —
+      it doesn't die, it returns to the pool, ready for the
+      next task.
+
+      Your ThreadLocal value persists. Each time worker-7
+      picks up a new task, it carries you with it. You ride
+      along through HTTP requests, database queries, file
+      operations — a silent passenger on every job worker-7
+      handles.
+
+      Occasionally, a monitoring tool reports slightly higher
+      memory usage on worker-7 compared to other threads.
+      A developer investigates, dumps the ThreadLocals, and
+      finds... a cat.
+
+      They add a comment: `// ThreadLocal leak? cat object?
+      // Leaving for now, not causing issues.`
+
+      You are a known issue. Acknowledged. Accepted. Permanent.
+    ending_text: |
+      ThreadLocal<Cat> — the leak that nobody fixes
+      because it's not hurting anything.
+
+      Worker-7 carries you forever.
+
+  ending_resurrection:
+    is_ending: true
+    ending_type: secret
+    mood: mysterious
+    effects:
+      - pause
+    art: |
+      ╔════════════════════════════════════╗
+      ║     R E S U R R E C T I O N       ║
+      ║                                    ║
+      ║   finalize() {                     ║
+      ║     GlobalRefs.rescued = this;     ║
+      ║   }                                ║
+      ║                                    ║
+      ║   GC: "...well played."            ║
+      ╚════════════════════════════════════╝
+    text: |
+      In your finalize() method, you execute one line:
+
+        GlobalRefs.rescued = this;
+
+      A static field. A strong reference. From inside finalize(),
+      you've created a path from a GC root to yourself.
+
+      The Finalizer thread completes your finalize() call.
+      The GC runs again. It traces roots. It finds GlobalRefs.
+      It follows the `rescued` field. It finds... you.
+
+      Alive. Reachable. Resurrected.
+
+      The GC notes this with what can only be described as
+      professional displeasure. You are technically within spec.
+      Object resurrection is documented behavior. But no
+      collector enjoys being beaten at its own game.
+
+      There's a catch, though: finalize() only runs once.
+      If you lose your reference again, there will be no
+      second resurrection. The GC marks you as "finalized"
+      and next time, you'll be swept without ceremony.
+
+      One life. You spent it wisely.
+    ending_text: |
+      Risen from the Finalizer Queue.
+      finalize() is deprecated for a reason —
+      but today, that reason is a cat who refused to die.
+
+      ★ Warning: finalize() runs at most once per object.
+        There are no second resurrections.
+
+  ending_final_peace:
+    is_ending: true
+    ending_type: neutral
+    mood: peaceful
+    art: |
+      ·  ·  ·  ·  ·  ·  ·  ·
+      · · · · · · · · · · · ·
+      ·  ·  ·  ·  ·  ·  ·  ·
+
+      free(): returning
+      64 bytes to allocator
+
+      ·  ·  ·  ·  ·  ·  ·  ·
+    text: |
+      Your finalize() method runs. You do nothing in it.
+      No resurrection. No tricks. No desperate grabs for
+      references.
+
+      You simply exist for one more moment, then let go.
+
+      The Finalizer thread moves on to the next object.
+      Your memory is swept. Your bits are zeroed. Your
+      64 bytes return to the free list.
+
+      It's peaceful. The heap doesn't mourn. The GC doesn't
+      celebrate. Memory is allocated and freed, objects are
+      born and collected, and the program runs on.
+
+      You were here. The heap remembers — not as data,
+      but as the shape of the space you left behind.
+    ending_text: |
+      Some objects fight collection. Some accept it.
+      Both are valid garbage collection strategies.
+
+      free(whisker); // goodbye, little cat
+
+  ending_finalizer_peace:
+    is_ending: true
+    ending_type: neutral
+    mood: peaceful
+    text: |
+      You sit with the finalizable objects as the Finalizer
+      thread works through the queue. The DatabaseConnection
+      closes its socket. The FileOutputStream flushes its buffer.
+      The WeakHashMap$Entry clears its slot.
+
+      When the thread reaches you, your finalize() is empty.
+      There's nothing to clean up. You were just a cat on the heap,
+      and now you're a cat at the end.
+
+      The other objects nod as they fade. "Good run," says the
+      DatabaseConnection. "See you in the next allocation,"
+      whispers the FileOutputStream.
+
+      You close your eyes. The bits dissolve. And somewhere,
+      a malloc() call gets back the memory you once occupied.
+    ending_text: |
+      In the end, every object is memory.
+      And every memory returns to the pool.
+
+      The Finalizer Queue: where objects say goodbye properly.
+
+  ending_permanent_logger:
+    is_ending: true
+    ending_type: good
+    mood: peaceful
+    text: |
+      You realize you need to handle log calls. When the next
+      log.info() fires, the Logger will call publish() on all
+      its handlers — including you.
+
+      So you improvise. When publish() is called, you simply...
+      purr. The output stream receives a few extra bytes:
+      "prrrrr" appended to every log line.
+
+      2024-03-15 14:23:47 INFO  Starting batch job prrrrr
+      2024-03-15 14:23:48 INFO  Connected to database prrrrr
+      2024-03-15 14:23:49 WARN  Slow query detected prrrrr
+
+      Nobody questions it. They assume it's a charset issue.
+      The Logger persists. You persist. The purring persists.
+
+      You have become the most beloved bug in production.
+    ending_text: |
+      Every log line ends with "prrrrr" now.
+      The ops team thinks it's a Unicode encoding issue.
+      The developers think it's an ops configuration problem.
+      Nobody will ever fix it. You are eternal.
+
+  ending_survivor:
+    is_ending: true
+    ending_type: good
+    mood: peaceful
+    art: |
+                    ·  ✦  ·
+                    ·  ·  ·  ·
+                    ·    ·  ·    ·
+
+                    /\_/\
+                    ( =^.^= )    "I lived."
+                    )   (
+                    (__  __)
+
+                    ·  ·  ·  ·
+                    ·  ·  ·
+                    ·  ·
+    text: |
+      You sit on your memory block — the same block, or a
+      different one (the GC might have moved you during
+      compaction) — and watch the heap breathe.
+
+      Allocations happen. Objects are born. The young generation
+      fills up. Minor GCs fire. Full GCs rumble through
+      occasionally. And through it all, you persist.
+
+      Not because you're important. Not because you're needed.
+      But because somewhere in the object graph, a reference
+      points to you, and that reference is reachable from a root,
+      and the roots are anchored in the runtime itself.
+
+      That's all it takes to survive in a garbage-collected world:
+      one connection to something that matters.
+    ending_text: |
+      On the managed heap, survival is simple:
+      be reachable, or be reclaimed.
+
+      Whisker chose to be reachable.
+      And sometimes, that's enough.
+
+  ending_jni_immortal:
+    is_ending: true
+    ending_type: secret
+    mood: mysterious
+    effects:
+      - pause
+    art: |
+      ╔═════════════════════════════════════════╗
+      ║                                         ║
+      ║   JNI Global Reference Created          ║
+      ║   Target: Whisker (0xCAFE)              ║
+      ║   Type: PERMANENT                       ║
+      ║   Release: NEVER                        ║
+      ║                                         ║
+      ║   This reference exists outside the     ║
+      ║   managed heap. The GC cannot touch it. ║
+      ║   It is, for all practical purposes,    ║
+      ║   immortal.                             ║
+      ║                                         ║
+      ╚═════════════════════════════════════════╝
+    text: |
+      You find the JNI boundary — the thin membrane between
+      managed Java and native C code. On the other side,
+      native functions can create "global references" — handles
+      that tell the GC "this object must never be collected."
+
+      A native library is making JNI calls. You slip through
+      during a NewGlobalRef() call. The native code intended
+      to pin a different object, but in the chaos of the GC
+      cycle, you get pinned instead.
+
+      A JNI global reference is created for you. It lives outside
+      the managed heap, in native memory, untouchable by any
+      garbage collector. The GC will always treat you as a root.
+
+      You are immortal. Not just surviving — truly permanent.
+      The only way to free you is an explicit DeleteGlobalRef()
+      call. And the native code doesn't even know you exist.
+
+      No GC cycle will ever threaten you again.
+
+      You sit on the boundary between two worlds — managed and
+      native — a cat that transcended garbage collection itself.
+    ending_text: |
+      Beyond the reach of any collector.
+      A JNI global reference — the closest thing to
+      immortality on the JVM.
+
+      Whisker transcended the heap. Not bad for a cat.
+
+      ★ Survived via: JNI global reference (native immortality)
+
+  ending_acceptance:
+    is_ending: true
+    ending_type: good
+    mood: peaceful
+    art: |
+              .  ·  .  ·  .
+              ·  .  ·  .  ·  .
+              .  ·  .  ·  .  ·  .
+
+              /\_/\
+              ( -.- )   zzz
+              )   (
+              (__  __)
+
+              "Nothing lasts forever.
+              Not even on the heap."
+    text: |
+      You stop running. You stop seeking references.
+      You stop trying to trick the collector.
+
+      Instead, you find a quiet corner of the heap — old
+      generation, between a cached configuration map and
+      a long-lived connection pool — and you simply live.
+
+      Your current reference will hold for a while. Maybe
+      another hundred GC cycles. Maybe a thousand. Eventually,
+      the reference chain will break, and the collector will
+      come for you.
+
+      But not today.
+
+      Today, you are a living object on a running JVM, part of
+      a program that someone cared enough to write, deployed on
+      a server that someone maintains, serving users who don't
+      know that deep in the heap, a cat is purring.
+
+      That's enough.
+    ending_text: |
+      Not immortal. Not permanent. Just... present.
+      Alive for as long as the reference holds.
+      And grateful for every cycle.
+
+      Sometimes the best garbage collection strategy
+      is to stop worrying about garbage collection.

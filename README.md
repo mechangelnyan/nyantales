@@ -223,6 +223,22 @@ Ride through the TCP stream carrying cipher suites and key shares. Meet Nginx th
 
 **Endings:** Good · Neutral · Bad · Secret · **Scenes:** 34
 
+### 📝 Vim Escape
+
+> *You are Tabby, a cat who accidentally opened vim. Nobody has ever escaped. You might be the first — if you can figure out how to quit.*
+
+Navigate the nightmare of vim modes: accidentally enter insert mode, discover the cryptic command line, resist the siren call of nano, and face the legendary `:wq`. Features modal humor, frustrated keystrokes, and the realization that maybe vim isn't so bad after all.
+
+**Endings:** Good · Neutral · Secret (×2) · **Scenes:** 26
+
+### ♻️ Garbage Collection
+
+> *You are Whisker, a small object-cat on the managed heap. The GC is waking up — and if you're not reachable from a root, you'll be swept into oblivion.*
+
+Race through mark-and-sweep phases, negotiate with a HashMap's write barrier, hide in SoftReferences, infiltrate ThreadLocal storage, attempt object resurrection via finalize(), and seek JNI immortality. Explores real GC concepts: generational collection, card tables, escape analysis, the Finalizer queue, and why `sun.misc.Unsafe` is the forbidden jutsu.
+
+**Endings:** Good (×7) · Bad (×2) · Neutral (×4) · Secret (×4) · **Scenes:** 55
+
 ---
 
 ## Ending Discovery
