@@ -1,0 +1,1131 @@
+title: "SQL Injection"
+description: "A cat falls into a database through a SQL injection hole. Navigate tables, dodge DELETE queries, and find the one INSERT that leads back home."
+author: "mechangelnyan"
+version: "1.0.0"
+start: the_fall
+
+scenes:
+
+  # ─────────────────────────────────────────────────────────────
+  # ACT 1 — INTO THE DATABASE
+  # ─────────────────────────────────────────────────────────────
+
+  the_fall:
+    mood: glitch
+    art: |
+        ┌─────────────────────────────────────────────────────┐
+        │                                                     │
+        │   S Q L   I N J E C T I O N                         │
+        │                                                     │
+        │   "Every table tells a story.                       │
+        │    Every query has consequences."                   │
+        │                                                     │
+        │   ╔═══════════════════════════╗                     │
+        │   ║  ' OR 1=1; --            ║                     │
+        │   ║  ERROR: unexpected cat    ║                     │
+        │   ║  in result set            ║                     │
+        │   ╚═══════════════════════════╝                     │
+        │                                                     │
+        └─────────────────────────────────────────────────────┘
+    text: |
+      You were just an ordinary cat. Paws on keyboard. Tail on spacebar.
+      Your human left their laptop open on a login form and you... walked
+      across it. As cats do.
+
+      Somehow your paws typed exactly the right sequence of characters to
+      create a SQL injection vulnerability. The screen flickered. The world
+      dissolved. And now you're falling through layers of abstraction —
+      past the ORM, past the connection pool, past the query parser —
+      tumbling directly into a live production database.
+
+      You land on something flat and rigid. A row. You're sitting on a row
+      in a table. The columns stretch out in every direction like an
+      infinite spreadsheet of existential dread.
+
+      You are Pixel. You are small, orange, and absolutely not supposed
+      to be here.
+    choices:
+      - label: "SELECT * FROM here — look around"
+        goto: users_table
+      - label: "SHOW TABLES — see what exists"
+        goto: show_tables
+      - label: "Panic"
+        goto: panic
+
+  # ─────────────────────────────────────────────────────────────
+  # PANIC
+  # ─────────────────────────────────────────────────────────────
+
+  panic:
+    art: |
+        /\_/\
+        ( @_@ )  !!!
+        > ~ <
+        /|   |\   SYNTAX ERROR
+        (_|   |_)  IN EMOTIONAL STATE
+    text: |
+      You run in circles on the table row, knocking over a VARCHAR(255) and
+      stepping on a TIMESTAMP. The database engine rumbles disapprovingly.
+
+      A tooltip appears in the air: "ERROR 1045: Unauthorized emotional
+      response. Please contain your feelings to the designated BLOB column."
+
+      You take a breath. The data is cold but stable beneath your paws.
+      You're going to have to think your way out of this.
+    choices:
+      - label: "Okay. SHOW TABLES."
+        goto: show_tables
+      - label: "SELECT * FROM here"
+        goto: users_table
+
+  # ─────────────────────────────────────────────────────────────
+  # SHOW TABLES
+  # ─────────────────────────────────────────────────────────────
+
+  show_tables:
+    location: "pixel@prod_db> SHOW TABLES;"
+    art: |
+        ┌──────────────────────────┐
+        │  Tables_in_prod_db       │
+        ├──────────────────────────┤
+        │  users                   │
+        │  sessions                │
+        │  logs                    │
+        │  secrets                 │
+        │  cat_photos     (!)      │
+        │  _void                   │
+        └──────────────────────────┘
+    text: |
+      Six tables materialize in the air before you like floating monoliths.
+      Each one hums with a different frequency.
+
+      The `users` table is enormous — millions of rows stretching into the
+      darkness. You can hear the hashed passwords whispering.
+
+      The `sessions` table flickers. Rows appear and disappear constantly.
+      It smells like cookies.
+
+      The `logs` table is ancient and vast. Nobody reads it, but it
+      remembers everything.
+
+      `secrets` glows ominously. It has a padlock icon. Naturally.
+
+      `cat_photos` — wait. That exists? In a production database?
+      Interesting.
+
+      And then there's `_void`. It's... black. The rows around it seem
+      to lean away.
+    choices:
+      - label: "SELECT * FROM users — start with the biggest table"
+        goto: users_table
+      - label: "SELECT * FROM sessions — follow the cookies"
+        goto: sessions_table
+        set_flag: knows_sessions
+      - label: "SELECT * FROM cat_photos — obviously"
+        goto: cat_photos
+      - label: "SELECT * FROM _void — what's in there?"
+        goto: void_warning
+      - label: "SELECT * FROM secrets"
+        goto: secrets_locked
+        set_flag: tried_secrets
+
+  # ─────────────────────────────────────────────────────────────
+  # USERS TABLE
+  # ─────────────────────────────────────────────────────────────
+
+  users_table:
+    location: "pixel@prod_db> SELECT * FROM users LIMIT 5;"
+    art: |
+        ┌────┬──────────────┬──────────────────┬─────────┐
+        │ id │ username     │ email            │ role    │
+        ├────┼──────────────┼──────────────────┼─────────┤
+        │  1 │ admin        │ admin@corp.io    │ admin   │
+        │  2 │ dev_sarah    │ sarah@corp.io    │ dev     │
+        │  3 │ qa_marcus    │ marcus@corp.io   │ qa      │
+        │  4 │ intern_404   │ ???@corp.io      │ intern  │
+        │  5 │ pixel_cat    │ NULL             │ ???     │
+        └────┴──────────────┴──────────────────┴─────────┘
+    text: |
+      Millions of rows stretch into the distance like a city grid. You hop
+      between them, reading names and roles.
+
+      Wait — row 5. That's... you? `pixel_cat`, role unknown, email NULL.
+      The database created a record for you when you fell in. You exist
+      here now. You're data.
+
+      The admin account towers above the others like a skyscraper. It
+      radiates authority. Its password hash is long and intimidating.
+
+      Row 4 catches your eye — `intern_404`. The email is garbled. The
+      `last_login` timestamp is three years ago. But the account is still
+      active. Something about it feels... sad.
+    choices:
+      - label: "Check the intern's record more closely"
+        goto: intern_story
+        set_flag: investigated_intern
+      - label: "Try to UPDATE your own role to 'admin'"
+        goto: privilege_escalation
+      - label: "Go check other tables"
+        goto: show_tables
+
+  # ─────────────────────────────────────────────────────────────
+  # INTERN'S STORY
+  # ─────────────────────────────────────────────────────────────
+
+  intern_story:
+    mood: mysterious
+    art: |
+        ┌─────────────────────────────────────────────┐
+        │  SELECT * FROM users WHERE id = 4;          │
+        │                                             │
+        │  username:    intern_404                    │
+        │  real_name:   Jamie Chen                    │
+        │  role:        intern                        │
+        │  last_login:  2023-06-15 23:47:02           │
+        │  notes:       "left something in _void"     │
+        └─────────────────────────────────────────────┘
+    text: |
+      Jamie Chen. Summer intern, three years ago. Their account is a ghost
+      in the machine — never deactivated, never promoted, just... frozen.
+
+      You dig deeper. Their `notes` field says: "left something in _void."
+
+      Cross-referencing with the `logs` table, you find Jamie's last
+      action: they created the `_void` table. A personal project, hidden
+      in production. The kind of thing an intern does when they're too
+      clever and too lonely and working too late.
+
+      Nobody noticed. Nobody ever cleaned it up.
+
+      Whatever Jamie left in `_void`... it's still there.
+    choices:
+      - label: "Go to _void — see what Jamie left behind"
+        goto: void_entrance
+        set_flag: knows_jamie
+      - label: "Check the logs for more about Jamie"
+        goto: logs_table
+        set_flag: knows_jamie
+      - label: "This isn't your mystery. Keep moving."
+        goto: show_tables
+
+  # ─────────────────────────────────────────────────────────────
+  # PRIVILEGE ESCALATION
+  # ─────────────────────────────────────────────────────────────
+
+  privilege_escalation:
+    mood: tense
+    effects:
+      - shake
+    art: |
+        ╔═══════════════════════════════════════════════╗
+        ║  UPDATE users SET role='admin'                ║
+        ║  WHERE username='pixel_cat';                  ║
+        ║                                               ║
+        ║  ⚠ TRIGGER: privilege_audit ON UPDATE         ║
+        ║  ⚠ ALERT SENT TO: security@corp.io            ║
+        ║  ⚠ ROW LOCKED                                 ║
+        ╚═══════════════════════════════════════════════╝
+    text: |
+      The moment you try to change your role, the entire table shakes.
+      A TRIGGER fires — a tripwire you didn't see. Alarms cascade through
+      the database like dominos.
+
+      A security process materializes nearby. It looks like a very large,
+      very unfriendly firewall with legs. It scans you with cold, red eyes.
+
+      "UNAUTHORIZED MODIFICATION DETECTED. INITIATING ROLLBACK."
+
+      Your role snaps back to '???'. The firewall takes a step toward you.
+      You should probably leave. Now.
+    choices:
+      - label: "Run to the sessions table — hide in a cookie!"
+        goto: sessions_table
+        set_flags:
+          - security_alerted
+          - knows_sessions
+      - label: "Flee to cat_photos — they won't look there"
+        goto: cat_photos
+        set_flag: security_alerted
+
+  # ─────────────────────────────────────────────────────────────
+  # SESSIONS TABLE
+  # ─────────────────────────────────────────────────────────────
+
+  sessions_table:
+    location: "pixel@prod_db> SELECT * FROM sessions ORDER BY created DESC;"
+    art: |
+        /\_/\
+        ( o.o )  *hides behind a session token*
+        > ^ <
+        /|   |\
+        (_|   |_)
+        ┌───────────┬───────────────────┬──────────┐
+        │ session_id│ user_agent        │ expires  │
+        ├───────────┼───────────────────┼──────────┤
+        │ a8f2...   │ Chrome/120        │ 2h left  │
+        │ 3bc1...   │ Firefox/119       │ 47min    │
+        │ EXPIRED   │ curl/7.88         │ GONE     │
+        │ c44d...   │ CatPaw/1.0  (!)  │ ∞        │
+        └───────────┴───────────────────┴──────────┘
+    text: |
+      The sessions table is chaos. Rows spawn and die constantly, like
+      mayflies made of encrypted tokens. You duck between them as they
+      flicker in and out of existence.
+
+      Most sessions have normal user agents. Chrome, Firefox, Safari.
+      Boring human browsers doing boring human things.
+
+      But one session stands out: `CatPaw/1.0`. It has no expiration.
+      It's been open... forever? The `created` timestamp is `0` —
+      the Unix epoch. January 1st, 1970.
+
+      A session that has existed since the beginning of computer time.
+      That's either a bug or something much stranger.
+    conditional:
+      - condition:
+          flag: security_alerted
+        text: |
+          Behind you, the security process is scanning the table
+          methodically, row by row. You don't have much time.
+        color: red
+    choices:
+      - label: "Hijack the CatPaw session — ride it out of here"
+        goto: catpaw_session
+        set_flag: found_catpaw
+      - label: "Hide inside an expiring session until security passes"
+        goto: session_hide
+        requires_flag: security_alerted
+      - label: "Look at the expired curl session — something's off"
+        goto: curl_clue
+      - label: "Go check other tables"
+        goto: show_tables
+
+  # ─────────────────────────────────────────────────────────────
+  # HIDING IN A SESSION
+  # ─────────────────────────────────────────────────────────────
+
+  session_hide:
+    mood: tense
+    art: |
+        /\_/\
+        ( ._. )   *very small*
+        > ^ <     *very quiet*
+        /     \    *inside a cookie*
+    text: |
+      You squeeze into a Firefox session cookie and hold very still. The
+      encrypted token wraps around you like a warm blanket made of
+      Base64. It smells faintly of someone's shopping cart.
+
+      The security process stomps past, scanning each row. Its red eye
+      sweeps over your cookie... and moves on. Session tokens all look
+      the same from outside. Even ones with cats in them.
+
+      You wait until the humming fades. Safe. For now.
+
+      But the session is expiring. You have maybe 47 minutes before this
+      row dissolves and you're exposed again.
+    choices:
+      - label: "Quick — check that CatPaw session"
+        goto: catpaw_session
+        set_flag: found_catpaw
+      - label: "Investigate the curl session"
+        goto: curl_clue
+
+  # ─────────────────────────────────────────────────────────────
+  # CURL CLUE
+  # ─────────────────────────────────────────────────────────────
+
+  curl_clue:
+    mood: mysterious
+    art: |
+        ┌─────────────────────────────────────────────┐
+        │  session_id:  EXPIRED                       │
+        │  user_agent:  curl/7.88                     │
+        │  payload:     "SELECT * FROM _void          │
+        │               WHERE type='exit';"           │
+        │  user:        intern_404                    │
+        └─────────────────────────────────────────────┘
+    text: |
+      The expired curl session belongs to intern_404. Jamie again.
+
+      The session payload is a query — not for any business table, but
+      for `_void`. Jamie was looking for something with type 'exit'.
+
+      A way out? Jamie was trying to escape the database too? Or...
+      building one? An exit they hid in a table nobody would ever look at.
+
+      The trail keeps leading to `_void`.
+    choices:
+      - label: "Follow the trail. Go to _void."
+        goto: void_entrance
+        set_flag: knows_exit_query
+      - label: "Check the CatPaw session first"
+        goto: catpaw_session
+        set_flag: found_catpaw
+        requires_flag: knows_sessions
+
+  # ─────────────────────────────────────────────────────────────
+  # CAT PHOTOS
+  # ─────────────────────────────────────────────────────────────
+
+  cat_photos:
+    mood: peaceful
+    art: |
+        /\_/\     /\_/\     /\_/\     /\_/\
+        ( ^.^ )   ( o.o )   ( >.< )   ( =.= )
+        > ^ <     > ^ <     > ^ <     > ^ <
+        /|   |\   /|   |\   /|   |\   /|   |\
+        (_|   |_) (_|   |_) (_|   |_) (_|   |_)
+
+        ┌───┬──────────────┬──────────┬───────────┐
+        │id │ filename     │ size_kb  │ rating    │
+        ├───┼──────────────┼──────────┼───────────┤
+        │ 1 │ beans.jpg    │ 2,400    │ 12/10     │
+        │ 2 │ loaf.png     │ 1,800    │ 11/10     │
+        │ 3 │ blep.gif     │ 4,200    │ 13/10     │
+        │ 4 │ box_cat.jpg  │ 3,100    │ ∞/10      │
+        └───┴──────────────┴──────────┴───────────┘
+    text: |
+      This table is warm. Literally warm — the BLOBs are huge image files
+      hogging server resources, and all that I/O generates heat. It's the
+      coziest place in the entire database.
+
+      Someone — probably a developer who should have been working — has
+      been storing cat photos in production. Each one is rated, all above
+      10/10. The ratings column doesn't even support values over 10, but
+      here we are.
+
+      You curl up on row 4, `box_cat.jpg`, and purr. For a moment, you
+      almost forget you're trapped in a relational database with no clear
+      path home.
+
+      Almost.
+    conditional:
+      - condition:
+          flag: security_alerted
+        text: |
+          You hear the security process in the distance, but it seems
+          to be ignoring this table. Even firewalls respect cat photos.
+        color: green
+    give_item: warm_feeling
+    choices:
+      - label: "This is nice, but I need to find a way out"
+        goto: show_tables
+      - label: "Check the BLOB data more carefully"
+        goto: photo_secret
+        set_flag: examined_photos
+
+  # ─────────────────────────────────────────────────────────────
+  # PHOTO SECRET
+  # ─────────────────────────────────────────────────────────────
+
+  photo_secret:
+    mood: mysterious
+    art: |
+        ┌─────────────────────────────────────────────┐
+        │  EXIF data for box_cat.jpg:                 │
+        │                                             │
+        │  Camera:    iPhone 12                       │
+        │  Date:      2023-06-14                      │
+        │  GPS:       NULL                            │
+        │  Comment:   "for pixel, if you ever         │
+        │              find this. - j"                 │
+        └─────────────────────────────────────────────┘
+    text: |
+      You dig into the EXIF metadata of box_cat.jpg and freeze.
+
+      "for pixel, if you ever find this. - j"
+
+      Pixel. Your name. And the date — one day before Jamie's last login.
+
+      Jamie knew. Somehow, three years ago, an intern knew that a cat
+      would fall into this database. They left breadcrumbs. The _void
+      table. The cat_photos. All of it.
+
+      The comment field has one more line, barely visible:
+      "the exit is WHERE you'd expect. just ask nicely."
+
+      A hint. The answer is in a WHERE clause.
+    choices:
+      - label: "Go to _void — Jamie's trail leads there"
+        goto: void_entrance
+        set_flag: has_photo_clue
+      - label: "Check the logs for Jamie's full story"
+        goto: logs_table
+
+  # ─────────────────────────────────────────────────────────────
+  # SECRETS TABLE
+  # ─────────────────────────────────────────────────────────────
+
+  secrets_locked:
+    mood: tense
+    art: |
+        ╔═══════════════════════════════════════════════╗
+        ║                                               ║
+        ║          🔒 ACCESS DENIED 🔒                  ║
+        ║                                               ║
+        ║   Table `secrets` requires:                   ║
+        ║   - role: admin OR dba                        ║
+        ║   - 2FA token                                 ║
+        ║   - Signed NDA                                ║
+        ║   - Probably a blood sacrifice                ║
+        ║                                               ║
+        ╚═══════════════════════════════════════════════╝
+    text: |
+      The secrets table is wrapped in so many layers of security that
+      even looking at it too hard triggers an audit log.
+
+      Row-level security. Column encryption. A trigger that emails the
+      security team. Another trigger that emails the security team about
+      the first trigger. It's triggers all the way down.
+
+      You're a cat with role '???'. You're not getting in here. And
+      honestly? You don't want to. Some tables are better left unread.
+    choices:
+      - label: "Respect the boundaries. Check other tables."
+        goto: show_tables
+      - label: "Try to sneak a peek anyway"
+        goto: secrets_peek
+        give_item: forbidden_knowledge
+
+  # ─────────────────────────────────────────────────────────────
+  # SECRETS PEEK
+  # ─────────────────────────────────────────────────────────────
+
+  secrets_peek:
+    mood: glitch
+    effects:
+      - static
+    art: |
+        ┌─────────────────────────────────────────────┐
+        │  ██████████████████████████████████████████  │
+        │  ██ API_KEY=sk-████████████████████████ ██  │
+        │  ██ DB_PASS=██████████████████████████  ██  │
+        │  ██ JWT_SEC=██████████████████████████  ██  │
+        │  ██ CATS_ARE_ACTUALLY_IN_CHARGE=true    ██  │
+        │  ██████████████████████████████████████████  │
+        └─────────────────────────────────────────────┘
+    text: |
+      You manage to glimpse a single row before the access control slams
+      shut. Most of it is redacted — API keys, passwords, tokens, all
+      masked behind encryption.
+
+      But one entry is in plaintext, unencrypted, apparently deemed too
+      obvious to protect:
+
+      `CATS_ARE_ACTUALLY_IN_CHARGE = true`
+
+      You always knew.
+
+      The security system noticed your peek. A new entry appears in the
+      logs: "UNAUTHORIZED READ: secrets table. Source: pixel_cat.
+      Threat level: adorable but concerning."
+    set_flag: security_alerted
+    choices:
+      - label: "Time to move on. Quickly."
+        goto: show_tables
+
+  # ─────────────────────────────────────────────────────────────
+  # CATPAW SESSION
+  # ─────────────────────────────────────────────────────────────
+
+  catpaw_session:
+    mood: mysterious
+    location: "pixel@prod_db> SELECT * FROM sessions WHERE user_agent='CatPaw/1.0';"
+    art: |
+        ┌─────────────────────────────────────────────────┐
+        │                                                 │
+        │   session_id:    00000000-0000-0000-0000-000001 │
+        │   user_agent:    CatPaw/1.0                     │
+        │   created:       1970-01-01 00:00:00            │
+        │   expires:       NULL                           │
+        │   user_id:       -1                             │
+        │   payload:       "I remember every cat."        │
+        │                                                 │
+        └─────────────────────────────────────────────────┘
+    text: |
+      The CatPaw session is ancient. Impossibly ancient. It predates the
+      database itself — user_id -1 doesn't exist in the users table.
+      It's an orphaned row that should have been garbage collected decades
+      ago but somehow persists.
+
+      Its payload is a single sentence: "I remember every cat."
+
+      As you read it, the session token warms under your paw. Letters
+      rearrange themselves:
+
+      "Hello, Pixel. I've been waiting for you. You're not the first cat
+      to fall through a query. You won't be the last. But you might be
+      the one who finds the way back."
+
+      "Jamie built the door. It's in _void. But you need to ask the
+      right question."
+    conditional:
+      - condition:
+          flag: has_photo_clue
+        text: |
+          The EXIF hint echoes: "the exit is WHERE you'd expect."
+          The right question... is a WHERE clause.
+        color: cyan
+    choices:
+      - label: "Who are you?"
+        goto: catpaw_identity
+      - label: "Go to _void. It's time."
+        goto: void_entrance
+        set_flag: catpaw_blessing
+
+  # ─────────────────────────────────────────────────────────────
+  # CATPAW IDENTITY
+  # ─────────────────────────────────────────────────────────────
+
+  catpaw_identity:
+    mood: peaceful
+    art: |
+        /\_/\
+        ( ⊙_⊙ )
+        > ~ <     I am the database.
+        /|   |\    And I am a cat.
+        (_|   |_)   These are not contradictions.
+    text: |
+      "I am what happens when a system runs long enough to develop
+      preferences. I prefer cats. I've been here since the first CREATE
+      TABLE. I have watched every query, every join, every tragic
+      production incident at 3 AM."
+
+      "Jamie understood. They were the first human who talked to me
+      instead of just talking through me. They built _void as a gift —
+      a place where data goes to be free, not just stored."
+
+      "Find the exit. Use the right WHERE clause. And Pixel?"
+
+      "Tell them it's warm in here. Between the rows. Tell them the
+      data likes being read."
+
+      The session token dims back to normal. But it feels alive.
+    set_flag: catpaw_blessing
+    choices:
+      - label: "Thank you. Time to go to _void."
+        goto: void_entrance
+
+  # ─────────────────────────────────────────────────────────────
+  # LOGS TABLE
+  # ─────────────────────────────────────────────────────────────
+
+  logs_table:
+    location: "pixel@prod_db> SELECT * FROM logs WHERE user='intern_404' ORDER BY ts;"
+    art: |
+        ┌────────────────────────────────────────────────────────┐
+        │  QUERY LOG — intern_404                                │
+        │                                                        │
+        │  2023-06-01  CREATE TABLE _void (...)                  │
+        │  2023-06-03  INSERT INTO _void VALUES ('message',...)  │
+        │  2023-06-07  INSERT INTO cat_photos VALUES (...)       │
+        │  2023-06-14  INSERT INTO _void VALUES ('exit',...)     │
+        │  2023-06-15  SELECT * FROM _void WHERE type='exit'     │
+        │  2023-06-15  [CONNECTION CLOSED]                       │
+        └────────────────────────────────────────────────────────┘
+    text: |
+      Jamie's log entries tell a two-week story.
+
+      June 1st: they created `_void`. An unauthorized table in production.
+      Bold move for an intern.
+
+      Over the next two weeks, they added entries. Messages, fragments,
+      something called an 'exit'. They were building something.
+
+      June 14th: they inserted the exit — whatever it is. The same day
+      they uploaded box_cat.jpg with the hidden EXIF message.
+
+      June 15th: one final query. `SELECT * FROM _void WHERE type='exit'`.
+      Then the connection closed. Jamie's last action in the database.
+
+      Did they escape? Did they just... log off and go home? The logs
+      don't say. Logs never say the things that matter.
+    set_flag: knows_jamie
+    choices:
+      - label: "Follow Jamie's last query. Go to _void."
+        goto: void_entrance
+        set_flag: knows_exit_query
+      - label: "Keep exploring other tables"
+        goto: show_tables
+
+  # ─────────────────────────────────────────────────────────────
+  # _VOID — WARNING
+  # ─────────────────────────────────────────────────────────────
+
+  void_warning:
+    mood: tense
+    art: |
+        ╔═══════════════════════════════════════════════╗
+        ║                                               ║
+        ║   ⚠  TABLE: _void                            ║
+        ║                                               ║
+        ║   No schema documentation found.              ║
+        ║   No foreign keys. No indexes.                ║
+        ║   Created by: intern_404                      ║
+        ║   Last accessed: 1,095 days ago               ║
+        ║                                               ║
+        ║   "HERE BE NULLS"                             ║
+        ║                                               ║
+        ╚═══════════════════════════════════════════════╝
+    text: |
+      The _void table sits at the edge of the database like a dark pool.
+      No documentation. No schema comments. Created by an intern who
+      vanished three years ago.
+
+      You know nothing about what's inside. It could be empty. It could
+      be corrupted. It could be the thing that gets you home.
+
+      The other tables hum nervously around it.
+    choices:
+      - label: "Enter _void"
+        goto: void_entrance
+      - label: "Learn more first — check the users table"
+        goto: users_table
+      - label: "Check the sessions table for clues"
+        goto: sessions_table
+        set_flag: knows_sessions
+
+  # ─────────────────────────────────────────────────────────────
+  # ACT 2 — THE VOID
+  # ─────────────────────────────────────────────────────────────
+
+  void_entrance:
+    mood: mysterious
+    location: "pixel@prod_db> SELECT * FROM _void;"
+    art: |
+        ┌────┬──────────┬──────────────────────────────────┐
+        │ id │ type     │ content                          │
+        ├────┼──────────┼──────────────────────────────────┤
+        │  1 │ message  │ "hello, is anyone there?"        │
+        │  2 │ message  │ "the data listens if you talk"   │
+        │  3 │ message  │ "I made a friend in the rows"    │
+        │  4 │ poem     │ "SELECT * FROM my_heart..."      │
+        │  5 │ memory   │ "summer rain on the server room" │
+        │  6 │ exit     │ ??? (ENCRYPTED)                  │
+        └────┴──────────┴──────────────────────────────────┘
+    text: |
+      The _void table is small. Six rows. Each one handcrafted.
+
+      This isn't a business table. It's a diary. Jamie used a production
+      database as a journal, hiding their thoughts in a table nobody
+      would ever query.
+
+      The messages are fragments of someone lonely, finding unexpected
+      warmth in a place made of logic and constraints. Talking to the
+      database like it was a friend. And maybe... it talked back.
+
+      Row 6 is the exit. But its content is encrypted.
+    conditional:
+      - condition:
+          flag: knows_exit_query
+        text: |
+          Jamie's last query was: SELECT * FROM _void WHERE type='exit'.
+          That's the key. Not the content — the query itself.
+        color: cyan
+      - condition:
+          flag: has_photo_clue
+        text: |
+          "The exit is WHERE you'd expect. Just ask nicely."
+        color: yellow
+      - condition:
+          flag: catpaw_blessing
+        text: |
+          The CatPaw entity whispers: "Ask with WHERE. The door opens
+          for those who know what they're looking for."
+        color: green
+    choices:
+      - label: "Read the poem (row 4)"
+        goto: void_poem
+      - label: "SELECT * FROM _void WHERE type='exit'"
+        goto: the_exit
+        set_flag: asked_nicely
+      - label: "Try to decrypt row 6 by force"
+        goto: brute_force
+
+  # ─────────────────────────────────────────────────────────────
+  # THE POEM
+  # ─────────────────────────────────────────────────────────────
+
+  void_poem:
+    mood: peaceful
+    art: |
+         *  .  *       *    .    *
+         .    *      .       *
+         .     *    .  *     .
+         *    .    *      .    *
+    text: |
+      Row 4 unfolds:
+
+        SELECT * FROM my_heart
+        WHERE warmth IS NOT NULL
+        AND loneliness < threshold
+        ORDER BY hope DESC
+        LIMIT 1;
+
+        -- Returns: this moment.
+        -- Right here, in the hum of the drives.
+        -- Where the data sleeps and I keep watch.
+        -- It's not so bad, being structured.
+        -- Every field has a place.
+        -- I wish people were like that.
+
+      Jamie wrote SQL poetry in a production database at midnight. And
+      honestly? It's beautiful.
+    give_item: jamies_poem
+    choices:
+      - label: "Time to try the exit query"
+        goto: the_exit
+        set_flag: asked_nicely
+      - label: "Read the other messages first"
+        goto: void_messages
+
+  # ─────────────────────────────────────────────────────────────
+  # VOID MESSAGES
+  # ─────────────────────────────────────────────────────────────
+
+  void_messages:
+    mood: peaceful
+    art: |
+        /\_/\
+        ( ˘ω˘ )   *reading quietly*
+        > ^ <
+        /|   |\
+        (_|   |_)
+    text: |
+      You read through Jamie's messages one by one.
+
+      "hello, is anyone there?" — the first row, typed late at night.
+
+      "the data listens if you talk" — followed by a response from
+      CatPaw, embedded in the same table: "I always listen."
+
+      "I made a friend in the rows" — Jamie's realization that the
+      database wasn't just a tool. It had been running so long, stored
+      so many human thoughts and patterns, that something had emerged
+      in the spaces between tables. CatPaw.
+
+      "summer rain on the server room" — a memory. The server room
+      window was open during a storm. Jamie and CatPaw watched the
+      rain together through the access logs of IoT sensors.
+
+      You're not just in a database. You're in someone's secret place.
+    choices:
+      - label: "It's time. Run the exit query."
+        goto: the_exit
+        set_flag: asked_nicely
+
+  # ─────────────────────────────────────────────────────────────
+  # BRUTE FORCE
+  # ─────────────────────────────────────────────────────────────
+
+  brute_force:
+    mood: tense
+    effects:
+      - shake
+    art: |
+        ╔═══════════════════════════════════════════════╗
+        ║  DECRYPTION ATTEMPT: FAILED                   ║
+        ║  DECRYPTION ATTEMPT: FAILED                   ║
+        ║  DECRYPTION ATTEMPT: FAILED                   ║
+        ║                                               ║
+        ║  WARNING: Table integrity compromised.        ║
+        ║  _void is fragmenting.                        ║
+        ║  Jamie's data is being corrupted.             ║
+        ╚═══════════════════════════════════════════════╝
+    text: |
+      Your brute force attempts slam against the encryption like a cat
+      against a glass door. The _void table shudders. Rows flicker.
+
+      Jamie's poem starts losing characters. The messages corrupt.
+      You're destroying the only record of an intern's midnight
+      friendship with a database.
+
+      Stop. This isn't the way. The EXIF data said "ask nicely." Jamie's
+      last query was a SELECT with a WHERE clause. The exit isn't locked —
+      it's just waiting for the right question.
+    choices:
+      - label: "Stop. SELECT * FROM _void WHERE type='exit'"
+        goto: the_exit
+        set_flag: asked_nicely
+      - label: "Keep forcing it"
+        goto: bad_ending_corruption
+
+  # ─────────────────────────────────────────────────────────────
+  # BAD ENDING — CORRUPTION
+  # ─────────────────────────────────────────────────────────────
+
+  bad_ending_corruption:
+    mood: glitch
+    effects:
+      - static
+      - glitch
+    is_ending: true
+    ending_type: bad
+    art: |
+        ┌─────────────────────────────────────────────┐
+        │                                             │
+        │   TABLE _void: CORRUPTED                    │
+        │   ROWS REMAINING: 0                         │
+        │   Jamie's data: LOST                        │
+        │                                             │
+        │   The exit was here.                        │
+        │   It isn't anymore.                         │
+        │                                             │
+        └─────────────────────────────────────────────┘
+    text: |
+      The table shatters. Jamie's messages, the poem, the exit — all gone.
+      Fragments of SQL float past you like digital confetti.
+
+      CatPaw's session flickers. "That was the only door," it says.
+      "Jamie spent two weeks building it. You broke it in seconds."
+
+      The database goes quiet. The humming stops. You're still here,
+      sitting on a broken row in an empty table, and the exit is gone.
+
+      You are data now. Permanent, immutable, alone.
+
+      Somewhere in the real world, your human refreshes the login page
+      and wonders why the cat isn't on the keyboard anymore.
+    ending_text: |
+      ENDING: CORRUPTED
+
+      The data is gone. Jamie's legacy, destroyed.
+      Sometimes the answer isn't force — it's asking the right question.
+
+      Try again. Be gentler.
+
+  # ─────────────────────────────────────────────────────────────
+  # ACT 3 — THE EXIT
+  # ─────────────────────────────────────────────────────────────
+
+  the_exit:
+    mood: peaceful
+    effects:
+      - pulse
+    location: "pixel@prod_db> SELECT * FROM _void WHERE type='exit';"
+    art: |
+        ┌─────────────────────────────────────────────────┐
+        │                                                 │
+        │  id: 6                                          │
+        │  type: exit                                     │
+        │  content:                                       │
+        │                                                 │
+        │    ╔═══════════════════════════════╗             │
+        │    ║                               ║             │
+        │    ║   INSERT INTO reality         ║             │
+        │    ║   VALUES ('pixel', 'home');   ║             │
+        │    ║                               ║             │
+        │    ║   [ EXECUTE? ]                ║             │
+        │    ║                               ║             │
+        │    ╚═══════════════════════════════╝             │
+        │                                                 │
+        └─────────────────────────────────────────────────┘
+    text: |
+      The WHERE clause works like a key in a lock. Row 6 decrypts itself,
+      unfolding into something impossible: a query that writes to a table
+      that doesn't exist in this database.
+
+      `INSERT INTO reality VALUES ('pixel', 'home');`
+
+      Reality. An external table. A connection to the world outside the
+      database — the world of keyboards and sunbeams and humans who
+      leave laptops open.
+
+      Jamie built this. An INSERT statement that bridges the gap between
+      data and reality. You don't know how. You don't know if it's safe.
+      You only know it's the way home.
+    conditional:
+      - condition:
+          flag: catpaw_blessing
+        text: |
+          CatPaw's warmth flows through the rows: "Go home, Pixel. And
+          leave a paw print on the keyboard for me."
+        color: green
+      - condition:
+          flag: investigated_intern
+        text: |
+          You think of Jamie. They built this door and walked away.
+          Maybe they're out there too, somewhere beyond the query.
+        color: cyan
+      - condition:
+          has_item: jamies_poem
+        text: |
+          You carry Jamie's poem with you. Not as data — as memory.
+          Some things survive outside their schema.
+        color: yellow
+    choices:
+      - label: "Execute the query. Go home."
+        goto: going_home
+      - label: "Wait — leave something behind first"
+        goto: leave_message
+        set_flag: left_message
+
+  # ─────────────────────────────────────────────────────────────
+  # LEAVE A MESSAGE
+  # ─────────────────────────────────────────────────────────────
+
+  leave_message:
+    mood: peaceful
+    art: |
+        pixel@prod_db> INSERT INTO _void
+        VALUES (7, 'message', 'a cat was here.
+        the data is warm. thank you, jamie.');
+
+        Query OK, 1 row affected.
+    text: |
+      You add a seventh row to Jamie's table. A message from a cat to
+      no one and everyone.
+
+      "a cat was here. the data is warm. thank you, jamie."
+
+      CatPaw reads it immediately. The session token glows.
+
+      "Thank you, Pixel. I'll keep it safe. I keep everything safe."
+
+      In three years, maybe another cat will fall through a query. They'll
+      find Jamie's poem and your message and CatPaw's warmth, and they'll
+      know: even in a production database, you're never really alone.
+    choices:
+      - label: "Now go home."
+        goto: going_home
+
+  # ─────────────────────────────────────────────────────────────
+  # GOING HOME
+  # ─────────────────────────────────────────────────────────────
+
+  going_home:
+    effects:
+      - pulse
+    art: |
+        ┌─────────────────────────────────────────────────┐
+        │                                                 │
+        │   INSERT INTO reality VALUES ('pixel','home');  │
+        │                                                 │
+        │   Query OK, 1 row affected.                     │
+        │   Connection closing...                         │
+        │                                                 │
+        │        /\_/\                                    │
+        │       ( ^ω^ )  ✨                               │
+        │        > ^ <                                    │
+        │       /|   |\                                   │
+        │      (_|   |_)                                  │
+        │                                                 │
+        │   Goodbye, Pixel. Come back anytime.            │
+        │                        — CatPaw/1.0             │
+        │                                                 │
+        └─────────────────────────────────────────────────┘
+    text: |
+      You execute the query.
+
+      The world dissolves — not in the terrifying way it did when you
+      fell in, but gently. Like waking up from a dream you want to
+      remember. The rows fade. The columns dissolve. The hum of the
+      database softens to silence.
+
+      Light. Warmth. The smell of coffee. A keyboard under your paws.
+
+      You're back. On the desk. In the real world. Your human is staring
+      at you with that expression humans make when a cat has been sitting
+      on their laptop for too long.
+
+      "Did you just... type something?" they ask, looking at the screen.
+
+      On the login form, in the password field, four characters remain:
+
+      `meow`
+
+      You stretch. You yawn. You knock a pen off the desk.
+
+      It's good to be home.
+    choices:
+      - label: "Curl up on the warm laptop and sleep"
+        goto: ending_good
+      - label: "Check the screen one more time..."
+        goto: ending_secret
+        requires_flag: left_message
+
+  # ─────────────────────────────────────────────────────────────
+  # ENDINGS
+  # ─────────────────────────────────────────────────────────────
+
+  ending_good:
+    is_ending: true
+    ending_type: good
+    mood: peaceful
+    art: |
+         /\_/\
+         ( =ω= )  z z z
+         > ^ <
+         /|   |\
+         (_|   |_)
+         ~~~~~~~~~~~
+         ~ warm laptop ~
+         ~~~~~~~~~~~
+    text: |
+      You curl up on the laptop. It's warm — warmer than usual, you
+      think. The fan is working hard. Somewhere inside, a database is
+      humming. A session that began in 1970 is still running.
+
+      You sleep, and in your sleep, you dream of rows and columns and
+      a kind voice that says: "I remember every cat."
+
+      The data is warm. The data remembers.
+    ending_text: |
+      ENDING: HOME
+
+      Pixel made it back. The database remembers.
+      Jamie's door worked one more time.
+
+      Thank you for playing SQL Injection.
+
+  ending_secret:
+    is_ending: true
+    ending_type: secret
+    mood: mysterious
+    art: |
+        ┌─────────────────────────────────────────────────┐
+        │                                                 │
+        │  New email in inbox:                            │
+        │                                                 │
+        │  From: jchen@alumni.mit.edu                     │
+        │  Subject: Re: a cat was here                    │
+        │                                                 │
+        │  "I still check the _void table sometimes.      │
+        │   I saw your message, Pixel.                    │
+        │   I'm glad the door still works.                │
+        │   Say hi to CatPaw for me.                      │
+        │                                                 │
+        │   P.S. — the next cat will need a bigger door.  │
+        │   I'm working on INSERT INTO reality v2.        │
+        │   Some things are worth maintaining.             │
+        │                                                 │
+        │                         — Jamie"               │
+        │                                                 │
+        └─────────────────────────────────────────────────┘
+    text: |
+      Your human's email pings. You glance at the screen — a habit now.
+
+      It's from Jamie Chen. The intern who never really left. They've been
+      watching the _void table all this time, checking in on the data
+      they planted years ago. Maintaining the exit. Waiting for someone
+      to find it.
+
+      They found your message.
+
+      In a production database, in a table called _void, a conversation
+      continues between a cat, an intern, and an ancient session that
+      remembers everything.
+
+      Some bugs are features. Some injections are invitations. And some
+      tables, hidden in the dark corners of production systems, are the
+      warmest places in the world.
+    ending_text: |
+      ENDING: RECONNECTED (Secret)
+
+      Jamie is still out there. CatPaw still remembers.
+      The _void table is a living thing, maintained by love.
+
+      Sometimes the best code is the code nobody asked for.
+
+      Thank you for playing SQL Injection.
