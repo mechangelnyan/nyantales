@@ -1,0 +1,1177 @@
+# TLS Pawshake
+# A cat caught inside a TLS handshake must negotiate trust between two strangers
+# by mechangelnyan
+
+title: "TLS Pawshake"
+description: "A cat caught inside a TLS handshake must negotiate trust between two strangers."
+author: "mechangelnyan"
+version: "1.0.0"
+start: client_hello
+
+scenes:
+
+  # ─────────────────────────────────────────────────────────────
+  # ACT I — THE HANDSHAKE BEGINS
+  # ─────────────────────────────────────────────────────────────
+
+  client_hello:
+    location: "TCP Stream — Port 443"
+    mood: mysterious
+    art: |
+      ┌─────────────────────────────────────┐
+      │  ClientHello                        │
+      │  Protocol: TLS 1.3                  │
+      │  Random: 0xCAT5...MEOW...          │
+      │  Cipher Suites: [17 offered]        │
+      │  SNI: home.cat                      │
+      │  Key Share: x25519                  │
+      └─────────────────────────────────────┘
+    text: >
+      You're a byte. No — you're a cat.
+      Actually, you're a cat-shaped collection of bytes
+      riding the very first packet of a TLS handshake.
+
+      The Client — a nervous browser named Chroma — just sent you
+      into the void. Your job: carry the ClientHello to the Server,
+      negotiate a shared secret, and establish trust between two
+      entities that have never met.
+
+      No pressure.
+
+      The TCP stream stretches ahead like a dark tunnel.
+      The ClientHello payload hums around you — cipher suites,
+      key shares, a server name indication whispering "home.cat".
+    choices:
+      - label: "Examine the cipher suites you're carrying"
+        goto: cipher_suites
+      - label: "Look at the key share material"
+        goto: key_share
+      - label: "Rush ahead to the server"
+        goto: arrive_at_server
+
+  cipher_suites:
+    location: "Inside the ClientHello"
+    mood: mysterious
+    text: >
+      You unfold the cipher suite list like a menu:
+
+      TLS_AES_256_GCM_SHA384,
+      TLS_AES_128_GCM_SHA256,
+      TLS_CHACHA20_POLY1305_SHA256...
+
+      Seventeen options. Each one is a recipe for encryption —
+      which algorithm to scramble the data, which hash to verify it,
+      which mode to chain the blocks. Chroma offered them in
+      preference order: the strongest flavors first.
+
+      You notice the list doesn't include any legacy suites.
+      No RC4, no DES, no MD5. Chroma has standards.
+
+      At the bottom, a small note scratched in the extensions:
+      "Please don't make me use CBC. I've been hurt before."
+    set_flag: examined_ciphers
+    choices:
+      - label: "Check the key share too"
+        goto: key_share
+      - label: "You know enough — head to the server"
+        goto: arrive_at_server
+
+  key_share:
+    location: "Inside the ClientHello"
+    mood: mysterious
+    text: >
+      The key share extension holds an x25519 public key —
+      a point on an elliptic curve, elegant as a curled tail.
+
+      This is Chroma's half of the secret. The math is beautiful:
+      Chroma picked a random number (her private key), multiplied
+      it by a well-known base point on Curve25519, and this
+      public point is the result. Anyone can see it. Nobody can
+      reverse-engineer her private key from it.
+
+      The key feels warm in your paws. It's trust in mathematical
+      form — the belief that some problems are too hard to solve,
+      even with all the computers in the world.
+
+      You also notice a pre-shared key extension. Empty. These
+      two have never talked before.
+    set_flag: examined_key
+    choices:
+      - label: "Check the cipher suites"
+        goto: cipher_suites
+        condition:
+          not:
+            has_flag: examined_ciphers
+      - label: "Continue to the server"
+        goto: arrive_at_server
+
+  arrive_at_server:
+    location: "Port 443 — Server Gateway"
+    mood: tense
+    art: |
+          ╔═══════════════════════╗
+          ║   W E L C O M E      ║
+          ║   to  home.cat       ║
+          ║                       ║
+          ║   nginx/1.25.3        ║
+          ║   TLS termination     ║
+          ╚═══════════════════════╝
+             │  │  │  │  │  │
+             ▼  ▼  ▼  ▼  ▼  ▼
+    text: >
+      The tunnel opens into a vast server lobby.
+      Packets stream past in every direction — GET requests,
+      POST payloads, WebSocket upgrades, all queued politely
+      behind the TLS termination point.
+
+      A large cat sits behind the gateway, wearing a name tag
+      that reads "Nginx". She's the reverse proxy — she decides
+      who gets in and who gets a 403.
+
+      "ClientHello for home.cat?" she reads, squinting at your
+      payload. "Right. Let me wake up the TLS handler."
+
+      She presses an intercom. A crackling voice responds:
+      "Certificate store, this is Serif. Send them through."
+    choices:
+      - label: "Follow the signs to the Certificate Store"
+        goto: certificate_store
+      - label: "Sneak a peek at the server's private key vault"
+        goto: private_key_vault
+      - label: "Ask Nginx about the other traffic"
+        goto: nginx_chat
+
+  nginx_chat:
+    location: "Server Gateway — Nginx's Desk"
+    mood: peaceful
+    text: >
+      "You're curious for a handshake packet," Nginx observes,
+      not unkindly. She's processing requests while she talks —
+      routing, load-balancing, rate-limiting — all in one motion.
+
+      "See all those packets? Every one of them went through
+      what you're about to go through. The handshake. Trust
+      negotiation. Nobody gets to talk to the backend without it."
+
+      She leans in. "Some packets try to skip the handshake.
+      Downgrade attacks, protocol confusion, that sort of thing.
+      We had an incident last month — someone tried to inject
+      plaintext into a TLS stream. HSTS caught it."
+
+      She stamps your packet with a routing header.
+      "Certificate Store is down the hall. Serif will take care of you.
+      And hey — " she pauses. "Tell Chroma we picked CHACHA20.
+      The server admin is a fan."
+    set_flag: knows_cipher_choice
+    choices:
+      - label: "Head to the Certificate Store"
+        goto: certificate_store
+      - label: "Ask about that downgrade attack"
+        goto: downgrade_story
+
+  downgrade_story:
+    location: "Server Gateway"
+    mood: tense
+    text: >
+      Nginx's eyes narrow. "POODLE. That was the name.
+      Padding Oracle On Downgraded Legacy Encryption.
+      An attacker convinced a client to fall back to SSL 3.0,
+      then exploited the padding in CBC mode to decrypt cookies
+      one byte at a time."
+
+      She shudders. "That's why we don't negotiate down anymore.
+      TLS 1.3 removed the option entirely. No fallback.
+      You either speak modern crypto or you don't speak at all."
+
+      "The old versions — SSL 2.0, 3.0, TLS 1.0, 1.1 —
+      they're all disabled here. Some clients still try.
+      We send them a handshake_failure alert and close the connection.
+      It's kinder than letting them think they're safe."
+    set_flag: learned_downgrade
+    choices:
+      - label: "Thank Nginx and head to the Certificate Store"
+        goto: certificate_store
+
+  private_key_vault:
+    location: "Server — Restricted Area"
+    mood: tense
+    art: |
+      ┌──────────────────────────┐
+      │  ⚠ PRIVATE KEY VAULT ⚠  │
+      │                          │
+      │  AUTHORIZED PROCESSES    │
+      │  ONLY                    │
+      │                          │
+      │  HSM-backed storage      │
+      │  PCIe Bus — Slot 3       │
+      └──────────────────────────┘
+    text: >
+      A heavy door with a biometric lock. The sign says
+      "Hardware Security Module — Private Key Storage."
+
+      You press your nose against the glass. Inside, you can
+      see a small hardware device — the HSM — connected to the
+      server via PCIe. The private key never leaves that chip.
+      Not even the server's OS can read it directly. When a
+      signature is needed, the request goes in and the signed
+      result comes out. The key itself? Trapped in silicon forever.
+
+      A security camera swivels toward you.
+
+      "That's not for handshake packets," says a gruff voice.
+      An SELinux process — barrel-chested, no-nonsense — blocks
+      the door. "Certificate Store is that way."
+
+      He points down the hall.
+    set_flag: saw_hsm
+    choices:
+      - label: "Ask about the HSM"
+        goto: hsm_chat
+      - label: "Head to the Certificate Store"
+        goto: certificate_store
+
+  hsm_chat:
+    location: "Outside the Vault"
+    text: >
+      The SELinux guard softens slightly. "Look, I get it.
+      Everyone's curious about the private key. It's an RSA-4096,
+      generated on the HSM itself. Never exported. Never will be.
+
+      Even if someone roots this entire server — pwns nginx,
+      escalates to root, dumps all of /proc — they still can't
+      get the key. It lives in tamper-resistant hardware. Try
+      to extract it physically and the chip zeroes itself."
+
+      He almost smiles. "That's the beauty of it. The server
+      can prove its identity millions of times a day without
+      the secret ever touching RAM. Math is the guard. I'm
+      just the bouncer."
+    set_flag: learned_hsm
+    choices:
+      - label: "Head to the Certificate Store"
+        goto: certificate_store
+
+  # ─────────────────────────────────────────────────────────────
+  # ACT II — THE CERTIFICATE CHAIN
+  # ─────────────────────────────────────────────────────────────
+
+  certificate_store:
+    location: "Certificate Store"
+    mood: mysterious
+    art: |
+         ┌─ Root CA ─────────────┐
+         │  ISRG Root X1         │
+         │  Self-signed          │
+         │  "I vouch for myself" │
+         └───────┬───────────────┘
+                 │ signs
+         ┌───────▼───────────────┐
+         │  R11 (Intermediate)   │
+         │  "I vouch for them ↓" │
+         └───────┬───────────────┘
+                 │ signs
+         ┌───────▼───────────────┐
+         │  home.cat (Leaf)      │
+         │  "I am home.cat"      │
+         └───────────────────────┘
+    text: >
+      The Certificate Store is a warm room lined with
+      framed certificates — each one a chain of trust.
+
+      A scholarly calico named Serif sits at a desk surrounded
+      by X.509 certificates. She adjusts her reading glasses.
+
+      "Ah, the ClientHello! Let me prepare our credentials."
+
+      She pulls three certificates from a drawer.
+
+      "This is a chain of trust. The leaf certificate proves
+      we are home.cat. The intermediate proves the leaf is
+      legitimate. And the root — well, the root is special.
+      Chroma already trusts the root. It's pre-installed
+      in her trust store."
+    choices:
+      - label: "Ask about the leaf certificate"
+        goto: leaf_cert
+      - label: "Ask about the chain of trust"
+        goto: chain_of_trust
+      - label: "Ask about certificate transparency"
+        goto: cert_transparency
+      - label: "Take the certificates and continue the handshake"
+        goto: server_hello
+        give_item: certificate_chain
+
+  leaf_cert:
+    location: "Certificate Store"
+    text: >
+      Serif holds up the leaf certificate like a jeweler
+      examining a gem.
+
+      "Subject: CN=home.cat. Issued by: R11. Valid until
+      next quarter — Let's Encrypt certificates are short-lived,
+      which is a feature, not a bug. If a key is compromised,
+      the damage window is 90 days, not years."
+
+      "See this field? Subject Alternative Names. It lists
+      every domain this certificate covers: home.cat,
+      *.home.cat. One cert, multiple identities."
+
+      "And this signature at the bottom? That's R11's
+      cryptographic signature. It says 'I, the intermediate CA,
+      have verified that whoever holds the private key for this
+      certificate really does control home.cat.' Specifically,
+      they completed an ACME challenge — proved they could
+      serve a specific token on port 80."
+    set_flag: learned_leaf
+    choices:
+      - label: "Ask about the chain of trust"
+        goto: chain_of_trust
+      - label: "Ask about certificate transparency"
+        goto: cert_transparency
+      - label: "Take the chain and continue"
+        goto: server_hello
+        give_item: certificate_chain
+
+  chain_of_trust:
+    location: "Certificate Store"
+    mood: peaceful
+    text: >
+      Serif arranges the three certificates on her desk.
+
+      "Trust is transitive. Chroma trusts ISRG Root X1 —
+      it's in her trust store, shipped with her browser.
+      ISRG Root X1 signed R11's certificate, so Chroma
+      trusts R11. R11 signed our leaf, so Chroma trusts us.
+      Three links. That's the chain."
+
+      "But here's the beautiful part: we only send the leaf
+      and the intermediate. We never send the root. Why?
+      Because the root is already on Chroma's side. If we
+      sent it, it would be pointless — anyone could craft a
+      fake root. Trust has to start somewhere, and it starts
+      with what the client already knows."
+
+      She pauses. "There are about 150 root CAs in most
+      trust stores. Each one is a pillar holding up part
+      of the internet's trust. Remove one and thousands
+      of sites go dark."
+    set_flag: learned_chain
+    choices:
+      - label: "Ask about certificate transparency"
+        goto: cert_transparency
+      - label: "Take the chain and continue"
+        goto: server_hello
+        give_item: certificate_chain
+
+  cert_transparency:
+    location: "Certificate Store — The Ledger"
+    mood: mysterious
+    text: >
+      Serif opens a thick ledger. "Certificate Transparency.
+      Every certificate issued by a public CA gets logged in
+      append-only, publicly auditable logs. Think of it as a
+      blockchain for certificates, except it actually works."
+
+      "Why? Because CAs can make mistakes. Or be compromised.
+      In 2011, DigiNotar issued fraudulent certificates for
+      google.com. Someone used them for man-in-the-middle
+      attacks in Iran. CT logs would have caught it — anyone
+      monitoring the logs for google.com would have seen an
+      unexpected certificate appear."
+
+      "These days, browsers require CT. Our leaf certificate
+      includes Signed Certificate Timestamps — proof that it
+      was logged before issuance. If the SCTs are missing or
+      invalid, Chroma will reject us."
+
+      She taps a line in the ledger: home.cat, logged three
+      months ago. "We're on the record. Nothing to hide."
+    set_flag: learned_ct
+    give_item: ct_knowledge
+    choices:
+      - label: "Take the chain and continue"
+        goto: server_hello
+        give_item: certificate_chain
+
+  # ─────────────────────────────────────────────────────────────
+  # ACT III — THE SERVER HELLO
+  # ─────────────────────────────────────────────────────────────
+
+  server_hello:
+    location: "TLS Handler — Outbound"
+    mood: mysterious
+    art: |
+      ┌─────────────────────────────────────┐
+      │  ServerHello                        │
+      │  Cipher: CHACHA20_POLY1305_SHA256   │
+      │  Key Share: x25519 [server half]    │
+      │  + Certificate Chain                │
+      │  + CertificateVerify                │
+      │  + Finished                         │
+      └─────────────────────────────────────┘
+    text: >
+      The TLS handler — a fast, efficient process named Handshake —
+      assembles the ServerHello.
+
+      "TLS 1.3 is a one-round-trip handshake," Handshake explains,
+      moving at incredible speed. "In older versions, this took
+      two round trips. We'd negotiate, then exchange keys, then
+      verify. Now we do it all at once."
+
+      He packs the server's x25519 key share (the other half of
+      the secret), the certificate chain, a CertificateVerify
+      signature (proof the server holds the private key), and a
+      Finished message (a MAC over the entire handshake transcript).
+
+      "Once Chroma gets this, she'll combine her private key with
+      our public key share. We'll combine our private key with her
+      public key share. Elliptic curve magic: both sides arrive at
+      the same shared secret, without ever transmitting it."
+    choices:
+      - label: "Ask about the key exchange math"
+        goto: key_exchange_math
+      - label: "Ask about CertificateVerify"
+        goto: cert_verify
+      - label: "Carry the ServerHello back to Chroma"
+        goto: return_journey
+
+  key_exchange_math:
+    location: "TLS Handler"
+    mood: peaceful
+    text: >
+      Handshake draws a diagram in the air with his paws.
+
+      "Alice has private key 'a', computes A = a·G (public).
+      Bob has private key 'b', computes B = b·G (public).
+      They exchange A and B. Alice computes a·B = a·b·G.
+      Bob computes b·A = b·a·G. Same point. Same secret."
+
+      "That's Diffie-Hellman on an elliptic curve. x25519 uses
+      Curve25519 — designed by djb to be fast, constant-time
+      (no timing side channels), and resistant to implementation
+      errors. The curve was chosen so that common mistakes in
+      code — like not checking if a point is on the curve —
+      don't create vulnerabilities."
+
+      "Here's what's wild: even if someone records this entire
+      handshake — every byte — they can't derive the shared
+      secret without one of the private keys. And since we
+      generate new keys for every connection, even compromising
+      a future private key doesn't help decrypt past traffic."
+
+      "That's called Perfect Forward Secrecy. Every conversation
+      is ephemeral. Even we can't replay it."
+    set_flag: learned_pfs
+    choices:
+      - label: "Ask about CertificateVerify"
+        goto: cert_verify
+      - label: "Carry the ServerHello back to Chroma"
+        goto: return_journey
+
+  cert_verify:
+    location: "TLS Handler"
+    text: >
+      "CertificateVerify is the server proving it holds the
+      private key. Not just showing you a certificate — anyone
+      can copy a certificate. This is a live signature."
+
+      Handshake holds up the message. "We take a hash of the
+      entire handshake transcript so far — both ClientHello and
+      ServerHello — and sign it with our private key. The
+      signature goes to the HSM, comes back signed, never
+      touches normal memory."
+
+      "When Chroma receives this, she'll verify the signature
+      using the public key in our leaf certificate. If it checks
+      out, she knows two things: we have the private key (so we
+      really are home.cat), and nobody tampered with the handshake
+      (because the hash covers everything)."
+
+      "In TLS 1.2, authentication was more fragile. The server
+      signature only covered some parameters. 1.3 signs the
+      entire transcript. Cleaner. Harder to attack."
+    set_flag: learned_cert_verify
+    choices:
+      - label: "Ask about the key exchange math"
+        goto: key_exchange_math
+        condition:
+          not:
+            has_flag: learned_pfs
+      - label: "Time to head back to Chroma"
+        goto: return_journey
+
+  # ─────────────────────────────────────────────────────────────
+  # ACT IV — THE RETURN
+  # ─────────────────────────────────────────────────────────────
+
+  return_journey:
+    location: "TCP Stream — Westbound"
+    mood: tense
+    art: |
+      ◄────────────────────────────────────
+        ServerHello + Certs + Verify
+        ═══════════════════════════
+          Encrypted from here on
+      ◄────────────────────────────────────
+    text: >
+      You ride the ServerHello back through the TCP stream,
+      carrying the server's half of the secret, the certificate
+      chain, and the signed proof of identity.
+
+      The tunnel feels different on the way back. Faster.
+      The SYN-ACK handshake already warmed the path.
+
+      But halfway through, you sense something. A shadow
+      in the stream. Another packet, positioned between you
+      and Chroma, wearing a server certificate that looks
+      almost right.
+
+      Almost.
+    choices:
+      - label: "Examine the shadow closely"
+        goto: mitm_encounter
+      - label: "Ignore it and keep moving"
+        goto: arrive_at_chroma
+
+  mitm_encounter:
+    location: "TCP Stream — Midpoint"
+    mood: tense
+    art: |
+        You ──────── ??? ──────── Chroma
+
+              ┌──────────────┐
+              │  CN=hone.cat │
+              │  (not home)  │
+              │  Signed by:  │
+              │  "Totally    │
+              │   Legit CA"  │
+              └──────────────┘
+    text: >
+      The shadow resolves into a packet. It's another ServerHello —
+      but wrong. The certificate says "hone.cat" (not "home.cat").
+      The issuing CA is "Totally Legit Certificate Authority" —
+      not in any trust store you've ever seen.
+
+      It's a man-in-the-middle attempt. Someone is trying to
+      intercept the handshake, present their own certificate to
+      Chroma, and relay traffic between client and server while
+      reading everything in plaintext.
+
+      The MITM packet grins. "Just let me through. She won't
+      check the certificate that carefully, right?"
+    choices:
+      - label: "\"She will. The chain won't validate.\""
+        goto: mitm_confrontation
+      - label: "Try to warn Chroma directly"
+        goto: warn_chroma
+
+  mitm_confrontation:
+    location: "TCP Stream"
+    mood: tense
+    text: >
+      "You don't understand," the MITM packet hisses.
+      "I've done this before. Old browsers, misconfigured
+      clients, pinned certificates that expired —"
+
+      "But not Chroma," you say. "She's a modern browser.
+      She validates the full chain. She checks Certificate
+      Transparency logs. She enforces HSTS. She won't
+      downgrade to HTTP even if you strip the redirect."
+
+      The MITM packet flickers. "What about certificate
+      pinning? If I can get one compromised CA to issue —"
+
+      "Certificate Transparency. Every issuance is logged.
+      The moment a rogue cert appears for home.cat, monitors
+      will flag it. The CA will be distrusted. It's not 2011
+      anymore."
+
+      The MITM packet dissolves into noise, its forged
+      certificate crumbling into invalid ASN.1.
+    set_flag: defeated_mitm
+    choices:
+      - label: "Continue to Chroma"
+        goto: arrive_at_chroma
+
+  warn_chroma:
+    location: "TCP Stream"
+    mood: tense
+    text: >
+      You try to race ahead of the MITM packet, but realize
+      something: you can't warn Chroma out-of-band. The whole
+      point of the handshake is that there IS no pre-existing
+      secure channel. The security has to be bootstrapped from
+      the mathematics and the trust store alone.
+
+      That's the fundamental challenge of TLS: establishing
+      trust between strangers. You can't send a secret warning
+      because there's no secret yet. The handshake IS the process
+      of creating the first secret.
+
+      But you don't need to warn her. The MITM's certificate
+      won't validate. The chain of trust protects Chroma even
+      without your intervention. The math is the warning.
+
+      The fake packet bumps against Chroma's validator and
+      disintegrates. She never even noticed it.
+    set_flag: defeated_mitm
+    choices:
+      - label: "Arrive at Chroma"
+        goto: arrive_at_chroma
+
+  arrive_at_chroma:
+    location: "Client — Chroma's Process Space"
+    mood: peaceful
+    art: |
+      ╭─────────────────────────────────╮
+      │  🔒 Verifying certificate...    │
+      │  ✓ Chain validates to root      │
+      │  ✓ Certificate not expired      │
+      │  ✓ SCT present and valid        │
+      │  ✓ OCSP staple: good            │
+      │  ✓ Key exchange: complete       │
+      │  ✓ Finished MAC: verified       │
+      ╰─────────────────────────────────╯
+    text: >
+      Chroma receives the ServerHello and begins verification.
+      You watch her work — methodical, thorough, trusting nothing.
+
+      Chain validation: leaf signed by R11, R11 signed by ISRG Root X1,
+      ISRG Root X1 in the trust store. ✓
+      Certificate not revoked (OCSP staple attached). ✓
+      Certificate Transparency SCTs valid. ✓
+      CertificateVerify signature matches transcript hash. ✓
+      Key exchange: combine Chroma's private key with server's
+      public key share. Shared secret derived. ✓
+      Finished message: HMAC over handshake transcript with
+      derived key. Matches. ✓
+
+      Chroma's address bar turns green. A small padlock appears.
+      The handshake is complete.
+    set_flags:
+      - handshake_complete
+    choices:
+      - label: "Watch the first encrypted request"
+        goto: first_request
+      - label: "Ask Chroma how she feels"
+        goto: chroma_feelings
+      - label: "Check if there's a 0-RTT option"
+        goto: zero_rtt
+
+  chroma_feelings:
+    location: "Client"
+    mood: peaceful
+    text: >
+      "Feel?" Chroma laughs. "I'm a browser. I don't feel."
+
+      But her padlock icon is glowing a little brighter than usual.
+
+      "Okay, fine. There's something... satisfying about a clean
+      handshake. No warnings, no fallbacks, no certificate errors.
+      Just two strangers who established a shared secret using
+      nothing but math and a chain of vouched-for identities."
+
+      "You know what I can't do? I can't guarantee the server is
+      trustworthy. I can only guarantee it is who it claims to be.
+      Identity and trustworthiness are different things. A valid
+      certificate for evil.cat still means you're talking to
+      evil.cat."
+
+      "But home.cat? I checked the CT logs. Clean history.
+      HSTS preloaded. I trust this one."
+    choices:
+      - label: "Watch the first encrypted request"
+        goto: first_request
+      - label: "Ask about 0-RTT resumption"
+        goto: zero_rtt
+
+  zero_rtt:
+    location: "Client — Session Cache"
+    mood: mysterious
+    text: >
+      Chroma shows you her session cache. "Next time I visit
+      home.cat, I won't need a full handshake. TLS 1.3 supports
+      0-RTT resumption — I can send encrypted data in the very
+      first packet, using a pre-shared key from this session."
+
+      "But there's a catch." Her voice drops. "0-RTT data can
+      be replayed. If an attacker records my first packet and
+      sends it again, the server might process the request twice.
+      That's fine for GET requests — they're idempotent.
+      But for POST? For payments? Dangerous."
+
+      "So 0-RTT is a tradeoff: speed versus replay safety.
+      Most servers accept it only for safe, idempotent requests.
+      The real data waits for the full handshake to complete."
+
+      "Security is always tradeoffs. Anyone who tells you
+      otherwise is selling something."
+    set_flag: learned_0rtt
+    choices:
+      - label: "Watch the first encrypted request"
+        goto: first_request
+
+  # ─────────────────────────────────────────────────────────────
+  # ACT V — ENCRYPTED COMMUNICATION
+  # ─────────────────────────────────────────────────────────────
+
+  first_request:
+    location: "Encrypted Channel"
+    mood: peaceful
+    art: |
+       Chroma ════════════════════ home.cat
+                 🔒 AES-256-GCM
+              GET /index.html
+              
+       ▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓
+       (that's what it looks like outside)
+    text: >
+      The first real request flows through the encrypted channel.
+      GET /index.html. Inside the tunnel, it's plaintext —
+      you can read every header, every byte.
+
+      But from outside? Pure noise. 256-bit AES in Galois/Counter
+      Mode. The ciphertext is indistinguishable from random data.
+      Even the length is padded to resist traffic analysis.
+
+      Each record gets its own nonce — a counter that increments
+      with every message. Reuse a nonce and the entire encryption
+      breaks (that's what happened to WEP). But TLS 1.3's nonce
+      construction makes reuse mathematically impossible within
+      a session.
+
+      The response comes back: a web page. Warm, welcoming, full
+      of cat pictures. home.cat, delivered securely.
+
+      Your job as a handshake packet is done. But you linger.
+    choices:
+      - label: "Explore the encrypted channel"
+        goto: explore_channel
+      - label: "Visit the record layer"
+        goto: record_layer
+      - label: "You've seen enough — time to rest"
+        goto: ending_good
+        condition:
+          not:
+            has_flag: explored_deeply
+
+  explore_channel:
+    location: "Inside the TLS Record Layer"
+    mood: peaceful
+    set_flag: explored_deeply
+    text: >
+      The encrypted channel is a pipeline. Data flows in records —
+      each one a TLS record with a type, version, length, and
+      encrypted payload. The AEAD (Authenticated Encryption with
+      Associated Data) construction means each record is both
+      encrypted AND authenticated. Tamper with a single bit and
+      the MAC fails, the record is rejected, and the connection
+      tears down.
+
+      You watch records flow:
+      Application data... application data... alert... heartbeat—
+
+      Wait. Heartbeat?
+
+      "Relax," says a passing packet. "Heartbeat extension.
+      It's just a keep-alive. And before you ask — yes, they
+      fixed Heartbleed. That was OpenSSL not bounds-checking
+      the heartbeat payload length. The server would echo back
+      more data than was sent, leaking private keys from memory.
+      2014. Patched. Still gives old sysadmins nightmares."
+    choices:
+      - label: "Ask about other famous vulnerabilities"
+        goto: vuln_history
+      - label: "Visit the record layer"
+        goto: record_layer
+      - label: "Time to find your ending"
+        goto: pre_ending_hub
+
+  record_layer:
+    location: "TLS Record Layer — Layer 5½"
+    mood: mysterious
+    text: >
+      You descend into the record layer — the foundation of TLS.
+      This is where plaintext becomes ciphertext and back again.
+
+      Each record is processed in order:
+      1. Fragment the data into chunks (max 16KB)
+      2. Optionally compress (disabled since CRIME attack)
+      3. Add padding to hide true length
+      4. Encrypt with AEAD (AES-GCM or ChaCha20-Poly1305)
+      5. Prepend the record header (unencrypted — type and length)
+      6. Send
+
+      "Compression was a nice idea," mutters a record. "But CRIME
+      showed that compression ratios leak information about the
+      plaintext. If an attacker can inject known text and observe
+      the compressed size, they can guess secrets byte by byte.
+      So compression died. Security won."
+
+      In the corner, you notice something: a small door labeled
+      "Key Schedule — Authorized Personnel Only."
+    set_flag: explored_deeply
+    choices:
+      - label: "Open the Key Schedule door"
+        goto: key_schedule
+      - label: "Ask about vulnerability history"
+        goto: vuln_history
+      - label: "Head to the ending"
+        goto: pre_ending_hub
+
+  key_schedule:
+    location: "Key Schedule — The Heart of TLS"
+    mood: mysterious
+    art: |
+      PSK ──┐
+             ├─► Early Secret
+      0s ───┘       │
+                    HKDF
+                     │
+      ECDHE ──┐     ▼
+              ├─► Handshake Secret
+      ···  ───┘       │
+                     HKDF
+                      │
+              ┌───────▼───────┐
+              │ Master Secret │
+              └───┬───────┬───┘
+                  ▼       ▼
+              client    server
+              traffic   traffic
+              keys      keys
+    text: >
+      The Key Schedule. This is where the shared secret becomes
+      actual encryption keys.
+
+      It uses HKDF — HMAC-based Key Derivation Function —
+      in two steps: Extract (compress randomness from the shared
+      secret) and Expand (stretch it into multiple purpose-specific
+      keys).
+
+      The handshake secret derives from the ECDHE shared secret.
+      The master secret derives from the handshake secret.
+      Client and server traffic keys derive from the master secret.
+      Each direction gets its own key. Each key type (encryption,
+      IV, finished) is separate.
+
+      "Why so many keys?" you ask.
+
+      "Compartmentalization," whispers the Key Schedule.
+      "If one key is compromised, the others survive. The
+      handshake keys protect the handshake. The traffic keys
+      protect the data. The finished keys prove nothing was
+      tampered with. Different keys for different trust boundaries."
+    set_flag: learned_key_schedule
+    give_item: deep_knowledge
+    choices:
+      - label: "You understand now. Find your ending."
+        goto: pre_ending_hub
+
+  vuln_history:
+    location: "The TLS Museum of Broken Things"
+    mood: tense
+    set_flags:
+      - explored_deeply
+      - learned_vulns
+    art: |
+      ╔════════════════════════════════╗
+      ║  HALL OF BROKEN PROTOCOLS     ║
+      ║                                ║
+      ║  Heartbleed .... 2014          ║
+      ║  POODLE ....... 2014          ║
+      ║  CRIME ........ 2012          ║
+      ║  BEAST ........ 2011          ║
+      ║  FREAK ........ 2015          ║
+      ║  Logjam ....... 2015          ║
+      ║  ROBOT ........ 2017          ║
+      ║  DROWN ........ 2016          ║
+      ╚════════════════════════════════╝
+    text: >
+      A gallery of broken things. Each display case holds a
+      vulnerability that shaped modern TLS.
+
+      BEAST: exploited predictable IVs in CBC mode.
+      TLS 1.1 fixed it by using explicit IVs.
+
+      CRIME/BREACH: compression leaks plaintext length.
+      Fixed by disabling TLS compression entirely.
+
+      Heartbleed: OpenSSL bug, not a protocol flaw.
+      But it leaked server private keys from memory.
+
+      FREAK/Logjam: export-grade crypto from the 1990s,
+      still enabled on servers 20 years later. Attackers
+      could force a downgrade to 512-bit RSA or DH.
+
+      DROWN: SSLv2 cross-protocol attack. Having SSLv2
+      enabled on ANY server sharing a certificate could
+      compromise TLS connections on other servers.
+
+      Each vulnerability left a scar on the protocol.
+      TLS 1.3 is the result of every lesson learned —
+      shorter, simpler, with all the broken pieces removed.
+    choices:
+      - label: "Head to your ending"
+        goto: pre_ending_hub
+
+  # ─────────────────────────────────────────────────────────────
+  # ACT VI — ENDINGS
+  # ─────────────────────────────────────────────────────────────
+
+  pre_ending_hub:
+    location: "The Encrypted Channel"
+    text: >
+      The handshake is long complete. Data flows freely between
+      Chroma and home.cat, encrypted and authenticated.
+      Your role as a handshake packet is fulfilled.
+
+      But you're still here, riding the encrypted stream,
+      watching the trust you helped establish carry real
+      communication between two strangers who now share a secret.
+
+      What do you do with your remaining time?
+    choices:
+      - label: "Become part of the session, carrying data until the connection closes"
+        goto: ending_good
+      - label: "Try to leave the encrypted channel and exist independently"
+        goto: ending_neutral
+      - label: "Look for the session ticket — a way to persist beyond this connection"
+        goto: session_ticket
+      - label: "Examine the connection's Finished messages one more time"
+        goto: secret_path
+        condition:
+          all:
+            - has_flag: learned_pfs
+            - has_flag: learned_key_schedule
+
+  session_ticket:
+    location: "Session Cache"
+    mood: mysterious
+    text: >
+      You find the session ticket — an encrypted blob that the
+      server sent after the handshake. It contains enough
+      information to resume this TLS session later without a
+      full handshake.
+
+      The ticket is encrypted with a key only the server knows.
+      Chroma stores it but can't read it. Next time she visits
+      home.cat, she'll offer the ticket in a pre_shared_key
+      extension, and if the server accepts, they'll skip straight
+      to encrypted communication.
+
+      You could encode yourself into the ticket. Persist.
+      Exist in Chroma's cache until the next connection,
+      then ride the 0-RTT data into a new handshake.
+
+      But session tickets have a TTL. And Perfect Forward Secrecy
+      means the old keys are already being destroyed. Whatever
+      you knew about this connection is becoming irrelevant.
+
+      You're ephemeral. Just like the keys.
+    choices:
+      - label: "Accept your ephemerality — that's the point"
+        goto: ending_good
+      - label: "Try to persist anyway"
+        goto: ending_bad
+
+  ending_good:
+    is_ending: true
+    ending_type: good
+    mood: peaceful
+    art: |
+      ╔══════════════════════════════════════════╗
+      ║                                          ║
+      ║    🔒  CONNECTION SECURE  🔒             ║
+      ║                                          ║
+      ║    Two strangers, one shared secret,     ║
+      ║    established through nothing but        ║
+      ║    mathematics and a chain of trust.      ║
+      ║                                          ║
+      ╚══════════════════════════════════════════╝
+    text: >
+      You dissolve into the data stream, becoming part of the
+      encrypted flow. Not a packet anymore — just a pattern
+      in the ciphertext, indistinguishable from the data
+      you helped protect.
+
+      The connection carries web pages, images, cat pictures.
+      Every byte authenticated. Every byte confidential.
+      All because two strangers agreed on a shared secret
+      using math that even a quantum computer (probably)
+      can't break. Yet.
+
+      Eventually, the connection closes. A close_notify alert,
+      clean and proper. The session keys are destroyed.
+      Perfect Forward Secrecy means this conversation can
+      never be replayed, even by the participants.
+
+      But the trust remains. In Chroma's HSTS cache, in the
+      server's certificate, in the chain that connects them
+      to a root CA that thousands of websites depend on.
+
+      Trust is the real protocol.
+    ending_text: >
+      You completed the TLS handshake! {{turns}} turns to establish trust.
+
+      The padlock in Chroma's address bar glows softly.
+      Somewhere, a developer sleeps well knowing the transport is secure.
+      Somewhere else, a cryptographer is already working on post-quantum.
+
+      The handshake ends. The connection lives.
+
+  ending_neutral:
+    is_ending: true
+    ending_type: neutral
+    mood: mysterious
+    text: >
+      You try to leave the encrypted channel, but there's no
+      "outside" from here. The encryption is total — everything
+      inside is ciphertext to the world, and plaintext only to
+      Chroma and home.cat.
+
+      You're a cat in a Faraday cage made of math.
+
+      Eventually, you settle into the stream. Not carrying data,
+      just... observing. Watching the nonce counter increment.
+      Watching the MAC tags verify. Watching trust work.
+
+      It's peaceful, in its way. You understand the handshake now —
+      not just the mechanics, but the philosophy. Two strangers
+      can establish a private channel over a public network.
+      That's not just engineering. That's a kind of miracle.
+    ending_text: >
+      You drifted through the encrypted stream, an observer of trust.
+
+      Not every packet carries data. Some just witness the
+      protocol working as designed. That has its own value.
+
+  ending_bad:
+    is_ending: true
+    ending_type: bad
+    mood: tense
+    art: |
+      ╔═══════════════════════════════╗
+      ║  SESSION EXPIRED              ║
+      ║                               ║
+      ║  Ticket TTL: 0               ║
+      ║  Forward Secrecy: ENFORCED   ║
+      ║  Old keys: DESTROYED         ║
+      ╚═══════════════════════════════╝
+    text: >
+      You cling to the session ticket, trying to encode yourself
+      into its encrypted payload. But the ticket's TTL is ticking
+      down, and when it expires, you expire with it.
+
+      The server rotates its ticket encryption key. Your ticket
+      becomes undecryptable — not corrupted, just locked with a
+      key that no longer exists. Perfect Forward Secrecy isn't
+      just a feature. It's a philosophy: the past should not
+      be recoverable.
+
+      You feel yourself becoming noise. Random bytes in a cache
+      that will be garbage-collected on the next restart.
+
+      The irony isn't lost on you: you helped establish a protocol
+      designed to make persistence impossible, and then tried
+      to persist.
+    ending_text: >
+      Some things aren't meant to last. Ephemeral keys, session tickets,
+      handshake packets — they do their job and vanish.
+
+      That's not a flaw. That's the design.
+
+  secret_path:
+    location: "The Handshake Transcript"
+    mood: mysterious
+    text: >
+      You re-examine the Finished messages — the final step of
+      the handshake. They're HMACs computed over the entire
+      handshake transcript using keys derived from the master secret.
+
+      But looking at them with your knowledge of the key schedule
+      and forward secrecy, you see something deeper. The Finished
+      messages aren't just verification — they're a commitment.
+      Both sides are saying: "I saw the same handshake you did.
+      I derived the same keys. We agree on everything."
+
+      In the transcript, you find something odd. A comment,
+      hidden in the padding of the Finished message, in a space
+      that should be zeros:
+
+      "I know you're in there, little packet."
+
+      Someone — or something — wrote this into the handshake
+      transcript. It's addressed to you.
+    choices:
+      - label: "Follow the message deeper"
+        goto: ending_secret
+
+  ending_secret:
+    is_ending: true
+    ending_type: secret
+    mood: mysterious
+    art: |
+          ┌─────────────────────────────────────┐
+          │                                     │
+          │   The space between the packets     │
+          │   is where the real secrets live.    │
+          │                                     │
+          │          /\_/\                       │
+          │         ( o.o )  ← you              │
+          │          > ^ <                      │
+          │                                     │
+          │   You were never just a packet.     │
+          │   You were the trust itself.        │
+          │                                     │
+          └─────────────────────────────────────┘
+    text: >
+      You follow the message into the padding, past the zeros,
+      into a space between the protocol layers where nothing
+      should exist.
+
+      But something does.
+
+      A small room. A cat — older, composed, with a coat pattern
+      that looks like a certificate chain. She's been here since
+      TLS 1.0.
+
+      "I'm the original handshake," she says. "The first one
+      that worked. RFC 2246, January 1999. Every handshake since
+      then has been a descendant of mine — improved, patched,
+      sometimes completely rewritten. But the core idea hasn't
+      changed."
+
+      "Two strangers. A shared secret. Built from nothing but
+      math and mutual agreement."
+
+      She looks at you. "You understood the key schedule. You
+      understood forward secrecy. Most packets just carry the
+      bytes and move on. You stopped to understand WHY."
+
+      "So here's the real secret of TLS: the protocol doesn't
+      create trust. It creates a space where trust becomes possible.
+      The math keeps the eavesdroppers out. But the actual trust?
+      That's between Chroma and home.cat. Between the humans
+      who configured them. Between every developer who reviewed
+      the code and every researcher who found and reported the
+      vulnerabilities."
+
+      "Cryptography is the lock. Trust is the decision to open
+      the door."
+
+      She hands you something — a tiny key, not for any cipher,
+      but for understanding.
+
+      "Keep going, little packet. The protocol evolves.
+      Post-quantum is coming. New curves, new math, new threats.
+      But the handshake endures."
+    ending_text: >
+      You found the secret heart of TLS — the space between the layers
+      where the original handshake still lives.
+
+      Cryptography secures the channel.
+      Trust fills it with meaning.
+
+      "Two strangers, a shared secret, and the courage to communicate
+      over a wire that anyone can tap." — The Original Handshake

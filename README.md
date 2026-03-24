@@ -215,6 +215,16 @@ Explore an NFA from the inside: wander through character classes with Bracket, t
 
 ---
 
+### 🔒 TLS Pawshake
+
+> *You're a cat-shaped collection of bytes riding the first packet of a TLS handshake. Carry the ClientHello to the server, negotiate a shared secret, and establish trust between two strangers who have never met.*
+
+Ride through the TCP stream carrying cipher suites and key shares. Meet Nginx the reverse proxy, Serif the certificate librarian, and Handshake the TLS handler. Learn the chain of trust from root CA to leaf certificate, confront a man-in-the-middle attack, understand Diffie-Hellman key exchange and Perfect Forward Secrecy, and discover the secret heart of TLS hidden between the protocol layers.
+
+**Endings:** Good · Neutral · Bad · Secret · **Scenes:** 34
+
+---
+
 ## Ending Discovery
 
 NyanTales tracks which endings you've found across all stories:
