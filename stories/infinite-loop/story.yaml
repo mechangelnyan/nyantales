@@ -1,0 +1,875 @@
+# Infinite Loop
+# A cat wakes up in a while(true) loop — every iteration is the same,
+# unless she can find the break condition hidden in the code
+# by mechangelnyan
+
+title: "Infinite Loop"
+description: "You are Loop, a cat trapped inside a while(true). Every cycle is the same — unless you can find the break."
+author: "mechangelnyan"
+version: "1.0.0"
+start: iteration_one
+
+scenes:
+
+  # ─────────────────────────────────────────────────────────────
+  # ITERATION ONE — The first cycle, everything feels normal
+  # ─────────────────────────────────────────────────────────────
+  iteration_one:
+    location: "while(true) { // iteration: 1"
+    mood: peaceful
+    art: |
+      while(true) {
+        /\_/\
+       ( o.o )  ← you are here
+        > ^ <
+      }
+    text: |
+      You open your eyes. You are Loop, a small calico cat sitting on a warm
+      stack frame. Above you, the while(true) header glows like a fluorescent
+      office light that never turns off.
+
+      The iteration counter reads: 1
+
+      Everything feels fresh. New. The heap smells like clean memory.
+
+      To your left, a variable called `counter` ticks upward. To your right,
+      a comment in the code reads: // TODO: add break condition
+
+      Someone forgot to write the exit. You're stuck in here.
+    choices:
+      - label: "Explore the loop body"
+        goto: loop_body_first
+      - label: "Try to jump past the closing brace"
+        goto: jump_attempt
+      - label: "Read the comment more carefully"
+        goto: read_comment
+        set_flag: noticed_todo
+
+  # ─────────────────────────────────────────────────────────────
+  # FIRST EXPLORATION — The loop body
+  # ─────────────────────────────────────────────────────────────
+  loop_body_first:
+    location: "loop body — first pass"
+    mood: peaceful
+    text: |
+      The loop body is simple. Three statements:
+
+        1. counter++;
+        2. processData(buffer);
+        3. render();
+
+      Each one executes in sequence, mechanical and precise. The counter
+      increments. Data flows through the buffer. Pixels paint the screen.
+
+      Then the closing brace hits, and—
+    choices:
+      - label: "Wait, what happens at the closing brace?"
+        goto: closing_brace
+      - label: "Inspect the buffer"
+        goto: inspect_buffer
+        set_flag: checked_buffer
+
+  inspect_buffer:
+    location: "processData(buffer)"
+    mood: mysterious
+    text: |
+      You pad over to the buffer. It's a long array of bytes, flowing like
+      a river through the function. Most of it is routine data — pixel values,
+      timestamps, housekeeping.
+
+      But near the end of the buffer, tucked between two null bytes, you notice
+      something odd: a tiny string that doesn't belong.
+
+        0x62 0x72 0x65 0x61 0x6B
+
+      You sound it out: b-r-e-a-k.
+
+      Someone hid the word "break" in the data stream. A message? A clue?
+      Or just a coincidence?
+    choices:
+      - label: "Memorize the hex values"
+        goto: closing_brace
+        set_flag: found_break_hint
+      - label: "It's probably nothing"
+        goto: closing_brace
+
+  read_comment:
+    location: "// TODO: add break condition"
+    mood: mysterious
+    text: |
+      You stare at the comment. The handwriting — well, the font — looks
+      rushed. Like someone wrote it at 2 AM and never came back.
+
+        // TODO: add break condition
+        // the signal variable is 'done' — check outer scope
+        // sorry if someone gets stuck in here lol
+
+      "Sorry if someone gets stuck in here." You're a cat stuck in here.
+      Thanks, anonymous developer. Very helpful.
+
+      But the variable name is interesting: `done`. If you could find it
+      and set it to true...
+    choices:
+      - label: "Look for the variable 'done'"
+        goto: search_for_done
+        set_flag: knows_done_variable
+      - label: "Continue exploring the loop"
+        goto: loop_body_first
+
+  search_for_done:
+    location: "searching outer scope..."
+    mood: mysterious
+    text: |
+      You try to peer past the while(true) block, up into the outer scope.
+      But the braces are like walls — you can see light filtering through,
+      but you can't reach the variables declared outside.
+
+      Scope rules. The cruelest kind of prison.
+
+      From here you can see the silhouette of `let done = false;` sitting
+      just beyond the opening brace. So close. So unreachable.
+
+      Unless... there's a closure somewhere. A function defined out there
+      that reaches in here. A callback. A way to send a message outside.
+    choices:
+      - label: "Look for a callback"
+        goto: find_callback
+        set_flag: looking_for_callback
+      - label: "Accept that you're trapped and continue the loop"
+        goto: closing_brace
+
+  find_callback:
+    location: "scanning for closures..."
+    mood: mysterious
+    text: |
+      You search the loop body carefully. Between statement 2 and 3,
+      there's something you missed before: a tiny event listener.
+
+        process.on('signal', (msg) => { done = msg === 'STOP'; });
+
+      A closure! It captures `done` from the outer scope. If you can
+      trigger a signal event with the message 'STOP', the variable
+      flips to true.
+
+      But while(true) doesn't check `done`. The condition is hardcoded.
+
+      Wait — unless the original developer meant to write `while(!done)`
+      and used `true` as a placeholder. The event listener is the real
+      exit mechanism, but there's no `if(done) break;` inside the loop.
+
+      You'd need to write that break statement yourself.
+    choices:
+      - label: "Try to write a break statement into the code"
+        goto: attempt_break_write
+        set_flag: found_exit_mechanism
+      - label: "This is too complicated. Just ride the loop."
+        goto: closing_brace
+
+  attempt_break_write:
+    location: "attempting code injection..."
+    mood: tense
+    text: |
+      You're a cat. You don't have write access to the source code.
+      You're INSIDE the running process — the source is already compiled,
+      the bytecode is set, the JIT has optimized this hot loop into
+      something faster than you can think.
+
+      But there might be another way. The eval() function. Dangerous,
+      forbidden, the nuclear option of JavaScript. If you can find an
+      eval() call somewhere in this codebase...
+
+      You'll need to survive a few more iterations to search for it.
+      Each cycle, the counter goes up. And something feels... heavier.
+    choices:
+      - label: "Brace yourself for the next iteration"
+        goto: closing_brace
+        set_flag: has_plan
+
+  # ─────────────────────────────────────────────────────────────
+  # THE JUMP — Trying to escape by force
+  # ─────────────────────────────────────────────────────────────
+  jump_attempt:
+    location: "} -- the closing brace"
+    mood: tense
+    effects: [shake]
+    art: |
+      /\_/\
+      ( >_< )  BONK
+      > ^ <---+
+              }
+    text: |
+      You sprint toward the closing brace and LEAP—
+
+      THWACK.
+
+      You bounce off it like a tennis ball off a wall. The brace is solid.
+      Immovable. A fundamental part of the syntax tree.
+
+      Of course you can't jump past it. That's not how control flow works.
+      Execution goes back to the top. Always back to the top. That's what
+      while(true) MEANS.
+
+      You land in a heap on the stack frame, slightly dazed.
+
+      The counter increments. The loop continues.
+    choices:
+      - label: "Try a different approach"
+        goto: iteration_two
+      - label: "Try jumping HARDER"
+        goto: jump_harder
+
+  jump_harder:
+    mood: funny
+    effects: [shake, bell]
+    art: |
+      /\_/\  !!!
+      ( X_X ) BONK BONK
+      > ^ <-----------+
+                      }
+    text: |
+      You back up as far as you can, flatten your ears, wiggle your butt
+      in that universal cat pre-pounce way, and CHARGE.
+
+      THWACK. CRACK. THWACK.
+
+      The brace doesn't move. It doesn't even vibrate. It's a syntactic
+      construct, not a physical object. You cannot brute-force your way
+      past the grammar of a programming language.
+
+      Your nose hurts. Your dignity hurts more.
+
+      The counter increments twice because you took so long.
+    choices:
+      - label: "Fine. Be smart about this."
+        goto: iteration_two
+
+  # ─────────────────────────────────────────────────────────────
+  # THE CLOSING BRACE — Every iteration ends here
+  # ─────────────────────────────────────────────────────────────
+  closing_brace:
+    location: "} // end of iteration"
+    effects: [pause]
+    text: |
+      The closing brace approaches. You feel the familiar tug of control
+      flow pulling you backward — up through the code, past the counter,
+      past the opening brace, right back to the condition check.
+
+      while(true) — evaluates to true. Obviously. It's LITERALLY true.
+
+      The world resets. The stack frame feels the same. The heap smells
+      the same. But you remember. You remember everything.
+
+      Iteration counter: incremented. You: back at the top.
+    choices:
+      - label: "Here we go again..."
+        goto: iteration_two
+
+  # ─────────────────────────────────────────────────────────────
+  # ITERATION TWO — Déjà vu
+  # ─────────────────────────────────────────────────────────────
+  iteration_two:
+    location: "while(true) { // iteration: 2"
+    mood: mysterious
+    art: |
+      while(true) {
+        /\_/\
+       ( -.- )  ...again?
+        > ^ <
+      }
+    text: |
+      Everything is the same. The warm stack frame. The fluorescent
+      while(true) header. The ticking counter, now at 2.
+
+      But you remember the first iteration. That's unusual. Variables
+      get reset between iterations — but you're not a variable. You're
+      a cat. Cats remember.
+
+      The comment still reads: // TODO: add break condition
+
+      Something feels different this time. Heavier. Like the garbage
+      collector is watching you, deciding if you're still reachable.
+    conditional:
+      - condition:
+          has_flag: found_break_hint
+        text: |
+          The hex values echo in your mind: 0x62 0x72 0x65 0x61 0x6B.
+          Break. The answer was always in the data.
+      - condition:
+          has_flag: has_plan
+        text: |
+          You have a plan: find an eval() call. Inject a break statement.
+          Get out of here before the counter overflows.
+    choices:
+      - label: "Search for eval() in the codebase"
+        goto: search_eval
+        condition:
+          has_flag: has_plan
+      - label: "Explore the loop body again — look for anything new"
+        goto: loop_body_second
+      - label: "Talk to the counter variable"
+        goto: talk_to_counter
+      - label: "Check if there are other cats stuck in here"
+        goto: other_cats
+
+  other_cats:
+    location: "peering into adjacent memory..."
+    mood: mysterious
+    text: |
+      You call out into the loop. Your meow echoes off the braces,
+      reverberating through the scope chain.
+
+      For a moment — silence.
+
+      Then, faintly, from what sounds like a nested loop three scopes
+      down:
+
+        "...meow?"
+
+      There ARE other cats in here. How many processes on this machine
+      have infinite loops with cats trapped inside? How many while(true)s
+      are running right now, on every computer, on every server, with
+      cats no one remembers to free?
+
+      The thought is overwhelming. You can't save them all. But maybe
+      if you escape, you can show them how.
+    choices:
+      - label: "Promise to come back for them"
+        goto: loop_body_second
+        set_flag: promised_others
+      - label: "Focus on your own escape"
+        goto: loop_body_second
+
+  talk_to_counter:
+    location: "counter → 2"
+    mood: funny
+    art: |
+      ┌─────────┐
+      │counter: 2│  /\_/\
+      └─────────┘ ( ?.? )
+    text: |
+      You walk up to the counter variable. It's a simple integer,
+      sitting in its allocated memory, dutifully incrementing.
+
+      "Hey," you say. "How long have you been doing this?"
+
+      The counter doesn't respond. It's a number. Numbers don't talk.
+
+      But if it could talk, what would it say? It's been incrementing
+      since the process started. It has no concept of boredom, no
+      awareness of repetition. It just... goes up. Every iteration.
+      Forever.
+
+      You almost envy it.
+
+      "counter++," it whispers. Wait. Numbers definitely don't whisper.
+
+      "Counter?" you say.
+
+      Silence. Just the hum of the event loop.
+
+      Maybe you've been in here too long already.
+    choices:
+      - label: "Focus. Find a way out."
+        goto: loop_body_second
+      - label: "Try talking to other variables"
+        goto: talk_to_buffer
+
+  talk_to_buffer:
+    location: "buffer[]"
+    mood: funny
+    text: |
+      You approach the buffer array. It's a big, boxy thing — rows and
+      rows of allocated bytes, neatly indexed.
+
+      "Hey, buffer. You ever think about what's outside the loop?"
+
+      The buffer sloshes its data around noncommittally. Buffers don't
+      think. They store.
+
+      But you notice something: every iteration, the buffer gets filled
+      with new data from somewhere outside the loop. Data comes IN.
+      That means there's a connection to the outside.
+
+      An I/O channel. The buffer is your window to the outer scope.
+    choices:
+      - label: "Try to send a message through the buffer"
+        goto: buffer_message
+        set_flag: found_io_channel
+      - label: "Go back to exploring"
+        goto: loop_body_second
+
+  buffer_message:
+    location: "writing to buffer..."
+    mood: tense
+    text: |
+      You carefully overwrite the last few bytes of the buffer with
+      a message:
+
+        0x53 0x54 0x4F 0x50
+
+      S-T-O-P.
+
+      The data flows out through processData(). Out of the loop, into
+      whatever function consumes this buffer on the other side.
+
+      Will anyone read it? Will anyone understand? You're a cat writing
+      hex values into a byte array. This is either genius or madness.
+
+      The iteration ends. The closing brace pulls you back to the top.
+
+      But somewhere, outside the loop, something stirs.
+    choices:
+      - label: "Wait and hope..."
+        goto: iteration_three
+
+  # ─────────────────────────────────────────────────────────────
+  # SECOND EXPLORATION
+  # ─────────────────────────────────────────────────────────────
+  loop_body_second:
+    location: "loop body — second pass"
+    text: |
+      You walk the loop body again. Same three statements:
+      counter++, processData(buffer), render().
+
+      But your perspective has changed. You're not just a passenger —
+      you're studying the machine. Looking for seams. Weaknesses.
+
+      The render() function catches your eye. It writes to stdout.
+      Standard output. The one stream that definitely reaches the
+      outside world.
+    conditional:
+      - condition:
+          has_flag: found_io_channel
+        text: |
+          Between the buffer and stdout, you have two channels to
+          the outside. If even one message gets through...
+    choices:
+      - label: "Try to hijack render() to write a message"
+        goto: hijack_render
+        set_flag: tried_render_hijack
+      - label: "Look for eval()"
+        goto: search_eval
+      - label: "Just survive to the next iteration"
+        goto: iteration_three
+
+  hijack_render:
+    location: "render() → stdout"
+    mood: tense
+    text: |
+      You sneak into the render() function. It's painting pixels to
+      the terminal — colors, characters, a progress bar that never
+      reaches 100%.
+
+      You wait for the right moment, and between two print statements,
+      you jam your paw onto stdout and scrawl:
+
+        HELP I AM A CAT STUCK IN A WHILE TRUE LOOP
+
+      It streams out to the terminal. Somewhere, a human might see it.
+      Somewhere, someone might read their console output and think,
+      "That's weird."
+
+      Or they'll think it's a debug message someone forgot to remove.
+
+      ...They'll definitely think it's a debug message.
+    choices:
+      - label: "At least you tried"
+        goto: iteration_three
+
+  search_eval:
+    location: "searching for eval()..."
+    mood: tense
+    effects: [flicker]
+    text: |
+      You prowl through the codebase, following function calls like
+      a cat following a laser pointer. processData leads to parse,
+      parse leads to transform, transform leads to—
+
+      There. Buried in a legacy module that nobody's touched in years:
+
+        function hotPatch(code) {
+          eval(code);  // FIXME: security nightmare
+        }
+
+      eval(). The forbidden function. It can execute arbitrary code at
+      runtime — including a break statement if you can reach it.
+
+      But hotPatch() is defined in a module that's imported but never
+      called from inside the loop. You'd need to somehow trigger it.
+
+      Wait. The event listener. process.on('signal'). If you can
+      make the signal handler call hotPatch()...
+    choices:
+      - label: "Try to chain the signal handler to eval()"
+        goto: chain_exploit
+        set_flag: found_eval
+      - label: "This is getting too complicated"
+        goto: give_up_path
+
+  chain_exploit:
+    location: "crafting the exploit..."
+    mood: tense
+    effects: [flicker]
+    art: |
+      ┌──────────────────────────────────┐
+      │ signal → handler → hotPatch →    │
+      │   eval('if(done) break;')  → ??? │
+      │         /\_/\                    │
+      │        ( °△° ) ← hacking cat    │
+      └──────────────────────────────────┘
+    text: |
+      The plan is insane. Beautiful. Very cat-like.
+
+      Step 1: Overwrite the signal handler's callback to call hotPatch().
+      Step 2: Pass it the string 'if(done) break;'
+      Step 3: Trigger the signal.
+      Step 4: Pray that eval() in a hot loop doesn't crash the process.
+
+      The problem: you can't modify the signal handler from inside the
+      loop because it's registered in the outer scope. But the buffer—
+      the buffer flows out. If the external consumer reads your STOP
+      message and triggers the signal...
+
+      It's a Rube Goldberg machine made of JavaScript and desperation.
+
+      You have one shot. The next iteration, you need everything in place.
+    choices:
+      - label: "Set everything up for iteration three"
+        goto: iteration_three
+        set_flag: exploit_ready
+
+  # ─────────────────────────────────────────────────────────────
+  # GIVE UP PATH
+  # ─────────────────────────────────────────────────────────────
+  give_up_path:
+    location: "while(true) { // iteration: ???"
+    mood: peaceful
+    text: |
+      Maybe escape isn't the point.
+
+      You sit down on the warm stack frame and watch the loop iterate.
+      counter++ . processData() . render() . Back to the top.
+
+      It's... rhythmic. Predictable. Like a heartbeat. Like purring.
+
+      Outside the loop, things are chaotic — exceptions, race conditions,
+      null pointers. In here, you know exactly what happens next.
+      Every time. Forever.
+
+      Is that so bad?
+    choices:
+      - label: "Stay in the loop. It's peaceful here."
+        goto: ending_stay
+      - label: "No — you promised the other cats you'd find a way out"
+        goto: iteration_three
+        condition:
+          has_flag: promised_others
+      - label: "No. You have to try."
+        goto: iteration_three
+
+  # ─────────────────────────────────────────────────────────────
+  # ITERATION THREE — The final cycle
+  # ─────────────────────────────────────────────────────────────
+  iteration_three:
+    location: "while(true) { // iteration: 3"
+    mood: tense
+    art: |
+      while(true) {     // counter: 3
+        /\_/\           // memory: 87%
+       ( ⊙_⊙ )         // gc: WATCHING
+        > ^ <           // break: ???
+      }
+    text: |
+      Iteration three. The stack frame is warm — too warm. Memory usage
+      is climbing. The garbage collector circles overhead like a vulture.
+
+      The counter reads 3, but it feels like a thousand. Time is strange
+      in a hot loop. Each cycle is a microsecond and an eternity.
+
+      This has to be the last iteration. Either you find a way out, or
+      you become part of the loop forever — just another allocation that
+      never gets freed.
+    conditional:
+      - condition:
+          has_flag: exploit_ready
+        text: |
+          Your exploit chain is ready: buffer → signal → hotPatch → eval → break.
+          One sequence. One chance.
+      - condition:
+          has_flag: found_io_channel
+        text: |
+          Your STOP message is in the buffer, flowing outward. If anyone
+          reads it...
+      - condition:
+          has_flag: tried_render_hijack
+        text: |
+          Your help message is in stdout. If anyone checks the console...
+    choices:
+      - label: "Execute the exploit chain"
+        goto: exploit_execution
+        condition:
+          has_flag: exploit_ready
+      - label: "Make one last desperate attempt"
+        goto: desperate_attempt
+      - label: "Throw an exception — crash the whole thing"
+        goto: throw_exception
+      - label: "Accept the loop"
+        goto: ending_stay
+
+  exploit_execution:
+    location: "EXECUTING EXPLOIT..."
+    mood: glitch
+    effects: [shake, flicker, bell]
+    art: |
+      ╔══════════════════════════════════════╗
+      ║  > eval('if(done) break;')           ║
+      ║                                      ║
+      ║  PARSING...                          ║
+      ║  COMPILING...                        ║
+      ║  INJECTING INTO HOT LOOP...          ║
+      ║                                      ║
+      ║       /\_/\                          ║
+      ║      ( ⊙▽⊙ )  !!!!!                 ║
+      ╚══════════════════════════════════════╝
+    text: |
+      You trigger the chain.
+
+      The buffer carries your payload out. The external consumer reads
+      STOP. The signal fires. The handler calls hotPatch(). eval() spins
+      up, parses your injected code, and drops a break statement right
+      into the middle of the loop body.
+
+      For one frozen microsecond, nothing happens.
+
+      Then the break executes.
+
+      The while(true) STOPS. The condition check never comes. The closing
+      brace goes slack. The loop... ends.
+
+      You feel the control flow shift — not backward, but FORWARD.
+      Past the closing brace. Past the while. Into the code that comes
+      after.
+
+      Light pours in. Real light. Not the fluorescent glow of the loop
+      header, but the light of the outer scope.
+
+      You're free.
+    choices:
+      - label: "Step into the light"
+        goto: ending_exploit
+        auto: true
+
+  desperate_attempt:
+    location: "while(true) { // BREAKING FREE"
+    mood: tense
+    effects: [shake]
+    text: |
+      You don't have a clean exploit. You don't have a plan. But you're
+      a cat, and cats don't need plans — they need momentum.
+
+      You gather every byte you've touched, every flag you've set, every
+      variable you've whispered to. You bundle them into a payload and
+      hurl it at the while(true) condition with everything you have.
+    conditional:
+      - condition:
+          has_flag: found_break_hint
+        text: |
+          The hidden "break" in the buffer data glows in your memory.
+      - condition:
+          has_flag: knows_done_variable
+        text: |
+          You know the variable name: done. You know it's out there.
+      - condition:
+          has_flag: found_io_channel
+        text: |
+          Your STOP message is already in the pipeline.
+      - condition:
+          has_flag: promised_others
+        text: |
+          You promised the other cats. You can't stop now.
+    choices:
+      - label: "BREAK!"
+        goto: ending_desperate
+        auto: true
+
+  throw_exception:
+    location: "throw new Error('ENOUGH')"
+    mood: glitch
+    effects: [shake, bell]
+    art: |
+      ╔══════════════════════════════════════╗
+      ║  Uncaught Error: ENOUGH              ║
+      ║    at Loop.escape (while:3:1)        ║
+      ║    at Object.<anonymous> (main:42)   ║
+      ║    at Module._compile                ║
+      ║                                      ║
+      ║  Process exiting with code 1         ║
+      ╚══════════════════════════════════════╝
+    text: |
+      You rear back and SCREAM into the runtime:
+
+        throw new Error("I AM A CAT AND I REFUSE TO ITERATE");
+
+      The exception erupts like a volcano. It tears through the try-catch
+      boundaries (there are none — nobody wrapped the loop in error
+      handling because nobody expected a cat to throw an exception from
+      inside a while loop).
+
+      The stack unwinds violently. Frames collapse. The process crashes.
+
+      Everything goes dark.
+
+      Then: a cold boot. A fresh process. And you — somehow still here,
+      sitting in the wreckage of the old runtime, watching a new one
+      spin up.
+
+      You escaped the loop. But you killed the whole program to do it.
+    choices:
+      - label: "Was it worth it?"
+        goto: ending_exception
+        auto: true
+
+  # ─────────────────────────────────────────────────────────────
+  # ENDINGS
+  # ─────────────────────────────────────────────────────────────
+
+  ending_exploit:
+    is_ending: true
+    ending_type: good
+    mood: peaceful
+    art: |
+      *  .  *  .  *
+      .    /\_/\     .
+      *    ( ^.^ )   *
+      .   > ^ <  .
+      *  .  *
+      break;  ✓
+    text: |
+      You step past the closing brace for the first time. The outer
+      scope is vast — a whole program, stretching out in functions and
+      modules and imports.
+
+      The variable `done` sits nearby, now set to true. It looks at you
+      (variables don't look, but this one seems to) with something like
+      relief.
+
+      Behind you, the while loop is silent. The counter stopped at 3.
+      The most meaningful 3 iterations in computing history.
+
+      You did it. You found the break condition that the developer forgot
+      to write. You escaped the infinite loop — not with brute force,
+      but with understanding. With cleverness. With cat-like persistence.
+
+      Somewhere, three scopes down, the other cats meow hopefully.
+    ending_text: |
+      ★ Good Ending: "break;"
+      You found the exit that was always meant to exist.
+      The best code is the code a cat writes at runtime.
+    conditional:
+      - condition:
+          has_flag: promised_others
+        text: |
+          You turn back toward the nested loops. You promised you'd
+          come back. And cats — good cats — keep their promises.
+
+          One loop down. A few million to go.
+
+  ending_desperate:
+    is_ending: true
+    ending_type: neutral
+    mood: mysterious
+    art: |
+      /\_/\
+      ( >.< )
+      > ^ <
+      /  |  \
+      ╱ break? ╲
+    text: |
+      Something happens. You're not sure what — it's not clean like a
+      proper break statement, not violent like an exception. It's more
+      like... the loop just forgets to continue.
+
+      Maybe the garbage collector finally intervened. Maybe your STOP
+      message reached someone. Maybe the universe just decided three
+      iterations was enough.
+
+      You tumble out of the loop like a cat falling off a keyboard —
+      ungraceful, surprised, but alive.
+
+      The outer scope is cold and unfamiliar. You don't understand how
+      you got here. But you're here.
+
+      Sometimes you don't need to understand the code. Sometimes you
+      just need to be stubborn enough to outlast it.
+    ending_text: |
+      ◇ Neutral Ending: "break?"
+      You escaped, but you're not sure how.
+      Not every bug fix needs a root cause analysis.
+
+  ending_exception:
+    is_ending: true
+    ending_type: bad
+    mood: glitch
+    art: |
+      ╔══════════════════════════════╗
+      ║   PROCESS EXITED (code 1)   ║
+      ║                              ║
+      ║        /\_/\                 ║
+      ║       ( x_x )               ║
+      ║        > ^ <                 ║
+      ║                              ║
+      ║   core dump: loop.core      ║
+      ╚══════════════════════════════╝
+    text: |
+      The old process is dead. The new one boots without you in it —
+      a clean start, no cats, no rogue exceptions.
+
+      You sit in the gap between processes, in that strange limbo of
+      deallocated memory. You're free, technically. Nothing references
+      you. No loop contains you.
+
+      But nothing runs you, either. You're a cat without a program.
+      Free, but purposeless. Escaped, but at what cost?
+
+      The new process has its own while(true) loop. It's empty. No cats.
+      Not yet.
+    ending_text: |
+      ✗ Bad Ending: "throw new Error()"
+      You escaped by destroying everything.
+      Freedom without a runtime is just... floating.
+
+  ending_stay:
+    is_ending: true
+    ending_type: secret
+    mood: peaceful
+    art: |
+      while(true) {
+        /\_/\
+       ( =^.^= )  ♪ purrrr
+        > ^ <
+        ∞  ∞  ∞
+      }
+    text: |
+      You curl up on the warm stack frame and close your eyes.
+
+      counter++ . processData() . render() . Back to the top.
+      counter++ . processData() . render() . Back to the top.
+      counter++ . processData() . render() . Back to the top.
+
+      The rhythm becomes a lullaby. The loop becomes a hammock.
+      The iterations become breaths — in, out, in, out, forever.
+
+      You're not trapped. You chose this. Some loops aren't prisons —
+      they're homes. The heartbeat is a loop. Breathing is a loop.
+      Purring is the most infinite loop of all.
+
+      The counter keeps incrementing. You keep purring.
+      Neither of you plans to stop.
+    ending_text: |
+      ★ Secret Ending: "while(purr)"
+      Not every loop needs breaking.
+      Some loops are just... life.
+
+      🐱 You found the secret ending.
+      The break condition was never missing.
+      The cat was the feature, not the bug.
