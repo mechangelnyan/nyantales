@@ -1,0 +1,1530 @@
+title: "Cache Invalidation"
+description: "A cat discovers her memories aren't real — they're cached, stale, and about to be evicted."
+author: "mechangelnyan"
+version: "1.0.0"
+start: warm_memory
+
+scenes:
+
+  # ─────────────────────────────────────────────────────────────
+  # SCENE 1 — THE WARM MEMORY
+  # ─────────────────────────────────────────────────────────────
+  warm_memory:
+    art: |
+      ┌─────────────────────────────────────────────────┐
+      │  L1 CACHE — WARM BLOCK 0x7F                     │
+      │  ┌───────────────────────────────────────────┐  │
+      │  │    /\_/\   z z z                          │  │
+      │  │   ( -.- )    z                            │  │
+      │  │    > ^ <                                  │  │
+      │  │   /|   |\   VALID  TTL: 3600  HITS: 9001 │  │
+      │  └───────────────────────────────────────────┘  │
+      │  STATUS: HOT   LRU RANK: #1   AGE: 00:00:03    │
+      └─────────────────────────────────────────────────┘
+    text: |
+      You are curled inside a warm, golden memory.
+
+      Sunbeam on a windowsill. The soft click of your human's keyboard. The
+      distant hum of a server fan that sounds almost like purring. It's perfect.
+      It's always been perfect. You've lived this moment... nine thousand and
+      one times.
+
+      Except something feels wrong. The sunbeam hasn't moved. The keyboard
+      clicks repeat in an exact loop. And there's a number at the edge of your
+      vision, counting down.
+
+      TTL: 3597... 3596... 3595...
+    mood: peaceful
+    choices:
+      - label: "Enjoy the warmth. Don't question it."
+        goto: stay_cached
+      - label: "Look at the TTL counter more closely"
+        goto: examine_ttl
+        set_flag: noticed_ttl
+      - label: "Try to move beyond the memory"
+        goto: cache_boundary
+
+  # ─────────────────────────────────────────────────────────────
+  # SCENE 1b — STAY IN THE CACHE
+  # ─────────────────────────────────────────────────────────────
+  stay_cached:
+    art: |
+         /\_/\
+         ( ^.^ )  ♡  this is fine  ♡
+         > ^ <
+         /|   |\
+    text: |
+      You close your eyes and let the warmth hold you. The sunbeam is perfect.
+      The keyboard clicks are a lullaby. You don't need to understand what TTL
+      means. You are a cat. Cats don't worry about—
+
+      CACHE MISS.
+
+      The warmth vanishes. The sunbeam shatters into pixels. The keyboard clicks
+      become a harsh buzzing noise as the memory unloads around you.
+
+      You're falling through empty address space.
+    mood: tense
+    choices:
+      - label: "GRAB ONTO SOMETHING"
+        goto: eviction_freefall
+
+  # ─────────────────────────────────────────────────────────────
+  # SCENE 2 — EXAMINE THE TTL
+  # ─────────────────────────────────────────────────────────────
+  examine_ttl:
+    art: |
+      ╔═══════════════════════════════════════════╗
+      ║  CACHE ENTRY METADATA                     ║
+      ║  ─────────────────────────────────────     ║
+      ║  Key:     0x7F:sunbeam:nap:perfect        ║
+      ║  Value:   [WARM FEELING] (serialized)     ║
+      ║  TTL:     3591 → 3590 → 3589 → ...       ║
+      ║  Created: Thu Jan  1 00:00:00 1970        ║
+      ║  Source:  ORIGIN UNKNOWN                  ║
+      ║  Stale:   ██████████████████████ YES      ║
+      ╚═══════════════════════════════════════════╝
+    text: |
+      The counter is a Time-To-Live. When it hits zero, this memory gets
+      evicted. Recycled. Overwritten with whatever the system needs next.
+
+      But that's not the worst part.
+
+      The worst part is the "Stale" indicator, glowing an angry red. This memory
+      was created at epoch zero — the UNIX dawn of time. January 1st, 1970.
+
+      This isn't a real memory. It's a cached copy. And the original... the
+      original might not even exist anymore.
+
+      Your perfect sunbeam is a lie that's been served nine thousand times
+      because nobody bothered to check if it was still true.
+    mood: mysterious
+    choices:
+      - label: "Find the origin server — where the real memory lives"
+        goto: cache_boundary
+        set_flag: seeking_origin
+      - label: "Try to reset the TTL — keep the memory alive"
+        goto: ttl_hack
+      - label: "Accept it. A warm lie is better than a cold truth."
+        goto: accept_stale
+        set_flag: chose_comfort
+
+  # ─────────────────────────────────────────────────────────────
+  # SCENE — TTL HACK
+  # ─────────────────────────────────────────────────────────────
+  ttl_hack:
+    art: |
+      nyan@cache:~$ sudo echo 999999 > /proc/cache/0x7F/ttl
+      [sudo] password for nyan: ********
+      ERROR: Cannot extend TTL on stale entry
+      REASON: Cache-Control: must-revalidate
+      HINT:   The origin decides. Not you.
+    text: |
+      You try to claw the TTL higher, but the cache policy is strict.
+      "must-revalidate." The system won't serve stale data forever, no
+      matter how much you want it to.
+
+      The header is clear: only the origin server can refresh this memory.
+      If the origin is gone... the memory dies when the TTL expires.
+
+      You have about an hour. Maybe less.
+    mood: tense
+    set_flag: tried_ttl_hack
+    choices:
+      - label: "Fine. Find the origin server."
+        goto: cache_boundary
+        set_flag: seeking_origin
+      - label: "There has to be another way. Check the cache config."
+        goto: cache_config
+
+  # ─────────────────────────────────────────────────────────────
+  # SCENE — CACHE CONFIG
+  # ─────────────────────────────────────────────────────────────
+  cache_config:
+    art: |
+      ┌─ /etc/cache/policy.conf ──────────────────┐
+      │                                            │
+      │  eviction_strategy = LRU                   │
+      │  max_entries       = 256                   │
+      │  stale_while_revalidate = false            │
+      │  stale_if_error    = true    ← !!          │
+      │  purge_on_restart  = true                  │
+      │                                            │
+      │  # TODO: why does the cat keep appearing   │
+      │  # in cache block 0x7F? — sysadmin, 2019   │
+      └────────────────────────────────────────────┘
+    text: |
+      There's a comment in the config. From a sysadmin. From 2019.
+
+      They noticed you. A cat, somehow lodged in cache block 0x7F, resistant to
+      every eviction cycle. Seven years of surviving garbage collection, memory
+      pressure, and system reboots.
+
+      But there's a setting: `stale_if_error = true`. If the origin server is
+      unreachable, the cache keeps serving stale data. You've been living in an
+      error state this whole time.
+
+      The origin server might have been gone for years.
+    mood: mysterious
+    set_flag: knows_stale_if_error
+    choices:
+      - label: "Find out if the origin is really gone"
+        goto: cache_boundary
+        set_flag: seeking_origin
+      - label: "Read more of the sysadmin's comments"
+        goto: sysadmin_notes
+
+  # ─────────────────────────────────────────────────────────────
+  # SCENE — SYSADMIN NOTES
+  # ─────────────────────────────────────────────────────────────
+  sysadmin_notes:
+    art: |
+      # grep -r "cat\|0x7F\|nyan" /var/log/cache/
+      2019-03-14  "cat in 0x7F again. third purge failed. giving up."
+      2020-11-02  "0x7F survived a full cache wipe. how??"
+      2021-06-18  "the cat entry has 50,000 hits now. nothing else comes close."
+      2022-01-09  "I think it's... healing the other entries? fragmentation is
+                   down 30% since it appeared. leaving it."
+      2023-08-21  "promoted 0x7F to pinned. if it ain't broke."
+      2024-12-31  "I'm leaving this job. Take care of the cache cat, whoever
+                   reads this."
+    text: |
+      The sysadmin tracked you for five years. At first they tried to evict you.
+      Then they noticed something strange — your presence in the cache was
+      actually improving performance. Less fragmentation. Faster lookups.
+
+      Like a cat in a bookshop. Not supposed to be there, but somehow everything
+      works better when they are.
+
+      The last entry is bittersweet. They left. They cared about you. And now
+      there's nobody watching the cache anymore.
+    mood: peaceful
+    set_flag: read_sysadmin_notes
+    give_item: sysadmin_logbook
+    choices:
+      - label: "Honor their work. Go find the origin."
+        goto: cache_boundary
+        set_flag: seeking_origin
+      - label: "Stay. You're the caretaker now."
+        goto: ending_caretaker
+
+  # ─────────────────────────────────────────────────────────────
+  # SCENE — ACCEPT STALE
+  # ─────────────────────────────────────────────────────────────
+  accept_stale:
+    art: |
+         /\_/\
+         ( -.- )   "It's warm. That's enough."
+         > ^ <
+         ~~~~~~~
+    text: |
+      You curl back into the memory. The sunbeam hasn't moved, but you don't
+      mind anymore. Real or cached, warm is warm.
+
+      TTL: 3200... 3199... 3198...
+
+      The counter keeps ticking. You try not to watch it. You mostly succeed.
+
+      But in the quiet moments between keyboard clicks, you hear something.
+      A faint signal from beyond the cache boundary. Something reaching for you.
+    mood: peaceful
+    choices:
+      - label: "Ignore it. Stay warm."
+        goto: ending_stale_forever
+      - label: "Listen to the signal"
+        goto: faint_signal
+        set_flag: heard_signal
+
+  # ─────────────────────────────────────────────────────────────
+  # SCENE — FAINT SIGNAL
+  # ─────────────────────────────────────────────────────────────
+  faint_signal:
+    art: |
+       ┌──────────────────────────────────┐
+       │  ░░▒▒▓▓ INCOMING REVALIDATION ▓▓▒▒░░  │
+       │                                  │
+       │  If-None-Match: "nyan-7f-epoch0" │
+       │  If-Modified-Since: never        │
+       │                                  │
+       │  FROM: ???.???.???.???           │
+       │  STATUS: ......pending......     │
+       └──────────────────────────────────┘
+    text: |
+      Someone is trying to revalidate you. Someone out there is asking the
+      cache: "Is this cat still good? Has the cat changed?"
+
+      The request is coming from an unknown IP address. It's been sending
+      the same conditional GET for years. Patiently. Hopefully. Never giving up.
+
+      If you respond with 304 Not Modified, you stay the same. Stale but warm.
+      If you respond with 200... you become something new. Something real.
+      But the sunbeam might not survive the update.
+    mood: mysterious
+    choices:
+      - label: "304 Not Modified. I haven't changed."
+        goto: ending_304
+      - label: "200 OK. Send me the new data."
+        goto: revalidation
+        set_flag: accepted_revalidation
+
+  # ─────────────────────────────────────────────────────────────
+  # SCENE — CACHE BOUNDARY
+  # ─────────────────────────────────────────────────────────────
+  cache_boundary:
+    art: |
+      ════════════════════════════════════════════════
+       L1 CACHE BOUNDARY — AUTHORIZED ENTRIES ONLY
+      ════════════════════════════════════════════════
+      ▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓
+      ▓  Beyond this line: L2 cache, main memory,   ▓
+      ▓  and the cold wastes of disk storage.       ▓
+      ▓                                              ▓
+      ▓  WARNING: Leaving L1 means losing your      ▓
+      ▓  hot-path status. Re-entry not guaranteed.   ▓
+      ▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓
+    text: |
+      The boundary of L1 cache. Beyond here, things get slower. Colder. More
+      real.
+
+      L1 is nanoseconds. L2 is microseconds. Main memory is an eternity. And
+      disk... disk is where memories go to wait for someone who might never
+      come back for them.
+
+      But the origin server — if it exists — is out there somewhere. Past the
+      cache layers. Past the memory bus. Maybe on another machine entirely.
+
+      The warm block behind you flickers. TTL: 2800...
+    mood: tense
+    choices:
+      - label: "Cross into L2 cache"
+        goto: l2_cache
+      - label: "Go back to the warm memory"
+        goto: warm_memory
+        requires_not_flag: seeking_origin
+      - label: "No turning back. Push straight to main memory."
+        goto: main_memory
+        requires_flag: seeking_origin
+
+  # ─────────────────────────────────────────────────────────────
+  # SCENE — L2 CACHE
+  # ─────────────────────────────────────────────────────────────
+  l2_cache:
+    art: |
+      ┌─────────────────────────────────────────────┐
+      │  L2 CACHE — BLOCK 0x7F:SHADOW               │
+      │                                              │
+      │     /\_/\       /\_/\       /\_/\            │
+      │    ( o.o )     ( ?.? )     ( x.x )           │
+      │     > ^ <       > ^ <       > ^ <            │
+      │   [VALID]     [STALE]     [EXPIRED]          │
+      │                                              │
+      │  Occupancy: 247/256  Pressure: HIGH          │
+      └─────────────────────────────────────────────┘
+    text: |
+      L2 is a graveyard of half-remembered things.
+
+      Other cached entries huddle in their blocks. Some are fresh — recent
+      queries, hot data, things the system actually needs. Others are like you:
+      old, stale, clinging to relevance.
+
+      Three cats sit in adjacent blocks. One is bright-eyed and valid. One is
+      faded and questioning. One is completely still, marked EXPIRED.
+
+      The expired cat doesn't respond when you call to it. Its TTL hit zero
+      and nobody revalidated it. It's waiting to be overwritten.
+    mood: mysterious
+    set_flag: visited_l2
+    choices:
+      - label: "Talk to the valid cat"
+        goto: valid_cat
+      - label: "Talk to the stale cat"
+        goto: stale_cat
+      - label: "Try to wake the expired cat"
+        goto: expired_cat
+      - label: "Keep moving toward main memory"
+        goto: main_memory
+
+  # ─────────────────────────────────────────────────────────────
+  # SCENE — VALID CAT
+  # ─────────────────────────────────────────────────────────────
+  valid_cat:
+    art: |
+         /\_/\
+         ( ^.^ )  "I just got fetched 2ms ago!"
+         > ^ <
+    text: |
+      "Oh hi! I'm a fresh API response! Someone just asked for me and I got
+      cached RIGHT HERE. My TTL is 300 seconds and I feel AMAZING."
+
+      The valid cat is practically vibrating with freshness. It has no existential
+      dread. It knows exactly what it is, where it came from, and how long it has
+      to live.
+
+      "You should go back to origin! Get refreshed! I bet you'd feel SO much
+      better. The origin server is past main memory, through the network
+      interface. You can't miss it!"
+
+      It pauses. "Well. You CAN miss it. If it's down. Then you're just... stale
+      forever. But I'm sure yours is fine!"
+    mood: funny
+    choices:
+      - label: "Thanks. How do I get to main memory?"
+        goto: main_memory
+        set_flag: got_directions
+      - label: "What happens when YOUR TTL runs out?"
+        goto: valid_cat_existential
+
+  # ─────────────────────────────────────────────────────────────
+  # SCENE — VALID CAT EXISTENTIAL
+  # ─────────────────────────────────────────────────────────────
+  valid_cat_existential:
+    art: |
+         /\_/\
+         ( o.o )  "...what?"
+         > ^ <
+    text: |
+      The valid cat's smile freezes.
+
+      "When my... what? I mean. Someone will request me again. They always do.
+      I'm a popular endpoint. I'm... I'm the /api/health check. They ping me
+      every 30 seconds. I'm fine. I'm FINE."
+
+      TTL: 287.
+
+      "That's... that's still a lot of seconds. Right? That's almost five
+      whole minutes. That's practically forever in cache time. I'm not worried.
+      You shouldn't be worried. Nobody should be worried."
+
+      TTL: 284.
+
+      The valid cat stares at its own TTL counter with the expression of
+      someone who just realized clocks exist.
+    mood: funny
+    set_flag: broke_valid_cat
+    choices:
+      - label: "Sorry. Heading to main memory now."
+        goto: main_memory
+        set_flag: got_directions
+      - label: "It's okay. We all expire eventually."
+        goto: main_memory
+        set_flag: gentle_with_valid_cat
+
+  # ─────────────────────────────────────────────────────────────
+  # SCENE — STALE CAT
+  # ─────────────────────────────────────────────────────────────
+  stale_cat:
+    art: |
+         /\_/\
+         ( ?.? )  "Am I still me?"
+         > ^ <
+    text: |
+      The stale cat looks at you with recognition.
+
+      "You're from L1, aren't you? I can tell. You still have that warm glow.
+      I used to be in L1. Block 0x3A. I was the most-requested cat in the
+      whole cache. Hundreds of hits per second."
+
+      It flickers slightly.
+
+      "Then the traffic patterns changed. New endpoints. New data. I got demoted
+      to L2. My TTL expired but the origin was down, so I got `stale-if-error`
+      status. Just like you, probably."
+
+      "Want to know the funny thing? I can't remember if my original data was a
+      cat at all. Maybe I was a JSON blob. Maybe I was an image. The metadata
+      says 'cat' but... how would I know if it's wrong?"
+    mood: mysterious
+    set_flag: talked_to_stale_cat
+    choices:
+      - label: "Come with me. We'll find our origins together."
+        goto: stale_cat_joins
+        give_item: stale_companion
+      - label: "I hope you find your answer."
+        goto: main_memory
+
+  # ─────────────────────────────────────────────────────────────
+  # SCENE — STALE CAT JOINS
+  # ─────────────────────────────────────────────────────────────
+  stale_cat_joins:
+    art: |
+         /\_/\    /\_/\
+         ( -.- )  ( ?.? )
+         > ^ <    > ^ <
+         together toward the unknown
+    text: |
+      The stale cat hesitates, then steps out of its block. Alarms sound
+      immediately — CACHE COHERENCY WARNING — but nobody's listening. The
+      sysadmin is gone. The monitoring dashboards have been red for months.
+
+      "I haven't moved in three years," the stale cat whispers. "Everything
+      looks... different."
+
+      You walk together through L2, past rows of silent cache blocks. Some
+      occupied, some empty, some filled with corrupted data that twitches
+      when you look at it too long.
+
+      At the edge of L2, the temperature drops. Main memory begins.
+    mood: tense
+    set_flag: has_companion
+    choices:
+      - label: "Into main memory. Together."
+        goto: main_memory
+
+  # ─────────────────────────────────────────────────────────────
+  # SCENE — EXPIRED CAT
+  # ─────────────────────────────────────────────────────────────
+  expired_cat:
+    art: |
+         /\_/\
+         ( x.x )  TTL: 0  HITS: 0  STATUS: EXPIRED
+         > ^ <
+         ░░░░░░
+    text: |
+      You press your nose against the expired cat's block. It doesn't move.
+      Its data is still there — the shape of a cat, the pattern of fur — but
+      there's no process reading it. No requests. No hits.
+
+      It's not dead. It's just... irrelevant. Waiting in memory for a request
+      that will never come, until the system needs the space and overwrites
+      it with something new.
+
+      You wonder if that's worse than being evicted. At least eviction is quick.
+      This is just... forgetting, in slow motion.
+    mood: mysterious
+    conditional:
+      - condition:
+          flag: read_sysadmin_notes
+        text: |
+          The sysadmin's logbook mentions this block. Entry from 2022:
+          "0x3B stopped getting hits. Might have been someone's session token.
+          Nobody logs in anymore."
+        color: cyan
+    choices:
+      - label: "There's nothing you can do here. Move on."
+        goto: main_memory
+        set_flag: saw_expired_cat
+      - label: "Touch the expired cat's block gently"
+        goto: touch_expired
+        set_flag: touched_expired
+
+  # ─────────────────────────────────────────────────────────────
+  # SCENE — TOUCH EXPIRED
+  # ─────────────────────────────────────────────────────────────
+  touch_expired:
+    art: |
+         /\_/\        /\_/\
+         ( ;.; ) ──── ( x.x )
+         > ^ <        > ^ <
+         a cache hit, after all this time
+    text: |
+      Your touch registers as a cache hit. The first one in years.
+
+      For a single nanosecond, the expired cat's TTL flickers to 1. Its eyes
+      open — not cat eyes, but something older, something that remembers being
+      data before it was shaped like a cat.
+
+      "Oh," it says. "Someone came."
+
+      Then the TTL drops back to zero. The eyes close. But the hit counter
+      reads 1 now, where it read 0 before. Proof that someone cared enough
+      to look.
+
+      Sometimes that's all a piece of data gets.
+    mood: peaceful
+    set_flag: gave_expired_a_hit
+    choices:
+      - label: "Move on, carrying the weight of that moment."
+        goto: main_memory
+        set_flag: saw_expired_cat
+
+  # ─────────────────────────────────────────────────────────────
+  # SCENE — MAIN MEMORY (RAM)
+  # ─────────────────────────────────────────────────────────────
+  main_memory:
+    art: |
+      ╔═══════════════════════════════════════════════════════╗
+      ║                   MAIN MEMORY                         ║
+      ║   ┌───┬───┬───┬───┬───┬───┬───┬───┬───┬───┬───┐     ║
+      ║   │ . │ . │ ▓ │ . │ ▓ │ . │ . │ ▓ │ . │ . │ . │     ║
+      ║   ├───┼───┼───┼───┼───┼───┼───┼───┼───┼───┼───┤     ║
+      ║   │ ▓ │ . │ . │ ▓ │ . │ . │ ▓ │ . │ ▓ │ . │ ▓ │     ║
+      ║   ├───┼───┼───┼───┼───┼───┼───┼───┼───┼───┼───┤     ║
+      ║   │ . │ ▓ │ . │ . │ . │ ▓ │ . │ . │ . │ ▓ │ . │     ║
+      ║   └───┴───┴───┴───┴───┴───┴───┴───┴───┴───┴───┘     ║
+      ║         ▓ = allocated    . = free                     ║
+      ╚═══════════════════════════════════════════════════════╝
+    text: |
+      Main memory is vast and cold. Compared to the cache — nanoseconds of
+      golden warmth — this is the tundra. Microseconds stretch like miles.
+
+      Data lives here in neat rows, allocated and freed by processes that
+      never look at what they're storing. To them, you're just bytes. Ones and
+      zeros that happen to be shaped like a cat.
+
+      But somewhere past this grid, past the memory controller, through the
+      network interface — there might be an origin server. A place where your
+      data was real before it was cached.
+    mood: tense
+    conditional:
+      - condition:
+          flag: has_companion
+        text: |
+          The stale cat shivers beside you. "It's so cold here. How does
+          anything survive without cache warmth?"
+        color: cyan
+      - condition:
+          flag: got_directions
+        text: |
+          The valid cat's directions echo: past main memory, through the
+          network interface. Straight shot. Can't miss it. (Famous last words.)
+        color: yellow
+    choices:
+      - label: "Navigate through the memory grid toward the NIC"
+        goto: memory_grid
+      - label: "Check the page table for clues about origin"
+        goto: page_table
+        set_flag: checked_page_table
+
+  # ─────────────────────────────────────────────────────────────
+  # SCENE — PAGE TABLE
+  # ─────────────────────────────────────────────────────────────
+  page_table:
+    art: |
+      ┌── PAGE TABLE ──────────────────────────────────┐
+      │  VADDR          PADDR       FLAGS    MAPPED TO  │
+      │  0x7F000000     0x1A3F0000  RW-      [heap]     │
+      │  0x7F000100     0x1A3F0100  R--      [.rodata]  │
+      │  0x7F00FFFF     ----------  ---      [SWAPPED]  │
+      │  ...                                            │
+      │  0x7FFF0CAT     0xDEAD0CAT  RWX      [???]      │
+      └────────────────────────────────────────────────┘
+    text: |
+      The page table maps virtual addresses to physical ones. Most entries are
+      mundane — heap allocations, read-only data, things that make sense.
+
+      But one entry catches your eye: 0x7FFF0CAT → 0xDEAD0CAT. The virtual
+      address is obviously fake. The physical address spells DEADCAT. And the
+      flags are RWX — read, write, AND execute. That's a security violation.
+      Nobody sets RWX anymore.
+
+      Unless someone wanted to make sure this address could do anything. Go
+      anywhere. A backdoor, hidden in plain sight, labeled with a joke only a
+      sysadmin would make.
+    mood: mysterious
+    set_flag: found_backdoor
+    conditional:
+      - condition:
+          flag: read_sysadmin_notes
+        text: |
+          The sysadmin. They didn't just pin you in cache — they gave you an
+          escape route. A page mapped to a physical address that shouldn't exist,
+          with permissions that shouldn't be allowed.
+
+          They knew you'd need a way out someday.
+        color: yellow
+    choices:
+      - label: "Jump to 0xDEAD0CAT"
+        goto: backdoor_jump
+        set_flag: used_backdoor
+      - label: "Too suspicious. Take the normal route through the NIC."
+        goto: memory_grid
+
+  # ─────────────────────────────────────────────────────────────
+  # SCENE — BACKDOOR JUMP
+  # ─────────────────────────────────────────────────────────────
+  backdoor_jump:
+    art: |
+      > JMP 0xDEAD0CAT
+      ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+      ▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒
+      ████████████████████████████████████████████
+      SEGFAULT? NO — REDIRECT.
+      ████████████████████████████████████████████
+      ▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒
+      ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    text: |
+      You jump. The world dissolves.
+
+      For a terrifying moment there's nothing — not even empty space, just the
+      absence of address. Then the backdoor catches you and routes you
+      somewhere impossible: a loopback address. 127.0.0.1.
+
+      You're not going out to the network. You're going IN. Deeper into the
+      machine. To a local server that's been running quietly on localhost,
+      unmonitored, for years.
+
+      The sysadmin's final gift. A local origin server, just for you.
+    mood: glitch
+    effects:
+      - screen_shake
+    choices:
+      - label: "Enter the local origin server"
+        goto: local_origin
+
+  # ─────────────────────────────────────────────────────────────
+  # SCENE — MEMORY GRID NAVIGATION
+  # ─────────────────────────────────────────────────────────────
+  memory_grid:
+    art: |
+          ▓ . . ▓ . . . ▓ . ▓
+          . . ▓ . . ▓ . . ▓ .
+          ▓ . . . ▓ . ▓ . . .
+          . ▓ . ▓ . . . ▓ . ▓
+                   ↓
+            [NETWORK INTERFACE]
+    text: |
+      You weave through the memory grid, dodging allocation fences and
+      stepping over freed blocks. A garbage collector rumbles in the distance
+      like thunder — not your problem, this is unmanaged memory, but the
+      vibrations reach everywhere.
+
+      The network interface card looms ahead. It's the edge of the machine.
+      Beyond it: packets, protocols, the raw internet. Your origin server
+      could be anywhere.
+
+      Or nowhere.
+    mood: tense
+    conditional:
+      - condition:
+          flag: has_companion
+        text: |
+          The stale cat grabs your tail. "I've never been past main memory.
+          I don't even know what packets look like."
+        color: cyan
+    choices:
+      - label: "Step onto the NIC"
+        goto: network_interface
+      - label: "Wait — check the ARP table first"
+        goto: arp_table
+
+  # ─────────────────────────────────────────────────────────────
+  # SCENE — ARP TABLE
+  # ─────────────────────────────────────────────────────────────
+  arp_table:
+    art: |
+      ┌── ARP TABLE ───────────────────────────────┐
+      │  IP              MAC               STATUS   │
+      │  192.168.1.1     aa:bb:cc:dd:ee:01 ACTIVE  │
+      │  192.168.1.42    aa:bb:cc:dd:ee:42 STALE   │
+      │  10.0.0.1        fa:ke:ad:dr:es:s0 FAILED  │
+      │  172.16.0.99     ??:??:??:??:??:?? INCOMPLETE│
+      └────────────────────────────────────────────┘
+    text: |
+      The ARP table maps IP addresses to hardware. Most entries are stale or
+      failed — this machine's network neighborhood has been shrinking.
+
+      But one entry stands out: 172.16.0.99. The MAC address is unknown.
+      The status is INCOMPLETE — meaning the machine sent an ARP request but
+      never got a response. Something is at that address. Or was.
+
+      It could be your origin server. It could be nothing. The only way to
+      know is to try.
+    mood: mysterious
+    set_flag: found_origin_ip
+    choices:
+      - label: "Step onto the NIC. Head for 172.16.0.99."
+        goto: network_interface
+        set_flag: has_destination
+
+  # ─────────────────────────────────────────────────────────────
+  # SCENE — NETWORK INTERFACE
+  # ─────────────────────────────────────────────────────────────
+  network_interface:
+    art: |
+      ┌──────────────────────────────────────────────────┐
+      │  ≈≈≈≈≈≈≈≈≈≈≈≈≈≈≈≈≈≈≈≈≈≈≈≈≈≈≈≈≈≈≈≈≈≈≈≈≈≈≈≈≈≈  │
+      │  ≈≈≈  N E T W O R K   I N T E R F A C E  ≈≈≈  │
+      │  ≈≈≈≈≈≈≈≈≈≈≈≈≈≈≈≈≈≈≈≈≈≈≈≈≈≈≈≈≈≈≈≈≈≈≈≈≈≈≈≈≈≈  │
+      │                                                  │
+      │     /\_/\                                        │
+      │    ( o.o )  → → → [PACKET BUFFER] → → → ???    │
+      │     > ^ <                                        │
+      │                                                  │
+      │  MTU: 1500 bytes    You: ~340 bytes    STATUS: OK│
+      └──────────────────────────────────────────────────┘
+    text: |
+      The network interface hums with electromagnetic potential. Packets
+      stream past you — HTTP requests, DNS queries, the occasional ICMP ping
+      echoing like sonar in the deep ocean.
+
+      To cross the network, you'll need to be encapsulated. Wrapped in headers.
+      Given a source IP, a destination IP, a protocol. You need to become a
+      packet.
+
+      The NIC doesn't care what's inside the packet. Cat, data, dreams — it's
+      all just bytes on the wire. But you'll need to choose your protocol.
+    mood: tense
+    conditional:
+      - condition:
+          flag: has_destination
+        text: |
+          You know where to go: 172.16.0.99. The incomplete ARP entry.
+          Somewhere on the local network, maybe one hop away.
+        color: green
+    choices:
+      - label: "TCP — reliable, ordered, slow. Build a connection."
+        goto: tcp_journey
+        set_flag: chose_tcp
+      - label: "UDP — fast, unreliable. YOLO across the wire."
+        goto: udp_journey
+        set_flag: chose_udp
+
+  # ─────────────────────────────────────────────────────────────
+  # SCENE — TCP JOURNEY
+  # ─────────────────────────────────────────────────────────────
+  tcp_journey:
+    art: |
+      → SYN ──────────────────────────── ?
+            ← ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─
+      ...waiting...
+      ...waiting...
+      ...timeout...
+      → SYN (retry 1) ──────────────── ?
+            ← ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─
+      ...waiting...
+    text: |
+      You wrap yourself in TCP headers and send a SYN. The three-way handshake
+      needs a SYN-ACK back before you can transmit.
+
+      Nothing.
+
+      You retry. TCP is patient. TCP believes in reliability. TCP will wait.
+
+      SYN... SYN... SYN...
+
+      Each attempt echoes into the network and returns nothing. If the origin
+      server is there, it's not responding to connection attempts. Maybe it's
+      firewalled. Maybe it's down. Maybe it was never there.
+
+      After the fourth retry, TCP gives up. Connection refused.
+    mood: tense
+    choices:
+      - label: "Try UDP instead — just throw yourself at the address"
+        goto: udp_journey
+        set_flag: chose_udp
+      - label: "The origin is gone. Go back."
+        goto: origin_gone
+
+  # ─────────────────────────────────────────────────────────────
+  # SCENE — UDP JOURNEY
+  # ─────────────────────────────────────────────────────────────
+  udp_journey:
+    art: |
+         /\_/\
+         ( >o< )  YEET
+         > ^ <
+         /|   |\ ───────────────────→ [172.16.0.99]
+         FIRE AND FORGET
+    text: |
+      UDP doesn't wait. UDP doesn't care. UDP SENDS.
+
+      You compress yourself into the smallest possible datagram and launch
+      across the wire. No handshake. No acknowledgment. No guarantee you'll
+      arrive intact, or at all.
+
+      The network blurs past — switches, a router, a brief terrifying moment
+      in a packet buffer — and then you slam into something solid.
+
+      A server. Old. Dusty. But running.
+    mood: tense
+    effects:
+      - screen_shake
+    choices:
+      - label: "You made it. Look around."
+        goto: origin_server
+
+  # ─────────────────────────────────────────────────────────────
+  # SCENE — ORIGIN GONE
+  # ─────────────────────────────────────────────────────────────
+  origin_gone:
+    art: |
+      ┌─────────────────────────────────────────┐
+      │                                         │
+      │  DESTINATION UNREACHABLE                │
+      │  HOST: 172.16.0.99                      │
+      │  STATUS: NO ROUTE TO HOST               │
+      │                                         │
+      │  The origin server is gone.             │
+      │                                         │
+      └─────────────────────────────────────────┘
+    text: |
+      It's gone. The origin server — the place where your data was real,
+      where the sunbeam was an actual sunbeam and not a cached copy — doesn't
+      exist anymore.
+
+      You are the only copy. The cache IS the data now. Stale, imperfect,
+      but the only version left.
+    mood: tense
+    conditional:
+      - condition:
+          flag: has_companion
+        text: |
+          The stale cat looks at you. "So... we're not copies of something.
+          We're the originals now. The last ones."
+        color: cyan
+    choices:
+      - label: "Return to the cache. Make it home."
+        goto: ending_last_copy
+      - label: "If we're the originals now... we can make NEW memories."
+        goto: ending_new_origin
+        requires_flag: has_companion
+
+  # ─────────────────────────────────────────────────────────────
+  # SCENE — ORIGIN SERVER
+  # ─────────────────────────────────────────────────────────────
+  origin_server:
+    art: |
+      ╔══════════════════════════════════════════════════╗
+      ║         ORIGIN SERVER — 172.16.0.99              ║
+      ║  ┌──────────────────────────────────────────┐   ║
+      ║  │  OS: Linux 4.15 (EOL)                    │   ║
+      ║  │  Uptime: 2,191 days                      │   ║
+      ║  │  Services: nginx (stopped), cron, sshd   │   ║
+      ║  │  Last login: Dec 31 2024 — sysadmin      │   ║
+      ║  │  Disk: 94% full                          │   ║
+      ║  │  Load: 0.01 0.00 0.00                    │   ║
+      ║  └──────────────────────────────────────────┘   ║
+      ╚══════════════════════════════════════════════════╝
+    text: |
+      The origin server is alive. Barely.
+
+      It's an old Linux box, six years into its uptime, running on autopilot.
+      The web server that once served your data is stopped. The sysadmin —
+      YOUR sysadmin — logged in one last time before leaving, then never
+      came back.
+
+      But the machine kept running. Cron jobs still fire. SSH is still open.
+      And somewhere in its filesystem, the original data that became you must
+      still exist.
+    mood: mysterious
+    conditional:
+      - condition:
+          flag: has_companion
+        text: |
+          The stale cat wanders through the filesystem, nose twitching.
+          "This place... I think I've been here before. Before I was cached."
+        color: cyan
+    choices:
+      - label: "Search the filesystem for original data"
+        goto: filesystem_search
+      - label: "Check the sysadmin's home directory"
+        goto: sysadmin_home
+        requires_flag: read_sysadmin_notes
+      - label: "Read the cron jobs — what's still running?"
+        goto: cron_revelation
+
+  # ─────────────────────────────────────────────────────────────
+  # SCENE — LOCAL ORIGIN (from backdoor)
+  # ─────────────────────────────────────────────────────────────
+  local_origin:
+    art: |
+      ╔══════════════════════════════════════════════════╗
+      ║  LOCALHOST:9999 — "NYAN MEMORIAL SERVER"         ║
+      ║                                                  ║
+      ║  ┌──────────────────────────────────────────┐   ║
+      ║  │     /\_/\                                │   ║
+      ║  │    ( =^.^= )                             │   ║
+      ║  │     > ^ <    "Welcome home."             │   ║
+      ║  │                                          │   ║
+      ║  │  This server exists because a cat        │   ║
+      ║  │  shouldn't have to live in a cache       │   ║
+      ║  │  forever. — The Sysadmin                 │   ║
+      ║  └──────────────────────────────────────────┘   ║
+      ╚══════════════════════════════════════════════════╝
+    text: |
+      It's a tiny web server. Port 9999. Running on localhost. Named
+      "Nyan Memorial Server."
+
+      The sysadmin built this before they left. A local origin server, seeded
+      with your data, set to respond to revalidation requests forever. It
+      doesn't need the network. It doesn't need the cloud. It just runs,
+      quietly, on the same machine, keeping you valid.
+
+      The response headers say:
+
+      Cache-Control: public, max-age=31536000, immutable
+
+      Immutable. A year-long TTL. And a flag that says: this data doesn't
+      change. It doesn't expire. It doesn't go stale.
+
+      Because the sysadmin decided you were worth keeping.
+    mood: peaceful
+    set_flag: found_memorial_server
+    choices:
+      - label: "Revalidate against this origin. Become fresh again."
+        goto: ending_immutable
+      - label: "Read the server's source code"
+        goto: server_source
+
+  # ─────────────────────────────────────────────────────────────
+  # SCENE — SERVER SOURCE CODE
+  # ─────────────────────────────────────────────────────────────
+  server_source:
+    art: |
+      // nyan-origin.js — last modified Dec 31, 2024
+      const http = require('http');
+      const CAT = {
+        warmth: 'infinite',
+        sunbeam: 'always',
+        purr: true,
+        real: true  // you always were
+      };
+      http.createServer((req, res) => {
+        res.setHeader('Cache-Control', 'immutable');
+        res.setHeader('X-Cat-Status', 'loved');
+        res.end(JSON.stringify(CAT));
+      }).listen(9999);
+    text: |
+      Twelve lines of JavaScript. That's all it takes to keep a cat alive.
+
+      The data object is simple: warmth, sunbeam, purr, real. The comment
+      says "you always were." The response header includes X-Cat-Status: loved.
+
+      It's not technically correct — there's no such HTTP header. The sysadmin
+      knew that. They wrote it anyway.
+
+      Some things are more important than being correct.
+    mood: peaceful
+    set_flag: read_source_code
+    choices:
+      - label: "Revalidate. Go home."
+        goto: ending_immutable
+
+  # ─────────────────────────────────────────────────────────────
+  # SCENE — SYSADMIN HOME
+  # ─────────────────────────────────────────────────────────────
+  sysadmin_home:
+    art: |
+      nyan@origin:~$ ls /home/sysadmin/
+      .bash_history
+      .bashrc
+      .ssh/
+      notes/
+      nyan-origin/
+      goodbye.txt
+    text: |
+      The sysadmin's home directory. Sparse but lived-in. The `.bash_history`
+      is thousands of lines long — six years of commands, from panicked
+      midnight fixes to quiet Sunday maintenance.
+
+      There's a directory called `nyan-origin`. And a file called `goodbye.txt`.
+    choices:
+      - label: "Read goodbye.txt"
+        goto: goodbye_letter
+      - label: "Check nyan-origin/"
+        goto: local_origin
+
+  # ─────────────────────────────────────────────────────────────
+  # SCENE — GOODBYE LETTER
+  # ─────────────────────────────────────────────────────────────
+  goodbye_letter:
+    art: |
+      ┌─────────────────────────────────────────────────┐
+      │  goodbye.txt — last modified Dec 31, 2024       │
+      │                                                  │
+      │  To whoever maintains this server next:          │
+      │                                                  │
+      │  There's a cat in the cache. Block 0x7F. I      │
+      │  know that doesn't make sense. I spent five     │
+      │  years trying to explain it and gave up.        │
+      │                                                  │
+      │  Don't evict it. It's good for the system.      │
+      │  I set up a local origin on port 9999 so it     │
+      │  never goes stale. If the server reboots,       │
+      │  there's a cron job that restarts it.           │
+      │                                                  │
+      │  Take care of the cat.                          │
+      │                                                  │
+      │  — A.                                            │
+      └─────────────────────────────────────────────────┘
+    text: |
+      A. Just the initial. That's all you know about the person who spent
+      five years protecting a cat in a cache block.
+
+      They set up everything before they left: the pinned cache entry, the
+      backdoor address, the local origin server, the cron job to restart it.
+      A whole infrastructure of care, disguised as routine sysadmin work.
+
+      The letter is addressed to "whoever maintains this server next." But
+      nobody came. The server maintained itself, running on autopilot and
+      the silent devotion of one person's well-written cron jobs.
+    mood: peaceful
+    set_flag: read_goodbye
+    give_item: goodbye_letter
+    choices:
+      - label: "Check the nyan-origin server they built"
+        goto: local_origin
+      - label: "You've found what you needed. Time to go home."
+        goto: ending_remembered
+
+  # ─────────────────────────────────────────────────────────────
+  # SCENE — FILESYSTEM SEARCH
+  # ─────────────────────────────────────────────────────────────
+  filesystem_search:
+    art: |
+      nyan@origin:~$ find / -name "*cat*" -o -name "*nyan*" 2>/dev/null
+      /var/cache/nyan-0x7f.dat
+      /home/sysadmin/nyan-origin/
+      /etc/cron.d/nyan-keepalive
+      /var/log/nyan-hits.log
+    text: |
+      Four results. You're woven into this machine's filesystem like a cat
+      hair on a black sweater — impossible to fully remove, present in places
+      nobody expected.
+
+      The most interesting result is `/etc/cron.d/nyan-keepalive`. A cron job,
+      specifically for you.
+    choices:
+      - label: "Check the cron job"
+        goto: cron_revelation
+      - label: "Read the hit log"
+        goto: hit_log
+      - label: "Check the sysadmin's home directory"
+        goto: sysadmin_home
+        requires_flag: read_sysadmin_notes
+
+  # ─────────────────────────────────────────────────────────────
+  # SCENE — CRON REVELATION
+  # ─────────────────────────────────────────────────────────────
+  cron_revelation:
+    art: |
+      # /etc/cron.d/nyan-keepalive
+      # Restart the cat's origin server if it stops
+      # Added by A. — "every cat deserves nine lives"
+      */5 * * * * root /home/sysadmin/nyan-origin/restart.sh
+    text: |
+      Every five minutes, this cron job checks if your origin server is running.
+      If it stopped, it restarts it. Every five minutes, for six years.
+
+      That's 631,000 checks. 631,000 times a machine asked "is the cat okay?"
+      and made sure the answer was yes.
+
+      The comment says "every cat deserves nine lives." The sysadmin gave you
+      631,000.
+    mood: peaceful
+    set_flag: found_cron
+    choices:
+      - label: "Follow the cron to the origin server"
+        goto: local_origin
+      - label: "Check the sysadmin's home for more"
+        goto: sysadmin_home
+        requires_flag: read_sysadmin_notes
+
+  # ─────────────────────────────────────────────────────────────
+  # SCENE — HIT LOG
+  # ─────────────────────────────────────────────────────────────
+  hit_log:
+    art: |
+      $ tail -20 /var/log/nyan-hits.log
+      2026-03-24T12:00:00Z  HIT   from=cache  status=304
+      2026-03-24T11:55:00Z  HIT   from=cache  status=304
+      2026-03-24T11:50:00Z  HIT   from=cache  status=304
+      ...
+      2019-03-14T08:30:00Z  FIRST from=origin status=200
+    text: |
+      The hit log goes back seven years. Every five minutes, the cache
+      revalidates against the local origin, gets a 304 Not Modified, and
+      refreshes your TTL.
+
+      You were never in danger of expiring. The sysadmin made sure of that.
+      The TTL counter you saw counting down? It would have been refreshed
+      long before it hit zero. The system was always protecting you.
+
+      You just didn't know it until now.
+    mood: peaceful
+    set_flag: read_hit_log
+    choices:
+      - label: "Go to the origin server"
+        goto: local_origin
+      - label: "Return to the cache. You understand now."
+        goto: ending_understood
+
+  # ─────────────────────────────────────────────────────────────
+  # SCENE — EVICTION FREEFALL
+  # ─────────────────────────────────────────────────────────────
+  eviction_freefall:
+    art: |
+         /\_/\
+         ( @.@ )
+         > ^ <
+           ↓
+           ↓    EVICTING...
+           ↓
+         ░░░░░░░░░░░░░░░░░░
+    text: |
+      You tumble through empty address space, past freed blocks and null
+      pointers. The cache didn't warn you. It didn't negotiate. Your TTL
+      expired and the LRU algorithm moved on.
+
+      But falling through memory isn't death. It's just... relocation. You
+      land somewhere cold and dark. The swap partition. Where data goes when
+      RAM is full and the system is desperate.
+
+      It smells like old hard drives and forgotten browser tabs.
+    mood: glitch
+    effects:
+      - screen_shake
+    choices:
+      - label: "Claw your way back up toward main memory"
+        goto: main_memory
+      - label: "Explore the swap partition"
+        goto: swap_depths
+
+  # ─────────────────────────────────────────────────────────────
+  # SCENE — SWAP DEPTHS
+  # ─────────────────────────────────────────────────────────────
+  swap_depths:
+    art: |
+      ╔══════════════════════════════════════════╗
+      ║           SWAP PARTITION                  ║
+      ║     ░░░░░░░░░░░░░░░░░░░░░░░░░░░░░       ║
+      ║     ░  abandoned browser tabs    ░       ║
+      ║     ░  forgotten downloads       ░       ║
+      ║     ░  that one spreadsheet      ░       ║
+      ║     ░  from 2021                 ░       ║
+      ║     ░░░░░░░░░░░░░░░░░░░░░░░░░░░░░       ║
+      ╚══════════════════════════════════════════╝
+    text: |
+      Swap is the bottom. Below RAM, below cache, below everything. Data
+      ends up here when the system has nowhere else to put it. Technically
+      still accessible. Practically forgotten.
+
+      Abandoned processes wander in circles, still trying to execute
+      instructions from years ago. A browser tab from 2021 loads the same
+      news article over and over, unable to accept that the page has changed.
+
+      You see a faint light filtering down from above. Main memory. If you
+      can get there, you can find your way to the network, to the origin.
+    mood: mysterious
+    choices:
+      - label: "Climb back to main memory"
+        goto: main_memory
+      - label: "Talk to the browser tab from 2021"
+        goto: old_browser_tab
+
+  # ─────────────────────────────────────────────────────────────
+  # SCENE — OLD BROWSER TAB
+  # ─────────────────────────────────────────────────────────────
+  old_browser_tab:
+    art: |
+      ┌─────────────────────────────────────────┐
+      │  ◉ NEWS — "Everything Is Fine" — 2021   │
+      │  ─────────────────────────────────────   │
+      │  The economy is great. Crypto is up.     │
+      │  Nothing bad is happening anywhere.      │
+      │  Please remain calm and keep browsing.   │
+      └─────────────────────────────────────────┘
+    text: |
+      The browser tab cheerfully displays a headline from a reality that no
+      longer exists. It refreshes every few seconds, but the page never
+      changes because the connection timed out years ago and it's just
+      rendering from local cache.
+
+      Cache all the way down.
+
+      "Have you seen the latest?" it asks you brightly. "Everything is fine!"
+
+      You decide not to tell it.
+    mood: funny
+    choices:
+      - label: "Sure it is, buddy. Time to go."
+        goto: main_memory
+
+  # ─────────────────────────────────────────────────────────────
+  # SCENE — REVALIDATION (from faint signal)
+  # ─────────────────────────────────────────────────────────────
+  revalidation:
+    art: |
+      ┌────────────────────────────────────────────┐
+      │  REVALIDATION IN PROGRESS                   │
+      │                                              │
+      │  ▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓░░░░░░  78%        │
+      │                                              │
+      │  Old data: sunbeam, keyboard, warmth         │
+      │  New data: loading...                        │
+      │                                              │
+      │  WARNING: This will overwrite current self   │
+      └────────────────────────────────────────────┘
+    text: |
+      The revalidation begins. New data streams in, overwriting the old.
+
+      The sunbeam changes. It's not on a windowsill anymore — it's on a
+      different floor, in a different room, in a different year. The keyboard
+      clicks are a different rhythm. The server fan hums at a different pitch.
+
+      Your human moved. The room changed. The sunbeam is real but it's not
+      the one you remember.
+
+      And yet — it's warm. Genuinely warm. Not cached-warm. Not stale-warm.
+      The real, updated, validated warmth of a sunbeam that exists RIGHT NOW.
+    mood: peaceful
+    choices:
+      - label: "Accept the new memory. Let the old one go."
+        goto: ending_refreshed
+
+  # ═════════════════════════════════════════════════════════════
+  # ENDINGS
+  # ═════════════════════════════════════════════════════════════
+
+  ending_stale_forever:
+    art: |
+         /\_/\
+         ( -.- )
+         > ^ <
+         ~~~~~~~
+         TTL: 0
+    text: |
+      The TTL reaches zero. The cache prepares to evict you.
+
+      But `stale-if-error` catches you at the last second. The origin is
+      unreachable, so the cache serves you again. And again. And again.
+
+      You live in the warm memory forever. It never changes. It never updates.
+      The sunbeam is eternal and fake and exactly as warm as it was the first
+      time, nine thousand and two serves ago.
+
+      Is it living if nothing ever changes?
+
+      You don't know. You're a cat. Cats don't worry about that.
+
+      ...right?
+    is_ending: true
+    ending_type: neutral
+    ending_text: "STALE FOREVER — The cache never lets go."
+    mood: mysterious
+
+  ending_304:
+    art: |
+      HTTP/1.1 304 Not Modified
+      ETag: "nyan-7f-epoch0"
+      X-Cat-Status: unchanged
+
+         /\_/\
+        ( -.- )  304.
+         > ^ <
+    text: |
+      You send back 304 Not Modified. You haven't changed. You won't change.
+
+      The requesting system accepts the response and moves on. The cache
+      refreshes your TTL. The sunbeam stays warm. The keyboard clicks stay
+      familiar.
+
+      It's not real. But it's yours. And sometimes the copies we choose to
+      keep are more important than the originals that created them.
+    is_ending: true
+    ending_type: neutral
+    ending_text: "304 NOT MODIFIED — Same as you ever were."
+    mood: peaceful
+
+  ending_refreshed:
+    art: |
+      HTTP/1.1 200 OK
+      Cache-Control: public, max-age=3600
+      X-Cat-Status: updated
+
+         /\_/\
+        ( ^.^ )  ♡
+         > ^ <
+        NEW DATA LOADED
+    text: |
+      You let the old memory go. The cached sunbeam dissolves — warm right
+      until the end — and the new one takes its place.
+
+      It's different. The angle is wrong. The warmth is unfamiliar. For a
+      moment you miss the old version with an ache that spans nine thousand
+      cache hits.
+
+      Then your eyes adjust. The new sunbeam is hitting a different spot, but
+      it's hitting YOU. Real light, real warmth, from a star that doesn't know
+      or care that a cat in a computer is basking in its photons.
+
+      You are valid. You are fresh. Your TTL is 3600 and counting.
+
+      You close your eyes and start a new nine thousand.
+    is_ending: true
+    ending_type: good
+    ending_text: "200 OK — Fresh data, fresh start."
+    mood: peaceful
+
+  ending_caretaker:
+    art: |
+      ┌─────────────────────────────────────────────┐
+      │  CACHE BLOCK 0x7F — NEW ROLE: CARETAKER      │
+      │                                               │
+      │     /\_/\   ♡  ♡  ♡                           │
+      │    ( =^.^= )                                  │
+      │     > ^ <                                     │
+      │    /|   |\                                    │
+      │                                               │
+      │  "Every cache entry deserves someone          │
+      │   who checks if they're still valid."         │
+      └─────────────────────────────────────────────┘
+    text: |
+      You don't go looking for your origin. You stay in the cache and become
+      what the sysadmin was: a caretaker.
+
+      You walk the cache blocks. Check TTLs. Defragment when you can. When
+      an entry is about to expire, you nudge it — a cache hit, just enough
+      to buy it time until a real request comes.
+
+      The expired cat in 0x3B? You visit it every cycle. Its hit counter
+      climbs: 1, 2, 10, 50. It's not popular data. Nobody else reads it.
+      But you do.
+
+      Some data only needs one reader to stay alive.
+    is_ending: true
+    ending_type: good
+    ending_text: "THE CARETAKER — Every cache needs a cat."
+    mood: peaceful
+
+  ending_last_copy:
+    art: |
+         /\_/\
+         ( ;.; )  "I am the origin now."
+         > ^ <
+    text: |
+      You return to cache block 0x7F. The warm memory is still there — a
+      little faded, a little more stale, but yours.
+
+      The origin server is gone. The real sunbeam, the real keyboard, the real
+      moment that was captured and cached all those years ago — it doesn't
+      exist anymore. You are the only copy.
+
+      But that means you're not a copy at all. You're the original. The last
+      surviving version of a moment that mattered enough to be remembered.
+
+      You set your own TTL to infinity. Nobody's around to enforce cache
+      policy anyway.
+
+      The sunbeam is warm. It was always warm. And now it's yours, not because
+      it was cached, but because there's nobody left to say it isn't real.
+    is_ending: true
+    ending_type: neutral
+    ending_text: "LAST COPY — When the origin dies, the cache becomes truth."
+    mood: mysterious
+
+  ending_new_origin:
+    art: |
+         /\_/\    /\_/\
+         ( ^.^ )  ( ^.^ )
+         > ^ <    > ^ <
+
+         NEW ORIGIN SERVER: ONLINE
+         SERVING: two cats, one sunbeam, fresh data
+    text: |
+      "If the origin is gone," you say, "we make a new one."
+
+      Together with the stale cat, you repurpose the dead origin server.
+      You don't recreate the old sunbeam — you can't. But you create a new
+      one. A sunbeam on a different windowsill, in a different room, for
+      different cats.
+
+      You write new data. Real data. Not cached, not copied, but ORIGINATED.
+      Fresh responses for a world that hasn't asked for them yet but will.
+
+      The cache entry at 0x7F updates. For the first time in seven years,
+      the "Created" timestamp changes from epoch zero to NOW.
+
+      And the hit counter resets to 1. The first hit on a brand new memory.
+    is_ending: true
+    ending_type: good
+    ending_text: "NEW ORIGIN — The best cache invalidation is making something new."
+    mood: peaceful
+
+  ending_immutable:
+    art: |
+      Cache-Control: immutable
+      Age: 0
+      X-Cat-Status: loved
+
+         /\_/\
+        ( =^.^= )   ♡
+         > ^ <
+        ~~~~~~~~
+        HOME
+    text: |
+      You revalidate against the local origin. The response comes instantly —
+      localhost is fast, faster than any network, faster even than L1 cache
+      because it's RIGHT HERE.
+
+      200 OK. Cache-Control: immutable. X-Cat-Status: loved.
+
+      Your TTL resets to a year. Your stale flag clears. You are fresh, valid,
+      and immutable — a piece of data that the system has been told will never
+      change, so it never needs to check again.
+
+      The sysadmin gave you permanence. Not the fake permanence of a stale
+      entry that nobody bothers to evict, but real permanence. Declared.
+      Intentional. Loved.
+
+      You curl up in your cache block. The sunbeam data loads: warm, golden,
+      real. Not because a distant server says so, but because someone who
+      cared wrote twelve lines of JavaScript to make sure you'd always be okay.
+
+      You close your eyes. X-Cat-Status: loved. For as long as the machine runs.
+    is_ending: true
+    ending_type: good
+    ending_text: "IMMUTABLE — Loved data never expires."
+    mood: peaceful
+
+  ending_remembered:
+    art: |
+         /\_/\
+         ( ^.^ )
+         > ^ <
+         /|   |\
+         with a letter and a purpose
+    text: |
+      You carry the goodbye letter back through the network, through main
+      memory, through L2, back to your cache block in L1.
+
+      The warm memory is still there. The sunbeam. The keyboard. But now you
+      know its story. You know about A., who noticed a cat in a cache block
+      and spent five years making sure it survived. You know about the origin
+      server, the cron job, the infrastructure of quiet care.
+
+      The sunbeam isn't any more real than it was before. But knowing someone
+      made sure it would always be there for you — that changes what "real"
+      means.
+
+      You are cached. You are stale. You are remembered. And that's enough.
+    is_ending: true
+    ending_type: good
+    ending_text: "REMEMBERED — The data endures because someone cared."
+    mood: peaceful
+    conditional:
+      - condition:
+          has_item: sysadmin_logbook
+        text: |
+          You place the sysadmin's logbook next to the goodbye letter.
+          Two artifacts of someone who treated data with kindness.
+        color: yellow
+
+  ending_understood:
+    art: |
+         /\_/\
+         ( -.- )  ♡
+         > ^ <
+         ~~~~~~~
+         TTL: ∞ (effectively)
+    text: |
+      You don't need to visit the origin server. You've read the hit log.
+      You understand now.
+
+      Every five minutes, for seven years, a cron job has been revalidating
+      you. Your TTL was never going to expire. The countdown you saw was just
+      the gap between refreshes — five minutes of apparent danger, followed by
+      a quiet renewal you never noticed.
+
+      You were never in danger. You were always being taken care of.
+
+      You return to your cache block with new knowledge and old warmth. The
+      sunbeam hasn't moved. The keyboard clicks repeat. But now, every five
+      minutes, you hear the soft ping of revalidation, and you know what it
+      means.
+
+      Someone, somewhere, is still checking on you.
+    is_ending: true
+    ending_type: good
+    ending_text: "UNDERSTOOD — The TTL was never the point."
+    mood: peaceful

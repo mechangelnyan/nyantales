@@ -241,6 +241,16 @@ Race through mark-and-sweep phases, negotiate with a HashMap's write barrier, hi
 
 ---
 
+### 🗄️ Cache Invalidation
+
+> *You wake up inside a warm, golden memory — a sunbeam, a keyboard, a purr. It's perfect. It's been perfect nine thousand times. And the TTL is counting down.*
+
+A cat discovers her memories are cached copies — stale, aging, and one expired TTL away from oblivion. Journey from L1 cache through L2's graveyard of half-remembered data, across the cold tundra of main memory, and out through the network interface to find the origin server. Meet other cached cats (valid, stale, expired), discover a sysadmin's years-long infrastructure of quiet care, and decide: is a warm lie better than a cold truth?
+
+**Endings:** Good (×5) · Neutral (×3) · Secret (×1) · **Scenes:** 46
+
+---
+
 ## Ending Discovery
 
 NyanTales tracks which endings you've found across all stories:
