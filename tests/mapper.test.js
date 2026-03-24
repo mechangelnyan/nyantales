@@ -320,7 +320,8 @@ describe('renderEndingPaths', () => {
 describe('real story analysis', () => {
   const storyDirs = fs.readdirSync(STORIES_DIR, { withFileTypes: true })
     .filter(d => d.isDirectory())
-    .map(d => d.name);
+    .map(d => d.name)
+    .filter(slug => fs.existsSync(path.join(STORIES_DIR, slug, 'story.yaml')));
 
   for (const slug of storyDirs) {
     it(`analyzes ${slug} without errors`, () => {
