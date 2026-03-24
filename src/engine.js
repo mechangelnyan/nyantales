@@ -116,6 +116,52 @@ export class Engine {
     return savePath;
   }
 
+  // ── Ending Discovery Tracking ─────────────────────────────
+
+  getEndingsLogPath() {
+    if (!fs.existsSync(SAVES_DIR)) fs.mkdirSync(SAVES_DIR, { recursive: true });
+    return path.join(SAVES_DIR, `${this.storySlug}_endings.json`);
+  }
+
+  /** Returns all ending scene IDs from the loaded story */
+  getEndingScenes() {
+    if (!this.story?.scenes) return [];
+    return Object.entries(this.story.scenes)
+      .filter(([, s]) => s.is_ending)
+      .map(([id, s]) => ({ id, type: s.ending_type || 'neutral' }));
+  }
+
+  loadEndingsLog() {
+    const logPath = this.getEndingsLogPath();
+    if (!fs.existsSync(logPath)) return { discovered: {} };
+    try {
+      return JSON.parse(fs.readFileSync(logPath, 'utf8'));
+    } catch {
+      return { discovered: {} };
+    }
+  }
+
+  saveEndingsLog(log) {
+    fs.writeFileSync(this.getEndingsLogPath(), JSON.stringify(log, null, 2), 'utf8');
+  }
+
+  /** Record a discovered ending and return { found, total, isNew } */
+  recordEnding(sceneId) {
+    const log = this.loadEndingsLog();
+    const isNew = !log.discovered[sceneId];
+    if (isNew) {
+      const scene = this.story.scenes[sceneId];
+      log.discovered[sceneId] = {
+        type: scene?.ending_type || 'neutral',
+        discoveredAt: new Date().toISOString(),
+      };
+      this.saveEndingsLog(log);
+    }
+    const total = this.getEndingScenes().length;
+    const found = Object.keys(log.discovered).length;
+    return { found, total, isNew };
+  }
+
   loadGame(slot = 'auto') {
     const savePath = this.getSavePath(slot);
     if (!fs.existsSync(savePath)) return false;
@@ -210,6 +256,12 @@ export class Engine {
     for (const line of lines) {
       console.log(chalk.cyan(line));
     }
+  }
+
+  renderProgressBar(current, total, width = 20) {
+    const filled = total > 0 ? Math.round((current / total) * width) : 0;
+    const empty = width - filled;
+    return chalk.green('█'.repeat(filled)) + chalk.dim('░'.repeat(empty));
   }
 
   displayDivider(char = '─', width = 60) {
@@ -456,9 +508,26 @@ export class Engine {
       await this.typewrite(scene.ending_text, p.color);
     }
 
+    // Record ending discovery
+    const discovery = this.recordEnding(this.state.currentScene);
+
     console.log('\n' + chalk.dim('─'.repeat(60)));
     console.log(chalk.dim(`  Turns taken: ${this.state.turnCount}`));
     console.log(chalk.dim(`  Items found: ${this.state.inventory.length > 0 ? this.state.inventory.join(', ') : 'none'}`));
+
+    // Ending discovery progress
+    if (discovery.isNew) {
+      console.log(chalk.green(`  🔓 New ending discovered!`));
+    }
+    const progressBar = this.renderProgressBar(discovery.found, discovery.total);
+    console.log(chalk.dim(`  Endings: `) + progressBar + chalk.dim(` ${discovery.found}/${discovery.total}`));
+    if (discovery.found === discovery.total) {
+      console.log(chalk.magenta.bold(`  ★ All endings discovered! Completionist cat! ★`));
+    } else {
+      const remaining = discovery.total - discovery.found;
+      console.log(chalk.dim(`  ${remaining} more ending${remaining === 1 ? '' : 's'} to find...`));
+    }
+
     console.log(chalk.dim('─'.repeat(60)));
     console.log('\n' + chalk.bold.cyan('  Thanks for playing NyanTales!') + '\n');
   }

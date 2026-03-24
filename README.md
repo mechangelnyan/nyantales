@@ -49,6 +49,9 @@ nyantales validate                        # check all stories
 nyantales validate the-terminal-cat       # check one story
 nyantales validate --pedantic             # extra warnings (self-loops, etc.)
 
+# View ending discovery progress
+nyantales progress
+
 # Options
 nyantales play the-terminal-cat --fast    # skip typewriter animation
 nyantales play the-terminal-cat --debug   # show scene/flag debug info
@@ -99,6 +102,24 @@ branching investigation paths, a pair-programming ally named Patch, and a
 postmortem system that tracks which action items you actually completed.
 
 **Endings:** Good · Neutral (×2) · Secret · **Scenes:** 23
+
+---
+
+## Ending Discovery
+
+NyanTales tracks which endings you've found across all stories:
+
+- When you reach an ending, it's recorded automatically
+- A progress bar shows how many endings you've discovered
+- New endings get a **🔓 New ending discovered!** notification
+- Find all endings in a story to earn **Completionist Cat** status
+- Find every ending in every story for **Master Completionist**
+
+Check your progress anytime:
+
+```bash
+nyantales progress
+```
 
 ---
 

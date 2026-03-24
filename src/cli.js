@@ -5,6 +5,7 @@ import fs from 'fs';
 import { fileURLToPath } from 'url';
 import chalk from 'chalk';
 import inquirer from 'inquirer';
+import yaml from 'yaml';
 import { Engine, discoverStories, GameState } from './engine.js';
 import { validateStory } from './validator.js';
 
@@ -35,6 +36,7 @@ function showHelp() {
   console.log(`    ${chalk.cyan('nyantales play')}           ${chalk.dim('Pick a story interactively')}`);
   console.log(`    ${chalk.cyan('nyantales continue')}       ${chalk.dim('Resume from a saved game')}`);
   console.log(`    ${chalk.cyan('nyantales saves')}          ${chalk.dim('List saved games')}`);
+  console.log(`    ${chalk.cyan('nyantales progress')}       ${chalk.dim('View ending discovery progress')}`);
   console.log(`    ${chalk.cyan('nyantales validate')}       ${chalk.dim('Validate all stories')}`);
   console.log(`    ${chalk.cyan('nyantales validate <s>')}   ${chalk.dim('Validate a specific story')}`);
   console.log(`    ${chalk.cyan('nyantales --help')}         ${chalk.dim('Show this help')}`);
@@ -300,6 +302,76 @@ async function validateStories(slug, opts = {}) {
 }
 
 // ─────────────────────────────────────────────────────────────
+// Ending progress
+// ─────────────────────────────────────────────────────────────
+
+function showProgress() {
+  const stories = discoverStories(STORIES_DIR);
+
+  console.log(BANNER);
+  console.log(chalk.bold('  Ending Discovery Progress\n'));
+
+  if (stories.length === 0) {
+    console.log(chalk.yellow('  No stories found.\n'));
+    return;
+  }
+
+  let totalFound = 0;
+  let totalEndings = 0;
+
+  for (const story of stories) {
+    // Create a temporary engine to access endings data
+    const engine = new Engine(story.file);
+    try {
+      const raw = fs.readFileSync(story.file, 'utf8');
+      engine.story = yaml.parse(raw);
+    } catch {
+      continue;
+    }
+
+    const endings = engine.getEndingScenes();
+    const log = engine.loadEndingsLog();
+    const found = Object.keys(log.discovered).length;
+    const total = endings.length;
+    totalFound += found;
+    totalEndings += total;
+
+    const bar = engine.renderProgressBar(found, total);
+    const status = found === total ? chalk.green(' ✦ Complete!') : '';
+    console.log(`  ${chalk.bold(story.title)} ${chalk.dim(`(${story.slug})`)}`);
+    console.log(`    ${bar} ${chalk.dim(`${found}/${total} endings`)}${status}`);
+
+    // Show which endings were found
+    if (found > 0) {
+      const types = Object.values(log.discovered).map(d => d.type);
+      const typeIcons = { good: '✦', bad: '✗', neutral: '◇', secret: '★' };
+      const typeColors = { good: 'green', bad: 'red', neutral: 'yellow', secret: 'magenta' };
+      const foundList = types.map(t => chalk[typeColors[t] || 'white'](`${typeIcons[t] || '?'} ${t}`)).join('  ');
+      console.log(`    ${chalk.dim('Found:')} ${foundList}`);
+    }
+
+    // Show undiscovered types as hints
+    if (found < total) {
+      const discoveredTypes = new Set(Object.values(log.discovered).map(d => d.type));
+      const allTypes = endings.map(e => e.type);
+      const missing = [...new Set(allTypes.filter(t => !discoveredTypes.has(t) || allTypes.filter(at => at === t).length > discoveredTypes.size))];
+      if (missing.length > 0) {
+        console.log(`    ${chalk.dim('Hints:')} ${chalk.dim(missing.map(t => `??? (${t})`).join('  '))}`);
+      }
+    }
+    console.log();
+  }
+
+  console.log(chalk.dim('  ─'.repeat(30)));
+  console.log(`  ${chalk.bold('Total:')} ${totalFound}/${totalEndings} endings discovered`);
+  if (totalFound === totalEndings && totalEndings > 0) {
+    console.log(chalk.magenta.bold('\n  ★ ★ ★  MASTER COMPLETIONIST  ★ ★ ★'));
+    console.log(chalk.magenta('  You\'ve found every ending in every story!'));
+  }
+  console.log();
+}
+
+// ─────────────────────────────────────────────────────────────
 // Interactive main menu (no args)
 // ─────────────────────────────────────────────────────────────
 
@@ -315,6 +387,7 @@ async function mainMenu() {
   }
   choices.push(
     { name: 'List available stories',  value: 'list' },
+    { name: 'Ending discovery progress', value: 'progress' },
     { name: 'Help',                    value: 'help' },
     { name: 'Exit',                    value: 'exit' },
   );
@@ -330,6 +403,7 @@ async function mainMenu() {
     case 'play': await playStory(null); break;
     case 'continue': await continueGame(); break;
     case 'list': listStories(); break;
+    case 'progress': showProgress(); break;
     case 'help': showHelp(); break;
     case 'exit': process.exit(0);
   }
@@ -377,6 +451,11 @@ async function main() {
 
     case 'saves':
       listSaves();
+      break;
+
+    case 'progress':
+    case 'endings':
+      showProgress();
       break;
 
     case 'validate':

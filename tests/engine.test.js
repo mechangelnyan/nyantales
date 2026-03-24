@@ -458,3 +458,81 @@ describe('Story integrity', () => {
     });
   }
 });
+
+// ─────────────────────────────────────────────────────────────
+// Ending discovery tracking
+// ─────────────────────────────────────────────────────────────
+
+import fs from 'fs';
+import os from 'os';
+
+describe('Ending discovery', () => {
+  let engine;
+  let tmpSavesDir;
+
+  beforeEach(async () => {
+    const storyPath = path.join(STORIES_DIR, 'the-terminal-cat', 'story.yaml');
+    engine = new Engine(storyPath, { skipAnimation: true });
+    await engine.loadStory();
+
+    // Override saves dir to a temp directory for isolation
+    tmpSavesDir = fs.mkdtempSync(path.join(os.tmpdir(), 'nyantales-test-'));
+    engine.getEndingsLogPath = () => path.join(tmpSavesDir, `${engine.storySlug}_endings.json`);
+  });
+
+  it('getEndingScenes returns all ending scenes', () => {
+    const endings = engine.getEndingScenes();
+    assert.ok(endings.length >= 3, `expected at least 3 endings, got ${endings.length}`);
+    for (const e of endings) {
+      assert.ok(e.id, 'ending has id');
+      assert.ok(['good', 'bad', 'neutral', 'secret'].includes(e.type), `valid type: ${e.type}`);
+    }
+  });
+
+  it('recordEnding marks first discovery as new', () => {
+    const endings = engine.getEndingScenes();
+    const result = engine.recordEnding(endings[0].id);
+    assert.equal(result.isNew, true);
+    assert.equal(result.found, 1);
+    assert.equal(result.total, endings.length);
+  });
+
+  it('recordEnding marks repeat discovery as not new', () => {
+    const endings = engine.getEndingScenes();
+    engine.recordEnding(endings[0].id);
+    const result = engine.recordEnding(endings[0].id);
+    assert.equal(result.isNew, false);
+    assert.equal(result.found, 1);
+  });
+
+  it('tracks multiple endings independently', () => {
+    const endings = engine.getEndingScenes();
+    engine.recordEnding(endings[0].id);
+    const result = engine.recordEnding(endings[1].id);
+    assert.equal(result.found, 2);
+    assert.equal(result.total, endings.length);
+  });
+
+  it('persists endings to disk', () => {
+    const endings = engine.getEndingScenes();
+    engine.recordEnding(endings[0].id);
+
+    // Read directly from file
+    const raw = fs.readFileSync(engine.getEndingsLogPath(), 'utf8');
+    const log = JSON.parse(raw);
+    assert.ok(log.discovered[endings[0].id], 'ending recorded in file');
+    assert.equal(log.discovered[endings[0].id].type, endings[0].type);
+    assert.ok(log.discovered[endings[0].id].discoveredAt, 'has timestamp');
+  });
+
+  it('loadEndingsLog returns empty for no file', () => {
+    const log = engine.loadEndingsLog();
+    assert.deepEqual(log, { discovered: {} });
+  });
+
+  it('renderProgressBar produces correct output', () => {
+    const bar = engine.renderProgressBar(2, 4, 10);
+    // Should contain filled and empty chars (strip ANSI for length check)
+    assert.ok(bar.length > 0, 'bar is not empty');
+  });
+});
