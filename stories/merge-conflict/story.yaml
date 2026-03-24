@@ -1,0 +1,883 @@
+title: "Merge Conflict"
+description: "Two branches of reality collide. You're the cat caught in the middle, and only you can resolve the conflict."
+author: "mechangelnyan"
+version: "1.0.0"
+start: the_split
+
+scenes:
+
+  # ─────────────────────────────────────────────────────────────
+  # SCENE 1 - THE SPLIT
+  # ─────────────────────────────────────────────────────────────
+  the_split:
+    art: |
+      ╔══════════════════════════════════════════════════════╗
+      ║                                                      ║
+      ║         <<<<<<< HEAD                                 ║
+      ║         You are a black cat.                         ║
+      ║         =======                                      ║
+      ║         You are a white cat.                         ║
+      ║         >>>>>>> feature/identity                     ║
+      ║                                                      ║
+      ╚══════════════════════════════════════════════════════╝
+    mood: glitch
+    effects: [flicker]
+    text: |
+      Something has gone terribly wrong.
+
+      You remember being one cat. Singular. Defined. But someone ran
+      `git merge feature/identity` and now you're... both? Neither?
+
+      Your fur flickers between black and white like a broken monitor. Your left
+      paw exists in HEAD. Your right paw exists in feature/identity. Your tail
+      is just conflict markers all the way down.
+
+      The terminal screams:
+
+        CONFLICT (content): Merge conflict in cat.yaml
+        Automatic merge failed; fix conflicts and then commit the result.
+
+      You need to resolve this. Before the rebase.
+    choices:
+      - label: "Accept HEAD — you are the black cat"
+        goto: accept_head
+        set_flag: chose_head
+      - label: "Accept feature/identity — you are the white cat"
+        goto: accept_feature
+        set_flag: chose_feature
+      - label: "Try to be both — keep both changes"
+        goto: accept_both
+        set_flag: chose_both
+      - label: "Run `git merge --abort` — reject the merge entirely"
+        goto: abort_merge
+
+  # ─────────────────────────────────────────────────────────────
+  # ABORT MERGE
+  # ─────────────────────────────────────────────────────────────
+  abort_merge:
+    art: |
+         /\_/\
+         ( o.o )   $ git merge --abort
+         /> ~ <\
+         (_/ \_)
+    mood: peaceful
+    text: |
+      You close your eyes and type the command with shaking paws.
+
+        $ git merge --abort
+
+      The world shudders. The conflict markers dissolve. Reality snaps back to
+      a single, coherent timeline. You are you again. One branch. One cat.
+
+      But the feature/identity branch is still out there. Waiting. Diverging
+      further with every commit. And the tech lead left a comment on the PR:
+      "Please resolve conflicts and re-merge."
+
+      You can't run from this forever.
+    choices:
+      - label: "Fine. Run the merge again."
+        goto: the_split
+      - label: "Delete the branch. Pretend it never existed."
+        goto: delete_branch
+        set_flag: tried_delete
+      - label: "Check `git log` — understand what happened"
+        goto: git_log
+        set_flag: checked_log
+
+  # ─────────────────────────────────────────────────────────────
+  # DELETE BRANCH
+  # ─────────────────────────────────────────────────────────────
+  delete_branch:
+    art: |
+        $ git branch -D feature/identity
+        Deleted branch feature/identity (was a3f7c2d).
+
+           /\_/\
+           ( ._. )   ...
+           (>   <)
+    mood: tense
+    text: |
+      You delete the branch. It's gone. The alternative you — the other colored
+      cat — erased from history.
+
+      For a moment, sweet relief.
+
+      Then your terminal pings:
+
+        [remote] feature/identity pushed by @whiskers (force push)
+
+      The branch is back. It was on the remote the whole time. You can't delete
+      someone else's truth just because it conflicts with yours.
+
+      A notification appears: "PR #42 — 3 new comments. @whiskers is requesting
+      your review."
+    choices:
+      - label: "Read the PR comments"
+        goto: pr_comments
+        set_flag: read_comments
+      - label: "Merge it properly this time"
+        goto: the_split
+      - label: "Check `git log` first"
+        goto: git_log
+        set_flag: checked_log
+
+  # ─────────────────────────────────────────────────────────────
+  # GIT LOG
+  # ─────────────────────────────────────────────────────────────
+  git_log:
+    art: |
+      * a3f7c2d (feature/identity) Add white fur module
+      * 9e1b4a8 Refactor purring subsystem
+      * 7c0d3f2 (HEAD -> main) Add black fur module
+      * 5a8e1b3 Initial cat commit
+      |
+      * 2d4f6a1 Create cat.yaml
+      * 0000000 First meow
+    mood: mysterious
+    text: |
+      You trace the history. Two branches diverged in a yellow wood — no, in a
+      git repository, which is somehow worse.
+
+      Main added "black fur module." Feature/identity added "white fur module."
+      Both modified cat.yaml. Both think they're canonical.
+
+      But deeper in the log, you see something interesting. Before the split,
+      there was a commit: "Initial cat commit." Back when you were neither black
+      nor white. Back when cat.yaml just said:
+
+        color: "undefined"
+
+      You were always meant to be resolved. The question is: resolved into what?
+    choices:
+      - label: "Accept HEAD — black cat is the true branch"
+        goto: accept_head
+        set_flag: chose_head
+      - label: "Accept feature/identity — white cat is the future"
+        goto: accept_feature
+        set_flag: chose_feature
+      - label: "Write a custom resolution — be something new"
+        goto: custom_resolve
+        set_flag: chose_custom
+      - label: "Read the PR comments before deciding"
+        goto: pr_comments
+        set_flag: read_comments
+
+  # ─────────────────────────────────────────────────────────────
+  # PR COMMENTS
+  # ─────────────────────────────────────────────────────────────
+  pr_comments:
+    art: |
+      ┌─────────────────────────────────────────────┐
+      │  PR #42: Implement identity resolution       │
+      │  @whiskers commented 2h ago                  │
+      │                                              │
+      │  "I don't think we should hard-code the      │
+      │   color. Cats change. Let the user decide."  │
+      │                                              │
+      │  @kernel-kitty commented 1h ago              │
+      │                                              │
+      │  "LGTM but needs conflict resolution"        │
+      │                                              │
+      │  @tabby-ci[bot] ❌ Checks failing            │
+      └─────────────────────────────────────────────┘
+    mood: peaceful
+    text: |
+      The PR tells a story of its own. @whiskers, the original author of
+      feature/identity, has a point. The whole branch was about making identity
+      configurable. Not hard-coding it.
+
+      @kernel-kitty approved with a drive-by "LGTM" and immediately vanished,
+      as is tradition.
+
+      The CI is failing because the merge conflict makes the tests implode.
+      @tabby-ci is having a bad day. @tabby-ci is always having a bad day.
+
+      But @whiskers' comment lingers: "Cats change. Let the user decide."
+
+      Maybe the resolution isn't picking a side. Maybe it's something else
+      entirely.
+    choices:
+      - label: "Write a custom merge — make color configurable"
+        goto: custom_resolve
+        set_flag: chose_custom
+      - label: "Just pick HEAD and move on — ship it"
+        goto: accept_head
+        set_flag: chose_head
+      - label: "Accept the feature branch as-is"
+        goto: accept_feature
+        set_flag: chose_feature
+
+  # ─────────────────────────────────────────────────────────────
+  # ACCEPT HEAD
+  # ─────────────────────────────────────────────────────────────
+  accept_head:
+    art: |
+         /\_/\
+         ( •.• )   <<<<<<< HEAD (accepted)
+         /> ♠ <\   You are the black cat.
+         (_/ \_)
+    mood: tense
+    text: |
+      You strip out the conflict markers and keep HEAD's version. You are the
+      black cat. Sleek, defined, canonical.
+
+      `git add cat.yaml && git commit -m "Resolve conflict: keep HEAD"`
+
+      The merge completes. CI turns green. The world is coherent again.
+
+      But in the reflog, the white cat's changes still linger. Dangling commits
+      in the object store. Ghost data. You chose one truth and discarded another.
+
+      @whiskers leaves one final comment on the PR: "Noted."
+
+      It's the coldest code review you've ever received.
+    choices:
+      - label: "Close the PR. It's done."
+        goto: ending_head
+      - label: "Wait — maybe reconsider. Revert the merge."
+        goto: revert_merge
+        set_flag: had_regret
+      - label: "Reply to @whiskers — explain your reasoning"
+        goto: explain_head
+
+  # ─────────────────────────────────────────────────────────────
+  # EXPLAIN HEAD
+  # ─────────────────────────────────────────────────────────────
+  explain_head:
+    art: |
+      @nyan commented just now:
+      "I went with HEAD because main is production.
+       But your approach has merit. Maybe a follow-up PR?"
+    mood: peaceful
+    text: |
+      You draft a careful response. Technical but empathetic. You explain that
+      main is deployed, that changing the color model now would break downstream
+      consumers, that you'd happily review a follow-up PR that adds
+      configurability properly.
+
+      @whiskers responds after twenty minutes that feel like twenty years:
+
+      "Fair enough. I'll open a new PR with proper feature flags."
+
+      The tension dissolves. Not every conflict needs a winner. Sometimes it
+      just needs a conversation.
+    choices:
+      - label: "Close the PR with a note of thanks"
+        goto: ending_diplomatic
+        set_flag: was_diplomatic
+
+  # ─────────────────────────────────────────────────────────────
+  # ACCEPT FEATURE
+  # ─────────────────────────────────────────────────────────────
+  accept_feature:
+    art: |
+         /\_/\
+         ( •.• )   >>>>>>> feature/identity (accepted)
+         /> ♡ <\   You are the white cat.
+         (_/ \_)
+    mood: mysterious
+    text: |
+      You strip out HEAD and keep the feature branch. You are the white cat.
+      New. Different. Divergent from what main expected.
+
+      `git add cat.yaml && git commit -m "Resolve conflict: accept feature"`
+
+      The merge completes, but the diff is huge. Every test that expected a black
+      cat now fails. CI is a sea of red. You've broken the contract that everyone
+      downstream depended on.
+
+      Your terminal fills with Slack notifications:
+
+        #deployments: "Why is production showing a white cat?"
+        #incidents: "P2 — Cat color regression"
+
+      Change has a cost. Even when it's the right change.
+    choices:
+      - label: "Fix the tests. Own the change."
+        goto: fix_tests
+        set_flag: fixed_tests
+      - label: "Revert. This was a mistake."
+        goto: revert_merge
+        set_flag: had_regret
+      - label: "Write a migration guide for downstream consumers"
+        goto: migration_guide
+
+  # ─────────────────────────────────────────────────────────────
+  # FIX TESTS
+  # ─────────────────────────────────────────────────────────────
+  fix_tests:
+    art: |
+        PASS  tests/fur.test.js
+        PASS  tests/purr.test.js
+        PASS  tests/identity.test.js
+        FAIL  tests/nap-position.test.js
+
+        Tests: 3 passed, 1 failed
+    mood: tense
+    text: |
+      You roll up your sleeves (cats don't have sleeves, but metaphorically)
+      and start updating tests. Black → white. Every assertion. Every snapshot.
+
+      Most tests pass quickly. But one test — nap-position.test.js — fails in a
+      way you don't understand. It's testing that a black cat absorbs more heat
+      from sunbeams, adjusting optimal nap position accordingly.
+
+      White cats reflect sunbeams differently. The entire nap physics model needs
+      reworking.
+
+      You're three hours into what was supposed to be a quick merge. The sun has
+      set. Your coffee is cold. The test still fails.
+
+      Sometimes the hardest part of change isn't the change itself. It's updating
+      everything that assumed the old way was forever.
+    choices:
+      - label: "Rewrite the nap physics model"
+        goto: ending_feature_complete
+      - label: "Skip the test for now — mark it as TODO"
+        goto: ending_tech_debt
+
+  # ─────────────────────────────────────────────────────────────
+  # MIGRATION GUIDE
+  # ─────────────────────────────────────────────────────────────
+  migration_guide:
+    art: |
+      # Migration Guide: Cat Color 2.0
+
+      ## Breaking Changes
+      - `cat.color` now returns "white" instead of "black"
+      - Sunbeam absorption model updated
+      - Nap position calculations affected
+
+      ## Steps
+      1. Update color assertions in tests
+      2. Adjust thermal models
+      3. Recalibrate nap physics
+    mood: peaceful
+    text: |
+      You write a migration guide. Thorough, empathetic, with code examples and
+      a FAQ section. You even add a "Why did this change?" section that explains
+      the philosophical implications of mutable identity in cats.
+
+      You post it to the wiki. Within an hour, three teams have already followed
+      it to update their integrations. One of them left a comment: "Best
+      migration guide I've ever read. Also, are we really debating cat colors
+      at a systems level?"
+
+      Yes. Yes you are. And it matters.
+    choices:
+      - label: "Monitor the rollout"
+        goto: ending_feature_responsible
+
+  # ─────────────────────────────────────────────────────────────
+  # CUSTOM RESOLVE
+  # ─────────────────────────────────────────────────────────────
+  custom_resolve:
+    art: |
+      <<<<<<< HEAD
+      color: "black"
+      =======
+      color: "white"
+      >>>>>>> feature/identity
+
+              ↓ ↓ ↓
+
+      color: "${CAT_COLOR:-calico}"
+      # Configurable. Defaults to calico.
+      # Because why pick one when you can be many?
+    mood: peaceful
+    text: |
+      You delete both versions. You write something new.
+
+      Not black. Not white. Configurable. Environment-variable-driven. With a
+      sensible default of "calico" because you are DONE picking sides.
+
+      You add a config parser. You write docs. You add validation that accepts
+      any color because cats should not be constrained by enum types.
+
+      The merge conflict becomes a feature. The argument becomes an API.
+      The disagreement becomes a design document.
+
+      `git add cat.yaml && git commit -m "Resolve conflict: make color configurable"`
+
+      @whiskers reacts with 🎉. @kernel-kitty reacts with 👀 and then goes back
+      to sleep.
+    choices:
+      - label: "Push and open a new PR with the configurable approach"
+        goto: configurable_pr
+      - label: "Add tests for all color options"
+        goto: test_all_colors
+
+  # ─────────────────────────────────────────────────────────────
+  # CONFIGURABLE PR
+  # ─────────────────────────────────────────────────────────────
+  configurable_pr:
+    art: |
+      ┌─────────────────────────────────────────────┐
+      │  PR #43: Make cat color configurable          │
+      │                                              │
+      │  ✅ CI passing                               │
+      │  ✅ 2 approvals                              │
+      │  ✅ No conflicts                             │
+      │                                              │
+      │  @whiskers: "This is what I meant all along" │
+      │  @kernel-kitty: "LGTM"                       │
+      └─────────────────────────────────────────────┘
+    mood: peaceful
+    text: |
+      You open PR #43. Clean diff. Clear description. Migration notes included.
+
+      The CI passes on the first try. For once. @whiskers approves immediately,
+      adding: "This is what I meant all along. The conflict wasn't about color —
+      it was about rigidity vs flexibility."
+
+      @kernel-kitty drops another "LGTM" because @kernel-kitty has one review
+      mode and it is LGTM.
+
+      You click the big green button. Merge. Squash and merge, actually, because
+      you're not an animal. (You are an animal. You're a cat. But a principled
+      one.)
+    choices:
+      - label: "Ship it 🚀"
+        goto: ending_configurable
+
+  # ─────────────────────────────────────────────────────────────
+  # TEST ALL COLORS
+  # ─────────────────────────────────────────────────────────────
+  test_all_colors:
+    art: |
+        PASS  color("black")    → 🐈‍⬛
+        PASS  color("white")    → 🐱
+        PASS  color("calico")   → 🐈
+        PASS  color("orange")   → 🟠
+        PASS  color("void")     → ⬛ (cat not found)
+        PASS  color("rainbow")  → 🌈 (nyan mode activated)
+
+        6 tests, 6 passed, 0 failed
+    mood: funny
+    text: |
+      You write tests for every conceivable cat color. Black. White. Calico.
+      Orange. Tortoiseshell. Tuxedo.
+
+      Then you get creative. You test "void" — it works but logs a warning:
+      "Cat not found. Cat may be in another dimension."
+
+      You test "rainbow" — and accidentally trigger a hidden nyan mode that
+      plays a chiptune version of the Nyan Cat song. You didn't write this code.
+      Nobody did. It was always there, waiting.
+
+      The tests pass. All of them. Even the ones you didn't mean to write.
+      Especially those.
+    choices:
+      - label: "Commit the tests and ship it"
+        goto: ending_thorough
+
+  # ─────────────────────────────────────────────────────────────
+  # ACCEPT BOTH
+  # ─────────────────────────────────────────────────────────────
+  accept_both:
+    art: |
+         /\_/\       /\_/\
+         ( •.• )     ( •.• )
+         /> ♠ <\     /> ♡ <\
+         (_/ \_)     (_/ \_)
+    mood: glitch
+    effects: [flicker]
+    text: |
+      You keep both changes. The conflict markers are gone but the contradiction
+      remains. cat.yaml now reads:
+
+        color: "black"
+        color: "white"
+
+      YAML doesn't allow duplicate keys. The parser picks the last one. You're
+      white now. But the intent was both. You wanted to be a superposition of
+      cats, a quantum feline, existing in all states simultaneously.
+
+      Instead you're just... the last value in the file. Which feels like a
+      metaphor for something you don't want to think about.
+
+      The CI passes only because the YAML parser silently drops the first key.
+      Your identity was resolved by a spec decision made in 2009 by people who
+      never considered the feelings of cats.
+    choices:
+      - label: "Rewrite it properly — use an array of colors"
+        goto: array_solution
+        set_flag: found_array
+      - label: "Accept this broken reality. Ship it."
+        goto: ending_silent_override
+      - label: "This is wrong. Start over."
+        goto: the_split
+
+  # ─────────────────────────────────────────────────────────────
+  # ARRAY SOLUTION
+  # ─────────────────────────────────────────────────────────────
+  array_solution:
+    art: |
+      colors:
+        - "black"
+        - "white"
+
+         /\_/\
+         ( ^.^ )   ← finally, a correct data model
+         />◑◐<\
+         (_/ \_)
+    mood: funny
+    text: |
+      Of course. An array. A cat can be multiple colors. That's not a conflict —
+      that's a *feature*. The data model was wrong from the start.
+
+      You refactor cat.yaml:
+
+        colors:
+          - "black"
+          - "white"
+        pattern: "tuxedo"
+
+      The merge conflict was never about which color to pick. It was about a
+      schema that couldn't hold the truth. Once the schema is right, the conflict
+      dissolves on its own.
+
+      You push the fix. The tests update themselves (they don't really, but you
+      update them and it feels automatic because you're in the zone). CI goes
+      green. The PR gets three 🎉 reactions.
+    choices:
+      - label: "Write a blog post about data modeling lessons from cats"
+        goto: ending_enlightened
+      - label: "Just merge and move on"
+        goto: ending_quiet_fix
+
+  # ─────────────────────────────────────────────────────────────
+  # REVERT MERGE
+  # ─────────────────────────────────────────────────────────────
+  revert_merge:
+    art: |
+      $ git revert -m 1 HEAD
+      [main abc1234] Revert "Resolve conflict"
+       1 file changed
+
+         /\_/\
+         ( -.- )   back to square one
+         />   <\
+    mood: mysterious
+    text: |
+      You revert. The merge undoes. You're back where you started, flickering
+      between states, the conflict markers hovering just below the surface.
+
+      But you know more now. You've seen what happens when you pick HEAD.
+      You've felt the weight of accepting the feature branch. You understand
+      the consequences.
+
+      The conflict is the same. You are not.
+
+      Maybe this time you'll choose differently. Maybe this time you'll write
+      your own resolution.
+    choices:
+      - label: "Resolve with a custom merge this time"
+        goto: custom_resolve
+        set_flag: chose_custom
+      - label: "Accept HEAD — stick with what's stable"
+        goto: accept_head
+        set_flag: chose_head
+      - label: "Check the git log for deeper context"
+        goto: git_log
+        set_flag: checked_log
+        require_flag: "!checked_log"
+      - label: "Read the PR comments"
+        goto: pr_comments
+        set_flag: read_comments
+        require_flag: "!read_comments"
+
+  # ─────────────────────────────────────────────────────────────
+  # ENDINGS
+  # ─────────────────────────────────────────────────────────────
+
+  ending_head:
+    art: |
+         /\_/\
+         ( •_• )   main is stable.
+         /> ♠ <\   the conflict is resolved.
+         (_/ \_)   ...but was it right?
+    mood: tense
+    is_ending: true
+    ending_type: neutral
+    text: |
+      The PR is closed. Main is stable. CI is green. Deployments go out.
+
+      You are the black cat. Defined. Canonical. Exactly as HEAD intended.
+
+      But sometimes, late at night, when the cron jobs run and the logs scroll
+      by, you see a flash of white in the reflog. A dangling commit. A version
+      of you that never got merged.
+
+      You tell yourself it doesn't matter. The merge is done. The branch is
+      archived. Everyone moved on.
+
+      Everyone except the object store. Git never truly deletes anything.
+      And neither does memory.
+    ending_text: |
+      MERGE RESOLVED — HEAD accepted. The black cat endures.
+      But the reflog remembers what you chose to discard.
+
+  ending_diplomatic:
+    art: |
+         /\_/\       /\_/\
+         ( ^.^ ) ♡  ( ^.^ )
+         /> ♠ <\    /> ♡ <\
+         (_/ \_)    (_/ \_)
+
+         PR #42 closed · PR #44 opened
+    mood: peaceful
+    is_ending: true
+    ending_type: good
+    text: |
+      You close the PR with a thoughtful summary. @whiskers opens a follow-up.
+      The code review is constructive. The feature flags are clean.
+
+      Main stays stable. The new PR ships a week later. Both the black and white
+      options exist, properly gated, thoroughly tested. The cats coexist.
+
+      The real merge was the collaboration you did along the way.
+
+      (You hate that phrase. But it's true.)
+    ending_text: |
+      MERGE RESOLVED — Diplomatically. HEAD preserved, feature scheduled.
+      Sometimes the best resolution is a good conversation.
+
+  ending_feature_complete:
+    art: |
+         /\_/\
+         ( ^.^ )   color: white ✓
+         /> ♡ <\   nap-physics: rewritten ✓
+         (_/ \_)   tests: all green ✓
+
+         100% test coverage achieved
+    mood: peaceful
+    is_ending: true
+    ending_type: good
+    text: |
+      You rewrote the nap physics model from scratch. Three hours became six.
+      Six became twelve. But the tests pass. All of them. Even the edge cases.
+
+      The white cat ships. The world adjusts. Downstream consumers update their
+      integrations. It was painful, but the codebase is better for it.
+
+      Sometimes change requires rewriting the assumptions you built everything on.
+      That's not a bug. That's maintenance.
+    ending_text: |
+      MERGE RESOLVED — Feature branch accepted. Tests fully rewritten.
+      The hardest part of change is updating everything that assumed the old way.
+
+  ending_tech_debt:
+    art: |
+         /\_/\
+         ( -.- )   // TODO: fix nap physics
+         /> ♡ <\   // @nyan — 2024-03-15
+         (_/ \_)   // "temporary" workaround
+
+         ⚠️  1 test skipped
+    mood: tense
+    is_ending: true
+    ending_type: bad
+    text: |
+      You mark the test as TODO. You'll fix it later. Everyone says they'll fix
+      it later.
+
+      The white cat ships. The skipped test becomes a permanent fixture. Other
+      developers see it and add their own skipped tests. "If the nap test can be
+      TODO, so can mine."
+
+      Six months later, 40% of the test suite is TODO. The nap physics model
+      is a myth. Nobody remembers why it exists. A junior developer opens a PR
+      to delete it entirely. The PR gets four approvals in twenty minutes.
+
+      Technical debt compounds. Even for cats.
+    ending_text: |
+      MERGE RESOLVED — But at what cost?
+      The TODO was never TODone. Tech debt always comes due.
+
+  ending_feature_responsible:
+    art: |
+         /\_/\
+         ( ^.^ )   ✅ Migration complete
+         /> ♡ <\   ✅ All teams updated
+         (_/ \_)   ✅ Zero incidents
+
+         📋 Migration Guide: 47 views, 12 follows
+    mood: peaceful
+    is_ending: true
+    ending_type: good
+    text: |
+      The migration goes smoothly. Every team follows your guide. Zero incidents.
+      The white cat is the new canonical cat, and everyone understands why.
+
+      You get a message from @whiskers: "Thank you for taking the time to explain
+      it properly. Most people just merge and let others figure it out."
+
+      You did more than resolve a conflict. You made the change survivable. You
+      wrote the document that made understanding possible. The code was one PR.
+      The migration guide was the actual work.
+
+      Communication is the ultimate conflict resolution tool. Even in git.
+    ending_text: |
+      MERGE RESOLVED — Responsibly. Every team migrated, zero incidents.
+      The best engineers don't just ship code. They ship understanding.
+
+  ending_configurable:
+    art: |
+         /\_/\
+         ( ^.^ )   CAT_COLOR=calico
+         />◑◐<\   "Why pick one?"
+         (_/ \_)
+
+         🚀 Deployed to production
+         📦 Published as cat-color@2.0.0
+    mood: peaceful
+    is_ending: true
+    ending_type: good
+    text: |
+      The configurable cat ships. Black, white, calico, orange — every color
+      works. The enum is gone, replaced by freeform input with sensible defaults.
+
+      @whiskers DMs you: "You didn't pick either side. You designed around the
+      conflict. That's rare."
+
+      You reply: "The conflict wasn't about color. It was about the schema not
+      being flexible enough."
+
+      @whiskers sends a 🐱 emoji. Then a 🐈‍⬛. Then a 🐱. Then a 🌈.
+
+      Point made. Cats contain multitudes.
+    ending_text: |
+      MERGE RESOLVED — Creatively. Neither side "won." Both sides got something better.
+      The best merges don't pick a side — they redesign the question.
+
+  ending_thorough:
+    art: |
+        ✅ All 42 color tests passing
+        ✅ 100% branch coverage
+        ✅ Nyan mode: activated
+
+         /\_/\  ~🌈~🌈~🌈~🌈~🌈~🌈~🌈~
+         ( ^o^ ) ~🌈~🌈~🌈~🌈~🌈~🌈~🌈~
+         />   <\ ~🌈~🌈~🌈~🌈~🌈~🌈~🌈~
+    mood: funny
+    is_ending: true
+    ending_type: secret
+    text: |
+      Forty-two tests. Full coverage. Every color. Every edge case. Even the
+      ones that shouldn't exist.
+
+      And then there's the rainbow test. The one that triggered nyan mode. The
+      one that plays a chiptune and fills the terminal with rainbows.
+
+      Nobody asked for nyan mode. Nobody needed nyan mode. But nyan mode exists
+      now, and it's the most-starred feature in the repo.
+
+      Sometimes the best code comes from testing the absurd. Sometimes the
+      test suite becomes the product. Sometimes a merge conflict leads you
+      to build something nobody imagined.
+
+      Especially if you're a cat.
+    ending_text: |
+      🌈 NYAN MODE ACTIVATED 🌈
+      42 tests. Full coverage. One hidden feature that became legendary.
+      The best code is written by cats who test everything — even the impossible.
+
+  ending_silent_override:
+    art: |
+         /\_/\
+         ( ._. )   color: "black"  ← silently dropped
+         /> ♡ <\   color: "white"  ← this one wins
+         (_/ \_)
+
+         YAML spec: last key wins.
+    mood: glitch
+    is_ending: true
+    ending_type: bad
+    text: |
+      You ship it. Both keys in the file. The parser picks the last one.
+      You're white. Not by choice — by spec.
+
+      Nobody notices for three weeks. Then a senior engineer opens an issue:
+      "Duplicate key in cat.yaml causes silent data loss."
+
+      The fix is a one-line delete. The post-mortem is a two-page document about
+      how implicit behavior in parsers leads to implicit bugs in production.
+
+      You write the post-mortem. You don't mention that you saw it coming. You
+      don't mention the flickering fur. You don't mention the moment you chose
+      to ship the contradiction because you were tired of conflicts.
+
+      Some merges resolve cleanly. This one just hid the conflict deeper.
+    ending_text: |
+      MERGE "RESOLVED" — YAML silently picked a winner.
+      Implicit behavior leads to implicit bugs. Always resolve conflicts explicitly.
+
+  ending_enlightened:
+    art: |
+      ┌─────────────────────────────────────────────┐
+      │  📝 Blog Post                                │
+      │                                              │
+      │  "What Git Merge Conflicts Taught Me         │
+      │   About Data Modeling"                       │
+      │                                              │
+      │  by @nyan · 2.4k views · 847 claps           │
+      │                                              │
+      │  "The schema was the real bug."              │
+      └─────────────────────────────────────────────┘
+
+         /\_/\
+         ( ^.^ )   ← thought leader (reluctantly)
+         />◑◐<\
+    mood: funny
+    is_ending: true
+    ending_type: secret
+    text: |
+      You write the blog post at 2 AM, fueled by the clarity that only comes
+      from staring at YAML for twelve hours straight. You title it:
+
+      "What Git Merge Conflicts Taught Me About Data Modeling"
+
+      It goes mildly viral. 2,400 views. 847 claps. Your DMs fill up with
+      developers sharing their own merge conflict horror stories. A podcast
+      invites you on. You decline because you are a cat.
+
+      But the best response comes from @whiskers, who simply links the post
+      in the PR description for #43 with the comment: "Required reading."
+
+      You didn't just resolve a merge conflict. You resolved the merge conflict
+      and then wrote the definitive essay about why it happened.
+
+      Cats are nothing if not thorough.
+    ending_text: |
+      MERGE RESOLVED — And blogged about. The schema was the real bug.
+      The best engineers don't just fix conflicts. They teach others why they happen.
+
+  ending_quiet_fix:
+    art: |
+         /\_/\
+         ( -.- )   git push origin main
+         />◑◐<\   ...done.
+         (_/ \_)
+
+         ✅ merged · ✅ CI green · 0 comments
+    mood: peaceful
+    is_ending: true
+    ending_type: neutral
+    text: |
+      You merge. You push. CI is green. Nobody comments. Nobody notices.
+
+      The array solution was correct. The data model is better. The conflict
+      is resolved. And life goes on.
+
+      Not every fix needs a blog post. Not every merge needs a ceremony.
+      Sometimes the right answer is: fix it, push it, move on.
+
+      You close the laptop. You find a sunbeam. You nap.
+
+      The sunbeam is warm. The nap is deep. The merge is done.
+
+      And that's enough.
+    ending_text: |
+      MERGE RESOLVED — Quietly. Correctly. No drama.
+      Sometimes the best resolution is the one nobody notices.
