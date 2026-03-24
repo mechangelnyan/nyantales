@@ -8,6 +8,7 @@ import inquirer from 'inquirer';
 import yaml from 'yaml';
 import { Engine, discoverStories, GameState } from './engine.js';
 import { validateStory } from './validator.js';
+import { analyzeStoryGraph, renderAsciiMap, findEndingPaths, renderEndingPaths } from './mapper.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const STORIES_DIR = path.join(__dirname, '..', 'stories');
@@ -40,6 +41,8 @@ function showHelp() {
   console.log(`    ${chalk.cyan('nyantales validate')}       ${chalk.dim('Validate all stories')}`);
   console.log(`    ${chalk.cyan('nyantales validate <s>')}   ${chalk.dim('Validate a specific story')}`);
   console.log(`    ${chalk.cyan('nyantales new [slug]')}     ${chalk.dim('Scaffold a new story')}`);
+  console.log(`    ${chalk.cyan('nyantales map <story>')}   ${chalk.dim('Show story graph & paths')}`);
+  console.log(`    ${chalk.cyan('nyantales map')}           ${chalk.dim('Map all stories')}`);
   console.log(`    ${chalk.cyan('nyantales --help')}         ${chalk.dim('Show this help')}`);
   console.log();
   console.log(chalk.bold('  Options:\n'));
@@ -576,6 +579,75 @@ scenes:
 }
 
 // ─────────────────────────────────────────────────────────────
+// Story map / graph visualization
+// ─────────────────────────────────────────────────────────────
+
+async function showStoryMap(slug, opts = {}) {
+  console.log(BANNER);
+
+  const stories = discoverStories(STORIES_DIR);
+  if (stories.length === 0) {
+    console.log(chalk.yellow('  No stories found.\n'));
+    return;
+  }
+
+  const targets = slug
+    ? stories.filter(s => s.slug === slug)
+    : stories;
+
+  if (slug && targets.length === 0) {
+    console.log(chalk.red(`  Story '${slug}' not found.`));
+    console.log(chalk.dim('  Available: ' + stories.map(s => s.slug).join(', ') + '\n'));
+    return;
+  }
+
+  for (const s of targets) {
+    const storyFile = path.join(STORIES_DIR, s.slug, 'story.yaml');
+    const raw = fs.readFileSync(storyFile, 'utf8');
+    const data = yaml.parse(raw);
+
+    console.log(chalk.bold.magenta(`\n  ── ${data.title || s.slug} ──`));
+    if (data.description) console.log(chalk.dim(`  ${data.description}`));
+    console.log();
+
+    const graph = analyzeStoryGraph(data);
+
+    // Stats summary
+    const st = graph.stats;
+    console.log(chalk.bold('  Stats'));
+    console.log(chalk.dim('  ─────'));
+    console.log(`  Scenes:     ${chalk.cyan(st.totalScenes)}${st.unreachableScenes > 0 ? chalk.yellow(` (${st.unreachableScenes} unreachable)`) : ''}`);
+    console.log(`  Connections: ${chalk.cyan(st.totalEdges)}${st.conditionalEdges > 0 ? chalk.dim(` (${st.conditionalEdges} conditional)`) : ''}`);
+
+    const endParts = [];
+    if (st.endings.good > 0) endParts.push(chalk.green(`${st.endings.good} good`));
+    if (st.endings.bad > 0) endParts.push(chalk.red(`${st.endings.bad} bad`));
+    if (st.endings.neutral > 0) endParts.push(chalk.yellow(`${st.endings.neutral} neutral`));
+    if (st.endings.secret > 0) endParts.push(chalk.magenta(`${st.endings.secret} secret`));
+    console.log(`  Endings:    ${chalk.cyan(st.endings.total)} — ${endParts.join(', ')}`);
+
+    if (st.hubScenes.length > 0) {
+      console.log(`  Hub scenes: ${st.hubScenes.map(h => chalk.cyan(h.id) + chalk.dim(` (${h.outDegree} exits)`)).join(', ')}`);
+    }
+
+    if (st.deadEnds.length > 0) {
+      console.log(chalk.yellow(`  ⚠ Dead ends: ${st.deadEnds.join(', ')}`));
+    }
+
+    // ASCII map
+    const asciiMap = renderAsciiMap(graph);
+    console.log(asciiMap);
+
+    // Ending paths
+    const paths = findEndingPaths(graph);
+    const pathsText = renderEndingPaths(paths);
+    console.log(pathsText);
+
+    console.log(chalk.dim('  ' + '═'.repeat(58)) + '\n');
+  }
+}
+
+// ─────────────────────────────────────────────────────────────
 // Interactive main menu (no args)
 // ─────────────────────────────────────────────────────────────
 
@@ -591,6 +663,7 @@ async function mainMenu() {
   }
   choices.push(
     { name: 'List available stories',  value: 'list' },
+    { name: 'Story map / graph',       value: 'map' },
     { name: 'Ending discovery progress', value: 'progress' },
     { name: 'Help',                    value: 'help' },
     { name: 'Exit',                    value: 'exit' },
@@ -607,6 +680,7 @@ async function mainMenu() {
     case 'play': await playStory(null); break;
     case 'continue': await continueGame(); break;
     case 'list': listStories(); break;
+    case 'map': await showStoryMap(null); break;
     case 'progress': showProgress(); break;
     case 'help': showHelp(); break;
     case 'exit': process.exit(0);
@@ -671,6 +745,11 @@ async function main() {
     case 'create':
     case 'scaffold':
       await scaffoldStory(rest[0]);
+      break;
+
+    case 'map':
+    case 'graph':
+      await showStoryMap(rest[0], opts);
       break;
 
     case '--help':

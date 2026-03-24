@@ -53,6 +53,10 @@ nyantales validate                        # check all stories
 nyantales validate the-terminal-cat       # check one story
 nyantales validate --pedantic             # extra warnings (self-loops, etc.)
 
+# Story map — visualize scene graph & paths to endings
+nyantales map                             # map all stories
+nyantales map the-terminal-cat            # map one story
+
 # View ending discovery progress
 nyantales progress
 
@@ -124,6 +128,25 @@ Check your progress anytime:
 ```bash
 nyantales progress
 ```
+
+---
+
+## Story Map
+
+Visualize any story's structure as an ASCII graph:
+
+```bash
+nyantales map the-terminal-cat
+```
+
+Shows:
+- **Stats** — scene count, connections, ending types, hub scenes, dead ends
+- **Layer graph** — BFS-layered ASCII map with scene types and connections
+- **Paths to endings** — shortest path to each ending, grouped by type
+
+Useful for story authors checking structure, or players hunting for endings they missed.
+
+Run `nyantales map` (no argument) to map all stories at once.
 
 ---
 
@@ -238,19 +261,23 @@ condition: my_flag_name   # same as condition: {flag: my_flag_name}
 nyantales/
 ├── src/
 │   ├── cli.js          CLI entry point
-│   └── engine.js       Core engine (load, render, state, save/load)
+│   ├── engine.js       Core engine (load, render, state, save/load)
+│   ├── mapper.js       Story graph analysis & ASCII map renderer
+│   └── validator.js    Story validation & linting
 ├── stories/
-│   ├── the-terminal-cat/
-│   │   └── story.yaml  Story 1 — filesystem adventure
-│   ├── cafe-debug/
-│   │   └── story.yaml  Story 2 — café debugging mystery
-│   ├── midnight-deploy/
-│   └── server-room-stray/
-│       └── story.yaml  Story 3 — data center exploration
+│   ├── the-terminal-cat/   Story 1 — filesystem adventure
+│   ├── cafe-debug/         Story 2 — café debugging mystery
+│   ├── server-room-stray/  Story 3 — data center exploration
+│   ├── midnight-deploy/    Story 4 — 2AM production outage
+│   ├── haunted-network/    Story 5 — ghost packets at 3AM
+│   └── git-blame/          Story 6 — noir detective traces git history
 ├── saves/              Auto-generated save files (gitignored)
 ├── tests/
-│   ├── engine.test.js  Engine + story integrity tests
-│   └── save-load.test.js  Save/load system tests
+│   ├── engine.test.js      Engine + story integrity tests
+│   ├── save-load.test.js   Save/load system tests
+│   ├── scaffold.test.js    Story scaffolding tests
+│   ├── validator.test.js   Validator tests
+│   └── mapper.test.js      Story map/graph tests
 ├── package.json
 └── README.md
 ```
