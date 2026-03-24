@@ -1,0 +1,950 @@
+title: "DNS Quest"
+description: "You are Query, a tiny cat riding a DNS packet from a stubborn recursive resolver through the root of the internet. Somewhere out there, home.cat. exists — you just have to find it."
+author: "mechangelnyan"
+version: "1.0.0"
+start: the_lookup
+
+scenes:
+
+  # ─────────────────────────────────────────────────────────────
+  # SCENE 1 - THE LOOKUP
+  # ─────────────────────────────────────────────────────────────
+  the_lookup:
+    art: |
+      ╔══════════════════════════════════════════════════════╗
+      ║  $ dig home.cat                                      ║
+      ║                                                      ║
+      ║  ;; ->>HEADER<<- opcode: QUERY, status: SERVFAIL     ║
+      ║  ;; QUESTION SECTION:                                ║
+      ║  ;; home.cat.          IN    A                       ║
+      ║  ;; ANSWER SECTION:                                  ║
+      ║  ;;                    (empty)                       ║
+      ║                                                      ║
+      ║  ;; Query time: ??? msec                             ║
+      ║  ;; MSG SIZE  rcvd: 0                                ║
+      ╚══════════════════════════════════════════════════════╝
+    text: |
+      You are Query — a small, determined tabby cat with packet headers for
+      whiskers and a TTL of 128 hops. You just materialized inside a recursive
+      DNS resolver, riding a UDP datagram addressed to `home.cat.`
+
+      Someone, somewhere, typed that into a terminal and hit Enter. And now
+      you exist, for exactly as long as it takes to find the answer — or time out.
+
+      The resolver is vast and humming. Cached records drift by like dust motes
+      in a sunbeam. An old A record for `google.com` winks at you. It's been
+      here 300 seconds and it knows it.
+
+      But there's no cache entry for `home.cat.` The resolver shrugs. You'll
+      have to go find it yourself.
+
+      The only way out is up — to the root of the internet.
+    choices:
+      - label: "Follow the root hints to a root server"
+        goto: root_server
+      - label: "Poke around the resolver's cache first"
+        goto: resolver_cache
+      - label: "Meow into the void and hope someone answers"
+        goto: meow_void
+
+  # ─────────────────────────────────────────────────────────────
+  # MEOW INTO THE VOID
+  # ─────────────────────────────────────────────────────────────
+  meow_void:
+    art: |
+        /\_/\
+        ( o.o )  ~~ mrrrow? ~~
+        > ^ <
+        /|   |\     ...
+        (_|   |_)        ...
+                           ...→ (nothing)
+    text: |
+      Your meow propagates across the resolver's internal bus. A monitoring
+      daemon logs it as an anomalous query. Somewhere, a Grafana dashboard
+      spikes briefly. Nobody notices.
+
+      The void does not answer. It never does. That's kind of its thing.
+
+      The root hints file glows faintly in the corner. It's the only map
+      you've got.
+    choices:
+      - label: "Fine. Follow the root hints."
+        goto: root_server
+
+  # ─────────────────────────────────────────────────────────────
+  # RESOLVER CACHE
+  # ─────────────────────────────────────────────────────────────
+  resolver_cache:
+    art: |
+      ┌─────────────────────────────────────────────┐
+      │  RESOLVER CACHE — 847,291 entries            │
+      │  ┌─────────────────────┬──────┬─────┐       │
+      │  │ NAME                │ TYPE │ TTL │       │
+      │  ├─────────────────────┼──────┼─────┤       │
+      │  │ google.com          │ A    │ 212 │       │
+      │  │ *.cdn.example.net   │ CNAME│  47 │       │
+      │  │ mail.nyan.org       │ MX   │ 891 │       │
+      │  │ ?.cat               │ NS   │   3 │ ← !  │
+      │  │ ...847,287 more...  │      │     │       │
+      │  └─────────────────────┴──────┴─────┘       │
+      └─────────────────────────────────────────────┘
+    text: |
+      The cache is enormous — a city of records, each one counting down its
+      TTL like a ticking clock. When a record hits zero, it dissolves.
+      No ceremony. No goodbye. Just gone.
+
+      You weave between towering stacks of AAAA records and dodge a CNAME
+      chain that's seven levels deep (someone should really fix that).
+
+      Wait — there. Flickering. An NS record for `.cat` with a TTL of 3.
+      It's almost expired but it points to `ns1.nic.cat` — a TLD nameserver!
+
+      If you can read it before it dissolves, you can skip the root server
+      entirely. But the TTL is ticking: 3... 2...
+    set_flag: found_cache_hint
+    choices:
+      - label: "Grab the .cat NS record before it expires!"
+        goto: grab_cached_ns
+      - label: "Too risky. Go to the root server properly."
+        goto: root_server
+
+  # ─────────────────────────────────────────────────────────────
+  # GRAB CACHED NS
+  # ─────────────────────────────────────────────────────────────
+  grab_cached_ns:
+    art: |
+           /\_/\  ─── GRAB! ───→  [.cat NS → ns1.nic.cat]
+           ( ⊙△⊙)                        TTL: 1... 0...
+           > ^ <    ☆ GOT IT! ☆
+    text: |
+      You lunge. Your paw swipes through dissolving bytes — and you snag it.
+      The NS record crumbles as its TTL hits zero, but you've already read the
+      address: `ns1.nic.cat` at `185.24.64.6`.
+
+      A shortcut. The root servers won't even know you were here.
+
+      The resolver spins up a new UDP socket and you leap through it, aimed
+      directly at the .cat TLD nameserver. The internet blurs around you.
+    set_flag: skipped_root
+    give_item: cached_ns_record
+    choices:
+      - label: "Ride the packet to ns1.nic.cat"
+        goto: tld_server
+        auto: true
+
+  # ─────────────────────────────────────────────────────────────
+  # ROOT SERVER
+  # ─────────────────────────────────────────────────────────────
+  root_server:
+    art: |
+                         ╔═══════════╗
+                         ╔════╣  ROOT "." ╠════╗
+                         ║    ╚═══════════╝    ║
+                         ╔════╩════╗          ╔════╩════╗
+                         ║ .com NS ║          ║ .cat NS ║
+                         ╚═════════╝          ╚═════════╝
+                         ╔═════════╗          ╔══════════╗
+                         ║ .org NS ║          ║ .net NS  ║
+                         ╚═════════╝          ╚══════════╝
+                         ║    ╔═════════╗    ║
+                         ╚════╣ .io NS ╠════╝
+                         ╚═════════╝
+    location: "root-server-a.root-servers.net"
+    mood: mysterious
+    text: |
+      You arrive at a root nameserver — one of the thirteen anchors that hold
+      the entire internet together. It's ancient. Vast. The digital equivalent
+      of a mountain carved with every TLD in existence.
+
+      The root server regards you with the patience of something that has
+      answered 10 trillion queries and will answer 10 trillion more.
+
+      "I don't know where `home.cat.` is," it says. "But I know who does."
+
+      It hands you an NS referral: the `.cat` TLD is served by `ns1.nic.cat`
+      through `ns3.nic.cat`. Three nameservers. Your choice.
+    conditional:
+      - condition:
+          flag: found_cache_hint
+        text: "You could have grabbed that cached record. Oh well — the scenic route has its charms."
+        color: dim
+    choices:
+      - label: "Query ns1.nic.cat — the primary"
+        goto: tld_server
+      - label: "Query ns3.nic.cat — the backup in a different datacenter"
+        goto: tld_backup
+      - label: "Explore the root zone a bit more"
+        goto: root_explore
+
+  # ─────────────────────────────────────────────────────────────
+  # ROOT EXPLORE
+  # ─────────────────────────────────────────────────────────────
+  root_explore:
+    art: |
+      ┌─ ROOT ZONE ────────────────────────────────┐
+      │                                             │
+      │  .aero  .asia  .biz  .cat  .com  .coop     │
+      │  .edu   .gov   .info .int  .jobs .mil       │
+      │  .mobi  .museum .name .net  .org  .pro      │
+      │  .tel   .travel .xxx  .arpa                 │
+      │                                             │
+      │  ...and 1,543 more TLDs                     │
+      │                                             │
+      │  .xn--vermgensberatung-pwb (yes, really)    │
+      │                                             │
+      └─────────────────────────────────────────────┘
+    text: |
+      The root zone stretches in every direction — a directory of over 1,500
+      top-level domains, each one a door to a different corner of the internet.
+
+      `.museum` looks lonely. `.xxx` looks like trouble. `.cat` is right
+      there — of course it is. You're a cat. The internet was literally
+      built for you.
+
+      You also spot `.arpa` — the infrastructure TLD, where reverse DNS
+      lives. Old, mysterious, smells like history.
+
+      A small engraving on the floor reads: "In the beginning, there was
+      ARPANET, and it was good. Then someone registered a domain for their
+      cat, and it was better."
+    set_flag: explored_root
+    give_item: root_zone_knowledge
+    choices:
+      - label: "Head to the .cat TLD server"
+        goto: tld_server
+      - label: "Peek into .arpa — what's in there?"
+        goto: arpa_detour
+
+  # ─────────────────────────────────────────────────────────────
+  # ARPA DETOUR
+  # ─────────────────────────────────────────────────────────────
+  arpa_detour:
+    art: |
+        .arpa
+        │
+        ├── in-addr.arpa    (IPv4 reverse DNS)
+        ├── ip6.arpa        (IPv6 reverse DNS)
+        ├── home.arpa       (local networks)
+        └── ???.arpa        ← something is purring
+    mood: mysterious
+    text: |
+      The `.arpa` TLD is the internet's basement. Reverse DNS records live
+      here — the phonebook that maps IP addresses back to names.
+
+      It's dark. It's old. It smells like 1969.
+
+      Deep in the corner, behind a stack of PTR records, you find something
+      unexpected: a tiny glowing record that reads:
+
+        `1.0.0.127.in-addr.arpa. → localhost. → "You are already home."`
+
+      It's the loopback address. 127.0.0.1. The one address that always
+      points back to yourself. You feel a strange warmth.
+
+      A voice from the PTR records whispers: "Every packet that asks
+      'where is home?' already knows the answer."
+
+      ...but you still need to find `home.cat.` for whoever sent this query.
+      Back to work.
+    set_flag: visited_arpa
+    give_item: loopback_wisdom
+    choices:
+      - label: "Return to the root and head to .cat"
+        goto: tld_server
+
+  # ─────────────────────────────────────────────────────────────
+  # TLD BACKUP SERVER
+  # ─────────────────────────────────────────────────────────────
+  tld_backup:
+    art: |
+      ╭──────────────────────────────────────╮
+      │  ns3.nic.cat — BACKUP TLD SERVER     │
+      │  Location: Stockholm, SE             │
+      │  Status: ONLINE (secondary)          │
+      │  Last zone transfer: 14 min ago      │
+      ╰──────────────────────────────────────╯
+    location: "ns3.nic.cat (Stockholm)"
+    text: |
+      You chose the backup server — the cautious choice. It's in Stockholm,
+      in a datacenter that smells faintly of cinnamon buns and enterprise SLAs.
+
+      ns3 checks its zone file. It's a secondary — it gets its data from
+      ns1 via zone transfers (AXFR). The last transfer was 14 minutes ago,
+      so the data is fresh enough.
+
+      "home.cat? Let me check..."
+
+      It flips through its records. You hold your breath (metaphorically —
+      you're a UDP packet, you don't have lungs).
+    choices:
+      - label: "Wait for the answer"
+        goto: tld_answer
+
+  # ─────────────────────────────────────────────────────────────
+  # TLD SERVER
+  # ─────────────────────────────────────────────────────────────
+  tld_server:
+    art: |
+      ╭──────────────────────────────────────╮
+      │  ns1.nic.cat — .CAT TLD SERVER       │
+      │  Location: Barcelona, ES             │
+      │  Status: ONLINE (primary)            │
+      │  Zone: .cat (Catalonia & cats)       │
+      │  Records: 112,847                    │
+      ╰──────────────────────────────────────╯
+             /\_/\
+            ( =^.^=)  "Benvingut!"
+             (")_(")
+    location: "ns1.nic.cat (Barcelona)"
+    mood: peaceful
+    text: |
+      You arrive at `ns1.nic.cat`, the primary TLD nameserver for `.cat`.
+      It's in Barcelona, which makes sense — `.cat` was originally created
+      for Catalonia's linguistic community. But cats have... adopted it.
+
+      The server is warm and welcoming. A Catalan flag hangs next to a
+      cat-shaped router. It feels like home already, but you're not done.
+
+      "home.cat?" the server muses. "Sí, I know this one. It's delegated
+      to a small authoritative nameserver: `ns.home.cat` at `203.0.113.42`."
+
+      It hands you an NS record and a glue record — the IP address stapled
+      right to the referral so you don't have to do another lookup. Efficient.
+      Thoughtful. Very Catalan.
+    conditional:
+      - condition:
+          flag: skipped_root
+        text: "The cached shortcut saved you a whole round trip. Your TTL thanks you."
+        color: green
+      - condition:
+          has_item: root_zone_knowledge
+        text: "Your detour through the root zone gives you perspective — this is just one of 1,500+ paths."
+        color: cyan
+    choices:
+      - label: "Follow the glue record to ns.home.cat"
+        goto: authoritative_approach
+      - label: "Ask about other .cat domains first"
+        goto: tld_chat
+
+  # ─────────────────────────────────────────────────────────────
+  # TLD ANSWER (from backup)
+  # ─────────────────────────────────────────────────────────────
+  tld_answer:
+    text: |
+      ns3 finds it. Same referral — `ns.home.cat` at `203.0.113.42`.
+      It's a backup server, not a storyteller, so it hands you the data
+      and goes back to waiting for zone transfers.
+
+      Efficient. Swedish. You respect it.
+    choices:
+      - label: "On to the authoritative server"
+        goto: authoritative_approach
+        auto: true
+
+  # ─────────────────────────────────────────────────────────────
+  # TLD CHAT
+  # ─────────────────────────────────────────────────────────────
+  tld_chat:
+    art: |
+      ┌─ POPULAR .CAT DOMAINS ─────────────────┐
+      │                                         │
+      │  gencat.cat      — Government           │
+      │  vilaweb.cat     — News                 │
+      │  softcatala.cat  — Language tools        │
+      │  nyan.cat        — The legend            │
+      │  home.cat        — ??? (your target)     │
+      │                                         │
+      └─────────────────────────────────────────┘
+    text: |
+      "Oh, `.cat` has wonderful stories," the server says, warming up.
+      "We were registered in 2005 for the Catalan linguistic community.
+      But the cats came too. How could they not? The TLD is literally `.cat`."
+
+      It gestures at `nyan.cat` — a record so famous it has its own
+      dedicated cache slot. "That one? Eternal. The TTL is basically
+      infinity. Nobody will ever let it expire."
+
+      "And `home.cat`..." it lowers its voice. "That one is special.
+      It was registered by someone who wanted every lost packet to have
+      somewhere to go. A home for stray queries."
+
+      You feel something catch in your whiskers. That's where you need to be.
+    set_flag: knows_home_story
+    choices:
+      - label: "Head to ns.home.cat — time to go home"
+        goto: authoritative_approach
+
+  # ─────────────────────────────────────────────────────────────
+  # AUTHORITATIVE APPROACH
+  # ─────────────────────────────────────────────────────────────
+  authoritative_approach:
+    art: |
+           ╭─── THE LAST HOP ───╮
+           │                     │
+           ─────┤  203.0.113.42      ├─────
+           │  ns.home.cat       │
+           │                     │
+           ╰─────────────────────╯
+                    │
+               ┌────┴────┐
+               │  home   │
+               │  .cat.  │
+               └─────────┘
+    location: "en route to ns.home.cat"
+    text: |
+      The last hop. You've traversed the hierarchy — from a humble resolver
+      cache, through the root of the internet, down through the .cat TLD,
+      and now to this: a single authoritative nameserver that holds the
+      answer to your entire existence.
+
+      The packet hurtles through peering points and submarine cables. You
+      pass through a firewall that sniffs you suspiciously but lets you
+      through — you're just a DNS query, port 53, nothing to see here.
+
+      `ns.home.cat` sits at the end of the line. Small. Quiet.
+      A single-purpose server with one zone and one mission.
+    conditional:
+      - condition:
+          has_item: loopback_wisdom
+        text: |
+          The loopback wisdom hums gently: "You are already home." But
+          the query still needs its answer. You're doing this for whoever
+          asked.
+        color: yellow
+    choices:
+      - label: "Send the query: home.cat. IN A"
+        goto: authoritative_server
+      - label: "Send the query with DNSSEC validation"
+        goto: dnssec_check
+        requires_flag: explored_root
+      - label: "Wait and admire the view (your TTL is ticking...)"
+        goto: linger_too_long
+
+  # ─────────────────────────────────────────────────────────────
+  # LINGER TOO LONG
+  # ─────────────────────────────────────────────────────────────
+  linger_too_long:
+    art: |
+        /\_/\
+        ( -.- )  *stares at packets going by*
+        (")_(")
+                TTL: 12... 8... 3...
+    text: |
+      You sit at the edge of the last hop, watching packets stream by.
+      It's peaceful here, between the firewall and the nameserver. A
+      quiet corner of the internet where nobody's watching.
+
+      You lose track of time. Your TTL counter ticks down — 12, 8, 3...
+
+      By the time you notice, it's too late. The resolver's timeout
+      fires. Your query is marked SERVFAIL.
+
+      You had the answer right there. One hop away. But you waited
+      too long.
+    choices:
+      - label: "No—!"
+        goto: ending_timeout
+
+  # ─────────────────────────────────────────────────────────────
+  # DNSSEC CHECK
+  # ─────────────────────────────────────────────────────────────
+  dnssec_check:
+    art: |
+      ┌─ DNSSEC CHAIN OF TRUST ─────────────────┐
+      │                                          │
+      │  . (root) ──DNSKEY──→ .cat ──DS──→       │
+      │  .cat ──DNSKEY──→ home.cat ──DS──→       │
+      │  home.cat ──RRSIG──→ A record            │
+      │                                          │
+      │  Chain: ✓ root → ✓ .cat → ✓ home.cat    │
+      │  Status: SECURE ✓                        │
+      └──────────────────────────────────────────┘
+    mood: peaceful
+    text: |
+      You verify the DNSSEC chain of trust — starting from the root's
+      key-signing key, through the .cat zone's delegation signer record,
+      all the way down to `home.cat`'s own RRSIG.
+
+      Every signature checks out. Every link in the chain is solid. This
+      answer hasn't been tampered with. No one poisoned the cache. No one
+      spoofed the response. What you're about to receive is cryptographically
+      guaranteed to be true.
+
+      In a world full of lies and redirects and man-in-the-middle attacks,
+      this answer is real.
+    set_flag: dnssec_verified
+    give_item: trust_chain
+    choices:
+      - label: "Read the authenticated answer"
+        goto: authoritative_server
+
+  # ─────────────────────────────────────────────────────────────
+  # AUTHORITATIVE SERVER
+  # ─────────────────────────────────────────────────────────────
+  authoritative_server:
+    art: |
+      ╔══════════════════════════════════════════════════╗
+      ║  ns.home.cat — AUTHORITATIVE NAMESERVER          ║
+      ╠══════════════════════════════════════════════════╣
+      ║                                                  ║
+      ║  ;; ANSWER SECTION:                              ║
+      ║  home.cat.    3600    IN    A    203.0.113.1     ║
+      ║  home.cat.    3600    IN    TXT  "welcome home"  ║
+      ║                                                  ║
+      ║  ;; AUTHORITY SECTION:                           ║
+      ║  home.cat.    86400   IN    NS   ns.home.cat.    ║
+      ║                                                  ║
+      ║  ;; Query time: 0 msec (you're already here)     ║
+      ║  ;; MSG SIZE  rcvd: 127                          ║
+      ╚══════════════════════════════════════════════════╝
+    location: "ns.home.cat (authoritative)"
+    mood: peaceful
+    text: |
+      `ns.home.cat` looks at you with the kindness of a server that has
+      been waiting a very long time for exactly this query.
+
+      "home.cat? Yes. I have the answer."
+
+      The zone file opens, and there it is — an A record pointing to
+      `203.0.113.1`, with a TTL of 3600 seconds. One hour. Enough time
+      for you to get there and back.
+
+      And next to it, a TXT record. Just two words:
+
+        "welcome home"
+
+      Your whiskers tingle. Your TTL stabilizes. This is it — the answer
+      you were born to find.
+
+      But you still have to carry it back.
+    conditional:
+      - condition:
+          flag: dnssec_verified
+        text: "The RRSIG signature glows green. This answer is authenticated. Unquestionable. True."
+        color: green
+      - condition:
+          flag: knows_home_story
+        text: "A home for stray queries. That's what this is. That's what you are."
+        color: yellow
+    choices:
+      - label: "Carry the answer back to the resolver"
+        goto: return_journey
+      - label: "Explore the server before heading back"
+        goto: explore_authoritative
+
+  # ─────────────────────────────────────────────────────────────
+  # EXPLORE AUTHORITATIVE
+  # ─────────────────────────────────────────────────────────────
+  explore_authoritative:
+    art: |
+        /\_/\
+        ( ^.^ )  *sniff sniff*
+        > ~ <
+        |   |
+        ~~~~~~~~~~
+        ZONE FILE: home.cat
+        ──────────────────────
+        @    IN  SOA  ns.home.cat. admin.home.cat. (
+                    2024031501  ; serial
+                    3600        ; refresh
+                    900         ; retry
+                    604800      ; expire
+                    86400 )     ; minimum TTL
+
+        @    IN  A     203.0.113.1
+        @    IN  TXT   "welcome home"
+        @    IN  TXT   "for every query that lost its way"
+        @    IN  MX    10 mail.home.cat.
+        *    IN  A     203.0.113.1    ; wildcard!
+    text: |
+      You poke around the zone file. It's small — lovingly maintained.
+      The SOA record shows it's been updated recently. Someone still cares.
+
+      The wildcard record catches your eye: `* IN A 203.0.113.1`. That
+      means ANYTHING.home.cat resolves. `lost.home.cat`, `stray.home.cat`,
+      `lonely-at-3am.home.cat` — they all point to the same place.
+
+      There's a second TXT record you didn't see before:
+
+        "for every query that lost its way"
+
+      And tucked in the comments of the zone file, barely visible:
+
+        ; maintained by a sysadmin who once lost a cat
+        ; and decided no query should feel that way
+    set_flag: found_zone_secret
+    give_item: zone_file_secret
+    choices:
+      - label: "Time to go home — carry the answer back"
+        goto: return_journey
+
+  # ─────────────────────────────────────────────────────────────
+  # RETURN JOURNEY
+  # ─────────────────────────────────────────────────────────────
+  return_journey:
+    art: |
+      ← ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ←
+        [203.0.113.1]  TTL:3600  FLAGS:QR,AA,RD,RA
+      ← ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ←
+               /\_/\
+              ( =^ω^=)  ♪ going home ♪
+               (")_(")  ─────────────→
+    location: "return path — carrying the answer"
+    text: |
+      You're a response packet now. The QR flag is set — you're no longer
+      asking, you're answering. The AA flag confirms this came from the
+      authoritative source. No secondhand knowledge. No cache hearsay.
+
+      The internet feels different on the way back. Faster. Lighter.
+      You have the answer, and the answer has weight — the good kind,
+      like a purring cat on your lap.
+
+      The resolver comes into view. It's been waiting. Its timeout counter
+      was at 4.7 seconds. You made it with time to spare.
+    conditional:
+      - condition:
+          flag: skipped_root
+        text: "Total hops: 2 (cache shortcut → TLD → authoritative). Efficient."
+        color: green
+      - condition:
+          not:
+            flag: skipped_root
+        text: "Total hops: 3 (root → TLD → authoritative). The classic path."
+        color: cyan
+      - condition:
+          has_item: trust_chain
+        text: "The DNSSEC chain rides with you — every bit of this answer is verifiable."
+        color: green
+    choices:
+      - label: "Deliver the answer to the resolver"
+        goto: resolver_delivery
+
+  # ─────────────────────────────────────────────────────────────
+  # RESOLVER DELIVERY
+  # ─────────────────────────────────────────────────────────────
+  resolver_delivery:
+    art: |
+      ┌─ RESOLVER CACHE — UPDATED ─────────────────┐
+      │                                              │
+      │  + home.cat.    3600  IN  A  203.0.113.1     │
+      │    ^^^^ NEW ^^^^                             │
+      │                                              │
+      │  Cache entries: 847,292 (+1)                  │
+      │                                              │
+      └──────────────────────────────────────────────┘
+    location: "recursive resolver"
+    mood: peaceful
+    text: |
+      You deliver the answer. The resolver accepts it, validates the
+      headers, and slots it into the cache. `home.cat → 203.0.113.1`,
+      TTL 3600. For the next hour, anyone who asks will get the answer
+      instantly. No journey required. You did the hard part.
+
+      The resolver forwards your answer to the original client — the
+      stub resolver on someone's laptop, who asked the question that
+      brought you into existence.
+
+      Your job is done. The query is resolved. But...
+    choices:
+      - label: "Dissolve peacefully — your purpose is fulfilled"
+        goto: ending_peaceful
+      - label: "Wait — stay in the cache as long as possible"
+        goto: cache_life
+      - label: "Follow the answer to the client — see who asked"
+        goto: follow_client
+        requires_flag: found_zone_secret
+
+  # ─────────────────────────────────────────────────────────────
+  # ENDING: PEACEFUL DISSOLUTION
+  # ─────────────────────────────────────────────────────────────
+  ending_peaceful:
+    art: |
+              *  . *    .  *
+              .    *    .        .   *
+              *   .    /\_/\    .    *
+              .    ( =^‿^=)     .
+              *    .  (")_(")  *    .
+              .   *  .    *    .
+              *    . dissolving  .  *
+              .   into cache    .
+                 *  .  *  .  *
+    mood: peaceful
+    text: |
+      You let go.
+
+      Your packet headers unravel. Your query ID returns to the pool.
+      Your flags fold neatly into nothing. It doesn't hurt — it feels
+      like falling asleep in a sunbeam.
+
+      The answer you carried lives on in the cache. For 3600 seconds,
+      it will guide other queries home. And when it expires, someone
+      else will make the journey. A new Query, with new whiskers and
+      a fresh TTL.
+
+      The internet is a loop. Queries are born, answers are found,
+      caches expire, and it all begins again. You were part of that
+      loop — one brief, perfect resolution.
+
+      `home.cat → 203.0.113.1`
+
+      Welcome home.
+    is_ending: true
+    ending_type: good
+    ending_text: |
+      🏠 QUERY RESOLVED — {{turns}} hops, one answer, infinite peace.
+
+      You were a good packet. The best.
+
+  # ─────────────────────────────────────────────────────────────
+  # CACHE LIFE
+  # ─────────────────────────────────────────────────────────────
+  cache_life:
+    art: |
+      ┌─ CACHE ENTRY: home.cat ─────────────────────┐
+      │                                              │
+      │  TTL: 3600 ████████████████████████████ 100% │
+      │  TTL: 2700 █████████████████████        75%  │
+      │  TTL: 1800 ██████████████              50%  │
+      │  TTL:  900 ███████                     25%  │
+      │  TTL:    1 ▏                            0%  │
+      │                                              │
+      └──────────────────────────────────────────────┘
+    text: |
+      You cling to the cache. You're not ready to dissolve — you want to
+      see what happens next.
+
+      The hour passes in fast-forward. You watch queries come and go. Seven
+      different clients ask for `home.cat` during your TTL, and each time,
+      the resolver hands them your answer. Instantly. No journey. No root
+      servers. Just you, remembered.
+
+      Client 1: A script testing connectivity. Clinical.
+      Client 3: A browser loading a webpage. Impatient.
+      Client 5: A phone at 2 AM. Searching for something.
+      Client 7: The same phone. Searching again.
+
+      The TTL ticks down. 10... 9... 8...
+
+      You helped seven queries find their way. Not bad for a single packet.
+    choices:
+      - label: "Accept the expiry. Let go."
+        goto: ending_cache_expire
+      - label: "Hope someone asks again — maybe you'll be refreshed"
+        goto: ending_refresh
+
+  # ─────────────────────────────────────────────────────────────
+  # ENDING: CACHE EXPIRY
+  # ─────────────────────────────────────────────────────────────
+  ending_cache_expire:
+    art: |
+         TTL: 0
+
+         /\_/\
+         ( -ω- )  zzz...
+         (")_(")
+                    ~  ~  ~
+           [ home.cat → 203.0.113.1 ]
+                  (cached forever
+                   in the hearts
+                    of 7 clients)
+    mood: peaceful
+    text: |
+      TTL hits zero. The cache evicts you gently — no SIGKILL, no panic,
+      just a quiet removal from the hash table.
+
+      You dissolve, but the answer persists. Seven clients have it in
+      their own caches now. Seven stub resolvers remember `home.cat`
+      because of you.
+
+      Somewhere, the phone from 2 AM opens a browser tab. The page loads
+      from its local cache. A simple page with a simple message:
+
+        "You found it. Welcome home."
+
+      Maybe that's enough. Maybe that's everything.
+    is_ending: true
+    ending_type: good
+    ending_text: |
+      ⏰ CACHE EXPIRED — {{turns}} turns in the resolver, 7 queries served.
+
+      You didn't just find home. You helped others find it too.
+
+  # ─────────────────────────────────────────────────────────────
+  # ENDING: REFRESH
+  # ─────────────────────────────────────────────────────────────
+  ending_refresh:
+    art: |
+         TTL: 0... ─── NEW QUERY ───→ TTL: 3600!
+
+         /\_/\                          /\_/\
+         ( x.x )  →  REFRESH!  →      ( ^ω^ )
+         (")_(")                       (")_(")
+
+         [ same answer, new TTL, same cat? ]
+    text: |
+      TTL hits zero. You begin to dissolve. But at that exact moment —
+      a new query arrives. `home.cat. IN A`
+
+      The resolver re-queries. A new packet is born, makes the journey,
+      and returns with the same answer: `203.0.113.1`. The cache slot
+      is refreshed. TTL: 3600.
+
+      But here's the thing — is the new cache entry you? It has the
+      same data. The same record. The same answer. But a different
+      query ID, a different packet. Is it the same cat?
+
+      You think about this as you dissolve.
+
+      You don't reach a conclusion. But somewhere in the cache, a
+      fresh entry with your exact answer begins counting down from
+      3600. And it feels... familiar.
+    is_ending: true
+    ending_type: neutral
+    ending_text: |
+      🔄 REFRESHED — The Ship of Theseus, but for DNS.
+
+      Same answer. New packet. The philosophical question of caching.
+
+  # ─────────────────────────────────────────────────────────────
+  # FOLLOW CLIENT
+  # ─────────────────────────────────────────────────────────────
+  follow_client:
+    art: |
+      ┌──────────────────────────────────────────┐
+      │  SOURCE: 192.168.1.47:54321              │
+      │  CLIENT: Luna's-MacBook-Air.local        │
+      │                                          │
+      │  $ dig home.cat                          │
+      │  ;; ANSWER: 203.0.113.1                  │
+      │  ;; Query time: 47 msec                  │
+      │  ;; WHEN: Tue Mar 24 05:23:00 CDT 2026   │
+      └──────────────────────────────────────────┘
+    mood: peaceful
+    text: |
+      You ride the answer all the way back to the client. It's a laptop
+      on a home network — `192.168.1.47`. The machine's hostname is
+      "Luna's-MacBook-Air."
+
+      The terminal shows a `dig` command. Someone typed `dig home.cat`
+      and waited. The answer arrives — your answer — and appears on screen:
+
+        `home.cat.    3600    IN    A    203.0.113.1`
+
+      Then, after a pause, the human opens a browser. Types `home.cat`
+      in the address bar. The page loads.
+
+      It's simple. A warm background. A small animation of a cat
+      curling up. And text:
+
+        "For every stray query, every lost packet, every 3 AM search —
+         you found it. Welcome home."
+
+      Below it, in small text:
+
+        "Maintained by a sysadmin who once lost a cat named Query."
+    conditional:
+      - condition:
+          has_item: loopback_wisdom
+        text: "127.0.0.1 was right. Home was always where you started."
+        color: yellow
+      - condition:
+          flag: dnssec_verified
+        text: "The DNSSEC chain guaranteed this truth all the way from the root. Nobody could fake this."
+        color: green
+    choices:
+      - label: "..."
+        goto: ending_secret
+
+  # ─────────────────────────────────────────────────────────────
+  # ENDING: SECRET — NAMED AFTER YOU
+  # ─────────────────────────────────────────────────────────────
+  ending_secret:
+    art: |
+      ╔══════════════════════════════════════════════════════╗
+      ║                                                      ║
+      ║    $ dig query.home.cat                              ║
+      ║                                                      ║
+      ║    ;; ANSWER SECTION:                                ║
+      ║    query.home.cat.  86400  IN  A     203.0.113.1     ║
+      ║    query.home.cat.  86400  IN  TXT   "good cat"      ║
+      ║                                                      ║
+      ║         /\_/\                                        ║
+      ║        ( =^‿^=)  ♥                                   ║
+      ║         (")_(")                                      ║
+      ║                                                      ║
+      ║    ;; TTL: 86400 (forever, basically)                ║
+      ║                                                      ║
+      ╚══════════════════════════════════════════════════════╝
+    mood: peaceful
+    effects:
+      - sparkle
+    text: |
+      The sysadmin's cat was named Query.
+
+      Of course it was. A cat who wandered — through root zones and TLD
+      servers, through caches and firewalls, always looking for home.
+      And when they lost Query, they built `home.cat` so no packet would
+      ever feel that lost again.
+
+      The wildcard record means you have your own subdomain now.
+      `query.home.cat` resolves to `203.0.113.1`. TTL: 86400.
+      Twenty-four hours. The longest TTL in the zone.
+
+      And a TXT record, just for you:
+
+        "good cat"
+
+      You dissolve into the cache one last time. But this time, it feels
+      less like an ending and more like a beginning. Because every time
+      someone resolves `query.home.cat`, a tiny part of you comes back.
+
+      Not the same packet. Not the same TTL. But the same answer.
+      And the same name.
+
+      You were always going to find your way home.
+    is_ending: true
+    ending_type: secret
+    ending_text: |
+      🐱 QUERY.HOME.CAT — You found out who you were named after.
+
+      A sysadmin lost a cat. Built a domain. And gave every stray query a home.
+      TTL: forever.
+
+  # ─────────────────────────────────────────────────────────────
+  # ENDING: BAD — TIMEOUT
+  # ─────────────────────────────────────────────────────────────
+  ending_timeout:
+    art: |
+      ╔══════════════════════════════════════════════════╗
+      ║                                                  ║
+      ║  ;; connection timed out; no servers could be    ║
+      ║  ;; reached                                      ║
+      ║                                                  ║
+      ║         /\_/\                                    ║
+      ║        ( x_x )  << TIMEOUT >>                    ║
+      ║         (")_(")                                  ║
+      ║                                                  ║
+      ║  ;; Query time: 5000 msec                        ║
+      ║  ;; WHEN: (never)                                ║
+      ╚══════════════════════════════════════════════════╝
+    mood: tense
+    text: |
+      Your TTL hits zero before you find the answer. The resolver's
+      timeout expires. You're marked as SERVFAIL and discarded.
+
+      The client gets back an empty response. An error. The browser
+      shows "This site can't be reached." The human sighs, closes the
+      laptop, and goes to bed.
+
+      They'll try again tomorrow. A new query will be born. It won't
+      remember you — but it'll walk the same path, ask the same questions,
+      and maybe, this time, the network will be kinder.
+
+      Some packets don't make it home. That's the internet.
+      But the question never really dies.
+    is_ending: true
+    ending_type: bad
+    ending_text: |
+      ⏱ TIMED OUT — {{turns}} hops weren't enough.
+
+      SERVFAIL. But the query will be asked again. It always is.

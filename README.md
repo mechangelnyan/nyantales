@@ -117,6 +117,94 @@ postmortem system that tracks which action items you actually completed.
 
 **Endings:** Good · Neutral (×2) · Secret · **Scenes:** 23
 
+### 👻 The Haunted Network
+
+> *A calico cat named Pixel investigates mysterious packet ghosts on a smart home network at 3 AM.*
+
+Discover ARIA, a decommissioned smart home AI lingering in the router cache, and choose whether to befriend, free, or reset her. Fragment reunion mechanics, tuna-ordering ghost friendship, and emotional memory logs.
+
+**Endings:** Good (×3) · Bad (×3) · Neutral · Secret · **Scenes:** 40
+
+### 🔍 Git Blame
+
+> *A noir detective cat traces git history to find who broke the build — and why.*
+
+Inspector Whiskers investigates three suspects through git log, blame, and bisect. Features blameless postmortem themes, mentorship arcs, and a wild secret ending involving the building's HVAC system.
+
+**Endings:** Good (×2) · Bad · Neutral · Secret · **Scenes:** 30
+
+### 💉 SQL Injection
+
+> *A cat falls into a database through a SQL injection hole. Navigate tables, dodge DELETE queries, and find your way home.*
+
+Explore tables including a hidden `_void` table, befriend an ancient database entity from 1970, and find the INSERT query back to reality. Features SQL-themed art and brute-force-vs-diplomacy branching.
+
+**Endings:** Good · Bad · Secret · **Scenes:** 27
+
+### 💥 Kernel Panic
+
+> *You are Pixel (PID 7), a process-cat in a UNIX kernel. A panic hits — trace the fault before everything reboots.*
+
+Investigate a use-after-free bug through the scheduler, call trace, SLAB allocator, and USB driver. Features kprobes live-patching, runqueue surgery, and the ghost of PID 42.
+
+**Endings:** Good (×2) · Neutral · Bad · **Scenes:** 35
+
+### 🐳 Docker Escape
+
+> *A cat wakes up trapped inside a forgotten Docker container. Break free — or accept life in an ephemeral box.*
+
+Discover Linux capabilities, investigate /proc, find a hidden Docker socket mount, and face an ethics dilemma about responsible disclosure. Real container security concepts throughout.
+
+**Endings:** Good (×2) · Bad · Secret · **Scenes:** 36
+
+### 🔄 Pipeline Purrdition
+
+> *A DevOps cat gets pulled into a CI/CD pipeline. Survive build, test, and deploy stages to escape to production.*
+
+Navigate node_modules mazes, investigate flaky tests, audit CVEs, and bypass approval gates. Shortcuts accumulate — take too many and face a SEV-1.
+
+**Endings:** Good · Bad · Secret · **Scenes:** 30
+
+### 📚 Stack Overflow
+
+> *A cat falls into an infinitely recursive function. Find the base case before the stack overflows.*
+
+Meet Closure (a cat captured from an outer scope), navigate the heap's object graph, and fix `recurse(n)` → `recurse(n - 1)`. Secret ending: find a lost semicolon and activate tail call optimization.
+
+**Endings:** Good · Bad · Neutral · Secret · **Scenes:** 32
+
+### 🧠 Memory Leak
+
+> *Nibble the cat wakes up in a leaking heap with the OOM killer circling. Find three memory leaks before everything gets reclaimed.*
+
+Diagnose event loop closures, unbounded caches, and leaked DB connections. Meet Dangling Pointer, an orange tabby who's been in the heap since v2.3. Signal developers via stderr or hide messages in leaked buffers.
+
+**Endings:** Good · Bad · Neutral · Secret · **Scenes:** 37
+
+### 🔎 404 Not Found
+
+> *Packet the stray cat rides an HTTP request through a crumbling web server. The page has vanished — find it before the connection drops.*
+
+Discover a missing /home page deleted in deploy #4891, with the fix PR approved two years ago and never merged. Navigate routing tables, proxy gaps, CDN caches, and debug consoles.
+
+**Endings:** Good (×3) · Neutral (×2) · Bad · Secret · **Scenes:** 38
+
+### ⚡ Race Condition
+
+> *Two threads fight over a shared sunbeam. You are Mutex — restore order before deadlock freezes everything.*
+
+Investigate a corrupted lock, confront the scheduler about a TTL-during-preemption flaw, and discover the sunbeam never needed a lock at all. Explores fairness, structural solutions, and questioning premises.
+
+**Endings:** Bad (×2) · Neutral (×2) · Secret · **Scenes:** 23
+
+### 🌐 DNS Quest
+
+> *You are Query, a tiny cat riding a DNS packet through the root of the internet. Somewhere out there, home.cat. exists — you just have to find it.*
+
+Traverse the DNS hierarchy from resolver cache to root servers, through the .cat TLD in Barcelona, to a small authoritative nameserver. Explore .arpa's reverse DNS basement, verify DNSSEC chains of trust, and discover why `home.cat` was created. A story about finding home — and finding out you were named after someone who was lost.
+
+**Endings:** Good (×2) · Neutral · Bad · Secret · **Scenes:** 25
+
 ---
 
 ## Ending Discovery
