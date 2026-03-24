@@ -63,6 +63,9 @@ nyantales progress
 # View achievements
 nyantales achievements
 
+# Player statistics dashboard
+nyantales stats
+
 # Options
 nyantales play the-terminal-cat --fast    # skip typewriter animation
 nyantales play the-terminal-cat --debug   # show scene/flag debug info

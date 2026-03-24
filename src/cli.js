@@ -9,7 +9,7 @@ import yaml from 'yaml';
 import { Engine, discoverStories, GameState } from './engine.js';
 import { validateStory } from './validator.js';
 import { analyzeStoryGraph, renderAsciiMap, findEndingPaths, renderEndingPaths } from './mapper.js';
-import { renderAllAchievements, ACHIEVEMENTS, loadAchievements } from './achievements.js';
+import { renderAllAchievements, ACHIEVEMENTS, loadAchievements, gatherStats } from './achievements.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const STORIES_DIR = path.join(__dirname, '..', 'stories');
@@ -45,6 +45,7 @@ function showHelp() {
   console.log(`    ${chalk.cyan('nyantales map <story>')}   ${chalk.dim('Show story graph & paths')}`);
   console.log(`    ${chalk.cyan('nyantales map')}           ${chalk.dim('Map all stories')}`);
   console.log(`    ${chalk.cyan('nyantales achievements')}  ${chalk.dim('View unlocked achievements')}`);
+  console.log(`    ${chalk.cyan('nyantales stats')}          ${chalk.dim('Player statistics dashboard')}`);
   console.log(`    ${chalk.cyan('nyantales --help')}         ${chalk.dim('Show this help')}`);
   console.log();
   console.log(chalk.bold('  Options:\n'));
@@ -650,6 +651,122 @@ async function showStoryMap(slug, opts = {}) {
 }
 
 // ─────────────────────────────────────────────────────────────
+// Player Stats Dashboard
+// ─────────────────────────────────────────────────────────────
+
+function showStats() {
+  const stories = discoverStories(STORIES_DIR).map(s => {
+    try {
+      const raw = fs.readFileSync(s.file, 'utf8');
+      const data = yaml.parse(raw);
+      const endings = Object.entries(data.scenes || {})
+        .filter(([, sc]) => sc.is_ending)
+        .map(([id, sc]) => ({ id, type: sc.ending_type || 'neutral' }));
+      return { ...s, _endings: endings };
+    } catch {
+      return { ...s, _endings: [] };
+    }
+  });
+  const stats = gatherStats(STORIES_DIR, stories);
+  const data = loadAchievements();
+  const playStats = data.playStats || {};
+
+  console.log(BANNER);
+  console.log(chalk.bold('  Player Statistics\n'));
+
+  // Cat Rank based on overall progress
+  const rank = getCatRank(stats, playStats);
+  console.log(`  ${rank.icon}  ${chalk.bold(rank.title)}`);
+  console.log(`  ${chalk.dim(rank.flavor)}\n`);
+
+  // Play stats
+  const totalPlaythroughs = playStats.totalPlaythroughs || 0;
+  console.log(chalk.bold('  Journey'));
+  console.log(`    Playthroughs   ${chalk.cyan(totalPlaythroughs)}`);
+  console.log(`    Stories found  ${chalk.cyan(stats.storiesCompleted)}${chalk.dim('/' + stats.totalStories)}`);
+  console.log(`    100% complete  ${chalk.cyan(stats.storiesFullyCompleted)}${chalk.dim('/' + stats.totalStories)}`);
+  console.log();
+
+  // Endings breakdown
+  const endingPct = stats.totalEndings > 0
+    ? Math.round((stats.totalEndingsFound / stats.totalEndings) * 100)
+    : 0;
+  console.log(chalk.bold('  Endings'));
+  console.log(`    Discovered  ${chalk.green(stats.totalEndingsFound)}${chalk.dim('/' + stats.totalEndings)} ${chalk.dim(`(${endingPct}%)`)}`);
+  console.log(`    ${chalk.green('✦')} Good    ${chalk.green(stats.goodEndingsFound)}`);
+  console.log(`    ${chalk.red('✗')} Bad     ${chalk.red(stats.badEndingsFound)}`);
+  console.log(`    ${chalk.magenta('★')} Secret  ${chalk.magenta(stats.secretEndingsFound)}${chalk.dim('/' + stats.totalSecretEndings)}`);
+  console.log();
+
+  // Records
+  if (totalPlaythroughs > 0) {
+    console.log(chalk.bold('  Records'));
+    if (playStats.minTurns > 0) {
+      console.log(`    Fastest clear   ${chalk.yellow(playStats.minTurns)} turns`);
+    }
+    if (playStats.maxScenesVisited > 0) {
+      console.log(`    Most explored   ${chalk.yellow(playStats.maxScenesVisited)} scenes in one run`);
+    }
+    if (playStats.maxItems > 0) {
+      console.log(`    Biggest hoard   ${chalk.yellow(playStats.maxItems)} items held at once`);
+    }
+    if (playStats.lastPlayedAt) {
+      const d = new Date(playStats.lastPlayedAt);
+      console.log(`    Last played     ${chalk.dim(d.toLocaleDateString() + ' ' + d.toLocaleTimeString())}`);
+    }
+    console.log();
+  }
+
+  // Achievements summary
+  const achUnlocked = Object.keys(data.unlocked || {}).length;
+  const achTotal = ACHIEVEMENTS.length;
+  console.log(chalk.bold('  Achievements'));
+  console.log(`    Unlocked  ${chalk.cyan(achUnlocked)}${chalk.dim('/' + achTotal)}`);
+  if (achUnlocked > 0) {
+    const recent = Object.entries(data.unlocked)
+      .sort(([, a], [, b]) => new Date(b.at || 0) - new Date(a.at || 0))
+      .slice(0, 3);
+    for (const [id] of recent) {
+      const ach = ACHIEVEMENTS.find(a => a.id === id);
+      if (ach) console.log(`    ${ach.icon}  ${chalk.dim(ach.name)}`);
+    }
+  }
+  console.log();
+
+  // No games yet hint
+  if (totalPlaythroughs === 0) {
+    console.log(chalk.dim('  No adventures yet! Run ') + chalk.cyan('nyantales play') + chalk.dim(' to begin.\n'));
+  }
+}
+
+function getCatRank(stats, playStats) {
+  const total = playStats.totalPlaythroughs || 0;
+  const pct = stats.totalEndings > 0
+    ? stats.totalEndingsFound / stats.totalEndings
+    : 0;
+
+  if (pct >= 1 && stats.storiesFullyCompleted >= stats.totalStories) {
+    return { icon: '👑', title: 'Legendary Cat', flavor: 'You\'ve seen every path, every ending. The terminal bows to you.' };
+  }
+  if (stats.secretEndingsFound >= stats.totalSecretEndings && stats.totalSecretEndings > 0) {
+    return { icon: '🌑', title: 'Shadow Cat', flavor: 'No secret is safe from your curious paws.' };
+  }
+  if (pct >= 0.75) {
+    return { icon: '⭐', title: 'Senior Cat', flavor: 'A seasoned explorer of terminal worlds.' };
+  }
+  if (pct >= 0.5) {
+    return { icon: '🐱', title: 'Adventuring Cat', flavor: 'Halfway through the stories — and hungry for more.' };
+  }
+  if (stats.storiesCompleted >= 3) {
+    return { icon: '🐾', title: 'Wandering Cat', flavor: 'Getting comfortable in the terminal. Keep exploring!' };
+  }
+  if (total >= 1) {
+    return { icon: '🌱', title: 'Kitten', flavor: 'Just getting started. The terminal is vast...' };
+  }
+  return { icon: '🥚', title: 'Unhatched', flavor: 'A cat yet to begin their adventure.' };
+}
+
+// ─────────────────────────────────────────────────────────────
 // Achievements
 // ─────────────────────────────────────────────────────────────
 
@@ -681,6 +798,7 @@ async function mainMenu() {
     { name: 'Story map / graph',       value: 'map' },
     { name: 'Ending discovery progress', value: 'progress' },
     { name: `Achievements (${achCount}/${achTotal})`,  value: 'achievements' },
+    { name: 'Player stats',            value: 'stats' },
     { name: 'Help',                    value: 'help' },
     { name: 'Exit',                    value: 'exit' },
   );
@@ -699,6 +817,7 @@ async function mainMenu() {
     case 'map': await showStoryMap(null); break;
     case 'progress': showProgress(); break;
     case 'achievements': showAchievements(); break;
+    case 'stats': showStats(); break;
     case 'help': showHelp(); break;
     case 'exit': process.exit(0);
   }
@@ -772,6 +891,11 @@ async function main() {
     case 'achievements':
     case 'badges':
       showAchievements();
+      break;
+
+    case 'stats':
+    case 'statistics':
+      showStats();
       break;
 
     case '--help':
