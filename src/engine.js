@@ -9,6 +9,7 @@ import ora from 'ora';
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 const DEFAULT_TYPEWRITER_SPEED = 18; // ms per character
+const SAVES_DIR = path.join(__dirname, '..', 'saves');
 
 // ─────────────────────────────────────────────────────────────
 // Mood system
@@ -47,6 +48,26 @@ export class GameState {
 
   markVisited(scene) { this.visited.add(scene); }
   hasVisited(scene) { return this.visited.has(scene); }
+
+  serialize() {
+    return {
+      visited: [...this.visited],
+      inventory: [...this.inventory],
+      flags: [...this.flags],
+      currentScene: this.currentScene,
+      turnCount: this.turnCount,
+    };
+  }
+
+  static deserialize(data) {
+    const state = new GameState();
+    state.visited = new Set(data.visited || []);
+    state.inventory = [...(data.inventory || [])];
+    state.flags = new Set(data.flags || []);
+    state.currentScene = data.currentScene || null;
+    state.turnCount = data.turnCount || 0;
+    return state;
+  }
 }
 
 // ─────────────────────────────────────────────────────────────
@@ -69,6 +90,60 @@ export class Engine {
   async loadStory() {
     const content = fs.readFileSync(this.storyPath, 'utf8');
     this.story = yaml.parse(content);
+  }
+
+  // ── Save / Load ─────────────────────────────────────────
+
+  get storySlug() {
+    return path.basename(path.dirname(this.storyPath));
+  }
+
+  getSavePath(slot = 'auto') {
+    if (!fs.existsSync(SAVES_DIR)) fs.mkdirSync(SAVES_DIR, { recursive: true });
+    return path.join(SAVES_DIR, `${this.storySlug}_${slot}.json`);
+  }
+
+  saveGame(slot = 'auto') {
+    const data = {
+      version: 1,
+      storySlug: this.storySlug,
+      storyTitle: this.story?.title || 'Unknown',
+      savedAt: new Date().toISOString(),
+      state: this.state.serialize(),
+    };
+    const savePath = this.getSavePath(slot);
+    fs.writeFileSync(savePath, JSON.stringify(data, null, 2), 'utf8');
+    return savePath;
+  }
+
+  loadGame(slot = 'auto') {
+    const savePath = this.getSavePath(slot);
+    if (!fs.existsSync(savePath)) return false;
+    const raw = fs.readFileSync(savePath, 'utf8');
+    const data = JSON.parse(raw);
+    this.state = GameState.deserialize(data.state);
+    return true;
+  }
+
+  static listSaves() {
+    if (!fs.existsSync(SAVES_DIR)) return [];
+    return fs.readdirSync(SAVES_DIR)
+      .filter(f => f.endsWith('.json'))
+      .map(f => {
+        try {
+          const raw = fs.readFileSync(path.join(SAVES_DIR, f), 'utf8');
+          const data = JSON.parse(raw);
+          return {
+            file: f,
+            storySlug: data.storySlug,
+            storyTitle: data.storyTitle,
+            savedAt: data.savedAt,
+            scene: data.state?.currentScene,
+            turns: data.state?.turnCount || 0,
+          };
+        } catch { return null; }
+      })
+      .filter(Boolean);
   }
 
   // ── Output helpers ───────────────────────────────────────
@@ -301,21 +376,53 @@ export class Engine {
       return available[0].goto;
     }
 
-    const { idx } = await inquirer.prompt([{
-      type: 'list',
-      name: 'idx',
-      message: chalk.cyan('What do you do?'),
-      choices: available.map((c, i) => ({
-        name: c.label,
-        value: i,
-        short: c.label,
-      })),
-      loop: false,
-    }]);
+    const storyChoices = available.map((c, i) => ({
+      name: c.label,
+      value: i,
+      short: c.label,
+    }));
 
-    const picked = available[idx];
-    this.applyEffects(picked);
-    return picked.goto;
+    // Add save/quit meta-choices
+    storyChoices.push(new inquirer.Separator(chalk.dim('───')));
+    storyChoices.push({ name: chalk.dim('💾 Save game'),  value: '__save__', short: 'Save' });
+    storyChoices.push({ name: chalk.dim('🚪 Quit'),       value: '__quit__', short: 'Quit' });
+
+    // Loop to handle save (re-prompt after saving)
+    while (true) {
+      const { idx } = await inquirer.prompt([{
+        type: 'list',
+        name: 'idx',
+        message: chalk.cyan('What do you do?'),
+        choices: storyChoices,
+        loop: false,
+      }]);
+
+      if (idx === '__save__') {
+        const savePath = this.saveGame();
+        console.log(chalk.green(`  💾 Game saved!`) + chalk.dim(` (${path.basename(savePath)})`));
+        console.log();
+        continue;
+      }
+
+      if (idx === '__quit__') {
+        const { confirmQuit } = await inquirer.prompt([{
+          type: 'confirm',
+          name: 'confirmQuit',
+          message: chalk.yellow('Save before quitting?'),
+          default: true,
+        }]);
+        if (confirmQuit) {
+          this.saveGame();
+          console.log(chalk.green('  💾 Game saved!'));
+        }
+        console.log(chalk.dim('\n  Until next time, little cat. 🐱\n'));
+        return null;
+      }
+
+      const picked = available[idx];
+      this.applyEffects(picked);
+      return picked.goto;
+    }
   }
 
   async renderEnding(scene) {

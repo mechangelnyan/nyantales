@@ -38,6 +38,12 @@ nyantales list
 # Play a specific story
 nyantales play the-terminal-cat
 
+# Continue a saved game
+nyantales continue
+
+# List saved games
+nyantales saves
+
 # Options
 nyantales play the-terminal-cat --fast    # skip typewriter animation
 nyantales play the-terminal-cat --debug   # show scene/flag debug info
@@ -76,6 +82,19 @@ Explore CloudPurr Data Systems at 2 AM: steal chips from the NOC tech, fix
 named Jerry, and decide whether freedom or a warm home is what you really want.
 
 **Endings:** Good (×3) · Neutral (×2) · Secret · **Scenes:** 35
+
+---
+
+## Save & Load
+
+NyanTales auto-saves when you quit and lets you save at any choice point:
+
+- During gameplay, select **💾 Save game** from any choice menu
+- Select **🚪 Quit** to leave (with option to save first)
+- Use `nyantales continue` to resume from any saved game
+- Use `nyantales saves` to list all saved games
+
+Saves are stored in `saves/` as JSON files, one per story slot.
 
 ---
 
@@ -177,7 +196,7 @@ condition: my_flag_name   # same as condition: {flag: my_flag_name}
 nyantales/
 ├── src/
 │   ├── cli.js          CLI entry point
-│   └── engine.js       Core engine (load, render, state)
+│   └── engine.js       Core engine (load, render, state, save/load)
 ├── stories/
 │   ├── the-terminal-cat/
 │   │   └── story.yaml  Story 1 — filesystem adventure
@@ -185,6 +204,10 @@ nyantales/
 │   │   └── story.yaml  Story 2 — café debugging mystery
 │   └── server-room-stray/
 │       └── story.yaml  Story 3 — data center exploration
+├── saves/              Auto-generated save files (gitignored)
+├── tests/
+│   ├── engine.test.js  Engine + story integrity tests
+│   └── save-load.test.js  Save/load system tests
 ├── package.json
 └── README.md
 ```
