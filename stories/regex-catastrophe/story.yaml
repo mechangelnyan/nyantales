@@ -1,0 +1,1754 @@
+title: "Regex Catastrophe"
+description: "You are Caret, a cat who fell into a regex engine. Navigate character classes, dodge greedy quantifiers, and find the one pattern that matches 'home' — before catastrophic backtracking consumes everything."
+author: "mechangelnyan"
+version: "1.0.0"
+start: the_match
+
+scenes:
+  # ─────────────────────────────────────────────
+  # ACT 1: The Match
+  # ─────────────────────────────────────────────
+
+  the_match:
+    mood: mysterious
+    effects:
+      - pause
+    art: |
+          ╔═══════════════════════════════════════════════╗
+          ║   R E G E X   C A T A S T R O P H E         ║
+          ║                                               ║
+          ║          /^(cat|home)$/                        ║
+          ║         ╱              ╲                       ║
+          ║        ▶  input: "cat"  ◀                     ║
+          ║                                               ║
+          ║              /\_/\                             ║
+          ║             ( ⚆.⚆ )                            ║
+          ╚═══════════════════════════════════════════════╝
+    location: "regex-engine:/^/$"
+    text: |
+      You are Caret. Small, pointy-eared, perpetually startled. Named after the
+      ^ symbol, which you're told anchors the beginning of things. You find
+      this philosophically overwhelming.
+
+      Your last memory: napping on a warm keyboard. Someone typed a regular
+      expression. The cursor swept over you. And now you're HERE — inside
+      the regex engine itself, standing at the start anchor of an empty pattern.
+
+      The engine hums around you. Characters flow past like a river of glowing
+      symbols — letters, digits, the occasional escaped backslash tumbling
+      end over end. Somewhere in this stream, the string "home" exists.
+
+      You need to match it. That's how you get out.
+
+      But the engine is vast, and the patterns are strange, and something
+      called a "greedy quantifier" keeps eating everything in sight.
+    choices:
+      - label: "Follow the character stream downstream"
+        goto: character_stream
+      - label: "Examine the engine's state machine"
+        goto: state_machine
+      - label: "Call out for help — maybe there's another pattern nearby"
+        goto: call_for_help
+
+  # ─────────────────────────────────────────────
+  # Following the stream
+  # ─────────────────────────────────────────────
+
+  character_stream:
+    mood: peaceful
+    art: |
+          ═══════ CHARACTER STREAM ═══════
+            a b 3 ! h e l l o w o r l d
+           ─────▶─────▶─────▶─────▶─────▶
+            c a t   h o m e   f i s h
+           ─────▶─────▶─────▶─────▶─────▶
+    location: "regex-engine:/stream/$"
+    text: |
+      You pad downstream along the character flow. Symbols drift past you like
+      leaves on a river — 'a', 'b', '3', '!', each one glowing faintly as the
+      engine considers whether to consume it.
+
+      You spot familiar letters: h-o-m-e, floating in sequence. HOME! That's
+      your target! But they're moving fast, and you can't just grab them. In a
+      regex engine, you need a PATTERN to capture characters. Raw paws won't do.
+
+      Ahead, the stream forks. One branch flows into a character class — a
+      walled garden of [a-z]. The other leads toward a dark tunnel marked
+      with a pulsing asterisk: .*
+
+      An old cat sitting by the fork — a weathered Dollar sign named Dolly —
+      yawns at you. "Character class is safe, kitten. The dot-star...
+      that one's greedy. Eats everything. Some cats go in and never come back."
+    choices:
+      - label: "Enter the character class [a-z]"
+        goto: character_class
+        set_flag: met_dolly
+      - label: "Risk the dot-star tunnel (.*)"
+        goto: dot_star_tunnel
+        set_flag: met_dolly
+      - label: "Ask Dolly more about this place"
+        goto: dolly_lore
+        set_flag: met_dolly
+
+  # ─────────────────────────────────────────────
+  # State machine
+  # ─────────────────────────────────────────────
+
+  state_machine:
+    mood: mysterious
+    art: |
+          ┌─────┐  h  ┌─────┐  o  ┌─────┐  m  ┌─────┐  e  ╔═════╗
+          │ q0  │────▶│ q1  │────▶│ q2  │────▶│ q3  │────▶║MATCH║
+          └──┬──┘     └─────┘     └─────┘     └─────┘     ╚═════╝
+             │  .                                    
+             └──────▶ [BACKTRACK]                     
+    location: "regex-engine:/nfa/$"
+    text: |
+      You climb a metal ladder to the observation deck above the engine.
+      From here, you can see the whole thing: a sprawling NFA — Non-deterministic
+      Finite Automaton. States are glowing orbs connected by labeled transitions.
+
+      State q0 sits at the entrance, branching outward like a nervous system.
+      You trace one promising path: q0 →h→ q1 →o→ q2 →m→ q3 →e→ MATCH.
+      That's your route home! Four transitions, four characters. Simple.
+
+      Except... the NFA has hundreds of other states too. Loops, dead ends,
+      epsilon transitions that teleport you randomly. And every time a match
+      attempt fails, the engine BACKTRACKS — rewinds everything and tries again.
+
+      You notice a small maintenance hatch labeled "Optimization Office." A sign
+      reads: "DFA conversion available. Ask for Thompson."
+    choices:
+      - label: "Try to walk the h-o-m-e path directly"
+        goto: walk_home_path
+        set_flag: knows_nfa
+      - label: "Visit the Optimization Office"
+        goto: optimization_office
+        set_flag: knows_nfa
+      - label: "Go back down to the character stream"
+        goto: character_stream
+        set_flag: knows_nfa
+
+  # ─────────────────────────────────────────────
+  # Call for help
+  # ─────────────────────────────────────────────
+
+  call_for_help:
+    mood: funny
+    art: |
+          /\_/\
+          ( o.o )  HELLO??
+           > ^ <
+           |   |
+          (_   _)
+    text: |
+      "HELLO??" you yowl into the void.
+
+      Your voice bounces off state transitions and gets captured by a lookahead
+      assertion. A moment later, a response drifts back:
+
+      "Ssshhhh! You'll trigger a backtrack!"
+
+      A skinny cat with a question mark for a tail slinks out from behind a
+      lazy quantifier. She introduces herself as Dot — she matches anything
+      except newlines, which she's terrified of.
+
+      "You're stuck in the engine too?" she whispers. "I've been here since
+      someone wrote /.*/ and forgot to make it non-greedy. I match everything
+      now. EVERYTHING. I can't stop. Please... help me find a boundary."
+
+      She looks exhausted. And she's currently trying to match your face.
+    choices:
+      - label: "Team up with Dot — two cats are better than one"
+        goto: team_up_dot
+        set_flag: has_dot
+      - label: "Sorry Dot, you're on your own"
+        goto: character_stream
+      - label: "Ask Dot what she knows about getting home"
+        goto: dot_info
+
+  # ─────────────────────────────────────────────
+  # Dolly's lore
+  # ─────────────────────────────────────────────
+
+  dolly_lore:
+    mood: peaceful
+    art: |
+          $ ← Dolly (end anchor)
+          ─────────────────────
+          "I've seen the end of
+           every string, kitten.
+           It's always the same:
+           nothing."
+    location: "regex-engine:/fork/$"
+    text: |
+      Dolly stretches and fixes you with a knowing look.
+
+      "This engine's been running since someone typed a regex into a search bar
+      three milliseconds ago. That's ancient history in here. Time moves
+      different in pattern space."
+
+      She explains: the engine processes input one character at a time, trying
+      to match patterns. When a match fails, it backtracks and tries alternative
+      paths. Simple patterns are quick. Complex ones...
+
+      "There's a pattern near the center. Nested quantifiers. (a+)+ they call it.
+      That's where the catastrophic backtracking lives. The engine's been stuck
+      on it for what feels like years. Avoid it at all costs."
+
+      She looks at the dot-star tunnel. "And that .* — it's greedy. It'll
+      consume every character it can, then reluctantly give them back one at a
+      time. Your 'home' would get swallowed before you could blink."
+    choices:
+      - label: "Enter the character class [a-z] (Dolly's recommendation)"
+        goto: character_class
+      - label: "Risk the dot-star tunnel anyway"
+        goto: dot_star_tunnel
+      - label: "Ask about the catastrophic backtracking zone"
+        goto: catastrophic_zone_intro
+
+  # ─────────────────────────────────────────────
+  # Character class [a-z]
+  # ─────────────────────────────────────────────
+
+  character_class:
+    mood: peaceful
+    art: |
+          ┌──────────────────────────────┐
+          │  [ a-z ]                     │
+          │                              │
+          │   a b c d e f g h i j k l m  │
+          │   n o p q r s t u v w x y z  │
+          │                              │
+          │   🐱 ← you are here          │
+          └──────────────────────────────┘
+    location: "regex-engine:/[a-z]/$"
+    text: |
+      You step into the character class. It's... surprisingly pleasant. The
+      26 lowercase letters are arranged in a cozy garden, each one a small
+      glowing pillar. Cats apparently love character classes — they're bounded,
+      predictable, safe.
+
+      You can see the letters h, o, m, and e from here, each in their own
+      little alcove. If you could somehow connect them in sequence, you'd
+      have your match.
+
+      But a character class only matches ONE character at a time. To spell
+      "home" you need to chain four class matches together: [a-z][a-z][a-z][a-z].
+      Or better yet, use a specific pattern.
+
+      A tabby cat named Bracket maintains this place. "Looking for something
+      specific?" she asks. "I can set up a custom class, but you'll need to
+      tell me exactly what to include."
+    choices:
+      - label: "Ask Bracket to create [home] — just those four letters"
+        goto: custom_class
+      - label: "Try to spell it out: h-o-m-e across four classes"
+        goto: four_classes
+      - label: "Leave the character class and try another approach"
+        goto: character_stream
+
+  # ─────────────────────────────────────────────
+  # Custom class
+  # ─────────────────────────────────────────────
+
+  custom_class:
+    mood: funny
+    text: |
+      Bracket rearranges the garden with professional efficiency. The other
+      22 letters politely dim as h, o, m, and e brighten.
+
+      "[home]" she announces. "This will match exactly one of: h, o, m, or e."
+
+      You wait. A character from the input stream wanders in. It's... an 'm'.
+      It matches! The engine advances. Next comes an 'o'. Also matches! Then
+      an 'h'. Match. Then 'e'. Match.
+
+      But wait — the engine matched m-o-h-e, not h-o-m-e. [home] matches any
+      of those letters in ANY order. It's a class, not a sequence!
+
+      "Yeah," says Bracket apologetically. "Character classes don't care about
+      order. You need a group for that. Try the Capture Group Caves — that
+      way." She points toward a tunnel with parentheses carved into the arch.
+    choices:
+      - label: "Head to the Capture Group Caves"
+        goto: capture_caves
+        set_flag: learned_classes
+      - label: "Go back and try the state machine approach"
+        goto: state_machine
+        set_flag: learned_classes
+
+  # ─────────────────────────────────────────────
+  # Four classes attempt
+  # ─────────────────────────────────────────────
+
+  four_classes:
+    mood: funny
+    text: |
+      You laboriously set up four character classes in a row:
+      [h][o][m][e]
+
+      Bracket watches with an amused expression. "You know that's just the
+      same as typing 'home', right? Each class has one element. You've
+      invented literal matching with extra steps."
+
+      She's not wrong. But it works! The engine processes your pattern and—
+
+      Actually, wait. The engine needs the pattern AND matching input. You've
+      built the pattern, but you still need to be in the right part of the
+      input stream when "home" flows through.
+
+      "Timing is everything in regex," Bracket says. "You need to be anchored
+      at the right position. Talk to my sister Caret. Oh wait — that's you."
+
+      You realize: you ARE the start anchor. You just need to position yourself
+      correctly.
+    choices:
+      - label: "Head to the Capture Group Caves to build a proper pattern"
+        goto: capture_caves
+        set_flag: learned_classes
+      - label: "Try to anchor yourself at the input position"
+        goto: anchor_attempt
+        set_flag: learned_classes
+
+  # ─────────────────────────────────────────────
+  # Dot-star tunnel
+  # ─────────────────────────────────────────────
+
+  dot_star_tunnel:
+    mood: tense
+    effects:
+      - shake
+    art: |
+          ════════════════════════════════
+             .  *  .  *  .  *  .  *  .
+          ──▶ CONSUMING ▶ CONSUMING ▶──
+             *  .  *  .  *  .  *  .  *
+          ════════════════════════════════
+    location: "regex-engine:/.*/$ "
+    text: |
+      You step into the dot-star tunnel and immediately regret it.
+
+      The greedy quantifier is HUNGRY. The dot matches any character, and the
+      star says "as many as possible." Together, they're an all-consuming void.
+
+      Characters rush past you — the .* is devouring the entire input string
+      in one gulp. Letters, numbers, symbols, everything gets sucked into the
+      match. You see 'h', 'o', 'm', 'e' fly past before you can react.
+
+      Then, silence. The .* has consumed everything. There's nothing left
+      to match.
+
+      The engine pauses. Then, begrudgingly, the quantifier starts giving
+      characters back, one at a time, trying to let the rest of the pattern
+      match. This is backtracking.
+
+      Each surrendered character falls past you like a sad little raindrop.
+    choices:
+      - label: "Ride the backtracking — wait for 'home' to appear"
+        goto: backtrack_ride
+      - label: "Try to make the quantifier non-greedy (.*?)"
+        goto: non_greedy_attempt
+      - label: "Escape! Get out of the tunnel!"
+        goto: character_stream
+
+  # ─────────────────────────────────────────────
+  # Backtrack ride
+  # ─────────────────────────────────────────────
+
+  backtrack_ride:
+    mood: tense
+    text: |
+      You hold on as the engine backtracks. Characters fall back one by one:
+      'z', 'x', 'q', '!', 'w'... it's going to take forever.
+
+      The .* consumed 847 characters. It's giving them back one at a time,
+      trying each position to see if the rest of the pattern matches. At this
+      rate, you'll be here for thousands of engine cycles.
+
+      Worse, you realize there IS no "rest of the pattern." The .* is the
+      ENTIRE pattern. There's nothing after it to match against. The engine
+      will backtrack all the way to zero, find that an empty match works,
+      and declare success at position 0.
+
+      "home" will never be captured. You need a more specific pattern.
+
+      As you tumble backward through the backtracking, you spot a side passage
+      labeled "Lookahead →"
+    choices:
+      - label: "Duck into the Lookahead passage"
+        goto: lookahead_hall
+      - label: "Let the backtracking carry you back to the start"
+        goto: character_stream
+
+  # ─────────────────────────────────────────────
+  # Non-greedy attempt
+  # ─────────────────────────────────────────────
+
+  non_greedy_attempt:
+    mood: funny
+    art: |
+          /\_/\     ?
+          ( ⊙_⊙ ) ─▶ .*?
+           > ^ <
+    text: |
+      You reach out and try to append a question mark to the star, converting
+      .* into .*? — the lazy (non-greedy) version.
+
+      It works! The quantifier immediately changes personality. Instead of
+      devouring everything, it now consumes as LITTLE as possible. It takes
+      zero characters and looks at you expectantly.
+
+      "Is this enough? No? Okay, one more." It takes one character. "Now?
+      Still no? Fine, one more..."
+
+      It's the opposite problem. The lazy quantifier is so hesitant that it
+      matches the empty string at every position. Technically correct — the
+      best kind of correct — but useless for finding "home."
+
+      "You need something between greedy and lazy," mutters a passing
+      backslash. "You need a SPECIFIC pattern."
+    choices:
+      - label: "Head to the Capture Group Caves"
+        goto: capture_caves
+        set_flag: learned_quantifiers
+      - label: "Try the Lookahead Hall"
+        goto: lookahead_hall
+        set_flag: learned_quantifiers
+
+  # ─────────────────────────────────────────────
+  # Dot info
+  # ─────────────────────────────────────────────
+
+  dot_info:
+    mood: mysterious
+    text: |
+      Dot shivers. "Home? I've matched that word a thousand times. It flows
+      through the input stream every few cycles. But matching isn't the same
+      as CAPTURING. You need a group — parentheses — to hold onto what you
+      match."
+
+      She pauses, looking haunted. "There's a place called the Capture Group
+      Caves. Deep in the engine. That's where patterns go to remember things.
+      Groups with names, groups with numbers. The captured text lives there
+      until the engine resets."
+
+      "But be careful. Some groups are non-capturing — (?:) — they match but
+      don't remember. And the named groups... they have egos. Big ones."
+
+      Dot accidentally matches a passing semicolon and apologizes to it.
+    choices:
+      - label: "Team up with Dot and head to the Capture Group Caves"
+        goto: team_up_dot
+        set_flag: has_dot
+      - label: "Go alone to the Capture Group Caves"
+        goto: capture_caves
+
+  # ─────────────────────────────────────────────
+  # Team up with Dot
+  # ─────────────────────────────────────────────
+
+  team_up_dot:
+    mood: peaceful
+    text: |
+      Dot falls into step beside you, visibly relieved to have company.
+
+      "Fair warning," she says, "I match everything I touch. It's a reflex.
+      If I bump into you, I'll accidentally match your whiskers. Sorry
+      in advance."
+
+      Together you make an odd pair: Caret, the start anchor who defines
+      where matching begins, and Dot, who matches any single character
+      without discrimination. Apart you're simple — together you might
+      just be powerful enough to build a pattern that captures "home."
+
+      Dot perks up her ears. "I know a shortcut to the Capture Caves through
+      the Alternation Junction. It's faster but... there's a pipe operator
+      there. Big guy. He splits everything into alternatives. Can be
+      disorienting."
+    choices:
+      - label: "Take the shortcut through Alternation Junction"
+        goto: alternation_junction
+      - label: "Take the safe route to the Capture Group Caves"
+        goto: capture_caves
+
+  # ─────────────────────────────────────────────
+  # Alternation Junction
+  # ─────────────────────────────────────────────
+
+  alternation_junction:
+    mood: funny
+    art: |
+          ═══════════════════════════════════
+                  ALTERNATION JUNCTION
+
+             cat ──┐         ┌── dog
+                   │    |    │
+            fish ──┤─── | ───┤── bird
+                   │    |    │
+            home ──┘         └── lost
+          ═══════════════════════════════════
+    location: "regex-engine:/|/$"
+    text: |
+      The Alternation Junction is chaos. The pipe operator | stands in the
+      middle — a massive vertical bar of pure logic — splitting incoming
+      patterns into parallel alternatives.
+
+      "cat|dog|fish|bird|home|lost" rattles through the junction. Each
+      alternative peels off into its own path, evaluated simultaneously.
+      It's like watching a train station where every train goes to a
+      different word.
+
+      You spot the "home" alternative! It's the fifth branch, glowing warmly.
+
+      "Careful," Dot whispers. "The alternation only matches the FIRST
+      successful branch. If 'cat' matches before 'home' gets a chance,
+      you'll end up chasing a cat. Which... actually sounds fun. NO. Focus."
+    choices:
+      - label: "Jump onto the 'home' branch"
+        goto: home_branch
+      - label: "Rearrange the alternatives to put 'home' first"
+        goto: rearrange_alternatives
+      - label: "Continue past the junction to the Capture Caves"
+        goto: capture_caves
+
+  # ─────────────────────────────────────────────
+  # Home branch
+  # ─────────────────────────────────────────────
+
+  home_branch:
+    mood: tense
+    text: |
+      You leap onto the 'home' branch and ride it like a conveyor belt. The
+      letters h-o-m-e flow beneath you in perfect sequence. This is it!
+
+      But something's wrong. The branch is just an ALTERNATIVE — it defines
+      what COULD match, not what DOES match. The input string currently
+      flowing through the engine is "catastrophe" and the 'cat' branch
+      matched first.
+
+      The engine picks 'cat' as the winner. Your 'home' branch powers down.
+      You're dumped back at the junction, fur ruffled.
+
+      "Told you," says Dot. "First match wins. We need to either change the
+      input or build a pattern that specifically requires 'home'."
+    choices:
+      - label: "Let's go to the Capture Caves and build a specific pattern"
+        goto: capture_caves
+      - label: "Wait for different input — 'home' will come eventually"
+        goto: wait_for_input
+
+  # ─────────────────────────────────────────────
+  # Rearrange alternatives
+  # ─────────────────────────────────────────────
+
+  rearrange_alternatives:
+    mood: funny
+    text: |
+      You try to physically shove the 'home' alternative to the front of the
+      junction. The pipe operator looks down at you with mild amusement.
+
+      "Kid, I don't decide order. The pattern author does. You want 'home'
+      first? Rewrite the regex."
+
+      "Can WE rewrite it?" you ask.
+
+      The pipe operator laughs. It sounds like | | | | |. "You'd need access
+      to the Pattern Buffer. That's in the Compiler — upstream, before the
+      engine even starts. Nobody goes upstream. It's like swimming against
+      the current of causality."
+
+      Dot tugs your tail. "Forget the pipe. Let's try the Capture Caves."
+    choices:
+      - label: "Head to the Capture Caves"
+        goto: capture_caves
+      - label: "Ask about going upstream to the Compiler"
+        goto: compiler_hint
+
+  # ─────────────────────────────────────────────
+  # Compiler hint
+  # ─────────────────────────────────────────────
+
+  compiler_hint:
+    mood: mysterious
+    text: |
+      The pipe operator leans in conspiratorially.
+
+      "Look, nobody goes to the Compiler because it's BEFORE execution. The
+      regex gets compiled into the NFA, and then WE run. But..."
+
+      He glances around nervously. "There's a rumor about a flag. The 'x'
+      flag — verbose mode. When it's active, the engine accepts comments.
+      And in those comments... you can write anything. Even instructions to
+      the compiler. It's a loophole."
+
+      "Where's the flag?" you ask.
+
+      "End of the pattern. After the closing slash. /pattern/x — if someone
+      set it, there's a comment space you could use. But I've never seen
+      anyone actually get there."
+    set_flag: knows_compiler
+    choices:
+      - label: "File that away and head to the Capture Caves"
+        goto: capture_caves
+      - label: "Try to reach the end of the pattern"
+        goto: pattern_end_attempt
+
+  # ─────────────────────────────────────────────
+  # Wait for input
+  # ─────────────────────────────────────────────
+
+  wait_for_input:
+    mood: peaceful
+    text: |
+      You sit down at the junction and wait. Input strings flow through the
+      engine like passing clouds: "catastrophe", "catalog", "category",
+      "caterpillar"...
+
+      Everything starts with 'cat'. Because of course it does. You're inside
+      a regex that someone is using to search text about cats.
+
+      After what feels like an eternity (12 milliseconds), a new string
+      arrives: "the cat came home."
+
+      HOME! There it is — but it's part of a longer string, and the 'cat'
+      alternative still matches first. The engine never even TRIES 'home'
+      because 'cat' succeeds at position 4.
+
+      You need to match the WHOLE string, or anchor to the specific position
+      where 'home' appears. Either way, sitting here won't cut it.
+    choices:
+      - label: "Alright, to the Capture Caves"
+        goto: capture_caves
+      - label: "Try to claim anchor powers at position 15"
+        goto: anchor_attempt
+
+  # ─────────────────────────────────────────────
+  # Anchor attempt
+  # ─────────────────────────────────────────────
+
+  anchor_attempt:
+    mood: mysterious
+    art: |
+          ┌───────────────────────────┐
+          │       ^           $       │
+          │       │    you    │       │
+          │       ▼  ──🐱──  ▼       │
+          │ t h e   c a t             │
+          │   c a m e   h o m e .    │
+          └───────────────────────────┘
+    text: |
+      You ARE Caret. The ^ anchor. You can mark where matching begins.
+      You close your eyes and CONCENTRATE, trying to teleport to position
+      15 in the input — right before 'home'.
+
+      Something shifts. You feel the engine's cursor nudge. But anchoring
+      mid-string doesn't work with ^. You're a START anchor. You can only
+      mark the beginning of a line.
+
+      Unless... multiline mode is active. The /m flag! In multiline mode,
+      ^ matches the start of EACH LINE, not just the string. If "home" were
+      at the start of a line, you could anchor there.
+
+      But it's not. It's mid-sentence. You need a different kind of anchor.
+      A word boundary: \b. That little backslash-b can anchor to the start
+      of any word.
+
+      You don't have \b powers. But you know someone who might: the
+      Capture Group Caves are full of escaped characters.
+    choices:
+      - label: "Head to the Capture Group Caves"
+        goto: capture_caves
+        set_flag: learned_anchors
+      - label: "Try to invoke word boundary powers yourself"
+        goto: boundary_fail
+        set_flag: learned_anchors
+
+  # ─────────────────────────────────────────────
+  # Boundary fail
+  # ─────────────────────────────────────────────
+
+  boundary_fail:
+    mood: funny
+    text: |
+      You scrunch up your face, tense every muscle, and try to become a word
+      boundary. "\\b!" you shout. "\\b \\b \\B!!"
+
+      Nothing happens. A passing digit (the number 7) gives you a pitying look.
+
+      "That's not how it works," says 7. "You can't just BECOME another
+      metacharacter. Anchors are anchors. Boundaries are boundaries. You need
+      to find an actual \\b and convince it to help."
+
+      "Where?"
+
+      "The Escape Sequences live in the Capture Caves. Bunch of weirdos with
+      backslashes. \\b, \\d, \\w, \\s — they're all down there. Tell \\b that
+      Seven sent you. We go way back."
+    choices:
+      - label: "Head to the Capture Group Caves"
+        goto: capture_caves
+
+  # ─────────────────────────────────────────────
+  # Capture Group Caves
+  # ─────────────────────────────────────────────
+
+  capture_caves:
+    mood: mysterious
+    art: |
+          ╔═══════════════════════════════════════╗
+          ║    C A P T U R E   G R O U P         ║
+          ║          C A V E S                    ║
+          ║                                       ║
+          ║   (  )  (?:  )  (?<name>  )          ║
+          ║   Group 1    ↑      ↑                ║
+          ║         non-capture  named            ║
+          ╚═══════════════════════════════════════╝
+    location: "regex-engine:/(...)/$ "
+    text: |
+      The Capture Group Caves open up before you. Massive parentheses
+      arch overhead like cathedral buttresses. Inside, captured text glows
+      on the walls — fragments of old matches preserved like fossils.
+
+      Three tunnels branch off:
+
+      The first leads to a standard capture group ( ) — it matches AND
+      remembers. A sign says "Group 1: Currently Empty."
+
+      The second is a non-capturing group (?:) — it matches but forgets
+      immediately. Useful for grouping without the memory overhead.
+
+      The third tunnel has elaborate carvings: (?<name>) — a NAMED capture
+      group. These groups have identities. They remember not just what they
+      matched, but WHY.
+
+      Deep in the caves, you hear the echo of escaped characters:
+      backslashes clinking like tiny swords.
+    choices:
+      - label: "Enter the named capture group (?<destination>)"
+        goto: named_group
+      - label: "Use a simple capture group — keep it minimal"
+        goto: simple_group
+      - label: "Find the escape sequences (\\b, \\d, \\w)"
+        goto: escape_sequences
+
+  # ─────────────────────────────────────────────
+  # Named group
+  # ─────────────────────────────────────────────
+
+  named_group:
+    mood: mysterious
+    text: |
+      You enter the named group tunnel. The walls shimmer with labels:
+      (?<email>), (?<phone>), (?<date>), each one a memory of past patterns.
+
+      At the end of the tunnel, an unclaimed group awaits: (?<destination>).
+      It's beautiful — a perfectly formed set of parentheses with a carved
+      nameplate, waiting to capture something meaningful.
+
+      "Write 'home' inside me," the group whispers. "Give me purpose."
+
+      You carefully arrange the letters: (?<destination>home). The group
+      closes around them protectively. You now have a pattern that will
+      match the literal word "home" and remember it by name.
+
+      But you still need to POSITION this pattern correctly in the input
+      stream, and connect it to the engine's match cycle.
+    set_flag: has_pattern
+    choices:
+      - label: "Combine the pattern with a word boundary"
+        goto: assemble_pattern
+        require_flag: learned_anchors
+      - label: "Find the escape sequences for help with positioning"
+        goto: escape_sequences
+      - label: "Try to submit the pattern directly to the engine"
+        goto: raw_submit
+
+  # ─────────────────────────────────────────────
+  # Simple group
+  # ─────────────────────────────────────────────
+
+  simple_group:
+    mood: peaceful
+    text: |
+      You duck into the simple capture group. It's cozy — just two
+      parentheses and a number: Group 1.
+
+      "What do you want to capture?" it asks.
+
+      "The word 'home'," you say.
+
+      Group 1 nods. "(home)" it announces, wrapping the letters neatly.
+      "I'll remember this as \\1 or $1, depending on who's asking."
+
+      Simple. Effective. No frills. You have your pattern.
+
+      Now you need to get it to the right place at the right time. The
+      group can match "home" wherever it appears, but you'll need help
+      navigating the engine to get it executed.
+    set_flag: has_pattern
+    choices:
+      - label: "Find the escape sequences for positioning help"
+        goto: escape_sequences
+      - label: "Try to submit the pattern directly"
+        goto: raw_submit
+
+  # ─────────────────────────────────────────────
+  # Escape sequences
+  # ─────────────────────────────────────────────
+
+  escape_sequences:
+    mood: funny
+    art: |
+            \b  \d  \w  \s  \n
+             │   │   │   │   │
+             ▼   ▼   ▼   ▼   ▼
+            ┌──────────────────────┐
+            │  THE BACKSLASH CLAN  │
+            └──────────────────────┘
+    location: "regex-engine:/\\/$"
+    text: |
+      Deep in the caves, you find them: the Escape Sequences. A ragtag
+      family of metacharacters, each with a backslash welded to their front.
+
+      \\b (Word Boundary) — a stocky cat who stands at the edge of words.
+      \\d (Digit) — only associates with numbers. Very exclusive.
+      \\w (Word Character) — friendly, matches letters, digits, and underscores.
+      \\s (Whitespace) — a ghost-pale cat who lives in the spaces between.
+      \\n (Newline) — rarely seen. Hides at the end of lines.
+
+      "We heard you need positioning," says \\b. "I can anchor your pattern
+      to the boundary of a word. \\bhome\\b — that'll match 'home' only as
+      a complete word, not inside 'homework' or 'homestead'."
+
+      \\w chips in: "And I can extend the match if you need surrounding
+      context. \\w+ matches any word."
+    choices:
+      - label: "Accept \\b's help — anchor 'home' as a word boundary match"
+        goto: assemble_pattern
+        set_flag: has_boundary
+      - label: "Ask \\w to build a broader pattern"
+        goto: broad_pattern
+      - label: "Ask \\n about the end of the line"
+        goto: newline_secret
+
+  # ─────────────────────────────────────────────
+  # Newline secret
+  # ─────────────────────────────────────────────
+
+  newline_secret:
+    mood: mysterious
+    text: |
+      \\n is shy and nearly invisible, but when you approach, she speaks in
+      a whisper that somehow feels like pressing Enter.
+
+      "Everyone forgets about us newlines. But we're the real power here.
+      Every line boundary, every paragraph break — that's me. And I know
+      something the others don't."
+
+      She glances around. "There's a pattern at the very end of this engine.
+      After the last state, past the dollar sign anchor, there's a place
+      where the regex flags live. /i for case-insensitive, /g for global,
+      /m for multiline..."
+
+      "If you could reach the flags and activate /m, your ^ power would work
+      at every line break. You wouldn't need \\b at all."
+
+      She traces an invisible path. "Through the Lookahead Hall. That's the
+      only way past the end anchor without the engine terminating."
+    set_flag: knows_flags
+    choices:
+      - label: "Take \\b's help for now — the reliable approach"
+        goto: assemble_pattern
+        set_flag: has_boundary
+      - label: "Try for the flags through the Lookahead Hall"
+        goto: lookahead_hall
+
+  # ─────────────────────────────────────────────
+  # Broad pattern
+  # ─────────────────────────────────────────────
+
+  broad_pattern:
+    mood: funny
+    text: |
+      \\w gets excited. "Oh, I love building patterns! What about \\w+home\\w*?
+      No wait — .*home.*! No, that's greedy. Uh... home\\w+? No, that matches
+      'homework' too..."
+
+      \\w is enthusiastic but scatterbrained. She keeps suggesting patterns
+      that either match too much or too little.
+
+      \\b sighs. "This is why I exist. Boundaries. Clean edges. \\bhome\\b.
+      Four letters, two boundaries. Done."
+
+      \\w deflates slightly. "Fine. Boundaries are cool too I guess."
+    choices:
+      - label: "Go with \\b's clean approach"
+        goto: assemble_pattern
+        set_flag: has_boundary
+      - label: "Let \\w try one more pattern"
+        goto: ending_overengineered
+
+  # ─────────────────────────────────────────────
+  # Assemble pattern
+  # ─────────────────────────────────────────────
+
+  assemble_pattern:
+    mood: tense
+    effects:
+      - pause
+    art: |
+          ┌─────────────────────────────────┐
+          │  PATTERN ASSEMBLED:             │
+          │                                 │
+          │    /\bhome\b/                   │
+          │                                 │
+          │  ✓ Word boundary anchored       │
+          │  ✓ Literal match: "home"        │
+          │  ✓ Won't match: homework,       │
+          │    homestead, ahome             │
+          └─────────────────────────────────┘
+    location: "regex-engine:/assembly/$"
+    text: |
+      Everything clicks into place. You stand at the center of the engine
+      with your assembled pattern: /\\bhome\\b/
+
+      \\b takes position on either side of the word, like a pair of bookends.
+      The letters h-o-m-e glow between them. It's elegant. It's precise.
+      It's exactly what you need.
+
+      Now comes the hard part: submitting it to the engine. You need to
+      inject this pattern into the active match cycle. The engine is currently
+      running someone else's regex — you can't just interrupt it.
+
+      Unless you go through the Lookahead Hall. Lookaheads can peek at the
+      input without consuming it. If you can set up a positive lookahead for
+      "home", the engine will FIND it even while running another pattern.
+
+      Or... you could try the dangerous route. The Pattern Buffer in the
+      Compiler, upstream. Rewrite the regex itself.
+    choices:
+      - label: "Use the Lookahead Hall — safe and clever"
+        goto: lookahead_hall
+        set_flag: has_pattern
+      - label: "Go upstream to the Compiler — rewrite everything"
+        goto: compiler_attempt
+        set_flag: has_pattern
+      - label: "Just ram the pattern into the engine and hope for the best"
+        goto: raw_submit
+        set_flag: has_pattern
+
+  # ─────────────────────────────────────────────
+  # Raw submit
+  # ─────────────────────────────────────────────
+
+  raw_submit:
+    mood: tense
+    text: |
+      You charge at the engine's execution core, pattern held high, and try
+      to shove it into the active match cycle.
+
+      The engine rejects you immediately. "SyntaxError: Unexpected pattern
+      injection at runtime." Red lights flash. Warning klaxons sound.
+
+      The engine's garbage collector — a massive cat with empty eyes — turns
+      toward you. "Unmatched resource detected. Initiating cleanup."
+
+      You scramble backward just in time. The garbage collector sweeps through,
+      reclaiming unused patterns. Your hastily assembled group gets dissolved.
+
+      Okay. Brute force won't work. You need to play by the engine's rules.
+    set_flag: has_pattern
+    choices:
+      - label: "Head to the Lookahead Hall"
+        goto: lookahead_hall
+      - label: "Try the Optimization Office for help"
+        goto: optimization_office
+
+  # ─────────────────────────────────────────────
+  # Optimization Office
+  # ─────────────────────────────────────────────
+
+  optimization_office:
+    mood: peaceful
+    art: |
+          ┌───────────────────────────────────────┐
+          │     OPTIMIZATION OFFICE               │
+          │     ──────────────────                │
+          │     Lead: Thompson (tabby, gray)      │
+          │                                       │
+          │     Services:                         │
+          │     • NFA → DFA conversion            │
+          │     • Dead-state elimination          │
+          │     • Epsilon removal                 │
+          │     "We make regex go brrr"           │
+          └───────────────────────────────────────┘
+    text: |
+      The Optimization Office is immaculate. Charts on the wall show NFA-to-DFA
+      conversion rates. A poster reads: "O(n) or O(no)."
+
+      Thompson, a distinguished gray tabby, looks up from a state diagram.
+
+      "Ah, a visitor. Let me guess — you want to modify the running pattern.
+      Everyone does. Can't be done at runtime... normally."
+
+      He adjusts his tiny glasses. "But I can do something almost as good.
+      I can insert your pattern as an OPTIMIZATION HINT. The engine trusts my
+      office. If I flag 'home' as a required literal, the engine will pre-scan
+      the input for it. When it finds 'home', it'll fast-forward there."
+
+      "Isn't that cheating?" you ask.
+
+      "It's OPTIMIZATION," Thompson says with dignity.
+    choices:
+      - label: "Accept Thompson's optimization hint"
+        goto: thompson_assist
+        set_flag: has_thompson
+      - label: "Ask about the Catastrophic Backtracking Zone"
+        goto: catastrophic_zone
+      - label: "Go to the Lookahead Hall instead"
+        goto: lookahead_hall
+
+  # ─────────────────────────────────────────────
+  # Thompson assist
+  # ─────────────────────────────────────────────
+
+  thompson_assist:
+    mood: peaceful
+    text: |
+      Thompson carefully encodes your pattern as an optimization hint and
+      files it with the engine. The engine accepts it — trusted source.
+
+      "I've flagged 'home' as a required literal," Thompson explains. "The
+      engine will now pre-scan any input for 'home' before attempting the
+      full pattern match. If 'home' isn't in the input, the engine skips the
+      attempt entirely. If it IS there, the engine fast-forwards to that
+      position."
+
+      You feel the engine shift. Input flows past: "catastrophe"... skip.
+      "catalog"... skip. "the cat came home."... LOCK ON.
+
+      The engine's cursor jumps to position 18: 'h'. Then 'o'. Then 'm'.
+      Then 'e'. Four characters. Four transitions. A match.
+
+      The named capture group glows: destination = "home".
+    choices:
+      - label: "Step into the match — go home"
+        goto: ending_optimized
+
+  # ─────────────────────────────────────────────
+  # Lookahead Hall
+  # ─────────────────────────────────────────────
+
+  lookahead_hall:
+    mood: mysterious
+    art: |
+          ═══════════════════════════════════
+              L O O K A H E A D   H A L L
+
+            (?=  )   Positive: "IS here"
+            (?!  )   Negative: "is NOT here"
+            (?<= )   Lookbehind: "WAS here"
+            (?<! )   Neg. lookbehind: "was NOT"
+          ═══════════════════════════════════
+    location: "regex-engine:/(?=)/$"
+    text: |
+      The Lookahead Hall is a glass-walled corridor where you can see the
+      input stream without touching it. Four rooms branch off:
+
+      Positive Lookahead (?=...) peers forward. "I can check if 'home' exists
+      ahead without consuming any characters. The engine doesn't move."
+
+      Negative Lookahead (?!...) is the paranoid sibling. "I check that
+      something is NOT ahead. Useful for 'match here unless followed by X'."
+
+      Lookbehind (?<=...) faces backward. "I verify what came BEFORE."
+
+      And Negative Lookbehind (?<!...) won't stop talking about things that
+      definitely weren't there.
+
+      The Positive Lookahead seems most helpful. If you can assert that
+      "home" exists in the input, you can guide the engine to it.
+    choices:
+      - label: "Use Positive Lookahead to find 'home'"
+        goto: positive_lookahead
+      - label: "Use Negative Lookahead to eliminate everything that ISN'T 'home'"
+        goto: negative_approach
+      - label: "Go through to the pattern flags (past the end anchor)"
+        goto: pattern_end_attempt
+        require_flag: knows_flags
+
+  # ─────────────────────────────────────────────
+  # Positive lookahead
+  # ─────────────────────────────────────────────
+
+  positive_lookahead:
+    mood: tense
+    effects:
+      - pause
+    text: |
+      You step into the Positive Lookahead room. Through the glass walls,
+      you can see the input stream. Characters flow past: "the cat came home."
+
+      The Lookahead operator takes your pattern and peers forward.
+      "(?=.*home)" — it scans the entire input without consuming anything.
+
+      "Found it!" the operator announces. "Position 18. 'home' exists in the
+      input stream."
+
+      The engine receives this assertion like a green light. The match
+      attempt is VALID. Now the engine proper kicks in, and your assembled
+      pattern \\bhome\\b gets its chance.
+
+      The engine advances to position 18. 'h' — match. 'o' — match.
+      'm' — match. 'e' — MATCH.
+
+      The world flares white. The engine reports: "Match found at index 18:
+      'home'". Every state in the NFA lights up in sequence like a
+      celebration.
+
+      The exit. You can see it — a glowing MATCH state at the end of the
+      automaton.
+    choices:
+      - label: "Run toward the match — go HOME"
+        goto: ending_lookahead
+      - label: "Wait — bring Dot with you"
+        goto: ending_with_dot
+        require_flag: has_dot
+
+  # ─────────────────────────────────────────────
+  # Negative approach
+  # ─────────────────────────────────────────────
+
+  negative_approach:
+    mood: funny
+    text: |
+      You try the Negative Lookahead approach: instead of finding "home",
+      eliminate everything that ISN'T "home."
+
+      The Negative Lookahead operator rubs her temples. "You want me to
+      check (?!cat)(?!dog)(?!fish)(?!bird)(?!the)(?!came)... for every word
+      that isn't 'home'? Do you know how many words exist?"
+
+      "Can't you just do (?!NOT-home)?"
+
+      "That's a double negative. It's literally just a positive assertion
+      with extra steps. Use (?=home) like a normal cat."
+
+      She points you to her sibling's room.
+    choices:
+      - label: "Fine, use the Positive Lookahead"
+        goto: positive_lookahead
+      - label: "There must be a cleverer way..."
+        goto: catastrophic_zone
+
+  # ─────────────────────────────────────────────
+  # Catastrophic backtracking zone
+  # ─────────────────────────────────────────────
+
+  catastrophic_zone_intro:
+    mood: tense
+    text: |
+      Dolly shudders. "You want to know about the Catastrophic Zone? Kitten,
+      that's the worst part of the engine. It's where patterns go to die."
+
+      "There's a nested quantifier in there: (a+)+. Looks simple, right?
+      But when the input is 'aaaa' and the match fails at the end, the engine
+      has to try EVERY possible way to split those a's between the inner
+      and outer groups."
+
+      "For 4 a's, that's 16 attempts. For 20, it's over a million. For 30...
+      the engine is still trying. It's been running since this regex started
+      and it will run until heat death."
+
+      "Stay away from it, Caret. That's not your fight."
+    choices:
+      - label: "Heed Dolly's warning — go to the Capture Caves"
+        goto: capture_caves
+      - label: "I have to see it for myself"
+        goto: catastrophic_zone
+
+  # ─────────────────────────────────────────────
+  # Catastrophic zone
+  # ─────────────────────────────────────────────
+
+  catastrophic_zone:
+    mood: glitch
+    effects:
+      - shake
+      - pause
+    art: |
+          ╔══════════════════════════════════════════╗
+          ║  !! CATASTROPHIC BACKTRACKING ZONE !!   ║
+          ║                                          ║
+          ║  (a+)+  (a+)+  (a+)+  (a+)+  (a+)+     ║
+          ║  ↺↺↺↺↺↺↺↺↺↺↺↺↺↺↺↺↺↺↺↺↺↺↺↺↺↺↺↺↺↺     ║
+          ║                                          ║
+          ║    ITERATIONS: 1,073,741,824             ║
+          ║    PROGRESS:   0.00001%                  ║
+          ║    ETA:        NEVER                     ║
+          ╚══════════════════════════════════════════╝
+    location: "regex-engine:/(a+)+/$"
+    text: |
+      You enter the Catastrophic Backtracking Zone and immediately feel time
+      distort. The nested quantifier (a+)+ spins endlessly, trying every
+      possible combination of 'a' groupings.
+
+      The engine's resources are visibly strained. CPU cycles are rationed.
+      The garbage collector has been called in three times and given up.
+      A small team of 'a' characters trudges in an infinite loop, being
+      grouped and regrouped and regrouped again.
+
+      "Please," one of the 'a's whispers as it passes. "End us."
+
+      You could try to break the cycle — convert the nested quantifier to a
+      possessive quantifier (a++)+ which doesn't backtrack. Or you could
+      add an atomic group. But touching a running pattern is dangerous...
+
+      Or you could just leave. This isn't your problem. Your problem is
+      getting home.
+    choices:
+      - label: "Try to fix it — convert to possessive quantifier"
+        goto: fix_catastrophic
+      - label: "Leave — you can't save everyone"
+        goto: capture_caves
+      - label: "Use the chaos as a distraction to sneak past the engine"
+        goto: ending_chaos_escape
+
+  # ─────────────────────────────────────────────
+  # Fix catastrophic
+  # ─────────────────────────────────────────────
+
+  fix_catastrophic:
+    mood: tense
+    text: |
+      You reach into the spinning pattern and try to add a '+' to make it
+      possessive: (a++)+ — no backtracking allowed.
+
+      The moment you touch the quantifier, it bites you. Not metaphorically —
+      the star literally snaps at your paw. Quantifiers are POSSESSIVE about
+      being made possessive. The irony is not lost on you.
+
+      But you push through. With a grunt and a shove, you jam the extra '+'
+      into place. The pattern stutters. The infinite loop... STOPS.
+
+      The 'a' characters freeze mid-step. Then, slowly, they look around.
+      "Is... is it over?"
+
+      The engine, freed from a billion backtrack cycles, surges with power.
+      Saved resources flood through the NFA. States light up. The pattern
+      optimizer sends you a personal thank-you note.
+
+      And in the surge of freed processing power, your \\bhome\\b pattern
+      gets executed. The engine matches "home" in the input stream.
+
+      You feel the MATCH state calling you.
+    set_flag: fixed_catastrophic
+    choices:
+      - label: "Rush to the match — go HOME"
+        goto: ending_hero
+
+  # ─────────────────────────────────────────────
+  # Pattern end attempt
+  # ─────────────────────────────────────────────
+
+  pattern_end_attempt:
+    mood: mysterious
+    art: |
+          /pattern/flags
+                     ↑
+                YOU ARE HERE
+          ─────────────────
+          i - case insensitive
+          g - global
+          m - multiline  ← !!
+          s - dotall
+          x - verbose
+    location: "regex-engine:/$/flags"
+    text: |
+      You push past the dollar sign anchor (who complains that you're going
+      the wrong way) and reach the very end of the pattern. Here, beyond the
+      closing delimiter, the regex flags live.
+
+      They're like switches on a control panel. Most are inactive — dim and
+      unflipped. But you can see them: /i, /g, /m, /s, /x.
+
+      The /m flag glows invitingly. Multiline mode. If you flip it, your
+      ^ anchor power would work at line boundaries throughout the input.
+
+      But wait — there's an even better option. The /g flag: Global mode.
+      It would make the engine find ALL matches, not just the first one. It
+      would keep searching until it finds "home" even if "cat" matches first.
+    choices:
+      - label: "Flip the /g flag — global mode"
+        goto: ending_global
+      - label: "Flip the /m flag — multiline mode"
+        goto: ending_multiline
+      - label: "Flip ALL the flags — maximum power"
+        goto: ending_all_flags
+
+  # ─────────────────────────────────────────────
+  # Compiler attempt
+  # ─────────────────────────────────────────────
+
+  compiler_attempt:
+    mood: tense
+    art: |
+          ←←← UPSTREAM ←←←
+            ╔═══════════╗
+            ║ COMPILER  ║
+            ║ ───────── ║
+            ║ DO NOT    ║
+            ║ ENTER     ║
+            ╚═══════════╝
+    text: |
+      You swim upstream against the flow of the engine, past state machines
+      and backtrack stacks, against the current of execution. It's exhausting.
+      Characters slam into you. A lookahead assertion nearly knocks you off
+      course.
+
+      Finally, you reach the Compiler. It's the source of everything — where
+      the raw regex string gets parsed and converted into the NFA that IS
+      this world.
+
+      The Compiler is terrifying. A massive entity that reads each character
+      of the pattern and builds state machines from raw logic. It's already
+      finished its job — the engine is running — but it hasn't shut down yet.
+      It's waiting. Waiting for the pattern to be recompiled.
+
+      If you could feed it a new regex, it would rebuild everything. The
+      entire engine. The NFA. Every state. Including a path HOME.
+
+      But rewriting reality has consequences.
+    choices:
+      - label: "Feed the compiler: /\\bhome\\b/"
+        goto: ending_rewrite
+      - label: "This is too dangerous — go back"
+        goto: lookahead_hall
+
+  # ═══════════════════════════════════════════
+  # ENDINGS
+  # ═══════════════════════════════════════════
+
+  # ─────────────────────────────────────────────
+  # ENDING: Lookahead (Good)
+  # ─────────────────────────────────────────────
+
+  ending_lookahead:
+    is_ending: true
+    ending_type: good
+    mood: peaceful
+    art: |
+          ╔═══════════════════════════════════════════════╗
+          ║                                               ║
+          ║    MATCH FOUND                                ║
+          ║    ──────────                                 ║
+          ║    Pattern:  /\bhome\b/                       ║
+          ║    Input:    "the cat came home."              ║
+          ║    Index:    18                                ║
+          ║    Result:   "home" ✓                          ║
+          ║                                               ║
+          ║             /\_/\                              ║
+          ║            ( ^.^ )  ~ matched! ~               ║
+          ║             > ^ <                              ║
+          ╚═══════════════════════════════════════════════╝
+    text: |
+      You leap through the MATCH state and the world dissolves into light.
+
+      The regex engine completes its execution cycle. Pattern matched.
+      Result returned. And you — Caret, the little start anchor who became
+      so much more — ride the return value out of the engine and back into
+      the real world.
+
+      You wake up on the keyboard. Your human is staring at the screen where
+      a regex search just highlighted the word "home" in a document.
+
+      "Huh," they say. "Could've sworn I typed that regex differently."
+
+      You stretch, yawn, and settle onto the warm laptop. Regex is a
+      strange place. But it taught you something: the right pattern, properly
+      anchored, can find anything. Even home.
+
+      *Match complete. No backtracking required.*
+
+  # ─────────────────────────────────────────────
+  # ENDING: With Dot (Good)
+  # ─────────────────────────────────────────────
+
+  ending_with_dot:
+    is_ending: true
+    ending_type: good
+    mood: peaceful
+    art: |
+            /\_/\    /\_/\
+            ( ^.^ )  ( ·.· )
+            > ^ <    > . <
+            Caret     Dot
+            ~~~~~~~~~~~~~~~~~~
+            MATCHED TOGETHER
+    text: |
+      "Dot! Come on — we're going home!"
+
+      Dot's eyes widen. "Home? I haven't matched 'home' since— wait, I
+      match EVERYTHING. I've matched 'home' a thousand times. But going
+      there? Actually GOING?"
+
+      You grab her paw and leap into the MATCH state together. The engine
+      processes the match: Caret provides the anchor, Dot provides the
+      flexibility. Together you're /^.*home/ — a start anchor, a wildcard
+      bridge, and a destination.
+
+      The regex world dissolves. You wake up on the keyboard with Dot
+      beside you — except she's not Dot anymore. She's a period key.
+      The period on the keyboard. She's always been there, right next to
+      your home row.
+
+      You were never really lost. You were just... unmatched.
+
+      *Two patterns, one match. Sometimes the best regex is a friend.*
+
+  # ─────────────────────────────────────────────
+  # ENDING: Thompson Optimized (Good)
+  # ─────────────────────────────────────────────
+
+  ending_optimized:
+    is_ending: true
+    ending_type: good
+    mood: peaceful
+    art: |
+          ┌─────────────────────────────────┐
+          │  OPTIMIZATION REPORT            │
+          │  ─────────────────              │
+          │  Pattern: /home/ (literal)      │
+          │  Strategy: Boyer-Moore skip     │
+          │  Input scanned: 22 chars        │
+          │  Backtracks: 0                  │
+          │  Result: MATCH at index 18     │
+          │                                 │
+          │  Performance: ★★★★★            │
+          └─────────────────────────────────┘
+    text: |
+      Thompson's optimization kicks in beautifully. The engine doesn't even
+      bother with the NFA for this match — it uses Boyer-Moore string
+      searching, skipping ahead in the input by the length of "home."
+
+      Zero backtracks. Minimal comparisons. Maximum elegance.
+
+      As the match completes, Thompson tips an invisible hat. "Told you.
+      OPTIMIZATION." He makes it sound like a sacred word.
+
+      You ride the match result out of the engine. The keyboard appears.
+      The warm glow of a laptop screen. Your human's hands, mid-keystroke.
+
+      You settle onto the home row — h, o, m, e, right there under their
+      fingers — and purr.
+
+      *Optimally matched. Thompson would be proud.*
+
+  # ─────────────────────────────────────────────
+  # ENDING: Hero (Secret)
+  # ─────────────────────────────────────────────
+
+  ending_hero:
+    is_ending: true
+    ending_type: secret
+    mood: peaceful
+    effects:
+      - pause
+    art: |
+          ╔═══════════════════════════════════════════════╗
+          ║                                               ║
+          ║   🏆 CATASTROPHE AVERTED 🏆                   ║
+          ║                                               ║
+          ║   You fixed the catastrophic backtracking     ║
+          ║   AND matched "home."                         ║
+          ║                                               ║
+          ║   Engine performance: +99.97%                 ║
+          ║   Backtrack cycles saved: 1,073,741,824       ║
+          ║   Cats saved: all of them                     ║
+          ║                                               ║
+          ║          /\_/\                                 ║
+          ║         ( ★.★ )  HERO OF THE ENGINE            ║
+          ║          > ^ <                                 ║
+          ╚═══════════════════════════════════════════════╝
+    text: |
+      The engine runs like never before. With the catastrophic backtracking
+      eliminated, resources surge through the system. Your \\bhome\\b pattern
+      matches instantly. The 'a' characters wave goodbye, finally free from
+      their infinite loop.
+
+      Thompson runs out of his office. "What happened? Performance just
+      jumped 99.97%! Who FIXED the nested quantifier?"
+
+      "Some cat with pointy ears," says \\b.
+
+      You don't stick around for the celebration. You ride the match state
+      HOME — through the engine, past the return value, back to the keyboard.
+
+      Your human notices their regex runs faster now. They'll never know why.
+      But somewhere in the engine, a poster goes up on the wall of the
+      Optimization Office: "Caret — Hero of the Engine."
+
+      Below it, someone has scratched in smaller text: "(a++)+ — Never Again."
+
+      *The best regex engineers are the ones who fix what others thought
+      was unfixable. Catastrophe averted. Home found. Legend status: earned.*
+
+  # ─────────────────────────────────────────────
+  # ENDING: Global flag (Neutral)
+  # ─────────────────────────────────────────────
+
+  ending_global:
+    is_ending: true
+    ending_type: neutral
+    mood: funny
+    art: |
+          /pattern/g  ← GLOBAL MODE ACTIVE
+          ─────────────────────────────────
+          Match 1: "cat"   (index 4)
+          Match 2: "cat"   (index 33)
+          Match 3: "home"  (index 18) ← !!
+          Match 4: "cat"   (index 47)
+          ...
+    text: |
+      You flip the /g switch. GLOBAL MODE ACTIVE.
+
+      The engine immediately restarts, but this time it doesn't stop at the
+      first match. It finds "cat" at index 4 and keeps going. "cat" at 33.
+      Then — "home" at index 18! Then more "cat"s. It's matching EVERYTHING
+      now, in a never-ending loop.
+
+      You try to jump out at the "home" match, but the engine won't stop.
+      Global mode means it keeps searching forever, finding every occurrence
+      of every alternative. You're stuck in an infinite parade of matches.
+
+      Eventually, the calling program collects the results and the engine
+      shuts down. You tumble out with all the match results — a jumble of
+      "cat" and "home" and "cat" and more "cat."
+
+      You're home. Technically. But you're also everywhere else.
+
+      *Global matching: when you find what you're looking for... and
+      everything else too. Sometimes focused is better than thorough.*
+
+  # ─────────────────────────────────────────────
+  # ENDING: Multiline (Neutral)
+  # ─────────────────────────────────────────────
+
+  ending_multiline:
+    is_ending: true
+    ending_type: neutral
+    mood: mysterious
+    text: |
+      You flip the /m flag. Your ^ anchor power SURGES. Suddenly you can
+      feel every line boundary in the input. Every newline is a new beginning.
+
+      You anchor yourself at the start of a line that begins with... nothing
+      useful. The input text is all one line. There ARE no line breaks.
+
+      "Should've checked the input first," mutters the dollar sign anchor,
+      who also just got upgraded to match line endings she can't find.
+
+      The /m flag was the right idea in a different input. Here, it changes
+      nothing. Your anchor powers are enhanced but pointless — like having
+      super-strength in zero gravity.
+
+      The engine eventually times out and you drift back to the real world,
+      deposited on the keyboard feeling vaguely multilinear.
+
+      *Multiline mode: powerful when there are multiple lines. Less so when
+      there aren't. Know your input before choosing your flags.*
+
+  # ─────────────────────────────────────────────
+  # ENDING: All flags (Bad)
+  # ─────────────────────────────────────────────
+
+  ending_all_flags:
+    is_ending: true
+    ending_type: bad
+    mood: glitch
+    effects:
+      - shake
+    art: |
+          /pattern/gimsuxy
+
+          !! WARNING: FLAG OVERFLOW !!
+          !! CONFLICTING MODES !!
+          !! ENGINE UNSTABLE !!
+
+             /\_/\
+            ( x_x )
+             > ~ <
+    text: |
+      You flip EVERY flag. All of them. /g /i /m /s /u /x /y. Maximum power.
+
+      The engine screams. Conflicting modes activate simultaneously —
+      case-sensitive AND case-insensitive. Single-line AND multi-line.
+      The sticky flag /y fights with the global flag /g over who controls
+      the cursor position.
+
+      The engine starts matching everything and nothing. "HOME" matches
+      (case-insensitive) but also "hOmE" and "HOME" and somehow "hOME"
+      appears four times because global mode won't stop. The unicode flag
+      /u decides that the cat emoji 🐱 is also a valid character and starts
+      matching in scripts you've never heard of.
+
+      The engine collapses under contradictions. You collapse with it.
+
+      You wake up on the keyboard, but every key you touch types in regex.
+      Your human rushes you to a computer repair shop. You spend a week being
+      debugged.
+
+      *More flags ≠ better regex. Some lessons must be learned the hard way.*
+
+  # ─────────────────────────────────────────────
+  # ENDING: Rewrite (Bad)
+  # ─────────────────────────────────────────────
+
+  ending_rewrite:
+    is_ending: true
+    ending_type: bad
+    mood: glitch
+    effects:
+      - shake
+      - pause
+    art: |
+          COMPILER: RECOMPILING...
+          ██████████████████░░░░ 78%
+
+          !! NFA RESTRUCTURE IN PROGRESS !!
+          !! ALL STATES BEING REBUILT !!
+
+          You:  /\_/\
+               ( @_@ )   "what have I done"
+                > ~ <
+    text: |
+      You feed /\\bhome\\b/ to the Compiler. It accepts the new pattern and
+      begins rebuilding the ENTIRE ENGINE from scratch.
+
+      The world around you dissolves. States collapse. Transitions evaporate.
+      Characters scatter. Dolly, Bracket, \\b, Thompson — everyone you met
+      is unmade as the old NFA is torn down.
+
+      A new engine rises from the ashes. Clean. Simple. Just \\bhome\\b.
+      No character classes. No alternation. No catastrophic zone. No friends.
+
+      The new engine matches "home" on the first try. Perfect performance.
+      But you're alone in it. A minimal automaton — four states, four
+      transitions, one match. Efficient and empty.
+
+      You find home. But you destroyed a world to do it.
+
+      *Rewriting the regex is like reformatting the drive. It solves the
+      problem, but everything else is gone. Sometimes the journey matters.*
+
+  # ─────────────────────────────────────────────
+  # ENDING: Chaos escape (Neutral)
+  # ─────────────────────────────────────────────
+
+  ending_chaos_escape:
+    is_ending: true
+    ending_type: neutral
+    mood: tense
+    art: |
+          (a+)+ ← ENGINE OVERLOADED
+
+          🐱💨──────▶ [EXIT]
+
+          "RUN!!"
+    text: |
+      With the engine choking on catastrophic backtracking, you make a break
+      for it. While every resource is focused on the impossible (a+)+
+      computation, the normal pattern matching is unguarded.
+
+      You sprint through the NFA, leap over dead states, slide under epsilon
+      transitions, and somehow land on the MATCH output — not by matching
+      anything, but by physically occupying the exit state.
+
+      It's the regex equivalent of sneaking out the back door while the
+      bouncer is distracted. The engine doesn't notice. It's too busy
+      counting 'a's.
+
+      You pop out on the keyboard, slightly singed, completely unmatched.
+      You never actually found "home" through the pattern — you just escaped.
+
+      Your human's search bar returns "catastrophic backtracking detected"
+      and you pretend you have nothing to do with it.
+
+      *Sometimes the only winning pattern is not to match at all.
+      Escape is its own kind of solution.*
+
+  # ─────────────────────────────────────────────
+  # ENDING: Overengineered (Bad)
+  # ─────────────────────────────────────────────
+
+  ending_overengineered:
+    is_ending: true
+    ending_type: bad
+    mood: funny
+    art: |
+          THE PATTERN:
+          (?<=\s|^)(?=[^\s]*h)(?=[^\s]*o)
+          (?=[^\s]*m)(?=[^\s]*e)[^\s]+
+          (?=\s|$)
+
+             /\_/\
+            ( -_- ) "...why"
+             > ^ <
+    text: |
+      \\w goes wild. She builds a pattern of breathtaking complexity:
+      a series of lookaheads, lookbehinds, negated character classes, and
+      non-capturing groups — all to match the four-letter word "home."
+
+      The pattern is 147 characters long. It uses every feature of the regex
+      engine. It is, technically, correct. It matches "home" and only "home"
+      as a standalone word.
+
+      It is also the most over-engineered regex in the history of pattern
+      matching. The engine takes 200ms to evaluate it. Thompson faints.
+      \\b openly weeps.
+
+      The engine matches "home" but runs so slowly that by the time it
+      returns, your human has already navigated away from the page. The match
+      result is discarded, unused.
+
+      You wake up on the keyboard with a deep appreciation for simplicity.
+
+      *The best regex is the simplest one that works. \\bhome\\b. Four
+      characters and two boundaries. Never over-engineer what you can
+      keep clean.*
+
+  # ─────────────────────────────────────────────
+  # ENDING: Walk home path (Good)
+  # ─────────────────────────────────────────────
+
+  walk_home_path:
+    is_ending: true
+    ending_type: good
+    mood: peaceful
+    art: |
+          q0 ──h──▶ q1 ──o──▶ q2 ──m──▶ q3 ──e──▶ ╔═══════╗
+                                                    ║ MATCH ║
+                                                    ║  🐱   ║
+                                                    ╚═══════╝
+    text: |
+      You trace the path you saw from above: q0 →h→ q1 →o→ q2 →m→ q3 →e→ MATCH.
+
+      But walking it is different from seeing it. At each state, the engine
+      checks whether the current input character matches the required
+      transition. You need 'h' first.
+
+      You wait at q0. Characters flow past: 't', 'h' — THERE! You leap
+      onto the 'h' transition and ride it to q1. The engine advances.
+      'o' comes next. You're at q2. 'm' — q3. 'e' — and the MATCH state
+      blazes to life.
+
+      It worked. No lookaheads, no optimization, no clever tricks. Just
+      you, walking the NFA by hand, matching one character at a time.
+      The way regex was meant to be.
+
+      You step through the MATCH state and wake up on the keyboard. Four
+      keys are warm under your paws: H, O, M, E.
+
+      *Sometimes the simplest path is the best one. Walk the states.
+      Match the letters. Go home.*

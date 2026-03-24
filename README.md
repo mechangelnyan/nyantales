@@ -205,6 +205,14 @@ Traverse the DNS hierarchy from resolver cache to root servers, through the .cat
 
 **Endings:** Good (×2) · Neutral · Bad · Secret · **Scenes:** 25
 
+### 🔤 Regex Catastrophe
+
+> *You are Caret, a cat who fell into a regex engine. Navigate character classes, dodge greedy quantifiers, and find the one pattern that matches 'home' — before catastrophic backtracking consumes everything.*
+
+Explore an NFA from the inside: wander through character classes with Bracket, team up with Dot (who matches everything she touches), consult Thompson in the Optimization Office, brave the catastrophic backtracking zone, and assemble the perfect pattern. Features the Backslash Clan, the Alternation Junction, and a Lookahead Hall where you can see input without consuming it.
+
+**Endings:** Good (×4) · Neutral (×3) · Bad (×3) · Secret · **Scenes:** 49
+
 ---
 
 ## Ending Discovery
