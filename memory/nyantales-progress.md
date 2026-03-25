@@ -377,6 +377,23 @@ cd /tmp/nyantales && python3 -m http.server 9876
 - **Service worker** cache bumped to v10
 - All 26 JS files pass `node --check` validation
 
+## Phase 25: Code Quality & QoL Polish ✅
+- **Fullscreen synchronization** — `F` keyboard shortcut, settings panel toggle, and browser UI (Esc) all stay in sync
+  - Settings panel fullscreen button now uses `settings.set('fullscreen')` instead of direct DOM
+  - `fullscreenchange` event listener on `main.js` syncs setting when exiting via browser UI
+  - Keyboard help modal updated with `F` shortcut
+- **Debounced search** — filter input debounced at 80ms for smoother typing performance
+- **Filter count indicator** — shows `X stories` label when search or filter is active
+  - Positioned inside the search input area, auto-hidden when filter is clear
+- **GPU animation hints** — `will-change: transform, opacity` on animated elements
+  - Applied to: scene transitions, sprites, story cards, toasts, auto/skip indicators
+- **Touch device polish** — `-webkit-tap-highlight-color: transparent` + `touch-action: manipulation`
+  - Applied to: HUD buttons, choice buttons, gallery/achievement buttons, filter tags
+  - Prevents double-tap-to-zoom delay on mobile
+- **Code documentation** — `renderTitleScreen()` documented as safe for repeated calls
+- SW cache bumped to v11
+- All 26 JS files pass `node --check` validation
+
 ## Still Possible Future Work
 - Generate remaining character portraits (GPU timeout issue — needs investigation, possibly during lower GPU load)
 - AI-generated scene background images
@@ -386,6 +403,7 @@ cd /tmp/nyantales && python3 -m http.server 9876
 - ~~Accessibility: screen reader support, high-contrast mode, reduced motion~~ ✅ Done in Phase 16
 
 ## Log (continued)
+- 2026-03-25 (6:27 PM): Phase 25 — Fullscreen sync (F key + settings + browser UI), debounced search, filter count indicator, GPU will-change hints, touch-action/tap-highlight polish, code docs. SW cache v11. All 26 JS pass. Committed & pushed.
 - 2026-03-25 (5:27 PM): Phase 24 — Story favorites system (heart button + filter tab + sort option), history panel search bar for filtering dialogue, ending share card with Web Share API + clipboard fallback. CSS for new components. SW cache v10. All 26 JS files pass. Committed & pushed.
 - 2026-03-25 (4:27 PM): Added Statistics Dashboard with per-story breakdown table, global progress cards, recently played section. Added history export as .txt download. Landscape mobile media queries for compact layout. Fixed duplicate max-height CSS bug on textbox. SW cache v9. All 26 JS files pass. Committed & pushed.
 - 2026-03-25 (3:27 PM): Added keyboard help modal (? key + ❓ HUD button), about/credits panel (ℹ️ title button), fixed missing SW cache entry for js-yaml.min.js, removed user-scalable=no a11y issue, removed duplicate DataManager, added error handling to story loader, added <noscript> fallback. All 25 JS files pass. Committed & pushed.
