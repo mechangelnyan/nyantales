@@ -12,7 +12,10 @@
   const tracker = new StoryTracker();
   const audio = new AmbientAudio();
   const achievements = new AchievementSystem(tracker);
-  const gallery = new CharacterGallery(ui.spriteGen);
+  const gallery = new CharacterGallery(ui.spriteGen, ui.portraits);
+
+  // Preload AI portraits
+  await ui.portraits.preloadAll();
 
   // Story index: map of slug → { title, description, slug }
   const STORY_SLUGS = [

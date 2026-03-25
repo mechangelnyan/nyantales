@@ -4,8 +4,9 @@
  */
 
 class CharacterGallery {
-  constructor(spriteGen) {
+  constructor(spriteGen, portraits) {
     this.spriteGen = spriteGen;
+    this.portraits = portraits || null;
     this.overlay = null;
     this._built = false;
   }
@@ -80,7 +81,10 @@ class CharacterGallery {
 
     // Build character cards
     for (const ch of characters) {
-      const portrait = this.spriteGen.generatePortrait(ch.name, ch.appearance, ch.personality);
+      const hasAI = this.portraits && this.portraits.hasPortrait(ch.name);
+      const portrait = hasAI
+        ? this.portraits.getPortrait(ch.name, ch.appearance)
+        : this.spriteGen.generatePortrait(ch.name, ch.appearance, ch.personality);
       const card = document.createElement('div');
       card.className = 'gallery-card';
       card.dataset.name = ch.name.toLowerCase();
@@ -95,9 +99,10 @@ class CharacterGallery {
         `<span class="gallery-story-tag" data-slug="${s}">${this._slugToTitle(s)}</span>`
       ).join('');
 
+      const spriteCls = hasAI ? 'gallery-sprite ai-portrait' : 'gallery-sprite';
       card.innerHTML = `
         <div class="gallery-card-portrait">
-          <img src="${portrait}" alt="${ch.name}" class="gallery-sprite" />
+          <img src="${portrait}" alt="${ch.name}" class="${spriteCls}" />
         </div>
         <div class="gallery-card-info">
           <div class="gallery-card-header">

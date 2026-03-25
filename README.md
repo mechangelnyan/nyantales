@@ -10,6 +10,32 @@
 A terminal-based interactive fiction engine with ASCII art, typewriter effects,
 branching narratives, inventory systems, and the occasional cat.
 
+Now also available as a **web-based visual novel** with character sprites, ambient audio, and achievements!
+
+---
+
+## 🌐 Web Visual Novel
+
+Play NyanTales in your browser with a full visual novel interface:
+
+```bash
+cd nyantales && python3 -m http.server 8080
+# Open http://localhost:8080/web/
+```
+
+**Features:**
+- 🎮 30 interactive stories with branching narratives
+- 🐱 Character sprites (procedural pixel art + AI-generated portraits)
+- 🎵 Procedural ambient audio (9 themed soundscapes via Web Audio API)
+- 🏆 16 achievements to unlock
+- 📊 Story completion tracking & ending discovery
+- 🔍 Search & filter stories
+- 🐱 Character gallery — browse all 45+ characters
+- 💾 Save/load via localStorage
+- ⌨️ Keyboard shortcuts (1-9 for choices, Space/Enter to advance, M for audio, Esc for menu)
+- 📱 Responsive design (mobile-friendly)
+- 🌙 Cyberpunk dark theme with animated backgrounds
+
 ---
 
 ## Install

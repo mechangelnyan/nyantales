@@ -30,8 +30,9 @@ class VNUI {
     this.btnSave = document.getElementById('btn-save');
     this.btnFast = document.getElementById('btn-fast');
 
-    // Sprite generator
+    // Sprite generator + portrait manager
     this.spriteGen = new CatSpriteGenerator();
+    this.portraits = new PortraitManager(this.spriteGen);
     this.currentStorySlug = null;
     this._activeSprites = new Map(); // name -> element
 
@@ -112,8 +113,10 @@ class VNUI {
       const protag = chars.find(c => c.role === 'protagonist');
       let spriteHtml = '';
       if (protag) {
-        const url = this.spriteGen.generate(protag.name, protag.appearance);
-        spriteHtml = `<img src="${url}" class="story-card-sprite" alt="${protag.name}" />`;
+        const url = this.portraits.getSprite(protag.name, protag.appearance);
+        const hasAI = this.portraits.hasPortrait(protag.name);
+        const cls = hasAI ? 'story-card-sprite ai-portrait' : 'story-card-sprite';
+        spriteHtml = `<img src="${url}" class="${cls}" alt="${protag.name}" />`;
       }
 
       card.innerHTML = `
@@ -193,8 +196,9 @@ class VNUI {
         spriteEl = document.createElement('div');
         spriteEl.className = 'vn-sprite-wrap';
         const img = document.createElement('img');
-        img.src = this.spriteGen.generatePortrait(char.name, char.appearance);
+        img.src = this.portraits.getPortrait(char.name, char.appearance);
         img.className = 'vn-sprite';
+        if (this.portraits.hasPortrait(char.name)) img.classList.add('ai-portrait');
         img.alt = char.name;
 
         const label = document.createElement('div');
@@ -297,8 +301,9 @@ class VNUI {
         scene.speaker.toLowerCase().includes(c.name.toLowerCase())
       );
       if (speakerChar) {
-        const spriteUrl = this.spriteGen.generate(speakerChar.name, speakerChar.appearance);
-        this.speakerEl.innerHTML = `<img src="${spriteUrl}" class="speaker-icon" /> ${this._escapeHtml(scene.speaker)}`;
+        const spriteUrl = this.portraits.getSprite(speakerChar.name, speakerChar.appearance);
+        const iconCls = this.portraits.hasPortrait(speakerChar.name) ? 'speaker-icon ai-icon' : 'speaker-icon';
+        this.speakerEl.innerHTML = `<img src="${spriteUrl}" class="${iconCls}" /> ${this._escapeHtml(scene.speaker)}`;
       } else {
         this.speakerEl.textContent = scene.speaker;
       }

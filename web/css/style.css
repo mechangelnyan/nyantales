@@ -224,6 +224,15 @@ body {
   filter: drop-shadow(0 0 4px rgba(0, 212, 255, 0.3));
   border-radius: 4px;
 }
+.story-card-sprite.ai-portrait {
+  image-rendering: auto;
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 2px solid rgba(0, 212, 255, 0.3);
+  filter: drop-shadow(0 0 6px rgba(0, 212, 255, 0.4));
+}
 
 .story-card-text {
   flex: 1;
@@ -393,12 +402,26 @@ body {
   transition: opacity 0.5s ease, filter 0.3s ease, transform 0.3s ease;
   filter: drop-shadow(0 0 6px rgba(0, 0, 0, 0.5)) brightness(0.8);
 }
+.vn-sprite.ai-portrait {
+  image-rendering: auto;
+  width: 180px;
+  height: 180px;
+  border-radius: 12px;
+  object-fit: cover;
+  border: 2px solid rgba(0, 212, 255, 0.15);
+  filter: drop-shadow(0 0 10px rgba(0, 212, 255, 0.3)) brightness(0.85);
+}
 .vn-sprite.visible {
   opacity: 1;
 }
 
 .vn-sprite-wrap.speaking .vn-sprite {
   animation: spriteBob 2s ease-in-out infinite;
+}
+.vn-sprite-wrap.speaking .vn-sprite.ai-portrait {
+  animation: spriteBob 2s ease-in-out infinite;
+  border-color: rgba(0, 212, 255, 0.5);
+  filter: drop-shadow(0 0 16px rgba(0, 212, 255, 0.5)) brightness(1.05) !important;
 }
 
 @keyframes spriteBob {
@@ -520,6 +543,14 @@ body {
   image-rendering: pixelated;
   border-radius: 3px;
   vertical-align: middle;
+}
+.speaker-icon.ai-icon {
+  image-rendering: auto;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 1px solid rgba(0, 212, 255, 0.3);
 }
 
 .vn-text {
@@ -816,15 +847,19 @@ body {
   .vn-art { font-size: 0.5rem; }
   .title-ascii { font-size: 0.5rem; }
   .vn-sprite { width: 80px; height: 80px; }
+  .vn-sprite.ai-portrait { width: 120px; height: 120px; }
   .sprite-label { font-size: 0.6rem; }
+  .story-card-sprite.ai-portrait { width: 44px; height: 44px; }
 }
 
 @media (max-width: 480px) {
   .vn-textbox { min-height: 120px; }
   .choice-btn { font-size: 0.82rem; padding: 0.55rem 0.7rem; }
   .vn-sprite { width: 64px; height: 64px; }
+  .vn-sprite.ai-portrait { width: 96px; height: 96px; }
   .story-card { padding: 0.6rem 0.8rem; }
   .story-card-sprite { width: 32px; height: 32px; }
+  .story-card-sprite.ai-portrait { width: 36px; height: 36px; }
 }
 
 /* ── Scrollbar ── */
@@ -1191,6 +1226,14 @@ body {
   border-radius: 6px;
   border: 1px solid rgba(0, 212, 255, 0.15);
   background: rgba(0, 0, 0, 0.3);
+}
+.gallery-sprite.ai-portrait {
+  image-rendering: auto;
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 2px solid rgba(0, 212, 255, 0.3);
 }
 .gallery-card-info {
   flex: 1;
