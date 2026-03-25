@@ -561,14 +561,29 @@ class VNUI {
         : (type === 'bad' ? 'grayscale(0.8) brightness(0.5)' : 'brightness(0.7)');
     });
 
+    const totalScenes = Object.keys(engine.scenes).length;
+    const visitPct = totalScenes > 0 ? Math.round((engine.state.visited.size / totalScenes) * 100) : 0;
+
     this.endingEl.classList.remove('hidden');
     this.endingEl.innerHTML = `
       <div class="ending-icon">${icon}</div>
       <div class="ending-type ${type}">${(ending.title || type.toUpperCase()).toUpperCase()}</div>
       <div class="ending-text">${this._escapeHtml(engine.interpolate(ending.text || scene.text || ''))}</div>
-      <div class="ending-stats">
-        Scenes visited: ${engine.state.visited.size} | Turns: ${engine.state.turns}
-        ${engine.state.inventory.length ? ' | Items: ' + engine.state.inventory.join(', ') : ''}
+      <div class="ending-stats-grid">
+        <div class="ending-stat-box">
+          <span class="ending-stat-value">${engine.state.turns}</span>
+          <span class="ending-stat-label">Turns</span>
+        </div>
+        <div class="ending-stat-box">
+          <span class="ending-stat-value">${engine.state.visited.size}/${totalScenes}</span>
+          <span class="ending-stat-label">Scenes (${visitPct}%)</span>
+        </div>
+        ${engine.state.inventory.length ? `
+        <div class="ending-stat-box" style="grid-column:span 2">
+          <span class="ending-stat-value">🎒 ${engine.state.inventory.join(', ')}</span>
+          <span class="ending-stat-label">Items Collected</span>
+        </div>
+        ` : ''}
       </div>
       <button class="ending-btn" id="btn-restart">↻ Play Again</button>
       <button class="ending-btn" id="btn-menu" style="margin-top:0.5rem">⏎ Story List</button>

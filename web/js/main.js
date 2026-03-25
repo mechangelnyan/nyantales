@@ -320,6 +320,11 @@
       try { currentEngine.loadState(savedState); } catch (e) { console.warn('Failed to load save:', e); }
     }
 
+    // Show story intro splash (skip for loaded saves — player already knows the story)
+    if (!savedState) {
+      await StoryIntro.show(story, ui.portraits);
+    }
+
     ui.showStoryScreen();
     updateAutoPlayHUD(settings.get('autoPlay'));
     showKeyboardHints();
@@ -885,29 +890,10 @@
 
   // ── Online/Offline Notifications ──
 
-  function showNetworkToast(message, color) {
-    const existing = document.querySelector('.network-toast');
-    if (existing) existing.remove();
+  // ── Online/Offline Toasts (using centralized Toast system) ──
 
-    const toast = document.createElement('div');
-    toast.className = 'network-toast';
-    toast.style.cssText = `
-      position:fixed;bottom:1rem;left:50%;transform:translateX(-50%);z-index:9999;
-      background:${color};border-radius:6px;padding:0.4rem 1rem;
-      font-family:var(--font-mono);font-size:0.75rem;color:#fff;
-      opacity:0;transition:opacity 0.4s ease;pointer-events:none;
-    `;
-    toast.textContent = message;
-    document.body.appendChild(toast);
-    requestAnimationFrame(() => { toast.style.opacity = '1'; });
-    setTimeout(() => {
-      toast.style.opacity = '0';
-      setTimeout(() => toast.remove(), 500);
-    }, 3000);
-  }
-
-  window.addEventListener('online', () => showNetworkToast('📶 Back online', 'rgba(0,255,136,0.85)'));
-  window.addEventListener('offline', () => showNetworkToast('📴 Offline — saves still work!', 'rgba(255,68,68,0.85)'));
+  window.addEventListener('online', () => Toast.show('Back online', { icon: '📶', color: 'rgba(0,255,136,0.88)' }));
+  window.addEventListener('offline', () => Toast.show('Offline — saves still work!', { icon: '📴', color: 'rgba(255,68,68,0.88)' }));
 
   boot();
 })();
