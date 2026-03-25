@@ -191,13 +191,35 @@ cd /tmp/nyantales && python3 -m http.server 9876
   - Audio theme update moved to `playScene` (not monkey-patched onto renderScene)
   - All 15 JS files pass `node --check` syntax validation
 
+## Phase 16: Accessibility & Loading Polish ✅
+- **Loading screen** — animated cat + progress bar during boot, smooth fade-out when ready
+- **ARIA semantics throughout**:
+  - `role="dialog"` + `aria-label` on all modal overlays (settings, history, save/load, achievements, gallery)
+  - `role="toolbar"` on HUD and title action bars
+  - `role="list"` / `role="listitem"` on story grid and cards
+  - `role="tablist"` / `role="tab"` + `aria-selected` on filter tabs
+  - `role="log"` + `aria-live="polite"` on textbox for screen reader narration
+  - `role="status"` on location bar and inventory
+  - `role="progressbar"` on story card completion bars
+  - `aria-pressed` state tracked on toggle buttons (audio, auto-play)
+- **Focus trap utility** (`web/js/focus-trap.js`) — Tab/Shift+Tab cycles within modal, restores focus on close
+  - Integrated into: SettingsPanel, HistoryPanel, SaveManager
+- **Keyboard navigation** — story cards are focusable with `tabindex="0"`, activate with Enter/Space
+- **Screen reader support** — `sr-only` class for visually hidden labels, `h1` for title screen
+- **`prefers-reduced-motion`** — all animations/transitions disabled when user prefers reduced motion
+- **`prefers-contrast: more`** — high contrast mode: thicker borders, brighter text, opaque backgrounds
+- **`color-scheme: dark`** meta tag for browser UI consistency
+- **Keyboard shortcut hints** — toast shown on first story entry with key bindings (Space, 1-9, A, H, S, Q, Esc)
+- **Story card progress bars** — thin bar at bottom of each card showing completion %
+- **Service worker** cache bumped to v2 with focus-trap.js
+
 ## Still Possible Future Work
 - Generate remaining character portraits (GPU timeout issue — needs investigation, possibly during lower GPU load)
 - AI-generated scene background images
 - More advanced sprite animations (idle, emote variants)
 - Style consistency pass on existing portraits (3 different styles detected: realistic cat, anime catgirl, victorian anthropomorphic)
 - Chapter/route progress tracking (% completion per story)
-- Accessibility: screen reader support, high-contrast mode, reduced motion
+- ~~Accessibility: screen reader support, high-contrast mode, reduced motion~~ ✅ Done in Phase 16
 
 ## Log
 - 2026-03-24: Built complete web visual novel engine (ui.js + main.js). All 30 stories load and play in browser. Core VN loop works: title screen → story select → scene rendering → choices → state tracking → endings → restart/menu.
@@ -207,3 +229,4 @@ cd /tmp/nyantales && python3 -m http.server 9876
 - 2026-03-25 (1:27 AM): Integrated AI character portraits into web VN engine. Created PortraitManager for 6 characters with graceful fallback. Added vignette, textbox glow, blinking cursor polish. Updated README. Moved generation scripts to tools/. Attempted new portrait generation but GPU hit Metal timeout errors — deferred to future session. Committed & pushed (3 commits: portrait integration, tools reorganization, visual polish).
 - 2026-03-25 (6:27 AM): Major web engine polish — settings menu, auto-play mode, text history/backlog, skip-read-text. 3 new JS modules (settings.js, settings-panel.js, history.js). 3 new HUD buttons + keyboard shortcuts (A/H/S). Settings persist to localStorage with live reactivity. Set up GitHub Pages deployment via Actions workflow. Root index.html redirect. README updated with Pages link + new features. Committed & pushed.
 - 2026-03-25 (7:27 AM): Save slots, touch gestures, PWA support. SaveManager with 3 manual + 1 auto slot per story, full save/load UI panel. TouchHandler for swipe gestures (left=advance, right=history, down=settings). PWA manifest + service worker for offline play. "Continue" button on title screen. Fixed isNewEnding bug in tracker. Fixed monkey-patching in main.js. Safe area CSS for notch phones. Code refactored for cleaner separation. Committed & pushed.
+- 2026-03-25 (8:27 AM): Accessibility & loading polish — loading screen with progress bar, ARIA roles/labels/live regions throughout (dialogs, toolbars, lists, tabs), FocusTrap utility for modal focus management, keyboard-navigable story cards, prefers-reduced-motion (disables all animations), prefers-contrast high contrast mode, sr-only labels, keyboard shortcut hints toast, story card progress bars. SW cache bumped to v2. All 16 JS files pass syntax validation. Committed & pushed.
