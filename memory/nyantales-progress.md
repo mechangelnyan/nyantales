@@ -274,6 +274,24 @@ cd /tmp/nyantales && python3 -m http.server 9876
   - Added/expanded JSDoc in touched modules
   - All JS files pass `node --check`
 
+## Phase 20: Rewind Fix, Font Size, Random Story, Progress HUD ✅
+- **Accurate rewind** — `StoryEngine.rewindScene()` now uses state snapshots
+  - Previous rewind only restored the scene ID; inventory/flags were left as-is (bug)
+  - Now snapshots full state (scene, inventory, flags, turns) at each transition
+  - Snapshots capped at 200 entries to prevent memory bloat
+  - Save/load preserves snapshot history
+- **Font Size setting** — adjustable text size (80%–140%) in Settings → Visual
+  - CSS custom property `--text-scale` applied to `.vn-text` and `.choice-btn`
+  - Live-reactive (changes immediately when slider moves)
+  - Persisted to localStorage
+- **Random Story button** — 🎲 on title screen, prefers unplayed stories
+  - Falls back to any story if all completed
+- **In-game Progress HUD** — bottom-right corner shows `📍 visited/total · Turn N`
+  - Subtly faded (0.45 opacity), brightens on hover
+  - Updates after every scene render
+- **Code quality** — `_syncAll` in settings panel now uses correct formatter for text speed labels (was showing raw ms instead of "Fast"/"Normal" etc.)
+- SW cache bumped to v6
+
 ## Still Possible Future Work
 - Generate remaining character portraits (GPU timeout issue — needs investigation, possibly during lower GPU load)
 - AI-generated scene background images
@@ -295,3 +313,4 @@ cd /tmp/nyantales && python3 -m http.server 9876
 - 2026-03-25 (10:27 AM): Story sorting (6 modes: A-Z, Z-A, recent, progress, shortest, longest), data export/import (full backup/restore of all game data as JSON), online/offline toast notifications. DataManager class for localStorage backup. Settings panel gained Data section with export/import buttons + usage stats. SW cache v4. All 17 JS files pass. Committed & pushed.
 - 2026-03-25 (11:27 AM): Added reusable confirmation dialogs for destructive actions (delete save, reset settings, import data) and a Scene Select panel for jumping to previously visited scenes via new 📍 HUD button or `G` shortcut. Added `StoryEngine.jumpToScene()`, updated keyboard hints, and styled new overlays. All JS files pass syntax validation. Committed & pushed.
 - 2026-03-25 (12:27 PM): Added a reusable `Toast` notification system (`web/js/toast.js`) to centralize lightweight UX messaging and migrated network online/offline notices to it. Added a cinematic `StoryIntro` splash (`web/js/story-intro.js`) with protagonist portrait, title, and description when starting a fresh story. Upgraded ending overlays with a cleaner stats grid (turns, scene exploration %, collected items). Updated `index.html`, `style.css`, and `sw.js` (cache v5) to wire in the new modules and offline support. All touched JS files + service worker pass `node --check`. Committed & pushed.
+- 2026-03-25 (1:27 PM): Fixed critical rewind bug — rewind now restores inventory/flags from state snapshots instead of just rewinding scene ID. Added font size setting (80%-140%) with live CSS scaling. Added Random Story button (prefers unplayed). Added in-game progress HUD showing scene exploration and turn count. Fixed _syncAll text speed formatter. SW cache v6. All JS files pass. Committed & pushed.
