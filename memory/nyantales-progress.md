@@ -114,12 +114,52 @@ cd /tmp/nyantales && python3 -m http.server 9876
 - README updated with web visual novel documentation
 - LoRA model files added to .gitignore
 
+## Phase 13: Settings, Auto-Play, History, Skip-Read ✅
+- `SettingsManager` class (`web/js/settings.js`) — persistent user preferences via localStorage
+  - Text speed (slider: 2ms–40ms per chunk), auto-play on/off, auto-play delay (0.5s–6s)
+  - Skip-read-scenes toggle, screen shake/glitch effects toggle, particles toggle
+  - Audio volume slider, fullscreen toggle
+  - Reset to defaults button
+- `SettingsPanel` class (`web/js/settings-panel.js`) — full settings overlay UI
+  - Grouped by: Text, Visual, Audio sections
+  - Sliders with live value labels, styled ON/OFF toggle buttons
+  - Responsive at all breakpoints
+  - Opens via ⚙️ HUD button or 'S' key, closes with ✕ or Escape
+- `TextHistory` + `HistoryPanel` classes (`web/js/history.js`) — text backlog system
+  - Records all dialogue/narration: speaker name + text + scene ID
+  - Scrollable modal panel, auto-scrolls to latest entry
+  - Opens via 📜 HUD button or 'H' key
+  - Clears on story restart or menu return
+- **Auto-Play mode** — auto-advances narration scenes after configurable delay
+  - Green pulsing "AUTO" indicator on screen when active
+  - Pauses at choices and endings (requires manual selection)
+  - Toggle via ▶️ HUD button or 'A' key
+  - Delay configurable in settings (500ms–6000ms)
+- **Skip-Read-Text** — fast-forwards through previously visited scenes
+  - Temporarily enables fast mode for scenes in the `visited` set
+  - Auto-advances no-choice scenes with only `next` links
+  - Yellow "⏭ SKIP" indicator when active
+  - Toggle in settings panel
+- New HUD buttons: ▶️ Auto-Play, 📜 History, ⚙️ Settings
+- New keyboard shortcuts: A (auto-play), H (history), S (settings)
+- Settings react live: changing text speed immediately affects typewriter
+- Particle overlay can be toggled off for performance (`.no-particles` body class)
+
+## Phase 14: GitHub Pages Deployment ✅
+- GitHub Actions workflow (`.github/workflows/deploy.yml`) — deploys on push to main
+  - Uses `actions/deploy-pages@v4` with full repo artifact
+  - Concurrency group prevents overlapping deploys
+- Root `index.html` redirects to `web/` for clean URL on Pages
+- README updated with live GitHub Pages link
+- **URL:** https://mechangelnyan.github.io/nyantales/web/
+
 ## Still Possible Future Work
 - Generate remaining character portraits (GPU timeout issue — needs investigation, possibly during lower GPU load)
 - AI-generated scene background images
 - More advanced sprite animations (idle, emote variants)
 - Style consistency pass on existing portraits (3 different styles detected: realistic cat, anime catgirl, victorian anthropomorphic)
-- Deploy to GitHub Pages or similar static hosting
+- Save slot management (multiple saves per story)
+- Touch gesture support (swipe to advance/go back)
 
 ## Log
 - 2026-03-24: Built complete web visual novel engine (ui.js + main.js). All 30 stories load and play in browser. Core VN loop works: title screen → story select → scene rendering → choices → state tracking → endings → restart/menu.
@@ -127,3 +167,4 @@ cd /tmp/nyantales && python3 -m http.server 9876
 - 2026-03-25 (late): Added story completion tracking (tracker.js), search/filter on title screen, and procedural ambient audio engine (audio.js). 9 themed soundscapes synthesized via Web Audio API. Stats bar, completion badges, filter tabs. Committed & pushed.
 - 2026-03-25 (12:27 AM): Added Character Gallery (gallery.js) — browse all 45 characters with pixel sprites, search/filter, click story tags to play. Added Achievement System (achievements.js) — 16 achievements with animated toast unlocks and modal panel. Stats bar shows achievement progress. Committed & pushed.
 - 2026-03-25 (1:27 AM): Integrated AI character portraits into web VN engine. Created PortraitManager for 6 characters with graceful fallback. Added vignette, textbox glow, blinking cursor polish. Updated README. Moved generation scripts to tools/. Attempted new portrait generation but GPU hit Metal timeout errors — deferred to future session. Committed & pushed (3 commits: portrait integration, tools reorganization, visual polish).
+- 2026-03-25 (6:27 AM): Major web engine polish — settings menu, auto-play mode, text history/backlog, skip-read-text. 3 new JS modules (settings.js, settings-panel.js, history.js). 3 new HUD buttons + keyboard shortcuts (A/H/S). Settings persist to localStorage with live reactivity. Set up GitHub Pages deployment via Actions workflow. Root index.html redirect. README updated with Pages link + new features. Committed & pushed.
