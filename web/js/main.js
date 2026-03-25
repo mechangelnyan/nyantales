@@ -11,6 +11,8 @@
   const ui = new VNUI();
   const tracker = new StoryTracker();
   const audio = new AmbientAudio();
+  const achievements = new AchievementSystem(tracker);
+  const gallery = new CharacterGallery(ui.spriteGen);
 
   // Story index: map of slug → { title, description, slug }
   const STORY_SLUGS = [
@@ -104,6 +106,13 @@
         newBadge.style.cssText = 'color:var(--accent-yellow);font-family:var(--font-mono);font-size:0.75rem;margin-top:0.5rem;animation:fadeIn 0.5s ease';
         endingEl.appendChild(newBadge);
       }
+
+      // Check achievements after every ending
+      const newAch = achievements.checkAll();
+      if (newAch.length > 0) {
+        // Delay to not overlap ending animation
+        setTimeout(() => achievements.showNewUnlocks(newAch), 2000);
+      }
     };
 
     // Wire up restart
@@ -134,17 +143,25 @@
 
     // Save to localStorage
     saveProgress();
+
+    // Check achievements (e.g., "first boot")
+    const startAch = achievements.checkAll();
+    if (startAch.length > 0) {
+      setTimeout(() => achievements.showNewUnlocks(startAch), 1500);
+    }
   }
 
   // ── Render Title Screen (with stats + completion badges) ──
   function renderTitleScreen() {
     // Stats bar
     const stats = tracker.getStats();
+    const achStats = achievements.getStats();
     const statsEl = document.getElementById('title-stats');
     statsEl.innerHTML = `
       <div class="stat">📖 <span class="stat-value">${stats.storiesCompleted}</span>/${storyIndex.length} complete</div>
       <div class="stat">🔮 <span class="stat-value">${stats.totalEndings}</span> endings found</div>
       <div class="stat">🎮 <span class="stat-value">${stats.totalPlays}</span> plays</div>
+      <div class="stat">🏆 <span class="stat-value">${achStats.unlocked}</span>/${achStats.total}</div>
     `;
 
     // Render story list with badges
@@ -333,6 +350,70 @@
         </p>`;
     }
   }
+
+  // ── Gallery Button ──
+  document.getElementById('btn-gallery').addEventListener('click', () => {
+    gallery.onStoryClick((slug) => {
+      const story = storyIndex.find(s => s.slug === slug);
+      if (story) {
+        if (!audio.ctx) audio.init();
+        startStory(story);
+      }
+    });
+    gallery.show();
+  });
+
+  // ── Achievements Button + Panel ──
+  const achBtn = document.getElementById('btn-achievements');
+  let achOverlay = null;
+
+  achBtn.addEventListener('click', () => {
+    if (!achOverlay) {
+      achOverlay = document.createElement('div');
+      achOverlay.className = 'achievements-overlay';
+      document.body.appendChild(achOverlay);
+
+      achOverlay.addEventListener('click', (e) => {
+        if (e.target === achOverlay) achOverlay.classList.remove('visible');
+      });
+    }
+
+    const allAch = achievements.getAll();
+    const achStats = achievements.getStats();
+
+    achOverlay.innerHTML = `
+      <div class="achievements-panel">
+        <div class="achievements-panel-header">
+          <div>
+            <div class="achievements-panel-title">🏆 Achievements</div>
+            <div class="achievements-panel-count">${achStats.unlocked} / ${achStats.total} unlocked</div>
+          </div>
+          <button class="achievements-panel-close">✕</button>
+        </div>
+        <div class="achievements-list">
+          ${allAch.map(a => `
+            <div class="achievement-item ${a.unlocked ? 'unlocked' : 'locked'}">
+              <div class="achievement-item-icon">${a.unlocked ? a.icon : '🔒'}</div>
+              <div class="achievement-item-info">
+                <div class="achievement-item-name">${a.unlocked ? a.name : '???'}</div>
+                <div class="achievement-item-desc">${a.desc}</div>
+              </div>
+            </div>
+          `).join('')}
+        </div>
+      </div>
+    `;
+
+    achOverlay.querySelector('.achievements-panel-close').addEventListener('click', () => {
+      achOverlay.classList.remove('visible');
+    });
+
+    requestAnimationFrame(() => achOverlay.classList.add('visible'));
+  });
+
+  // Check achievements on boot too
+  const bootAch = achievements.checkAll();
+  // Don't toast on boot — just silently update
 
   boot();
 })();
