@@ -292,6 +292,25 @@ cd /tmp/nyantales && python3 -m http.server 9876
 - **Code quality** — `_syncAll` in settings panel now uses correct formatter for text speed labels (was showing raw ms instead of "Fast"/"Normal" etc.)
 - SW cache bumped to v6
 
+## Phase 21: Story Info Modal, Mobile HUD, QoL ✅
+- **Story Info Modal** (`web/js/story-info.js`) — detailed per-story statistics panel
+  - Shows: protagonist portrait, title, description, reading time, scene count
+  - 4-stat grid: exploration %, total plays, best turns, endings found
+  - Lists all discovered ending names as styled tags
+  - Last played timestamp
+  - Quick-play and Continue (loads most recent save slot) buttons
+  - Focus trap for keyboard accessibility, Escape to close
+  - Responsive layout (2-col stats on small screens, stacked header on very small)
+- **Story card info button** (ℹ) — appears on hover, opens info modal without starting the story
+  - Stops click propagation (doesn't trigger story start)
+- **Collapsible mobile HUD** — overflow toggle button (⋯) for screens < 600px
+  - Core buttons always visible: Back, Rewind, Save/Load
+  - Less-used buttons (Fast, Auto, History, Scenes, Settings, Audio) collapse behind toggle
+  - Toggle switches between ⋯ and ✕ icons
+- **Code quality** — .gitignore updated to exclude test artifacts (test-results/, playwright.config.js)
+- SW cache bumped to v7 with story-info.js
+- All JS files pass `node --check` validation
+
 ## Still Possible Future Work
 - Generate remaining character portraits (GPU timeout issue — needs investigation, possibly during lower GPU load)
 - AI-generated scene background images
@@ -314,3 +333,4 @@ cd /tmp/nyantales && python3 -m http.server 9876
 - 2026-03-25 (11:27 AM): Added reusable confirmation dialogs for destructive actions (delete save, reset settings, import data) and a Scene Select panel for jumping to previously visited scenes via new 📍 HUD button or `G` shortcut. Added `StoryEngine.jumpToScene()`, updated keyboard hints, and styled new overlays. All JS files pass syntax validation. Committed & pushed.
 - 2026-03-25 (12:27 PM): Added a reusable `Toast` notification system (`web/js/toast.js`) to centralize lightweight UX messaging and migrated network online/offline notices to it. Added a cinematic `StoryIntro` splash (`web/js/story-intro.js`) with protagonist portrait, title, and description when starting a fresh story. Upgraded ending overlays with a cleaner stats grid (turns, scene exploration %, collected items). Updated `index.html`, `style.css`, and `sw.js` (cache v5) to wire in the new modules and offline support. All touched JS files + service worker pass `node --check`. Committed & pushed.
 - 2026-03-25 (1:27 PM): Fixed critical rewind bug — rewind now restores inventory/flags from state snapshots instead of just rewinding scene ID. Added font size setting (80%-140%) with live CSS scaling. Added Random Story button (prefers unplayed). Added in-game progress HUD showing scene exploration and turn count. Fixed _syncAll text speed formatter. SW cache v6. All JS files pass. Committed & pushed.
+- 2026-03-25 (2:27 PM): Story Info Modal — new StoryInfoModal class shows detailed per-story stats (exploration %, endings discovered, play count, best turns, last played, protagonist portrait) via ℹ button on story cards. Collapsible mobile HUD with overflow toggle for <600px screens. .gitignore cleanup for test artifacts. SW cache v7. All JS files pass. Committed & pushed.
