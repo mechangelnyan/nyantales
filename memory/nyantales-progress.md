@@ -59,14 +59,34 @@ cd /tmp/nyantales && python3 -m http.server 9876
 - Grid scroll animation ✅
 - Keyboard shortcuts ✅
 
+## Phase 6: Story Completion Tracking ✅
+- `StoryTracker` class (`web/js/tracker.js`) — localStorage-based progress persistence
+- Tracks: completed stories, unique endings discovered, total plays, best turn count per story
+- Title screen shows stats bar: stories complete / endings found / total plays
+- Story cards get ✅ badge + ending count when completed
+- Completed cards have green border accent
+- "New Ending Discovered!" flash on finding previously-unseen endings
+
+## Phase 7: Search & Filter ✅
+- Search bar on title screen — filters by title, description, slug
+- Filter tabs: All / ✅ Completed / 🆕 New
+- Real-time filtering with CSS class toggle (no re-render)
+
+## Phase 8: Procedural Ambient Audio ✅
+- `AmbientAudio` class (`web/js/audio.js`) — Web Audio API synthesized backgrounds
+- 9 themed soundscapes: digital, server, network, memory, database, cafe, warm, danger, void
+- Uses filtered noise, oscillator pads, LFO modulation, random blip patterns
+- Theme changes with crossfade on scene transitions (auto-detected from bg class)
+- Audio toggle: HUD button (🔊/🔇) + M keyboard shortcut
+- Auto-initializes on first user interaction (browser autoplay policy)
+
 ## Still Possible Future Work
 - AI-generated character portrait images (replace procedural with hand-drawn/AI art)
 - AI-generated scene background images
-- Sound effects / ambient audio
 - More advanced sprite animations (idle, emote variants)
 - Achievement/collectible system across stories
-- Story completion tracking in the grid view
 
 ## Log
 - 2026-03-24: Built complete web visual novel engine (ui.js + main.js). All 30 stories load and play in browser. Core VN loop works: title screen → story select → scene rendering → choices → state tracking → endings → restart/menu.
 - 2026-03-24 (late): Added procedural pixel cat sprite system (sprites.js). Characters appear as pixel-art cats during scenes, with speaking highlights and transitions. Story cards show protagonist thumbnails. Scene crossfade transitions. Extensive CSS polish: animations, particles, mood colors, responsive sprites, ending animations, choice number hints. Committed & pushed.
+- 2026-03-25 (late): Added story completion tracking (tracker.js), search/filter on title screen, and procedural ambient audio engine (audio.js). 9 themed soundscapes synthesized via Web Audio API. Stats bar, completion badges, filter tabs. Committed & pushed.
