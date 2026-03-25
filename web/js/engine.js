@@ -1,6 +1,17 @@
 /**
  * NyanTales Visual Novel Engine
  * Handles game state, scene transitions, choices, flags, inventory, and conditions.
+ *
+ * @class StoryEngine
+ * @param {Object} storyData - Parsed YAML story data with scenes, title, start, etc.
+ *
+ * State shape:
+ *   currentScene {string}  - ID of the active scene
+ *   inventory    {Array}   - Items the player holds
+ *   flags        {Set}     - Boolean flags set during play
+ *   visited      {Set}     - Scene IDs the player has seen
+ *   turns        {number}  - Total scene transitions
+ *   history      {Array}   - Ordered list of visited scene IDs
  */
 
 class StoryEngine {

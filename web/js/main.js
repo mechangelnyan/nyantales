@@ -1,6 +1,6 @@
 /**
  * NyanTales Visual Novel — Main Application
- * Loads stories, wires up the engine + UI + tracker + audio, handles game loop.
+ * Loads stories, wires up the engine + UI + tracker + audio + settings + history, handles game loop.
  */
 
 (async function () {
@@ -13,9 +13,34 @@
   const audio = new AmbientAudio();
   const achievements = new AchievementSystem(tracker);
   const gallery = new CharacterGallery(ui.spriteGen, ui.portraits);
+  const settings = new SettingsManager();
+  const settingsPanel = new SettingsPanel(settings);
+  const textHistory = new TextHistory();
+  const historyPanel = new HistoryPanel(textHistory);
 
   // Preload AI portraits
   await ui.portraits.preloadAll();
+
+  // Apply initial settings to UI
+  ui.typewriterSpeed = settings.get('textSpeed');
+  applyParticlesSetting(settings.get('particles'));
+
+  // React to setting changes live
+  settings.onChange((key, value) => {
+    if (key === 'textSpeed') ui.typewriterSpeed = value;
+    if (key === 'autoPlay') {
+      updateAutoPlayHUD(value);
+      if (!value) clearAutoPlayTimer();
+    }
+    if (key === 'particles') applyParticlesSetting(value);
+    if (key === 'audioVolume' && audio.masterGain) {
+      audio.masterGain.gain.setTargetAtTime(value, audio.ctx.currentTime, 0.1);
+    }
+  });
+
+  function applyParticlesSetting(on) {
+    document.body.classList.toggle('no-particles', !on);
+  }
 
   // Story index: map of slug → { title, description, slug }
   const STORY_SLUGS = [
@@ -29,7 +54,7 @@
     'the-terminal-cat', 'tls-pawshake', 'vim-escape', 'zombie-process'
   ];
 
-  // Resolve base path — works whether served from /web/ or repo root
+  // Resolve base path
   function storyBasePath() {
     const path = window.location.pathname;
     if (path.includes('/web/') || path.endsWith('/web')) return '../stories';
@@ -40,11 +65,88 @@
   let currentEngine = null;
   let currentSlug = null;
   let activeFilter = 'all';
+  let autoPlayTimer = null;
+  let autoPlayIndicator = null;
+  let skipIndicator = null;
+
+  // ── Auto-play management ──
+
+  function clearAutoPlayTimer() {
+    if (autoPlayTimer) {
+      clearTimeout(autoPlayTimer);
+      autoPlayTimer = null;
+    }
+  }
+
+  function scheduleAutoAdvance() {
+    clearAutoPlayTimer();
+    if (!settings.get('autoPlay') || !currentEngine) return;
+
+    const scene = currentEngine.getCurrentScene();
+    if (!scene || scene.ending) return;
+
+    // Don't auto-advance when choices are showing
+    const choices = currentEngine.getAvailableChoices();
+    if (choices.length > 0) return;
+
+    autoPlayTimer = setTimeout(() => {
+      // Auto-advance: move to the scene's "next" if it has one, or first choice's goto
+      if (!currentEngine) return;
+      const currentScene = currentEngine.getCurrentScene();
+      if (!currentScene) return;
+
+      if (currentScene.next) {
+        const nextScene = currentEngine.goToScene(currentScene.next);
+        playScene(nextScene);
+      }
+    }, settings.get('autoPlayDelay'));
+  }
+
+  function updateAutoPlayHUD(on) {
+    const btn = document.getElementById('btn-auto');
+    btn.style.opacity = on ? '1' : '0.5';
+    btn.title = on ? 'Auto-Play ON (A)' : 'Auto-Play OFF (A)';
+
+    if (on) {
+      if (!autoPlayIndicator) {
+        autoPlayIndicator = document.createElement('div');
+        autoPlayIndicator.className = 'auto-play-indicator';
+        autoPlayIndicator.innerHTML = '<div class="auto-play-dot"></div> AUTO';
+        document.querySelector('.vn-container').appendChild(autoPlayIndicator);
+      }
+      autoPlayIndicator.style.display = '';
+    } else if (autoPlayIndicator) {
+      autoPlayIndicator.style.display = 'none';
+    }
+  }
+
+  // ── Skip-read-scenes logic ──
+
+  function shouldSkipScene(sceneId) {
+    if (!settings.get('skipRead') || !currentEngine) return false;
+    return currentEngine.state.visited.has(sceneId);
+  }
+
+  function updateSkipIndicator(active) {
+    if (active) {
+      if (!skipIndicator) {
+        skipIndicator = document.createElement('div');
+        skipIndicator.className = 'skip-indicator';
+        skipIndicator.innerHTML = '⏭ SKIP';
+        document.querySelector('.vn-container').appendChild(skipIndicator);
+      }
+      skipIndicator.style.display = '';
+      // Hide auto indicator while skipping
+      if (autoPlayIndicator) autoPlayIndicator.style.display = 'none';
+    } else if (skipIndicator) {
+      skipIndicator.style.display = 'none';
+      if (settings.get('autoPlay') && autoPlayIndicator) autoPlayIndicator.style.display = '';
+    }
+  }
 
   // ── Load Story Index ──
   async function loadStoryIndex() {
     const base = storyBasePath();
-    const entries = [];
 
     const results = await Promise.allSettled(
       STORY_SLUGS.map(async slug => {
@@ -62,12 +164,57 @@
       })
     );
 
-    for (const r of results) {
-      if (r.status === 'fulfilled' && r.value) entries.push(r.value);
+    storyIndex = results
+      .filter(r => r.status === 'fulfilled' && r.value)
+      .map(r => r.value);
+
+    return storyIndex;
+  }
+
+  // ── Core scene playback (with skip + history + auto-play) ──
+
+  async function playScene(scene) {
+    if (!scene || !currentEngine) return;
+
+    // Record to history before rendering
+    const sceneId = currentEngine.state.currentScene;
+    textHistory.add(sceneId, scene.speaker, scene.text);
+
+    // Disable screen shake if setting is off
+    const origEffect = scene.effect;
+    if (!settings.get('screenShake') && (scene.effect === 'glitch' || scene.effect === 'shake')) {
+      scene.effect = null;
     }
 
-    storyIndex = entries;
-    return entries;
+    // Skip-read: if scene was already visited, use fast mode temporarily
+    const wasInFastMode = ui.fastMode;
+    if (shouldSkipScene(sceneId) && !scene.ending) {
+      ui.fastMode = true;
+      updateSkipIndicator(true);
+    } else {
+      updateSkipIndicator(false);
+    }
+
+    await ui.renderScene(scene, currentEngine);
+
+    // Restore fast mode
+    if (!wasInFastMode && shouldSkipScene(sceneId)) {
+      ui.fastMode = wasInFastMode;
+    }
+
+    scene.effect = origEffect;
+
+    // Check for auto-advance on scenes with "next" and no choices
+    if (!scene.ending) {
+      const choices = currentEngine.getAvailableChoices();
+      if (choices.length === 0 && scene.next && shouldSkipScene(sceneId)) {
+        // Skip-read: auto-advance through visited no-choice scenes quickly
+        await new Promise(r => setTimeout(r, 50));
+        const nextScene = currentEngine.goToScene(scene.next);
+        return playScene(nextScene);
+      }
+      scheduleAutoAdvance();
+    }
   }
 
   // ── Start Story ──
@@ -76,12 +223,15 @@
     ui.setStorySlug(story.slug);
     const parsed = story._parsed;
     currentEngine = new StoryEngine(parsed);
+    textHistory.clear();
+
+    // Apply current text speed
+    ui.typewriterSpeed = settings.get('textSpeed');
 
     // Wire audio theme updates to scene transitions
     const originalRenderScene = ui.renderScene.bind(ui);
     ui.renderScene = async function(scene, engine) {
       await originalRenderScene(scene, engine);
-      // Update audio based on background
       if (audio.enabled) {
         audio.setTheme(ui._lastBgClass);
       }
@@ -89,18 +239,20 @@
 
     // Wire up choice handler
     ui.onChoice(choice => {
+      clearAutoPlayTimer();
       const nextScene = currentEngine.goToScene(choice.goto, choice);
-      ui.renderScene(nextScene, currentEngine);
+      playScene(nextScene);
     });
 
     // Wire up ending detection
     const origShowEnding = ui._showEnding.bind(ui);
     ui._showEnding = function(scene, engine) {
-      // Track completion
+      clearAutoPlayTimer();
+      updateSkipIndicator(false);
+
       const result = tracker.recordEnding(currentSlug, scene.ending, engine.state.turns);
       origShowEnding(scene, engine);
 
-      // Add "new ending" flash if applicable
       if (result.isNewEnding) {
         const endingEl = document.getElementById('vn-ending');
         const newBadge = document.createElement('div');
@@ -110,10 +262,8 @@
         endingEl.appendChild(newBadge);
       }
 
-      // Check achievements after every ending
       const newAch = achievements.checkAll();
       if (newAch.length > 0) {
-        // Delay to not overlap ending animation
         setTimeout(() => achievements.showNewUnlocks(newAch), 2000);
       }
     };
@@ -121,42 +271,50 @@
     // Wire up restart
     ui.onRestart(() => {
       currentEngine = new StoryEngine(parsed);
+      textHistory.clear();
       ui.onChoice(choice => {
+        clearAutoPlayTimer();
         const nextScene = currentEngine.goToScene(choice.goto, choice);
-        ui.renderScene(nextScene, currentEngine);
+        playScene(nextScene);
       });
       const firstScene = currentEngine.getCurrentScene();
-      ui.renderScene(firstScene, currentEngine);
+      playScene(firstScene);
     });
 
     // Wire up menu
     ui.onMenu(() => {
-      currentEngine = null;
-      currentSlug = null;
-      ui.setStorySlug(null);
-      audio.stop();
-      ui.showTitleScreen();
-      renderTitleScreen();
+      returnToMenu();
     });
 
     // Show story screen and render first scene
     ui.showStoryScreen();
+    updateAutoPlayHUD(settings.get('autoPlay'));
     const firstScene = currentEngine.getCurrentScene();
-    await ui.renderScene(firstScene, currentEngine);
+    await playScene(firstScene);
 
-    // Save to localStorage
     saveProgress();
 
-    // Check achievements (e.g., "first boot")
     const startAch = achievements.checkAll();
     if (startAch.length > 0) {
       setTimeout(() => achievements.showNewUnlocks(startAch), 1500);
     }
   }
 
-  // ── Render Title Screen (with stats + completion badges) ──
+  function returnToMenu() {
+    clearAutoPlayTimer();
+    currentEngine = null;
+    currentSlug = null;
+    ui.setStorySlug(null);
+    audio.stop();
+    textHistory.clear();
+    updateSkipIndicator(false);
+    if (autoPlayIndicator) autoPlayIndicator.style.display = 'none';
+    ui.showTitleScreen();
+    renderTitleScreen();
+  }
+
+  // ── Render Title Screen ──
   function renderTitleScreen() {
-    // Stats bar
     const stats = tracker.getStats();
     const achStats = achievements.getStats();
     const statsEl = document.getElementById('title-stats');
@@ -167,14 +325,11 @@
       <div class="stat">🏆 <span class="stat-value">${achStats.unlocked}</span>/${achStats.total}</div>
     `;
 
-    // Render story list with badges
     ui.renderStoryList(storyIndex, (story) => {
-      // Init audio on first user gesture
       if (!audio.ctx) audio.init();
       startStory(story);
     });
 
-    // Add completion badges to cards
     const cards = document.querySelectorAll('.story-card');
     storyIndex.forEach((story, idx) => {
       const card = cards[idx];
@@ -191,7 +346,6 @@
         card.appendChild(badge);
       }
 
-      // Store slug for filtering
       card.dataset.slug = story.slug;
       card.dataset.title = story.title.toLowerCase();
       card.dataset.desc = (story.description || '').toLowerCase();
@@ -223,7 +377,6 @@
     cards.forEach(card => {
       let show = true;
 
-      // Text search
       if (query) {
         const matchTitle = card.dataset.title?.includes(query);
         const matchDesc = card.dataset.desc?.includes(query);
@@ -231,7 +384,6 @@
         if (!matchTitle && !matchDesc && !matchSlug) show = false;
       }
 
-      // Category filter
       if (show && activeFilter === 'completed') {
         if (card.dataset.completed !== '1') show = false;
       } else if (show && activeFilter === 'new') {
@@ -242,7 +394,7 @@
     });
   }
 
-  // ── Click/Tap to advance (skip typewriter) ──
+  // ── Click/Tap to advance ──
   document.getElementById('vn-textbox').addEventListener('click', () => {
     if (ui.isTyping) {
       ui.skipTypewriter();
@@ -251,37 +403,63 @@
 
   // ── Keyboard support ──
   document.addEventListener('keydown', (e) => {
+    // Don't capture keys when search is focused (unless Escape)
+    const isSearchFocused = filterInput.matches(':focus');
+
+    if (e.key === 'Escape') {
+      // Close panels first, then exit story
+      if (settingsPanel.isVisible) { settingsPanel.hide(); return; }
+      if (historyPanel.isVisible) { historyPanel.hide(); return; }
+      if (currentEngine) { returnToMenu(); return; }
+    }
+
+    if (isSearchFocused) return;
+
     if (e.key === ' ' || e.key === 'Enter') {
       if (ui.isTyping) {
         ui.skipTypewriter();
         e.preventDefault();
       }
     }
-    if (e.key === 'Escape') {
-      if (currentEngine) {
-        currentEngine = null;
-        currentSlug = null;
-        ui.setStorySlug(null);
-        audio.stop();
-        ui.showTitleScreen();
-        renderTitleScreen();
-      }
-    }
+
     // Number keys for choices
     if (e.key >= '1' && e.key <= '9') {
       const idx = parseInt(e.key) - 1;
       const btns = ui.choicesEl.querySelectorAll('.choice-btn');
       if (btns[idx]) btns[idx].click();
     }
-    // 'M' to toggle audio
-    if (e.key === 'm' || e.key === 'M') {
-      if (!e.ctrlKey && !e.metaKey && !filterInput.matches(':focus')) {
-        toggleAudio();
-      }
+
+    // 'M' for audio
+    if ((e.key === 'm' || e.key === 'M') && !e.ctrlKey && !e.metaKey) {
+      toggleAudio();
+    }
+
+    // 'A' for auto-play
+    if ((e.key === 'a' || e.key === 'A') && !e.ctrlKey && !e.metaKey && currentEngine) {
+      toggleAutoPlay();
+    }
+
+    // 'H' for history
+    if ((e.key === 'h' || e.key === 'H') && !e.ctrlKey && !e.metaKey && currentEngine) {
+      if (historyPanel.isVisible) historyPanel.hide();
+      else historyPanel.show();
+    }
+
+    // 'S' for settings (when not in search)
+    if ((e.key === 's' || e.key === 'S') && !e.ctrlKey && !e.metaKey) {
+      if (settingsPanel.isVisible) settingsPanel.hide();
+      else settingsPanel.show();
     }
   });
 
-  // ── Audio Toggle Button ──
+  // ── Auto-play toggle ──
+  function toggleAutoPlay() {
+    const newVal = !settings.get('autoPlay');
+    settings.set('autoPlay', newVal);
+    if (newVal && currentEngine) scheduleAutoAdvance();
+  }
+
+  // ── Audio Toggle ──
   const btnAudio = document.getElementById('btn-audio');
   btnAudio.addEventListener('click', () => {
     if (!audio.ctx) audio.init();
@@ -299,14 +477,7 @@
   }
 
   // ── HUD Buttons ──
-  ui.btnBack.addEventListener('click', () => {
-    currentEngine = null;
-    currentSlug = null;
-    ui.setStorySlug(null);
-    audio.stop();
-    ui.showTitleScreen();
-    renderTitleScreen();
-  });
+  ui.btnBack.addEventListener('click', () => returnToMenu());
 
   ui.btnSave.addEventListener('click', () => {
     if (currentEngine && currentSlug) {
@@ -321,26 +492,35 @@
     ui.btnFast.title = fast ? 'Fast Mode ON' : 'Fast Mode OFF';
   });
 
+  document.getElementById('btn-auto').addEventListener('click', () => {
+    if (currentEngine) toggleAutoPlay();
+  });
+
+  document.getElementById('btn-history').addEventListener('click', () => {
+    if (currentEngine) {
+      if (historyPanel.isVisible) historyPanel.hide();
+      else historyPanel.show();
+    }
+  });
+
+  document.getElementById('btn-settings').addEventListener('click', () => {
+    if (settingsPanel.isVisible) settingsPanel.hide();
+    else settingsPanel.show();
+  });
+
   // ── Save/Load ──
   function saveProgress() {
     if (!currentEngine || !currentSlug) return;
     try {
       localStorage.setItem(`nyantales-save-${currentSlug}`, currentEngine.saveState());
       localStorage.setItem('nyantales-last-story', currentSlug);
-    } catch (e) { /* localStorage might be unavailable */ }
-  }
-
-  function loadProgress(slug) {
-    try {
-      const saved = localStorage.getItem(`nyantales-save-${slug}`);
-      return saved ? JSON.parse(saved) : null;
-    } catch (e) { return null; }
+    } catch (e) { /* noop */ }
   }
 
   // ── Boot ──
   async function boot() {
     try {
-      const stories = await loadStoryIndex();
+      await loadStoryIndex();
       renderTitleScreen();
       ui.showTitleScreen();
     } catch (err) {
@@ -414,9 +594,8 @@
     requestAnimationFrame(() => achOverlay.classList.add('visible'));
   });
 
-  // Check achievements on boot too
-  const bootAch = achievements.checkAll();
-  // Don't toast on boot — just silently update
+  // Check achievements on boot
+  achievements.checkAll();
 
   boot();
 })();

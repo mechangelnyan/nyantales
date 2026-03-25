@@ -16,7 +16,9 @@ Now also available as a **web-based visual novel** with character sprites, ambie
 
 ## 🌐 Web Visual Novel
 
-Play NyanTales in your browser with a full visual novel interface:
+**▶️ [Play on GitHub Pages](https://mechangelnyan.github.io/nyantales/web/)** — no install required!
+
+Or run locally:
 
 ```bash
 cd nyantales && python3 -m http.server 8080
@@ -32,7 +34,11 @@ cd nyantales && python3 -m http.server 8080
 - 🔍 Search & filter stories
 - 🐱 Character gallery — browse all 45+ characters
 - 💾 Save/load via localStorage
-- ⌨️ Keyboard shortcuts (1-9 for choices, Space/Enter to advance, M for audio, Esc for menu)
+- ⚙️ Settings menu (text speed, auto-play, skip read, effects toggles, fullscreen)
+- ▶️ Auto-play mode with configurable delay
+- 📜 Text history / backlog — review all past dialogue
+- ⏭ Skip-read-text mode — fast-forward through previously visited scenes
+- ⌨️ Keyboard shortcuts (1-9 choices, Space/Enter advance, A auto-play, H history, S settings, M audio, Esc menu)
 - 📱 Responsive design (mobile-friendly)
 - 🌙 Cyberpunk dark theme with animated backgrounds
 
