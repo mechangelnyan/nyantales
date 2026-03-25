@@ -1,0 +1,11 @@
+=== NyanTales Character Batch Generation ===
+Characters to generate: 10
+Output: /tmp/nyantales/web/assets/characters
+Estimated time: ~200 minutes
+
+Loading Z-Image-Turbo model (q8)...
+Model loaded!
+
+[1/10] Generating pixel...
+  0%|          | 0/9 [00:00<?, ?it/s] 11%|█         | 1/9 [00:43<05:44, 43.08s/it]/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/multiprocessing/resource_tracker.py:396: UserWarning: resource_tracker: There appear to be 1 leaked semaphore objects to clean up at shutdown: {'/mp-h8mnqd7e'}
+  warnings.warn(
