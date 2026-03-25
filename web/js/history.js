@@ -65,7 +65,10 @@ class HistoryPanel {
             <div class="history-title">📜 Text History</div>
             <div class="history-count"></div>
           </div>
-          <button class="history-close">✕</button>
+          <div style="display:flex;gap:0.4rem;align-items:center">
+            <button class="history-export-btn" title="Export as text file">📥 Export</button>
+            <button class="history-close">✕</button>
+          </div>
         </div>
         <div class="history-list"></div>
       </div>
@@ -76,6 +79,7 @@ class HistoryPanel {
       if (e.target === this.overlay) this.hide();
     });
     this.overlay.querySelector('.history-close').addEventListener('click', () => this.hide());
+    this.overlay.querySelector('.history-export-btn').addEventListener('click', () => this._exportHistory());
   }
 
   show() {
@@ -111,6 +115,31 @@ class HistoryPanel {
 
   get isVisible() {
     return this.overlay.classList.contains('visible');
+  }
+
+  /** Export text history as a downloadable .txt file */
+  _exportHistory() {
+    const entries = this.history.getAll();
+    if (entries.length === 0) return;
+
+    const lines = entries.map(e => {
+      const prefix = e.speaker ? `[${e.speaker}] ` : '';
+      return `${prefix}${e.text}`;
+    });
+
+    const content = `NyanTales — Text History Export\n${'═'.repeat(40)}\nExported: ${new Date().toLocaleString()}\nEntries: ${entries.length}\n${'═'.repeat(40)}\n\n${lines.join('\n\n')}`;
+
+    const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `nyantales-history-${new Date().toISOString().slice(0,10)}.txt`;
+    a.click();
+    URL.revokeObjectURL(url);
+
+    if (typeof Toast !== 'undefined') {
+      Toast.show('History exported!', { icon: '📥', duration: 2000 });
+    }
   }
 
   _esc(text) {

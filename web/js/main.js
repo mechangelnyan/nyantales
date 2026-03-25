@@ -36,6 +36,7 @@
   const storyInfo     = new StoryInfoModal(tracker, saveManager, ui.portraits);
   const keyboardHelp  = new KeyboardHelp();
   const aboutPanel    = new AboutPanel();
+  const statsDashboard = new StatsDashboard(tracker, achievements, saveManager, ui.portraits);
   const sceneSelect   = new SceneSelect((sceneId) => {
     if (!currentEngine) return;
     clearAutoPlayTimer();
@@ -671,6 +672,7 @@
     if (e.key === 'Escape') {
       if (keyboardHelp.isVisible)   { keyboardHelp.hide(); return; }
       if (aboutPanel.isVisible)     { aboutPanel.hide(); return; }
+      if (statsDashboard.isVisible) { statsDashboard.hide(); return; }
       if (storyInfo.isVisible)      { storyInfo.hide(); return; }
       if (saveManager.isVisible)    { saveManager.hide(); return; }
       if (settingsPanel.isVisible)  { settingsPanel.hide(); return; }
@@ -851,6 +853,17 @@
     const pick = pool[Math.floor(Math.random() * pool.length)];
     if (!audio.ctx) audio.init();
     startStory(pick);
+  });
+
+  // ── Stats Dashboard ──
+
+  document.getElementById('btn-stats').addEventListener('click', () => {
+    statsDashboard.setStories(storyIndex);
+    statsDashboard.onPlay = (story) => {
+      if (!audio.ctx) audio.init();
+      startStory(story);
+    };
+    statsDashboard.show();
   });
 
   // ── About Panel ──
