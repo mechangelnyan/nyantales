@@ -7,12 +7,16 @@ class SettingsPanel {
   constructor(settings) {
     this.settings = settings;
     this.overlay = null;
+    this._focusTrap = null;
     this._create();
   }
 
   _create() {
     this.overlay = document.createElement('div');
     this.overlay.className = 'settings-overlay';
+    this.overlay.setAttribute('role', 'dialog');
+    this.overlay.setAttribute('aria-label', 'Settings');
+    this.overlay.setAttribute('aria-hidden', 'true');
     this.overlay.innerHTML = `
       <div class="settings-panel">
         <div class="settings-header">
@@ -215,11 +219,16 @@ class SettingsPanel {
 
   show() {
     this._syncAll();
+    this.overlay.setAttribute('aria-hidden', 'false');
     requestAnimationFrame(() => this.overlay.classList.add('visible'));
+    if (!this._focusTrap) this._focusTrap = new FocusTrap(this.overlay.querySelector('.settings-panel'));
+    this._focusTrap.activate();
   }
 
   hide() {
     this.overlay.classList.remove('visible');
+    this.overlay.setAttribute('aria-hidden', 'true');
+    if (this._focusTrap) this._focusTrap.deactivate();
   }
 
   get isVisible() {

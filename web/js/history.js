@@ -46,12 +46,16 @@ class HistoryPanel {
   constructor(history) {
     this.history = history;
     this.overlay = null;
+    this._focusTrap = null;
     this._create();
   }
 
   _create() {
     this.overlay = document.createElement('div');
     this.overlay.className = 'history-overlay';
+    this.overlay.setAttribute('role', 'dialog');
+    this.overlay.setAttribute('aria-label', 'Text History');
+    this.overlay.setAttribute('aria-hidden', 'true');
     this.overlay.innerHTML = `
       <div class="history-panel">
         <div class="history-header">
@@ -91,11 +95,16 @@ class HistoryPanel {
       requestAnimationFrame(() => { listEl.scrollTop = listEl.scrollHeight; });
     }
 
+    this.overlay.setAttribute('aria-hidden', 'false');
     requestAnimationFrame(() => this.overlay.classList.add('visible'));
+    if (!this._focusTrap) this._focusTrap = new FocusTrap(this.overlay.querySelector('.history-panel'));
+    this._focusTrap.activate();
   }
 
   hide() {
     this.overlay.classList.remove('visible');
+    this.overlay.setAttribute('aria-hidden', 'true');
+    if (this._focusTrap) this._focusTrap.deactivate();
   }
 
   get isVisible() {

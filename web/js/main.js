@@ -115,6 +115,7 @@
     const btn = document.getElementById('btn-auto');
     btn.style.opacity = on ? '1' : '0.5';
     btn.title = on ? 'Auto-Play ON (A)' : 'Auto-Play OFF (A)';
+    btn.setAttribute('aria-pressed', on ? 'true' : 'false');
 
     if (on) {
       if (!autoPlayIndicator) {
@@ -287,6 +288,7 @@
 
     ui.showStoryScreen();
     updateAutoPlayHUD(settings.get('autoPlay'));
+    showKeyboardHints();
 
     const firstScene = currentEngine.getCurrentScene();
     await playScene(firstScene);
@@ -329,7 +331,7 @@
       startStory(story);
     });
 
-    // Decorate cards with completion info
+    // Decorate cards with completion info + scene count
     const cards = document.querySelectorAll('.story-card');
     storyIndex.forEach((story, idx) => {
       const card = cards[idx];
@@ -337,6 +339,7 @@
 
       const completed = tracker.isCompleted(story.slug);
       const endings = tracker.endingCount(story.slug);
+      const sceneCount = story._parsed?.scenes ? Object.keys(story._parsed.scenes).length : 0;
 
       if (completed) {
         card.classList.add('completed');
@@ -355,6 +358,22 @@
           : 'color:var(--accent-cyan);';
         saveIcon.textContent = '💾';
         card.appendChild(saveIcon);
+      }
+
+      // Add scene count progress bar
+      if (sceneCount > 0) {
+        const storyData = tracker.getStory(story.slug);
+        const visitedScenes = storyData.completed ? sceneCount : 0; // approximate
+        const pct = completed ? 100 : 0;
+        const progressBar = document.createElement('div');
+        progressBar.className = 'story-card-progress';
+        progressBar.innerHTML = `<div class="story-card-progress-fill" style="width:${pct}%"></div>`;
+        progressBar.setAttribute('role', 'progressbar');
+        progressBar.setAttribute('aria-valuenow', pct);
+        progressBar.setAttribute('aria-valuemin', '0');
+        progressBar.setAttribute('aria-valuemax', '100');
+        progressBar.setAttribute('aria-label', `${pct}% complete`);
+        card.appendChild(progressBar);
       }
 
       card.dataset.slug = story.slug;
@@ -402,8 +421,12 @@
   filterInput.addEventListener('input', () => applyFilter());
   filterTags.forEach(tag => {
     tag.addEventListener('click', () => {
-      filterTags.forEach(t => t.classList.remove('active'));
+      filterTags.forEach(t => {
+        t.classList.remove('active');
+        t.setAttribute('aria-selected', 'false');
+      });
       tag.classList.add('active');
+      tag.setAttribute('aria-selected', 'true');
       activeFilter = tag.dataset.filter;
       applyFilter();
     });
@@ -530,6 +553,7 @@
     btnAudio.textContent = enabled ? '🔊' : '🔇';
     btnAudio.style.opacity = enabled ? '1' : '0.5';
     btnAudio.title = enabled ? 'Audio ON (M)' : 'Audio OFF (M)';
+    btnAudio.setAttribute('aria-pressed', enabled ? 'true' : 'false');
     if (enabled && ui._lastBgClass) audio.setTheme(ui._lastBgClass);
   }
 
@@ -629,15 +653,69 @@
 
   achievements.checkAll();
 
+  /** Show or hide the loading screen with progress */
+  function updateLoadingProgress(pct, text) {
+    const fill = document.querySelector('.loading-bar-fill');
+    const label = document.querySelector('.loading-text');
+    if (fill) fill.style.width = `${pct}%`;
+    if (label && text) label.textContent = text;
+  }
+
+  function hideLoadingScreen() {
+    const loading = document.getElementById('loading-screen');
+    const app = document.getElementById('app');
+    if (loading) {
+      loading.classList.add('hidden');
+      setTimeout(() => loading.remove(), 600);
+    }
+    if (app) app.removeAttribute('aria-hidden');
+  }
+
+  /** Show keyboard shortcut hints on first visit to story screen */
+  function showKeyboardHints() {
+    if (localStorage.getItem('nyantales-hints-shown')) return;
+    localStorage.setItem('nyantales-hints-shown', '1');
+
+    const toast = document.createElement('div');
+    toast.className = 'shortcut-toast';
+    toast.innerHTML = `
+      <span><kbd>Space</kbd> Advance</span>
+      <span><kbd>1-9</kbd> Choices</span>
+      <span><kbd>A</kbd> Auto-play</span>
+      <span><kbd>H</kbd> History</span>
+      <span><kbd>S</kbd> Settings</span>
+      <span><kbd>Q</kbd> Save/Load</span>
+      <span><kbd>Esc</kbd> Menu</span>
+    `;
+    toast.setAttribute('role', 'status');
+    toast.setAttribute('aria-live', 'polite');
+    document.querySelector('.vn-container').appendChild(toast);
+
+    requestAnimationFrame(() => toast.classList.add('visible'));
+    setTimeout(() => {
+      toast.classList.remove('visible');
+      setTimeout(() => toast.remove(), 600);
+    }, 6000);
+  }
+
   async function boot() {
     try {
+      updateLoadingProgress(10, 'Initializing...');
+      updateLoadingProgress(30, 'Loading stories...');
       await loadStoryIndex();
+      updateLoadingProgress(80, 'Rendering...');
       renderTitleScreen();
+      updateLoadingProgress(100, 'Ready!');
+
+      // Brief pause for visual satisfaction
+      await new Promise(r => setTimeout(r, 300));
+      hideLoadingScreen();
       ui.showTitleScreen();
     } catch (err) {
       console.error('Failed to boot NyanTales:', err);
+      hideLoadingScreen();
       document.getElementById('story-list').innerHTML =
-        `<p style="color:var(--accent-red);padding:2rem;font-family:var(--font-mono)">
+        `<p style="color:var(--accent-red);padding:2rem;font-family:var(--font-mono)" role="alert">
           Error loading stories. Make sure you're serving this from a web server.<br>
           <code>cd /tmp/nyantales && python3 -m http.server 8080</code><br>
           Then open <a href="http://localhost:8080/web/" style="color:var(--accent-cyan)">http://localhost:8080/web/</a>

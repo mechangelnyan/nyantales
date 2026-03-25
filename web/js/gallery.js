@@ -15,6 +15,7 @@ class CharacterGallery {
   _buildCharacterList() {
     const charMap = new Map(); // name -> merged info
 
+    if (typeof CHARACTER_DATA === 'undefined') return [];
     for (const [slug, chars] of Object.entries(CHARACTER_DATA)) {
       for (const ch of chars) {
         const key = ch.name.toLowerCase();

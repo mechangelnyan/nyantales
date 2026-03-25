@@ -18,6 +18,7 @@ class SaveManager {
 
     // Callbacks set by main.js
     this.onLoad = null; // (slug, stateJson) => void
+    this._focusTrap = null;
   }
 
   // ── Data Access ──
@@ -136,6 +137,9 @@ class SaveManager {
 
     this.overlay = document.createElement('div');
     this.overlay.className = 'save-overlay';
+    this.overlay.setAttribute('role', 'dialog');
+    this.overlay.setAttribute('aria-label', 'Save and Load');
+    this.overlay.setAttribute('aria-hidden', 'true');
     this.overlay.innerHTML = `
       <div class="save-panel">
         <div class="save-panel-header">
@@ -285,12 +289,19 @@ class SaveManager {
     });
 
     this._renderSlots();
+    this.overlay.setAttribute('aria-hidden', 'false');
     requestAnimationFrame(() => this.overlay.classList.add('visible'));
+    if (!this._focusTrap) this._focusTrap = new FocusTrap(this.overlay.querySelector('.save-panel'));
+    this._focusTrap.activate();
   }
 
   /** Hide the panel */
   hide() {
-    if (this.overlay) this.overlay.classList.remove('visible');
+    if (this.overlay) {
+      this.overlay.classList.remove('visible');
+      this.overlay.setAttribute('aria-hidden', 'true');
+    }
+    if (this._focusTrap) this._focusTrap.deactivate();
   }
 
   get isVisible() {

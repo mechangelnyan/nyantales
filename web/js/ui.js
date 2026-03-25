@@ -107,6 +107,9 @@ class VNUI {
       const card = document.createElement('div');
       card.className = 'story-card fade-in';
       card.style.animationDelay = `${Math.min(idx * 0.04, 1.2)}s`;
+      card.setAttribute('role', 'listitem');
+      card.setAttribute('tabindex', '0');
+      card.setAttribute('aria-label', `${story.title}: ${story.description || 'Interactive story'}`);
 
       // Get protagonist for this story
       const chars = CHARACTER_DATA[story.slug] || [];
@@ -129,6 +132,12 @@ class VNUI {
         </div>
       `;
       card.addEventListener('click', () => onSelect(story));
+      card.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          onSelect(story);
+        }
+      });
       this.storyListEl.appendChild(card);
     });
   }

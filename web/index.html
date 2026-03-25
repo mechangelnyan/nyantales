@@ -7,6 +7,7 @@
   <meta name="description" content="Interactive cat stories from the terminal — a visual novel experience">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="color-scheme" content="dark">
   <title>NyanTales — Visual Novel</title>
   <link rel="manifest" href="manifest.json">
   <link rel="icon" type="image/png" sizes="192x192" href="assets/icon-192.png">
@@ -16,88 +17,101 @@
   <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Nunito:wght@400;600;700&display=swap" rel="stylesheet">
 </head>
 <body>
-  <div id="app">
+  <!-- Loading Screen -->
+  <div id="loading-screen" class="loading-screen" role="status" aria-label="Loading NyanTales">
+    <div class="loading-cat">
+      <pre class="loading-ascii"> /\_/\
+( o.o )
+ > ^ <</pre>
+    </div>
+    <div class="loading-text">Loading stories...</div>
+    <div class="loading-bar"><div class="loading-bar-fill"></div></div>
+  </div>
+
+  <div id="app" aria-hidden="true">
     <!-- Title Screen -->
-    <div id="title-screen" class="screen active">
+    <div id="title-screen" class="screen active" role="main" aria-label="Story Selection">
       <div class="title-bg">
-        <div class="scanlines"></div>
+        <div class="scanlines" aria-hidden="true"></div>
         <div class="title-content">
-          <pre class="title-ascii">
+          <pre class="title-ascii" aria-hidden="true">
  /\_/\  ╔═══════════════════╗  /\_/\
 ( o.o ) ║   N Y A N T A L E S   ║ ( o.o )
  > ^ <  ╚═══════════════════╝  > ^ <
           </pre>
+          <h1 class="sr-only">NyanTales — Interactive Cat Stories</h1>
           <p class="title-subtitle">Interactive Cat Stories from the Terminal</p>
-          <div id="title-stats" class="title-stats"></div>
-          <div class="title-actions">
-            <button id="btn-continue" class="continue-btn hidden">▶ Continue</button>
-            <button id="btn-gallery" class="gallery-btn">🐱 Characters</button>
-            <button id="btn-achievements" class="achievements-btn">🏆 Achievements</button>
+          <div id="title-stats" class="title-stats" aria-label="Play statistics"></div>
+          <div class="title-actions" role="toolbar" aria-label="Main actions">
+            <button id="btn-continue" class="continue-btn hidden" aria-label="Continue last game">▶ Continue</button>
+            <button id="btn-gallery" class="gallery-btn" aria-label="Browse character gallery">🐱 Characters</button>
+            <button id="btn-achievements" class="achievements-btn" aria-label="View achievements">🏆 Achievements</button>
           </div>
-          <div id="story-filter" class="story-filter">
-            <input type="text" id="filter-input" placeholder="🔍 Search stories..." autocomplete="off" />
-            <div class="filter-tags">
-              <button class="filter-tag active" data-filter="all">All</button>
-              <button class="filter-tag" data-filter="completed">✅ Completed</button>
-              <button class="filter-tag" data-filter="new">🆕 New</button>
+          <div id="story-filter" class="story-filter" role="search" aria-label="Filter stories">
+            <input type="text" id="filter-input" placeholder="🔍 Search stories..." autocomplete="off" aria-label="Search stories by title or description" />
+            <div class="filter-tags" role="tablist" aria-label="Story filters">
+              <button class="filter-tag active" data-filter="all" role="tab" aria-selected="true">All</button>
+              <button class="filter-tag" data-filter="completed" role="tab" aria-selected="false">✅ Completed</button>
+              <button class="filter-tag" data-filter="new" role="tab" aria-selected="false">🆕 New</button>
             </div>
           </div>
-          <div id="story-list" class="story-grid"></div>
+          <div id="story-list" class="story-grid" role="list" aria-label="Available stories"></div>
         </div>
       </div>
     </div>
 
     <!-- Story Screen (Visual Novel) -->
-    <div id="story-screen" class="screen">
+    <div id="story-screen" class="screen" role="main" aria-label="Visual Novel Reader">
       <div class="vn-container">
         <!-- Background layer -->
-        <div id="vn-background" class="vn-bg"></div>
+        <div id="vn-background" class="vn-bg" aria-hidden="true"></div>
 
         <!-- Character sprite layer -->
-        <div id="vn-sprites" class="vn-sprites"></div>
+        <div id="vn-sprites" class="vn-sprites" aria-hidden="true"></div>
 
         <!-- Location bar -->
-        <div id="vn-location" class="vn-location hidden"></div>
+        <div id="vn-location" class="vn-location hidden" role="status" aria-live="polite"></div>
 
         <!-- Mood indicator -->
-        <div id="vn-mood" class="vn-mood hidden"></div>
+        <div id="vn-mood" class="vn-mood hidden" aria-hidden="true"></div>
 
         <!-- ASCII art display -->
-        <div id="vn-art" class="vn-art hidden"></div>
+        <div id="vn-art" class="vn-art hidden" aria-hidden="true"></div>
 
         <!-- Dialogue / Narrative box -->
-        <div id="vn-textbox" class="vn-textbox">
-          <div id="vn-speaker" class="vn-speaker hidden"></div>
+        <div id="vn-textbox" class="vn-textbox" role="log" aria-live="polite" aria-label="Story text">
+          <div id="vn-speaker" class="vn-speaker hidden" aria-label="Speaker"></div>
           <div id="vn-text" class="vn-text"></div>
-          <div id="vn-click-indicator" class="vn-click-indicator hidden">▼</div>
+          <div id="vn-click-indicator" class="vn-click-indicator hidden" aria-hidden="true">▼</div>
         </div>
 
         <!-- Inventory bar -->
-        <div id="vn-inventory" class="vn-inventory hidden"></div>
+        <div id="vn-inventory" class="vn-inventory hidden" role="status" aria-label="Inventory"></div>
 
         <!-- Choices overlay -->
-        <div id="vn-choices" class="vn-choices hidden"></div>
+        <div id="vn-choices" class="vn-choices hidden" role="group" aria-label="Story choices"></div>
 
         <!-- Conditional text -->
-        <div id="vn-conditional" class="vn-conditional hidden"></div>
+        <div id="vn-conditional" class="vn-conditional hidden" aria-live="polite"></div>
 
         <!-- Ending overlay -->
-        <div id="vn-ending" class="vn-ending hidden"></div>
+        <div id="vn-ending" class="vn-ending hidden" role="dialog" aria-label="Story ending"></div>
 
         <!-- HUD -->
-        <div class="vn-hud">
-          <button id="btn-back" class="hud-btn" title="Back to Stories">⏎</button>
-          <button id="btn-save" class="hud-btn" title="Save/Load (Q)" >💾</button>
-          <button id="btn-fast" class="hud-btn" title="Toggle Fast Mode">⏩</button>
-          <button id="btn-auto" class="hud-btn" title="Auto-Play (A)" style="opacity:0.5">▶️</button>
-          <button id="btn-history" class="hud-btn" title="Text History (H)">📜</button>
-          <button id="btn-settings" class="hud-btn" title="Settings (S)">⚙️</button>
-          <button id="btn-audio" class="hud-btn" title="Toggle Ambient Audio (M)" style="opacity:0.5">🔇</button>
+        <div class="vn-hud" role="toolbar" aria-label="Game controls">
+          <button id="btn-back" class="hud-btn" title="Back to Stories (Esc)" aria-label="Back to story list">⏎</button>
+          <button id="btn-save" class="hud-btn" title="Save/Load (Q)" aria-label="Save or load game">💾</button>
+          <button id="btn-fast" class="hud-btn" title="Toggle Fast Mode" aria-label="Toggle fast text mode">⏩</button>
+          <button id="btn-auto" class="hud-btn" title="Auto-Play (A)" aria-label="Toggle auto-play" aria-pressed="false" style="opacity:0.5">▶️</button>
+          <button id="btn-history" class="hud-btn" title="Text History (H)" aria-label="View text history">📜</button>
+          <button id="btn-settings" class="hud-btn" title="Settings (S)" aria-label="Open settings">⚙️</button>
+          <button id="btn-audio" class="hud-btn" title="Toggle Ambient Audio (M)" aria-label="Toggle ambient audio" aria-pressed="false" style="opacity:0.5">🔇</button>
         </div>
       </div>
     </div>
   </div>
 
+  <script src="js/focus-trap.js"></script>
   <script src="js/yaml-parser.js"></script>
   <script src="js/engine.js"></script>
   <script src="js/sprites.js"></script>
