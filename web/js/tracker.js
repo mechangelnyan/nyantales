@@ -1,7 +1,17 @@
 /**
  * NyanTales — Story Completion Tracker
- * Tracks which stories have been completed, endings discovered,
- * and provides stats for the title screen.
+ * Tracks which stories have been completed, endings discovered, scene visits,
+ * and provides stats for the title screen and per-story progress bars.
+ *
+ * @class StoryTracker
+ *
+ * Per-story data shape:
+ *   completed    {boolean}  - Whether at least one ending has been reached
+ *   endingsFound {string[]} - Unique ending keys discovered
+ *   totalPlays   {number}   - Total times an ending was reached
+ *   bestTurns    {number|null} - Fewest turns to reach any ending
+ *   lastPlayed   {number|null} - Timestamp of last play
+ *   visitedScenes {string[]}   - All unique scene IDs the player has seen
  */
 
 class StoryTracker {
@@ -10,7 +20,7 @@ class StoryTracker {
     this.data = this._load();
   }
 
-  /** Get tracking data for a story */
+  /** Get tracking data for a story, creating if absent */
   getStory(slug) {
     if (!this.data.stories[slug]) {
       this.data.stories[slug] = {
@@ -18,10 +28,48 @@ class StoryTracker {
         endingsFound: [],
         totalPlays: 0,
         bestTurns: null,
-        lastPlayed: null
+        lastPlayed: null,
+        visitedScenes: []
       };
     }
+    // Migration: add visitedScenes to old entries
+    if (!this.data.stories[slug].visitedScenes) {
+      this.data.stories[slug].visitedScenes = [];
+    }
     return this.data.stories[slug];
+  }
+
+  /**
+   * Record visited scenes from the engine's visited set.
+   * Called periodically (e.g. after each scene transition or on ending).
+   * Merges new scene IDs without duplicates.
+   * @param {string} slug - Story slug
+   * @param {Set<string>} visitedSet - engine.state.visited
+   */
+  recordVisitedScenes(slug, visitedSet) {
+    const story = this.getStory(slug);
+    const existing = new Set(story.visitedScenes);
+    let changed = false;
+    for (const sceneId of visitedSet) {
+      if (!existing.has(sceneId)) {
+        story.visitedScenes.push(sceneId);
+        existing.add(sceneId);
+        changed = true;
+      }
+    }
+    if (changed) this._save();
+  }
+
+  /**
+   * Get per-story progress as a percentage (0–100).
+   * @param {string} slug - Story slug
+   * @param {number} totalScenes - Total scenes in the story YAML
+   * @returns {number}
+   */
+  getProgress(slug, totalScenes) {
+    if (totalScenes <= 0) return 0;
+    const story = this.getStory(slug);
+    return Math.min(100, Math.round((story.visitedScenes.length / totalScenes) * 100));
   }
 
   /** Record a story completion */
@@ -55,8 +103,8 @@ class StoryTracker {
 
     return {
       storiesCompleted: completed.length,
-      totalEndings: totalEndings,
-      totalPlays: totalPlays
+      totalEndings,
+      totalPlays
     };
   }
 
@@ -68,6 +116,11 @@ class StoryTracker {
   /** Get endings count for a story */
   endingCount(slug) {
     return this.data.stories[slug]?.endingsFound?.length || 0;
+  }
+
+  /** Get number of visited scenes for a story */
+  visitedSceneCount(slug) {
+    return this.data.stories[slug]?.visitedScenes?.length || 0;
   }
 
   /** Reset all tracking data */

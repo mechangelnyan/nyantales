@@ -14,7 +14,8 @@ class SettingsManager {
       audioVolume: 0.5,    // 0–1 master volume
       screenShake: true,   // enable shake/glitch effects
       particles: true,     // floating particle overlay
-      fullscreen: false    // fullscreen mode (not persisted)
+      fullscreen: false,   // fullscreen mode (not persisted)
+      colorTheme: 'cyan'   // accent color theme: cyan, magenta, green, amber, violet
     };
     this.data = this._load();
     this._listeners = [];

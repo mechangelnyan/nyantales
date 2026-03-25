@@ -43,6 +43,7 @@
   // Apply initial settings
   ui.typewriterSpeed = settings.get('textSpeed');
   applyParticlesSetting(settings.get('particles'));
+  applyColorTheme(settings.get('colorTheme'));
 
   // ── Settings Reactivity ──
 
@@ -53,10 +54,29 @@
     if (key === 'audioVolume' && audio.masterGain) {
       audio.masterGain.gain.setTargetAtTime(value, audio.ctx.currentTime, 0.1);
     }
+    if (key === 'colorTheme') applyColorTheme(value);
   });
 
   function applyParticlesSetting(on) {
     document.body.classList.toggle('no-particles', !on);
+  }
+
+  /** Apply a color theme by setting CSS custom properties on :root */
+  const COLOR_THEMES = {
+    cyan:    { accent: '#00d4ff', rgb: '0, 212, 255' },
+    magenta: { accent: '#ff36ab', rgb: '255, 54, 171' },
+    green:   { accent: '#00ff88', rgb: '0, 255, 136' },
+    amber:   { accent: '#ffd700', rgb: '255, 215, 0' },
+    violet:  { accent: '#cc66ff', rgb: '204, 102, 255' }
+  };
+
+  function applyColorTheme(themeName) {
+    const theme = COLOR_THEMES[themeName] || COLOR_THEMES.cyan;
+    const root = document.documentElement;
+    root.style.setProperty('--accent-cyan', theme.accent);
+    // Update meta theme-color for mobile browsers
+    const meta = document.querySelector('meta[name="theme-color"]');
+    if (meta) meta.setAttribute('content', theme.accent);
   }
 
   // ── Story Index ──
@@ -207,8 +227,11 @@
     }
     scene.effect = origEffect;
 
-    // Auto-save after each scene
-    if (currentSlug) saveManager.autoSave(currentSlug, currentEngine, scene);
+    // Auto-save after each scene and record visited scenes for progress tracking
+    if (currentSlug) {
+      saveManager.autoSave(currentSlug, currentEngine, scene);
+      tracker.recordVisitedScenes(currentSlug, currentEngine.state.visited);
+    }
 
     // Handle endings
     if (scene.ending) return;
@@ -221,6 +244,7 @@
       return playScene(nextScene);
     }
 
+    updateRewindButton();
     scheduleAutoAdvance();
   }
 
@@ -341,6 +365,12 @@
       const endings = tracker.endingCount(story.slug);
       const sceneCount = story._parsed?.scenes ? Object.keys(story._parsed.scenes).length : 0;
 
+      // Add reading time estimate (based on word count across all scenes)
+      const wordCount = story._parsed?.scenes
+        ? Object.values(story._parsed.scenes).reduce((sum, s) => sum + ((s.text || '').split(/\s+/).length), 0)
+        : 0;
+      const readMins = Math.max(1, Math.ceil(wordCount / 200)); // ~200 wpm for VN reading
+
       if (completed) {
         card.classList.add('completed');
         const badge = document.createElement('div');
@@ -360,11 +390,9 @@
         card.appendChild(saveIcon);
       }
 
-      // Add scene count progress bar
+      // Add scene count progress bar (using actual visited scene data)
       if (sceneCount > 0) {
-        const storyData = tracker.getStory(story.slug);
-        const visitedScenes = storyData.completed ? sceneCount : 0; // approximate
-        const pct = completed ? 100 : 0;
+        const pct = tracker.getProgress(story.slug, sceneCount);
         const progressBar = document.createElement('div');
         progressBar.className = 'story-card-progress';
         progressBar.innerHTML = `<div class="story-card-progress-fill" style="width:${pct}%"></div>`;
@@ -372,8 +400,17 @@
         progressBar.setAttribute('aria-valuenow', pct);
         progressBar.setAttribute('aria-valuemin', '0');
         progressBar.setAttribute('aria-valuemax', '100');
-        progressBar.setAttribute('aria-label', `${pct}% complete`);
+        progressBar.setAttribute('aria-label', `${pct}% explored`);
         card.appendChild(progressBar);
+      }
+
+      // Add meta info (reading time + scene count) below the description
+      if (sceneCount > 0 || readMins > 0) {
+        const metaEl = document.createElement('div');
+        metaEl.className = 'story-card-meta';
+        metaEl.innerHTML = `<span>⏱ ~${readMins} min</span><span>📄 ${sceneCount} scenes</span>`;
+        const textContainer = card.querySelector('.story-card-text');
+        if (textContainer) textContainer.appendChild(metaEl);
       }
 
       card.dataset.slug = story.slug;
@@ -501,7 +538,18 @@
     if (isSearchFocused) return;
 
     if (e.key === ' ' || e.key === 'Enter') {
-      if (ui.isTyping) { ui.skipTypewriter(); e.preventDefault(); }
+      e.preventDefault();
+      if (ui.isTyping) {
+        ui.skipTypewriter();
+      } else if (currentEngine) {
+        // Advance to next scene when no choices and not at an ending
+        const scene = currentEngine.getCurrentScene();
+        if (scene && scene.next && currentEngine.getAvailableChoices().length === 0 && !scene.ending) {
+          clearAutoPlayTimer();
+          const next = currentEngine.goToScene(scene.next);
+          playScene(next);
+        }
+      }
     }
 
     // Number keys for choices
@@ -515,6 +563,7 @@
     const key = e.key.toLowerCase();
 
     if (key === 'm' && noMod) toggleAudio();
+    if (key === 'b' && noMod && currentEngine) rewindOneScene();
 
     if (key === 'a' && noMod && currentEngine) toggleAutoPlay();
 
@@ -560,6 +609,36 @@
   // ── HUD Buttons ──
 
   ui.btnBack.addEventListener('click', () => returnToMenu());
+
+  // ── Rewind (Back one scene) ──
+
+  const btnRewind = document.getElementById('btn-rewind');
+
+  function updateRewindButton() {
+    const canRewind = currentEngine && currentEngine.state.history.length > 0;
+    btnRewind.style.opacity = canRewind ? '0.85' : '0.35';
+    btnRewind.disabled = !canRewind;
+  }
+
+  function rewindOneScene() {
+    if (!currentEngine || currentEngine.state.history.length === 0) return;
+
+    clearAutoPlayTimer();
+    updateSkipIndicator(false);
+
+    // Pop the current scene from history to go back
+    const prevSceneId = currentEngine.state.history.pop();
+    currentEngine.state.turns = Math.max(0, currentEngine.state.turns - 1);
+    currentEngine.state.currentScene = prevSceneId;
+
+    const prevScene = currentEngine.getCurrentScene();
+    if (prevScene) {
+      playScene(prevScene);
+    }
+    updateRewindButton();
+  }
+
+  btnRewind.addEventListener('click', rewindOneScene);
 
   ui.btnSave.addEventListener('click', () => {
     if (currentEngine && currentSlug) {
@@ -681,6 +760,7 @@
     toast.innerHTML = `
       <span><kbd>Space</kbd> Advance</span>
       <span><kbd>1-9</kbd> Choices</span>
+      <span><kbd>B</kbd> Back</span>
       <span><kbd>A</kbd> Auto-play</span>
       <span><kbd>H</kbd> History</span>
       <span><kbd>S</kbd> Settings</span>

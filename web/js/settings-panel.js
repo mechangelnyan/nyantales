@@ -82,6 +82,17 @@ class SettingsPanel {
                 <button id="set-fullscreen" class="settings-toggle"></button>
               </div>
             </div>
+
+            <div class="settings-row">
+              <label class="settings-label">Color Theme</label>
+              <div class="settings-control theme-swatches" id="set-color-theme">
+                <button class="theme-swatch" data-theme="cyan" title="Cyan (default)" style="--swatch-color:#00d4ff"></button>
+                <button class="theme-swatch" data-theme="magenta" title="Magenta" style="--swatch-color:#ff36ab"></button>
+                <button class="theme-swatch" data-theme="green" title="Green" style="--swatch-color:#00ff88"></button>
+                <button class="theme-swatch" data-theme="amber" title="Amber" style="--swatch-color:#ffd700"></button>
+                <button class="theme-swatch" data-theme="violet" title="Violet" style="--swatch-color:#cc66ff"></button>
+              </div>
+            </div>
           </div>
 
           <div class="settings-group">
@@ -149,6 +160,9 @@ class SettingsPanel {
       fromSetting: v => Math.round(v * 100)
     });
 
+    // Color theme swatches
+    this._wireColorTheme();
+
     // Reset button
     document.getElementById('set-reset').addEventListener('click', () => {
       this.settings.reset();
@@ -186,6 +200,22 @@ class SettingsPanel {
     });
   }
 
+  /** Wire color theme swatch buttons */
+  _wireColorTheme() {
+    const container = document.getElementById('set-color-theme');
+    const swatches = container.querySelectorAll('.theme-swatch');
+    const currentTheme = this.settings.get('colorTheme');
+
+    swatches.forEach(btn => {
+      btn.classList.toggle('active', btn.dataset.theme === currentTheme);
+      btn.addEventListener('click', () => {
+        swatches.forEach(s => s.classList.remove('active'));
+        btn.classList.add('active');
+        this.settings.set('colorTheme', btn.dataset.theme);
+      });
+    });
+  }
+
   _syncAll() {
     // Re-sync all controls to current settings
     const sync = (id, key, formatter, transform) => {
@@ -215,6 +245,12 @@ class SettingsPanel {
     syncToggle('set-particles', 'particles');
 
     document.getElementById('row-auto-delay').style.display = this.settings.get('autoPlay') ? '' : 'none';
+
+    // Sync color theme swatches
+    const currentTheme = this.settings.get('colorTheme');
+    document.querySelectorAll('#set-color-theme .theme-swatch').forEach(btn => {
+      btn.classList.toggle('active', btn.dataset.theme === currentTheme);
+    });
   }
 
   show() {

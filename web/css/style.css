@@ -2088,3 +2088,44 @@ body {
   font-size: 0.65rem;
   margin-right: 0.2rem;
 }
+
+/* ═══════════════════════════════════════════════════
+   Color Theme Swatches (Settings)
+   ═══════════════════════════════════════════════════ */
+
+.theme-swatches {
+  display: flex;
+  gap: 0.4rem;
+}
+
+.theme-swatch {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  border: 2px solid rgba(255, 255, 255, 0.15);
+  background: var(--swatch-color);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  padding: 0;
+  position: relative;
+}
+.theme-swatch:hover {
+  border-color: rgba(255, 255, 255, 0.5);
+  transform: scale(1.15);
+}
+.theme-swatch.active {
+  border-color: var(--text-bright);
+  box-shadow: 0 0 8px var(--swatch-color);
+  transform: scale(1.1);
+}
+.theme-swatch.active::after {
+  content: '✓';
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.65rem;
+  color: #000;
+  font-weight: 700;
+}
