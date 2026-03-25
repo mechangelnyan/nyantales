@@ -331,6 +331,30 @@ cd /tmp/nyantales && python3 -m http.server 9876
   - Escape key priority chain updated for new panels
 - SW cache bumped to v8
 
+## Phase 23: Statistics Dashboard, History Export, Mobile Polish ✅
+- **Statistics Dashboard** (`web/js/stats-dashboard.js`) — comprehensive player analytics panel
+  - Global summary cards: stories complete, endings found, scenes explored, total plays, achievements, active saves
+  - Progress bars on each summary card with colored fills
+  - "Recently Played" section with relative timestamps and quick-play clicks
+  - Full per-story breakdown table: title, progress bar, endings found/total, play count, best turns
+  - Completed stories highlighted in green, unplayed stories dimmed
+  - Opens via 📊 Stats button on title screen
+  - Focus trap for keyboard accessibility, Escape to close
+- **History Export** — download text backlog as `.txt` file
+  - New "📥 Export" button in history panel header
+  - Generates formatted text with speaker names, timestamps, entry count
+  - Downloads as `nyantales-history-YYYY-MM-DD.txt`
+  - Toast notification on successful export
+- **Landscape mobile optimizations** — `@media (max-height: 500px) and (orientation: landscape)`
+  - Compact textbox (100px min-height, 45vh max), smaller text (0.82rem)
+  - Smaller sprites (64px pixel / 96px AI), compact HUD buttons
+  - Tighter title screen spacing (smaller ASCII art, subtitle, stats)
+  - Compact ending overlay (smaller icon, text, buttons, stat grid)
+  - Story grid uses full available height
+- **CSS bug fix** — removed duplicate `max-height` declaration on `.vn-textbox` (60vh was being overridden by 40vh)
+- **Service worker** cache bumped to v9 with stats-dashboard.js
+- All 26 JS files pass `node --check` validation
+
 ## Still Possible Future Work
 - Generate remaining character portraits (GPU timeout issue — needs investigation, possibly during lower GPU load)
 - AI-generated scene background images
@@ -340,6 +364,7 @@ cd /tmp/nyantales && python3 -m http.server 9876
 - ~~Accessibility: screen reader support, high-contrast mode, reduced motion~~ ✅ Done in Phase 16
 
 ## Log (continued)
+- 2026-03-25 (4:27 PM): Added Statistics Dashboard with per-story breakdown table, global progress cards, recently played section. Added history export as .txt download. Landscape mobile media queries for compact layout. Fixed duplicate max-height CSS bug on textbox. SW cache v9. All 26 JS files pass. Committed & pushed.
 - 2026-03-25 (3:27 PM): Added keyboard help modal (? key + ❓ HUD button), about/credits panel (ℹ️ title button), fixed missing SW cache entry for js-yaml.min.js, removed user-scalable=no a11y issue, removed duplicate DataManager, added error handling to story loader, added <noscript> fallback. All 25 JS files pass. Committed & pushed.
 
 ## Log
