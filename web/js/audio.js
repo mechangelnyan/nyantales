@@ -1,0 +1,287 @@
+/**
+ * NyanTales — Procedural Ambient Audio Engine
+ * Generates background ambiance using Web Audio API (no external files needed).
+ * Each background theme gets a unique synthesized atmosphere.
+ */
+
+class AmbientAudio {
+  constructor() {
+    this.ctx = null;
+    this.masterGain = null;
+    this.currentTheme = null;
+    this.nodes = [];
+    this.enabled = false;
+    this.volume = 0.15;
+    this._fadeTime = 1.5; // seconds
+  }
+
+  /** Initialize AudioContext (must be called from user gesture) */
+  init() {
+    if (this.ctx) return;
+    this.ctx = new (window.AudioContext || window.webkitAudioContext)();
+    this.masterGain = this.ctx.createGain();
+    this.masterGain.gain.value = 0;
+    this.masterGain.connect(this.ctx.destination);
+    this.enabled = true;
+  }
+
+  /** Set volume (0-1) */
+  setVolume(v) {
+    this.volume = Math.max(0, Math.min(1, v));
+    if (this.masterGain && this.currentTheme) {
+      this.masterGain.gain.setTargetAtTime(this.volume, this.ctx.currentTime, 0.3);
+    }
+  }
+
+  /** Toggle audio on/off */
+  toggle() {
+    if (!this.ctx) this.init();
+    this.enabled = !this.enabled;
+    if (this.enabled && this.currentTheme) {
+      this.masterGain.gain.setTargetAtTime(this.volume, this.ctx.currentTime, 0.5);
+    } else {
+      this.masterGain.gain.setTargetAtTime(0, this.ctx.currentTime, 0.3);
+    }
+    return this.enabled;
+  }
+
+  /** Switch to a background theme */
+  setTheme(bgClass) {
+    if (!this.ctx) return;
+    const theme = this._classifyTheme(bgClass);
+    if (theme === this.currentTheme) return;
+
+    // Fade out old
+    this.masterGain.gain.setTargetAtTime(0, this.ctx.currentTime, 0.4);
+
+    // Stop old nodes after fade
+    const oldNodes = [...this.nodes];
+    setTimeout(() => {
+      oldNodes.forEach(n => {
+        try { n.stop(); } catch (e) {}
+        try { n.disconnect(); } catch (e) {}
+      });
+    }, 800);
+    this.nodes = [];
+
+    this.currentTheme = theme;
+
+    // Build new theme after brief pause
+    setTimeout(() => {
+      if (this.currentTheme !== theme) return; // theme changed during fade
+      this._buildTheme(theme);
+      if (this.enabled) {
+        this.masterGain.gain.setTargetAtTime(this.volume, this.ctx.currentTime, this._fadeTime);
+      }
+    }, 500);
+  }
+
+  /** Stop all audio */
+  stop() {
+    if (!this.ctx) return;
+    this.masterGain.gain.setTargetAtTime(0, this.ctx.currentTime, 0.3);
+    setTimeout(() => {
+      this.nodes.forEach(n => {
+        try { n.stop(); } catch (e) {}
+        try { n.disconnect(); } catch (e) {}
+      });
+      this.nodes = [];
+      this.currentTheme = null;
+    }, 500);
+  }
+
+  // ── Theme Classification ──
+
+  _classifyTheme(bgClass) {
+    if (!bgClass) return 'default';
+    const map = {
+      'bg-terminal': 'digital',
+      'bg-filesystem': 'digital',
+      'bg-server-room': 'server',
+      'bg-network': 'network',
+      'bg-memory': 'memory',
+      'bg-database': 'database',
+      'bg-cafe': 'cafe',
+      'bg-warm': 'warm',
+      'bg-danger': 'danger',
+      'bg-void': 'void'
+    };
+    return map[bgClass] || 'default';
+  }
+
+  // ── Theme Builders ──
+
+  _buildTheme(theme) {
+    const builders = {
+      digital: () => this._buildDigital(),
+      server: () => this._buildServer(),
+      network: () => this._buildNetwork(),
+      memory: () => this._buildMemory(),
+      database: () => this._buildDatabase(),
+      cafe: () => this._buildCafe(),
+      warm: () => this._buildWarm(),
+      danger: () => this._buildDanger(),
+      void: () => this._buildVoid(),
+      default: () => this._buildDigital()
+    };
+    (builders[theme] || builders.default)();
+  }
+
+  /** Create a filtered noise source */
+  _noise(type = 'lowpass', freq = 800, q = 1, gain = 0.3) {
+    const bufferSize = this.ctx.sampleRate * 4;
+    const buffer = this.ctx.createBuffer(1, bufferSize, this.ctx.sampleRate);
+    const data = buffer.getChannelData(0);
+    for (let i = 0; i < bufferSize; i++) {
+      data[i] = (Math.random() * 2 - 1);
+    }
+
+    const src = this.ctx.createBufferSource();
+    src.buffer = buffer;
+    src.loop = true;
+
+    const filter = this.ctx.createBiquadFilter();
+    filter.type = type;
+    filter.frequency.value = freq;
+    filter.Q.value = q;
+
+    const g = this.ctx.createGain();
+    g.gain.value = gain;
+
+    src.connect(filter);
+    filter.connect(g);
+    g.connect(this.masterGain);
+    src.start();
+    this.nodes.push(src);
+    return { src, filter, gain: g };
+  }
+
+  /** Create a slow oscillator pad */
+  _pad(freq, type = 'sine', gain = 0.08) {
+    const osc = this.ctx.createOscillator();
+    osc.type = type;
+    osc.frequency.value = freq;
+
+    // Slow LFO for movement
+    const lfo = this.ctx.createOscillator();
+    lfo.frequency.value = 0.05 + Math.random() * 0.1;
+    const lfoGain = this.ctx.createGain();
+    lfoGain.gain.value = freq * 0.02;
+    lfo.connect(lfoGain);
+    lfoGain.connect(osc.frequency);
+
+    const g = this.ctx.createGain();
+    g.gain.value = gain;
+
+    osc.connect(g);
+    g.connect(this.masterGain);
+    osc.start();
+    lfo.start();
+    this.nodes.push(osc, lfo);
+    return osc;
+  }
+
+  /** Random blip/click pattern */
+  _blips(interval, freqMin, freqMax, duration = 0.05, gain = 0.04) {
+    const g = this.ctx.createGain();
+    g.gain.value = gain;
+    g.connect(this.masterGain);
+
+    const doBlip = () => {
+      if (!this.currentTheme) return;
+      const osc = this.ctx.createOscillator();
+      osc.type = 'sine';
+      osc.frequency.value = freqMin + Math.random() * (freqMax - freqMin);
+      const env = this.ctx.createGain();
+      env.gain.value = 0;
+      env.gain.setTargetAtTime(1, this.ctx.currentTime, 0.005);
+      env.gain.setTargetAtTime(0, this.ctx.currentTime + duration * 0.3, duration * 0.5);
+
+      osc.connect(env);
+      env.connect(g);
+      osc.start();
+      osc.stop(this.ctx.currentTime + duration);
+
+      const next = interval * (0.5 + Math.random());
+      setTimeout(doBlip, next * 1000);
+    };
+    setTimeout(doBlip, Math.random() * interval * 1000);
+  }
+
+  // ── Specific Themes ──
+
+  _buildDigital() {
+    // Low hum + soft noise + occasional data blips
+    this._pad(55, 'sine', 0.06);
+    this._pad(82.5, 'sine', 0.03);
+    this._noise('lowpass', 400, 0.5, 0.04);
+    this._blips(3, 800, 2000, 0.03, 0.02);
+  }
+
+  _buildServer() {
+    // Fan noise + deeper hum + status beeps
+    this._noise('lowpass', 300, 0.3, 0.08);
+    this._noise('bandpass', 120, 2, 0.05);
+    this._pad(60, 'sine', 0.05);
+    this._pad(120, 'triangle', 0.02);
+    this._blips(5, 1000, 1500, 0.02, 0.015);
+  }
+
+  _buildNetwork() {
+    // Higher frequency movement, packet sounds
+    this._pad(110, 'sine', 0.04);
+    this._pad(165, 'triangle', 0.025);
+    this._noise('bandpass', 2000, 3, 0.02);
+    this._blips(1.2, 1200, 3000, 0.02, 0.03);
+    this._blips(4, 400, 600, 0.08, 0.02);
+  }
+
+  _buildMemory() {
+    // Ethereal, spacey
+    this._pad(73.4, 'sine', 0.06); // D2
+    this._pad(110, 'sine', 0.04); // A2
+    this._pad(146.8, 'triangle', 0.02); // D3
+    this._noise('highpass', 4000, 0.5, 0.015);
+    this._blips(6, 500, 1000, 0.1, 0.015);
+  }
+
+  _buildDatabase() {
+    // Structured, mechanical
+    this._pad(82.4, 'square', 0.02);
+    this._pad(110, 'sine', 0.04);
+    this._noise('lowpass', 200, 1, 0.04);
+    this._blips(2, 600, 900, 0.04, 0.025);
+  }
+
+  _buildCafe() {
+    // Warm, gentle
+    this._pad(130.8, 'sine', 0.05); // C3
+    this._pad(164.8, 'sine', 0.035); // E3
+    this._pad(196, 'sine', 0.025); // G3
+    this._noise('lowpass', 600, 0.3, 0.03);
+  }
+
+  _buildWarm() {
+    // Cozy, safe
+    this._pad(98, 'sine', 0.05); // G2
+    this._pad(123.5, 'sine', 0.04); // B2
+    this._pad(147, 'triangle', 0.025); // D3
+    this._noise('lowpass', 300, 0.3, 0.02);
+  }
+
+  _buildDanger() {
+    // Tense, dissonant
+    this._pad(55, 'sawtooth', 0.03);
+    this._pad(58.3, 'sine', 0.05); // Bb1 - dissonant against A
+    this._noise('bandpass', 150, 5, 0.06);
+    this._noise('highpass', 3000, 2, 0.02);
+    this._blips(2, 200, 400, 0.06, 0.04);
+  }
+
+  _buildVoid() {
+    // Minimal, eerie
+    this._pad(36.7, 'sine', 0.04); // D1
+    this._noise('bandpass', 80, 8, 0.03);
+    this._blips(8, 300, 600, 0.15, 0.01);
+  }
+}

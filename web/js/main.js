@@ -1,6 +1,6 @@
 /**
  * NyanTales Visual Novel — Main Application
- * Loads stories, wires up the engine + UI, handles game loop.
+ * Loads stories, wires up the engine + UI + tracker + audio, handles game loop.
  */
 
 (async function () {
@@ -9,6 +9,8 @@
   // ── Init ──
   await YAMLParser.init();
   const ui = new VNUI();
+  const tracker = new StoryTracker();
+  const audio = new AmbientAudio();
 
   // Story index: map of slug → { title, description, slug }
   const STORY_SLUGS = [
@@ -25,7 +27,6 @@
   // Resolve base path — works whether served from /web/ or repo root
   function storyBasePath() {
     const path = window.location.pathname;
-    // If we're inside /web/, stories are at ../stories/
     if (path.includes('/web/') || path.endsWith('/web')) return '../stories';
     return 'stories';
   }
@@ -33,19 +34,18 @@
   let storyIndex = [];
   let currentEngine = null;
   let currentSlug = null;
+  let activeFilter = 'all';
 
   // ── Load Story Index ──
   async function loadStoryIndex() {
     const base = storyBasePath();
     const entries = [];
 
-    // Fetch each story's YAML header (just title + description)
     const results = await Promise.allSettled(
       STORY_SLUGS.map(async slug => {
         const resp = await fetch(`${base}/${slug}/story.yaml`);
         if (!resp.ok) return null;
         const text = await resp.text();
-        // Quick parse just the header
         const parsed = YAMLParser.parse(text);
         return {
           slug,
@@ -72,11 +72,39 @@
     const parsed = story._parsed;
     currentEngine = new StoryEngine(parsed);
 
+    // Wire audio theme updates to scene transitions
+    const originalRenderScene = ui.renderScene.bind(ui);
+    ui.renderScene = async function(scene, engine) {
+      await originalRenderScene(scene, engine);
+      // Update audio based on background
+      if (audio.enabled) {
+        audio.setTheme(ui._lastBgClass);
+      }
+    };
+
     // Wire up choice handler
     ui.onChoice(choice => {
       const nextScene = currentEngine.goToScene(choice.goto, choice);
       ui.renderScene(nextScene, currentEngine);
     });
+
+    // Wire up ending detection
+    const origShowEnding = ui._showEnding.bind(ui);
+    ui._showEnding = function(scene, engine) {
+      // Track completion
+      const result = tracker.recordEnding(currentSlug, scene.ending, engine.state.turns);
+      origShowEnding(scene, engine);
+
+      // Add "new ending" flash if applicable
+      if (result.isNewEnding) {
+        const endingEl = document.getElementById('vn-ending');
+        const newBadge = document.createElement('div');
+        newBadge.className = 'new-ending-badge';
+        newBadge.textContent = '✨ New Ending Discovered!';
+        newBadge.style.cssText = 'color:var(--accent-yellow);font-family:var(--font-mono);font-size:0.75rem;margin-top:0.5rem;animation:fadeIn 0.5s ease';
+        endingEl.appendChild(newBadge);
+      }
+    };
 
     // Wire up restart
     ui.onRestart(() => {
@@ -94,7 +122,9 @@
       currentEngine = null;
       currentSlug = null;
       ui.setStorySlug(null);
+      audio.stop();
       ui.showTitleScreen();
+      renderTitleScreen();
     });
 
     // Show story screen and render first scene
@@ -104,6 +134,92 @@
 
     // Save to localStorage
     saveProgress();
+  }
+
+  // ── Render Title Screen (with stats + completion badges) ──
+  function renderTitleScreen() {
+    // Stats bar
+    const stats = tracker.getStats();
+    const statsEl = document.getElementById('title-stats');
+    statsEl.innerHTML = `
+      <div class="stat">📖 <span class="stat-value">${stats.storiesCompleted}</span>/${storyIndex.length} complete</div>
+      <div class="stat">🔮 <span class="stat-value">${stats.totalEndings}</span> endings found</div>
+      <div class="stat">🎮 <span class="stat-value">${stats.totalPlays}</span> plays</div>
+    `;
+
+    // Render story list with badges
+    ui.renderStoryList(storyIndex, (story) => {
+      // Init audio on first user gesture
+      if (!audio.ctx) audio.init();
+      startStory(story);
+    });
+
+    // Add completion badges to cards
+    const cards = document.querySelectorAll('.story-card');
+    storyIndex.forEach((story, idx) => {
+      const card = cards[idx];
+      if (!card) return;
+
+      const completed = tracker.isCompleted(story.slug);
+      const endings = tracker.endingCount(story.slug);
+
+      if (completed) {
+        card.classList.add('completed');
+        const badge = document.createElement('div');
+        badge.className = 'story-card-badge';
+        badge.textContent = `✅ ${endings} ending${endings !== 1 ? 's' : ''}`;
+        card.appendChild(badge);
+      }
+
+      // Store slug for filtering
+      card.dataset.slug = story.slug;
+      card.dataset.title = story.title.toLowerCase();
+      card.dataset.desc = (story.description || '').toLowerCase();
+      card.dataset.completed = completed ? '1' : '0';
+    });
+
+    applyFilter();
+  }
+
+  // ── Search & Filter ──
+  const filterInput = document.getElementById('filter-input');
+  const filterTags = document.querySelectorAll('.filter-tag');
+
+  filterInput.addEventListener('input', () => applyFilter());
+
+  filterTags.forEach(tag => {
+    tag.addEventListener('click', () => {
+      filterTags.forEach(t => t.classList.remove('active'));
+      tag.classList.add('active');
+      activeFilter = tag.dataset.filter;
+      applyFilter();
+    });
+  });
+
+  function applyFilter() {
+    const query = (filterInput.value || '').toLowerCase().trim();
+    const cards = document.querySelectorAll('.story-card');
+
+    cards.forEach(card => {
+      let show = true;
+
+      // Text search
+      if (query) {
+        const matchTitle = card.dataset.title?.includes(query);
+        const matchDesc = card.dataset.desc?.includes(query);
+        const matchSlug = card.dataset.slug?.includes(query);
+        if (!matchTitle && !matchDesc && !matchSlug) show = false;
+      }
+
+      // Category filter
+      if (show && activeFilter === 'completed') {
+        if (card.dataset.completed !== '1') show = false;
+      } else if (show && activeFilter === 'new') {
+        if (card.dataset.completed === '1') show = false;
+      }
+
+      card.classList.toggle('hidden-by-filter', !show);
+    });
   }
 
   // ── Click/Tap to advance (skip typewriter) ──
@@ -126,7 +242,9 @@
         currentEngine = null;
         currentSlug = null;
         ui.setStorySlug(null);
+        audio.stop();
         ui.showTitleScreen();
+        renderTitleScreen();
       }
     }
     // Number keys for choices
@@ -135,14 +253,39 @@
       const btns = ui.choicesEl.querySelectorAll('.choice-btn');
       if (btns[idx]) btns[idx].click();
     }
+    // 'M' to toggle audio
+    if (e.key === 'm' || e.key === 'M') {
+      if (!e.ctrlKey && !e.metaKey && !filterInput.matches(':focus')) {
+        toggleAudio();
+      }
+    }
   });
+
+  // ── Audio Toggle Button ──
+  const btnAudio = document.getElementById('btn-audio');
+  btnAudio.addEventListener('click', () => {
+    if (!audio.ctx) audio.init();
+    toggleAudio();
+  });
+
+  function toggleAudio() {
+    const enabled = audio.toggle();
+    btnAudio.textContent = enabled ? '🔊' : '🔇';
+    btnAudio.style.opacity = enabled ? '1' : '0.5';
+    btnAudio.title = enabled ? 'Audio ON (M)' : 'Audio OFF (M)';
+    if (enabled && ui._lastBgClass) {
+      audio.setTheme(ui._lastBgClass);
+    }
+  }
 
   // ── HUD Buttons ──
   ui.btnBack.addEventListener('click', () => {
     currentEngine = null;
     currentSlug = null;
     ui.setStorySlug(null);
+    audio.stop();
     ui.showTitleScreen();
+    renderTitleScreen();
   });
 
   ui.btnSave.addEventListener('click', () => {
@@ -178,11 +321,7 @@
   async function boot() {
     try {
       const stories = await loadStoryIndex();
-
-      ui.renderStoryList(stories, (story) => {
-        startStory(story);
-      });
-
+      renderTitleScreen();
       ui.showTitleScreen();
     } catch (err) {
       console.error('Failed to boot NyanTales:', err);

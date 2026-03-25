@@ -21,6 +21,15 @@
  > ^ <  ╚═══════════════════╝  > ^ <
           </pre>
           <p class="title-subtitle">Interactive Cat Stories from the Terminal</p>
+          <div id="title-stats" class="title-stats"></div>
+          <div id="story-filter" class="story-filter">
+            <input type="text" id="filter-input" placeholder="🔍 Search stories..." autocomplete="off" />
+            <div class="filter-tags">
+              <button class="filter-tag active" data-filter="all">All</button>
+              <button class="filter-tag" data-filter="completed">✅ Completed</button>
+              <button class="filter-tag" data-filter="new">🆕 New</button>
+            </div>
+          </div>
           <div id="story-list" class="story-grid"></div>
         </div>
       </div>
@@ -68,6 +77,7 @@
           <button id="btn-back" class="hud-btn" title="Back to Stories">⏎</button>
           <button id="btn-save" class="hud-btn" title="Save">💾</button>
           <button id="btn-fast" class="hud-btn" title="Toggle Fast Mode">⏩</button>
+          <button id="btn-audio" class="hud-btn" title="Toggle Ambient Audio" style="opacity:0.5">🔇</button>
         </div>
       </div>
     </div>
@@ -76,6 +86,8 @@
   <script src="js/yaml-parser.js"></script>
   <script src="js/engine.js"></script>
   <script src="js/sprites.js"></script>
+  <script src="js/tracker.js"></script>
+  <script src="js/audio.js"></script>
   <script src="js/ui.js"></script>
   <script src="js/main.js"></script>
 </body>
