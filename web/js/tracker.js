@@ -123,9 +123,34 @@ class StoryTracker {
     return this.data.stories[slug]?.visitedScenes?.length || 0;
   }
 
+  // ── Favorites ──
+
+  /** Toggle favorite status for a story */
+  toggleFavorite(slug) {
+    if (!this.data.favorites) this.data.favorites = [];
+    const idx = this.data.favorites.indexOf(slug);
+    if (idx === -1) {
+      this.data.favorites.push(slug);
+    } else {
+      this.data.favorites.splice(idx, 1);
+    }
+    this._save();
+    return this.isFavorite(slug);
+  }
+
+  /** Check if a story is favorited */
+  isFavorite(slug) {
+    return (this.data.favorites || []).includes(slug);
+  }
+
+  /** Get all favorite slugs */
+  getFavorites() {
+    return this.data.favorites || [];
+  }
+
   /** Reset all tracking data */
   reset() {
-    this.data = { stories: {} };
+    this.data = { stories: {}, favorites: [] };
     this._save();
   }
 

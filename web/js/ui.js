@@ -585,6 +585,7 @@ class VNUI {
       </div>
       <button class="ending-btn" id="btn-restart">↻ Play Again</button>
       <button class="ending-btn" id="btn-menu" style="margin-top:0.5rem">⏎ Story List</button>
+      <button class="ending-btn ending-btn-share" id="btn-share-ending" style="margin-top:0.5rem" title="Copy ending summary to clipboard">📋 Share</button>
     `;
 
     document.getElementById('btn-restart').addEventListener('click', () => {
@@ -592,6 +593,38 @@ class VNUI {
     });
     document.getElementById('btn-menu').addEventListener('click', () => {
       if (this._onMenu) this._onMenu();
+    });
+
+    // Share ending card (Web Share API → clipboard fallback)
+    document.getElementById('btn-share-ending').addEventListener('click', async () => {
+      const endingTitle = ending.title || type.toUpperCase();
+      const storyTitle = engine.story.title || 'Unknown Story';
+      const shareText = [
+        `🐱 NyanTales — ${storyTitle}`,
+        `${icon} Ending: ${endingTitle}`,
+        `📊 ${engine.state.turns} turns · ${engine.state.visited.size}/${totalScenes} scenes (${visitPct}%)`,
+        engine.state.inventory.length ? `🎒 Items: ${engine.state.inventory.join(', ')}` : '',
+        '',
+        '🎮 Play at: https://mechangelnyan.github.io/nyantales/web/'
+      ].filter(Boolean).join('\n');
+
+      // Try Web Share API first (mobile), fallback to clipboard
+      if (navigator.share) {
+        try {
+          await navigator.share({ title: `NyanTales — ${storyTitle}`, text: shareText });
+          return;
+        } catch (e) { /* User cancelled or not supported — fall through to clipboard */ }
+      }
+
+      if (navigator.clipboard) {
+        navigator.clipboard.writeText(shareText).then(() => {
+          if (typeof Toast !== 'undefined') Toast.show('Copied to clipboard!', { icon: '📋', duration: 2000 });
+        }).catch(() => {
+          if (typeof Toast !== 'undefined') Toast.error('Failed to copy');
+        });
+      } else if (typeof Toast !== 'undefined') {
+        Toast.error('Clipboard not available');
+      }
     });
   }
 

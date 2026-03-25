@@ -70,6 +70,9 @@ class HistoryPanel {
             <button class="history-close">✕</button>
           </div>
         </div>
+        <div class="history-search-wrap">
+          <input type="text" class="history-search" placeholder="🔍 Search dialogue..." autocomplete="off" aria-label="Search text history" />
+        </div>
         <div class="history-list"></div>
       </div>
     `;
@@ -80,6 +83,10 @@ class HistoryPanel {
     });
     this.overlay.querySelector('.history-close').addEventListener('click', () => this.hide());
     this.overlay.querySelector('.history-export-btn').addEventListener('click', () => this._exportHistory());
+
+    // Search filtering
+    this._searchInput = this.overlay.querySelector('.history-search');
+    this._searchInput.addEventListener('input', () => this._filterEntries());
   }
 
   show() {
@@ -88,15 +95,21 @@ class HistoryPanel {
     const countEl = this.overlay.querySelector('.history-count');
     countEl.textContent = `${entries.length} entries`;
 
+    // Clear search
+    this._searchInput.value = '';
+
     if (entries.length === 0) {
       listEl.innerHTML = '<div class="history-empty">No text yet — start reading!</div>';
     } else {
-      listEl.innerHTML = entries.map(e => `
-        <div class="history-entry">
-          ${e.speaker ? `<div class="history-speaker">${this._esc(e.speaker)}</div>` : ''}
-          <div class="history-text">${this._esc(e.text)}</div>
-        </div>
-      `).join('');
+      listEl.innerHTML = entries.map(e => {
+        const searchable = ((e.speaker || '') + ' ' + e.text).toLowerCase();
+        return `
+          <div class="history-entry" data-searchable="${this._esc(searchable)}">
+            ${e.speaker ? `<div class="history-speaker">${this._esc(e.speaker)}</div>` : ''}
+            <div class="history-text">${this._esc(e.text)}</div>
+          </div>
+        `;
+      }).join('');
       // Scroll to bottom
       requestAnimationFrame(() => { listEl.scrollTop = listEl.scrollHeight; });
     }
@@ -105,6 +118,31 @@ class HistoryPanel {
     requestAnimationFrame(() => this.overlay.classList.add('visible'));
     if (!this._focusTrap) this._focusTrap = new FocusTrap(this.overlay.querySelector('.history-panel'));
     this._focusTrap.activate();
+  }
+
+  /** Filter history entries by search query */
+  _filterEntries() {
+    const query = (this._searchInput.value || '').toLowerCase().trim();
+    const entries = this.overlay.querySelectorAll('.history-entry');
+    let visible = 0;
+
+    entries.forEach(el => {
+      if (!query) {
+        el.style.display = '';
+        visible++;
+      } else {
+        const text = el.dataset.searchable || '';
+        const match = text.includes(query);
+        el.style.display = match ? '' : 'none';
+        if (match) visible++;
+      }
+    });
+
+    const countEl = this.overlay.querySelector('.history-count');
+    const total = entries.length;
+    countEl.textContent = query
+      ? `${visible}/${total} matching`
+      : `${total} entries`;
   }
 
   hide() {

@@ -501,10 +501,33 @@
       });
       card.appendChild(infoBtn);
 
+      // Favorite button (heart)
+      const favBtn = document.createElement('button');
+      favBtn.className = 'story-card-fav-btn';
+      const isFav = tracker.isFavorite(story.slug);
+      favBtn.textContent = isFav ? '❤️' : '🤍';
+      favBtn.title = isFav ? 'Remove from favorites' : 'Add to favorites';
+      favBtn.setAttribute('aria-label', isFav ? `Remove ${story.title} from favorites` : `Add ${story.title} to favorites`);
+      favBtn.setAttribute('aria-pressed', isFav ? 'true' : 'false');
+      favBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const nowFav = tracker.toggleFavorite(story.slug);
+        favBtn.textContent = nowFav ? '❤️' : '🤍';
+        favBtn.title = nowFav ? 'Remove from favorites' : 'Add to favorites';
+        favBtn.setAttribute('aria-pressed', nowFav ? 'true' : 'false');
+        favBtn.setAttribute('aria-label', nowFav ? `Remove ${story.title} from favorites` : `Add ${story.title} to favorites`);
+        card.dataset.favorite = nowFav ? '1' : '0';
+        if (typeof Toast !== 'undefined') {
+          Toast.show(nowFav ? 'Added to favorites' : 'Removed from favorites', { icon: nowFav ? '❤️' : '💔', duration: 1500 });
+        }
+      });
+      card.appendChild(favBtn);
+
       card.dataset.slug = story.slug;
       card.dataset.title = story.title.toLowerCase();
       card.dataset.desc = (story.description || '').toLowerCase();
       card.dataset.completed = completed ? '1' : '0';
+      card.dataset.favorite = isFav ? '1' : '0';
       card.dataset.readMins = readMins;
       card.dataset.progress = sceneCount > 0 ? tracker.getProgress(story.slug, sceneCount) : 0;
       card.dataset.lastPlayed = tracker.getStory(story.slug).lastPlayed || 0;
@@ -585,6 +608,8 @@
         if (card.dataset.completed !== '1') show = false;
       } else if (show && activeFilter === 'new') {
         if (card.dataset.completed === '1') show = false;
+      } else if (show && activeFilter === 'favorites') {
+        if (card.dataset.favorite !== '1') show = false;
       }
 
       card.classList.toggle('hidden-by-filter', !show);
@@ -624,6 +649,12 @@
           const aMin = parseInt(a.dataset.readMins || '0');
           const bMin = parseInt(b.dataset.readMins || '0');
           return bMin - aMin;
+        }
+        case 'favorites': {
+          const aFav = a.dataset.favorite === '1' ? 1 : 0;
+          const bFav = b.dataset.favorite === '1' ? 1 : 0;
+          if (bFav !== aFav) return bFav - aFav;
+          return (a.dataset.title || '').localeCompare(b.dataset.title || '');
         }
         default:
           return 0;

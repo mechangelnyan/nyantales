@@ -3427,6 +3427,86 @@ body {
   .title-stats { margin-bottom: 0.4rem; font-size: 0.65rem; }
 }
 
+/* ═══════════════════════════════════════
+   Story Card Favorite Button
+   ═══════════════════════════════════════ */
+
+.story-card-fav-btn {
+  position: absolute;
+  top: 6px;
+  left: 6px;
+  background: rgba(10, 10, 20, 0.7);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 50%;
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.85rem;
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity 0.25s ease, transform 0.15s ease, background 0.2s;
+  z-index: 3;
+  padding: 0;
+  line-height: 1;
+}
+.story-card:hover .story-card-fav-btn,
+.story-card:focus-within .story-card-fav-btn,
+.story-card-fav-btn[aria-pressed="true"] {
+  opacity: 1;
+}
+.story-card-fav-btn:hover {
+  transform: scale(1.15);
+  background: rgba(255, 54, 171, 0.2);
+}
+.story-card-fav-btn:active {
+  transform: scale(0.9);
+}
+
+/* ═══════════════════════════════════════
+   History Search Bar
+   ═══════════════════════════════════════ */
+
+.history-search-wrap {
+  padding: 0 1rem 0.5rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+.history-search {
+  width: 100%;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 6px;
+  padding: 0.4rem 0.7rem;
+  color: var(--text-main);
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  outline: none;
+  transition: border-color 0.2s;
+}
+.history-search:focus {
+  border-color: var(--accent-cyan);
+}
+.history-search::placeholder {
+  color: var(--text-dim);
+}
+
+/* ═══════════════════════════════════════
+   Ending Share Button
+   ═══════════════════════════════════════ */
+
+.ending-btn-share {
+  background: rgba(0, 212, 255, 0.08) !important;
+  border: 1px solid rgba(0, 212, 255, 0.2) !important;
+  font-size: 0.75rem !important;
+  opacity: 0.7;
+  transition: opacity 0.2s, background 0.2s;
+}
+.ending-btn-share:hover {
+  opacity: 1;
+  background: rgba(0, 212, 255, 0.18) !important;
+}
+
 .noscript-msg {
   position: fixed;
   inset: 0;
