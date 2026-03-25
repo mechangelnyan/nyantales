@@ -102,6 +102,8 @@
   let currentEngine = null;
   let currentSlug   = null;
   let activeFilter  = 'all';
+  let activeSort    = 'title-asc';
+  const dataManager = new DataManager();
 
   // ── Auto-play State ──
 
@@ -417,12 +419,16 @@
       card.dataset.title = story.title.toLowerCase();
       card.dataset.desc = (story.description || '').toLowerCase();
       card.dataset.completed = completed ? '1' : '0';
+      card.dataset.readMins = readMins;
+      card.dataset.progress = sceneCount > 0 ? tracker.getProgress(story.slug, sceneCount) : 0;
+      card.dataset.lastPlayed = tracker.getStory(story.slug).lastPlayed || 0;
     });
 
     // "Continue" button — shows if there's a recent save
     updateContinueButton();
 
     applyFilter();
+    applySortToGrid();
   }
 
   // ── Continue Button ──
@@ -450,10 +456,11 @@
     startStory(story, recent.state);
   });
 
-  // ── Search & Filter ──
+  // ── Search, Filter & Sort ──
 
   const filterInput = document.getElementById('filter-input');
   const filterTags = document.querySelectorAll('.filter-tag');
+  const sortSelect = document.getElementById('sort-select');
 
   filterInput.addEventListener('input', () => applyFilter());
   filterTags.forEach(tag => {
@@ -467,6 +474,11 @@
       activeFilter = tag.dataset.filter;
       applyFilter();
     });
+  });
+
+  sortSelect.addEventListener('change', () => {
+    activeSort = sortSelect.value;
+    applySortToGrid();
   });
 
   function applyFilter() {
@@ -491,6 +503,49 @@
 
       card.classList.toggle('hidden-by-filter', !show);
     });
+  }
+
+  /**
+   * Sort story cards in the DOM by reordering elements.
+   * Uses CSS order property for smooth re-sorting without re-rendering.
+   */
+  function applySortToGrid() {
+    const grid = document.getElementById('story-list');
+    const cards = [...grid.querySelectorAll('.story-card')];
+
+    cards.sort((a, b) => {
+      switch (activeSort) {
+        case 'title-asc':
+          return (a.dataset.title || '').localeCompare(b.dataset.title || '');
+        case 'title-desc':
+          return (b.dataset.title || '').localeCompare(a.dataset.title || '');
+        case 'recent': {
+          const aTime = parseFloat(a.dataset.lastPlayed || '0');
+          const bTime = parseFloat(b.dataset.lastPlayed || '0');
+          return bTime - aTime; // most recent first
+        }
+        case 'progress': {
+          const aPct = parseFloat(a.dataset.progress || '0');
+          const bPct = parseFloat(b.dataset.progress || '0');
+          return bPct - aPct; // most progress first
+        }
+        case 'time-short': {
+          const aMin = parseInt(a.dataset.readMins || '0');
+          const bMin = parseInt(b.dataset.readMins || '0');
+          return aMin - bMin;
+        }
+        case 'time-long': {
+          const aMin = parseInt(a.dataset.readMins || '0');
+          const bMin = parseInt(b.dataset.readMins || '0');
+          return bMin - aMin;
+        }
+        default:
+          return 0;
+      }
+    });
+
+    // Reorder DOM elements
+    cards.forEach(card => grid.appendChild(card));
   }
 
   // ── Click/Tap to Advance ──
@@ -802,6 +857,32 @@
         </p>`;
     }
   }
+
+  // ── Online/Offline Notifications ──
+
+  function showNetworkToast(message, color) {
+    const existing = document.querySelector('.network-toast');
+    if (existing) existing.remove();
+
+    const toast = document.createElement('div');
+    toast.className = 'network-toast';
+    toast.style.cssText = `
+      position:fixed;bottom:1rem;left:50%;transform:translateX(-50%);z-index:9999;
+      background:${color};border-radius:6px;padding:0.4rem 1rem;
+      font-family:var(--font-mono);font-size:0.75rem;color:#fff;
+      opacity:0;transition:opacity 0.4s ease;pointer-events:none;
+    `;
+    toast.textContent = message;
+    document.body.appendChild(toast);
+    requestAnimationFrame(() => { toast.style.opacity = '1'; });
+    setTimeout(() => {
+      toast.style.opacity = '0';
+      setTimeout(() => toast.remove(), 500);
+    }, 3000);
+  }
+
+  window.addEventListener('online', () => showNetworkToast('📶 Back online', 'rgba(0,255,136,0.85)'));
+  window.addEventListener('offline', () => showNetworkToast('📴 Offline — saves still work!', 'rgba(255,68,68,0.85)'));
 
   boot();
 })();

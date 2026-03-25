@@ -195,6 +195,53 @@ body {
   color: var(--accent-cyan);
 }
 
+/* ── Filter Row (tabs + sort) ── */
+.filter-row {
+  display: flex;
+  align-items: center;
+  gap: 0.8rem;
+  width: 100%;
+  justify-content: space-between;
+  flex-wrap: wrap;
+}
+
+/* ── Sort Control ── */
+.sort-control {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+.sort-label {
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  color: var(--text-dim);
+}
+.sort-select {
+  padding: 0.2rem 0.5rem;
+  background: rgba(20, 20, 40, 0.8);
+  border: 1px solid rgba(0, 212, 255, 0.2);
+  border-radius: 6px;
+  color: var(--text-main);
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  outline: none;
+  cursor: pointer;
+  transition: border-color 0.2s;
+  -webkit-appearance: none;
+  appearance: none;
+  padding-right: 1.2rem;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%2388888888'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 0.4rem center;
+}
+.sort-select:focus {
+  border-color: var(--accent-cyan);
+}
+.sort-select option {
+  background: #0a0a1a;
+  color: var(--text-main);
+}
+
 /* ── Story Grid ── */
 .story-grid {
   display: grid;
@@ -1501,9 +1548,21 @@ body {
   border-color: var(--accent-red);
 }
 
+/* Settings data stats */
+.settings-data-stats {
+  font-family: var(--font-mono);
+  font-size: 0.65rem;
+  color: var(--text-dim);
+  text-align: center;
+  padding: 0.3rem 0 0;
+  opacity: 0.7;
+}
+
 @media (max-width: 480px) {
   .settings-slider { width: 80px; }
   .settings-panel { padding: 1rem; }
+  .filter-row { justify-content: center; }
+  .sort-control { width: 100%; justify-content: center; }
 }
 
 /* ═══════════════════════════════════════════════════

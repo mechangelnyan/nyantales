@@ -107,6 +107,19 @@ class SettingsPanel {
             </div>
           </div>
 
+          <div class="settings-group">
+            <div class="settings-group-title">💾 Data</div>
+            <div class="settings-row">
+              <label class="settings-label">Backup / Restore</label>
+              <div class="settings-control" style="gap:0.4rem">
+                <button id="set-export" class="settings-toggle on" style="font-size:0.68rem">📤 Export</button>
+                <button id="set-import" class="settings-toggle" style="font-size:0.68rem">📥 Import</button>
+                <input type="file" id="set-import-file" accept=".json" style="display:none" />
+              </div>
+            </div>
+            <div id="set-data-stats" class="settings-data-stats"></div>
+          </div>
+
           <div class="settings-footer">
             <button id="set-reset" class="settings-reset-btn">↺ Reset Defaults</button>
           </div>
@@ -162,6 +175,35 @@ class SettingsPanel {
 
     // Color theme swatches
     this._wireColorTheme();
+
+    // Data export/import
+    this._dataManager = new DataManager();
+    document.getElementById('set-export').addEventListener('click', () => {
+      this._dataManager.downloadExport();
+      const btn = document.getElementById('set-export');
+      btn.textContent = '✅ Done!';
+      setTimeout(() => { btn.textContent = '📤 Export'; }, 1500);
+    });
+    document.getElementById('set-import').addEventListener('click', () => {
+      document.getElementById('set-import-file').click();
+    });
+    document.getElementById('set-import-file').addEventListener('change', async (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+      try {
+        const result = await this._dataManager.importFromFile(file);
+        const btn = document.getElementById('set-import');
+        btn.textContent = `✅ ${result.imported} items`;
+        setTimeout(() => { btn.textContent = '📥 Import'; }, 2000);
+        this._updateDataStats();
+      } catch (err) {
+        const btn = document.getElementById('set-import');
+        btn.textContent = '❌ Error';
+        setTimeout(() => { btn.textContent = '📥 Import'; }, 2000);
+        console.warn('Import failed:', err);
+      }
+      e.target.value = ''; // Reset file input
+    });
 
     // Reset button
     document.getElementById('set-reset').addEventListener('click', () => {
@@ -253,8 +295,18 @@ class SettingsPanel {
     });
   }
 
+  /** Update data usage stats display */
+  _updateDataStats() {
+    const statsEl = document.getElementById('set-data-stats');
+    if (!statsEl || !this._dataManager) return;
+    const stats = this._dataManager.getStats();
+    const sizeKB = (stats.estimatedBytes / 1024).toFixed(1);
+    statsEl.innerHTML = `${stats.stories} stories tracked · ${stats.saves} save files · ~${sizeKB} KB`;
+  }
+
   show() {
     this._syncAll();
+    this._updateDataStats();
     this.overlay.setAttribute('aria-hidden', 'false');
     requestAnimationFrame(() => this.overlay.classList.add('visible'));
     if (!this._focusTrap) this._focusTrap = new FocusTrap(this.overlay.querySelector('.settings-panel'));
