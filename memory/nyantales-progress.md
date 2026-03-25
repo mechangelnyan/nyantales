@@ -97,14 +97,33 @@ cd /tmp/nyantales && python3 -m http.server 9876
 - Checks after: story endings, story starts, and on boot
 - Achievements: First Boot, Curious Cat, Bookworm, Completionist, Path Explorer, Multiverse Traveler, Speedrunner, Patient Explorer, Replay Value, Terminal Addict, Terminal OG, Debug Master, Network Cat, Escape Artist, Memory Expert, Night Owl
 
+## Phase 11: AI Portrait Integration ✅
+- `PortraitManager` class (`web/js/portraits.js`) — maps character names to AI-generated portrait images
+- 6 characters have AI portraits: Nyan, Byte, Mochi, Pixel, Query, Inspector Whiskers
+- Graceful fallback: characters without AI portraits use procedural pixel sprites
+- Portrait integration points: story cards (circular crop), in-game sprites (rounded corners), speaker name plates (mini portrait), character gallery
+- AI portraits render with smooth anti-aliasing (no pixelated), glow borders when speaking
+- Responsive sizing at all breakpoints
+- Portraits preloaded on boot to prevent flash of unstyled content
+- Image generation scripts moved to `tools/` directory
+
+## Phase 12: Visual Polish Round ✅
+- Vignette overlay on VN container (radial gradient darkening edges for cinematic feel)
+- Textbox subtle cyan glow above border for depth and atmosphere
+- Blinking terminal cursor on title screen subtitle
+- README updated with web visual novel documentation
+- LoRA model files added to .gitignore
+
 ## Still Possible Future Work
-- AI-generated character portrait images (replace procedural with hand-drawn/AI art)
+- Generate remaining character portraits (GPU timeout issue — needs investigation, possibly during lower GPU load)
 - AI-generated scene background images
 - More advanced sprite animations (idle, emote variants)
-- Achievement/collectible system across stories
+- Style consistency pass on existing portraits (3 different styles detected: realistic cat, anime catgirl, victorian anthropomorphic)
+- Deploy to GitHub Pages or similar static hosting
 
 ## Log
 - 2026-03-24: Built complete web visual novel engine (ui.js + main.js). All 30 stories load and play in browser. Core VN loop works: title screen → story select → scene rendering → choices → state tracking → endings → restart/menu.
 - 2026-03-24 (late): Added procedural pixel cat sprite system (sprites.js). Characters appear as pixel-art cats during scenes, with speaking highlights and transitions. Story cards show protagonist thumbnails. Scene crossfade transitions. Extensive CSS polish: animations, particles, mood colors, responsive sprites, ending animations, choice number hints. Committed & pushed.
 - 2026-03-25 (late): Added story completion tracking (tracker.js), search/filter on title screen, and procedural ambient audio engine (audio.js). 9 themed soundscapes synthesized via Web Audio API. Stats bar, completion badges, filter tabs. Committed & pushed.
 - 2026-03-25 (12:27 AM): Added Character Gallery (gallery.js) — browse all 45 characters with pixel sprites, search/filter, click story tags to play. Added Achievement System (achievements.js) — 16 achievements with animated toast unlocks and modal panel. Stats bar shows achievement progress. Committed & pushed.
+- 2026-03-25 (1:27 AM): Integrated AI character portraits into web VN engine. Created PortraitManager for 6 characters with graceful fallback. Added vignette, textbox glow, blinking cursor polish. Updated README. Moved generation scripts to tools/. Attempted new portrait generation but GPU hit Metal timeout errors — deferred to future session. Committed & pushed (3 commits: portrait integration, tools reorganization, visual polish).
