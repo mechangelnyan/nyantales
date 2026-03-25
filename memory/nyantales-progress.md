@@ -311,6 +311,26 @@ cd /tmp/nyantales && python3 -m http.server 9876
 - SW cache bumped to v7 with story-info.js
 - All JS files pass `node --check` validation
 
+## Phase 22: Keyboard Help, About Panel, Code Quality ✅
+- **Keyboard Help modal** (`web/js/keyboard-help.js`) — full shortcut reference
+  - Shows all keyboard shortcuts + mobile gestures in categorized sections
+  - Opens via `?` key or ❓ HUD button, closes with Escape or backdrop click
+  - Focus-trapped for accessibility
+  - First-time visitors get a brief toast pointing to `?` for help
+- **About / Credits panel** (`web/js/about.js`) — project info and stats
+  - Displays story count, character count, achievement progress
+  - Feature list, tech stack summary, GitHub link
+  - ASCII cat art, styled to match cyberpunk theme
+  - Opens via ℹ️ About button on title screen
+- **Bug fixes & code quality**
+  - Removed `user-scalable=no` from viewport meta (accessibility anti-pattern)
+  - Added `js-yaml.min.js` to service worker pre-cache (was missing → broke offline)
+  - Removed duplicate `DataManager` instantiation in main.js
+  - Added try/catch + scene validation to story YAML loader (prevents silent failures)
+  - Added `<noscript>` fallback message for users without JavaScript
+  - Escape key priority chain updated for new panels
+- SW cache bumped to v8
+
 ## Still Possible Future Work
 - Generate remaining character portraits (GPU timeout issue — needs investigation, possibly during lower GPU load)
 - AI-generated scene background images
@@ -318,6 +338,9 @@ cd /tmp/nyantales && python3 -m http.server 9876
 - Style consistency pass on existing portraits (3 different styles detected: realistic cat, anime catgirl, victorian anthropomorphic)
 - Chapter/route progress tracking (% completion per story)
 - ~~Accessibility: screen reader support, high-contrast mode, reduced motion~~ ✅ Done in Phase 16
+
+## Log (continued)
+- 2026-03-25 (3:27 PM): Added keyboard help modal (? key + ❓ HUD button), about/credits panel (ℹ️ title button), fixed missing SW cache entry for js-yaml.min.js, removed user-scalable=no a11y issue, removed duplicate DataManager, added error handling to story loader, added <noscript> fallback. All 25 JS files pass. Committed & pushed.
 
 ## Log
 - 2026-03-24: Built complete web visual novel engine (ui.js + main.js). All 30 stories load and play in browser. Core VN loop works: title screen → story select → scene rendering → choices → state tracking → endings → restart/menu.
