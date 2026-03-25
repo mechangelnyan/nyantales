@@ -80,6 +80,23 @@ cd /tmp/nyantales && python3 -m http.server 9876
 - Audio toggle: HUD button (🔊/🔇) + M keyboard shortcut
 - Auto-initializes on first user interaction (browser autoplay policy)
 
+## Phase 9: Character Gallery ✅
+- `CharacterGallery` class (`web/js/gallery.js`) — browse all 45 characters from CHARACTER_DATA
+- Pixel sprite portraits generated per character via CatSpriteGenerator
+- Search by name/appearance, filter by role (All / Heroes / NPCs)
+- Story tags on each card — click to jump directly into that story
+- Accessible from title screen via "🐱 Characters" button
+- Responsive grid layout, modal overlay with backdrop blur
+
+## Phase 10: Achievement System ✅
+- `AchievementSystem` class (`web/js/achievements.js`) — 16 achievements
+- Achievement categories: progress milestones, play count, speed/patience, specific story combos
+- Animated toast notifications on unlock (slides in from top, icon pop animation)
+- Achievement panel modal (🏆 button on title screen) — shows locked/unlocked state
+- Stats bar on title screen now shows achievement progress (X/16)
+- Checks after: story endings, story starts, and on boot
+- Achievements: First Boot, Curious Cat, Bookworm, Completionist, Path Explorer, Multiverse Traveler, Speedrunner, Patient Explorer, Replay Value, Terminal Addict, Terminal OG, Debug Master, Network Cat, Escape Artist, Memory Expert, Night Owl
+
 ## Still Possible Future Work
 - AI-generated character portrait images (replace procedural with hand-drawn/AI art)
 - AI-generated scene background images
@@ -90,3 +107,4 @@ cd /tmp/nyantales && python3 -m http.server 9876
 - 2026-03-24: Built complete web visual novel engine (ui.js + main.js). All 30 stories load and play in browser. Core VN loop works: title screen → story select → scene rendering → choices → state tracking → endings → restart/menu.
 - 2026-03-24 (late): Added procedural pixel cat sprite system (sprites.js). Characters appear as pixel-art cats during scenes, with speaking highlights and transitions. Story cards show protagonist thumbnails. Scene crossfade transitions. Extensive CSS polish: animations, particles, mood colors, responsive sprites, ending animations, choice number hints. Committed & pushed.
 - 2026-03-25 (late): Added story completion tracking (tracker.js), search/filter on title screen, and procedural ambient audio engine (audio.js). 9 themed soundscapes synthesized via Web Audio API. Stats bar, completion badges, filter tabs. Committed & pushed.
+- 2026-03-25 (12:27 AM): Added Character Gallery (gallery.js) — browse all 45 characters with pixel sprites, search/filter, click story tags to play. Added Achievement System (achievements.js) — 16 achievements with animated toast unlocks and modal panel. Stats bar shows achievement progress. Committed & pushed.
