@@ -480,7 +480,7 @@ class VNUI {
   showChoices(choices, engine) {
     this.choicesEl.innerHTML = '';
     this.choicesEl.classList.remove('hidden');
-    this.textboxEl.style.display = 'none';
+    // Keep the text/art visible — choices appear below, not replacing them
 
     choices.forEach((choice, i) => {
       const btn = document.createElement('button');
@@ -502,7 +502,6 @@ class VNUI {
         btn.classList.add('chosen');
         setTimeout(() => {
           this.choicesEl.classList.add('hidden');
-          this.textboxEl.style.display = '';
           if (this._onChoice) this._onChoice(choice);
         }, 200);
       });
@@ -513,7 +512,6 @@ class VNUI {
   hideChoices() {
     this.choicesEl.classList.add('hidden');
     this.choicesEl.innerHTML = '';
-    this.textboxEl.style.display = '';
   }
 
   onChoice(callback) {

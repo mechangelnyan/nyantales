@@ -16,7 +16,7 @@ class YAMLParser {
     
     return new Promise((resolve, reject) => {
       const script = document.createElement('script');
-      script.src = 'https://cdn.jsdelivr.net/npm/js-yaml@4.1.0/dist/js-yaml.min.js';
+      script.src = 'js/js-yaml.min.js';
       script.onload = () => {
         window.jsyaml = window.jsyaml || window['js-yaml'] || jsyaml;
         resolve();
