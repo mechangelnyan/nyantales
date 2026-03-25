@@ -3522,3 +3522,48 @@ body {
   line-height: 1.6;
   z-index: 99999;
 }
+
+/* ═══════════════════════════════════════
+   Filter Count Indicator
+   ═══════════════════════════════════════ */
+
+.filter-count {
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  color: var(--text-dim);
+  position: absolute;
+  right: 0.8rem;
+  top: 50%;
+  transform: translateY(-50%);
+  pointer-events: none;
+}
+#story-filter {
+  position: relative;
+}
+
+/* ═══════════════════════════════════════
+   Performance: GPU-accelerated animations
+   ═══════════════════════════════════════ */
+
+.scene-transition-overlay,
+.vn-sprite-wrap,
+.story-card,
+.nt-toast,
+.auto-play-indicator,
+.skip-indicator {
+  will-change: transform, opacity;
+}
+
+/* ═══════════════════════════════════════
+   Double-tap prevention for touch devices
+   ═══════════════════════════════════════ */
+
+.hud-btn,
+.choice-btn,
+.gallery-btn,
+.achievements-btn,
+.continue-btn,
+.filter-tag {
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+}

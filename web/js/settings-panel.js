@@ -159,23 +159,8 @@ class SettingsPanel {
     this._wireToggle('set-screen-shake', 'screenShake');
     this._wireToggle('set-particles', 'particles');
 
-    // Fullscreen toggle
-    const fsBtn = document.getElementById('set-fullscreen');
-    fsBtn.addEventListener('click', () => {
-      if (document.fullscreenElement) {
-        document.exitFullscreen();
-        fsBtn.textContent = 'OFF';
-        fsBtn.classList.remove('on');
-      } else {
-        document.documentElement.requestFullscreen().catch(() => {});
-        fsBtn.textContent = 'ON';
-        fsBtn.classList.add('on');
-      }
-    });
-    document.addEventListener('fullscreenchange', () => {
-      fsBtn.textContent = document.fullscreenElement ? 'ON' : 'OFF';
-      fsBtn.classList.toggle('on', !!document.fullscreenElement);
-    });
+    // Fullscreen toggle — uses settings key so F key and panel stay in sync
+    this._wireToggle('set-fullscreen', 'fullscreen');
 
     this._wireSlider('set-volume', 'audioVolume', v => `${v}%`, {
       toSetting: v => v / 100,
@@ -319,6 +304,7 @@ class SettingsPanel {
     syncToggle('set-skip-read', 'skipRead');
     syncToggle('set-screen-shake', 'screenShake');
     syncToggle('set-particles', 'particles');
+    syncToggle('set-fullscreen', 'fullscreen');
 
     document.getElementById('row-auto-delay').style.display = this.settings.get('autoPlay') ? '' : 'none';
 

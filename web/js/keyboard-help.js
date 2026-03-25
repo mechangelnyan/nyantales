@@ -49,6 +49,7 @@ class KeyboardHelp {
             <div class="kh-section-title">Toggles</div>
             <div class="kh-row"><kbd>A</kbd><span>Auto-play on/off</span></div>
             <div class="kh-row"><kbd>M</kbd><span>Audio on/off</span></div>
+            <div class="kh-row"><kbd>F</kbd><span>Fullscreen on/off</span></div>
             <div class="kh-row"><kbd>?</kbd><span>This help screen</span></div>
           </div>
           <div class="kh-section">

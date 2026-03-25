@@ -108,6 +108,22 @@
     }
     if (key === 'colorTheme') applyColorTheme(value);
     if (key === 'fontSize')   applyFontSize(value);
+    if (key === 'fullscreen') toggleFullscreen(value);
+  });
+
+  /** Toggle fullscreen mode */
+  function toggleFullscreen(on) {
+    if (on && !document.fullscreenElement) {
+      document.documentElement.requestFullscreen?.().catch(() => {});
+    } else if (!on && document.fullscreenElement) {
+      document.exitFullscreen?.().catch(() => {});
+    }
+  }
+  // Sync setting when user exits fullscreen via Escape/browser UI
+  document.addEventListener('fullscreenchange', () => {
+    if (!document.fullscreenElement && settings.get('fullscreen')) {
+      settings.set('fullscreen', false);
+    }
   });
 
   // (COLOR_THEMES, applyParticlesSetting, applyFontSize, applyColorTheme moved above initial settings)
@@ -415,6 +431,11 @@
 
   // ── Title Screen Rendering ──
 
+  /**
+   * Render (or re-render) the title screen.
+   * Uses ui.renderStoryList to create fresh cards, then decorates them once.
+   * Safe to call multiple times (no duplicate badges/buttons).
+   */
   function renderTitleScreen() {
     const stats = tracker.getStats();
     const achStats = achievements.getStats();
@@ -426,12 +447,13 @@
       <div class="stat">🏆 <span class="stat-value">${achStats.unlocked}</span>/${achStats.total}</div>
     `;
 
+    // renderStoryList clears the grid and creates fresh cards — no duplicate risk
     ui.renderStoryList(storyIndex, (story) => {
       if (!audio.ctx) audio.init();
       startStory(story);
     });
 
-    // Decorate cards with completion info + scene count
+    // Decorate each freshly-created card
     const cards = document.querySelectorAll('.story-card');
     storyIndex.forEach((story, idx) => {
       const card = cards[idx];
@@ -441,12 +463,13 @@
       const endings = tracker.endingCount(story.slug);
       const sceneCount = story._parsed?.scenes ? Object.keys(story._parsed.scenes).length : 0;
 
-      // Add reading time estimate (based on word count across all scenes)
+      // Reading time estimate (word count across all scenes, ~200 wpm)
       const wordCount = story._parsed?.scenes
         ? Object.values(story._parsed.scenes).reduce((sum, s) => sum + ((s.text || '').split(/\s+/).length), 0)
         : 0;
-      const readMins = Math.max(1, Math.ceil(wordCount / 200)); // ~200 wpm for VN reading
+      const readMins = Math.max(1, Math.ceil(wordCount / 200));
 
+      // Completion badge
       if (completed) {
         card.classList.add('completed');
         const badge = document.createElement('div');
@@ -455,10 +478,10 @@
         card.appendChild(badge);
       }
 
-      // Add save indicator
+      // Save indicator
       if (saveManager.hasSave(story.slug)) {
         const saveIcon = document.createElement('div');
-        saveIcon.className = 'story-card-badge';
+        saveIcon.className = 'story-card-badge story-card-save-badge';
         saveIcon.style.cssText = completed
           ? 'top:auto;bottom:6px;color:var(--accent-cyan);'
           : 'color:var(--accent-cyan);';
@@ -466,7 +489,7 @@
         card.appendChild(saveIcon);
       }
 
-      // Add scene count progress bar (using actual visited scene data)
+      // Progress bar (actual visited scenes)
       if (sceneCount > 0) {
         const pct = tracker.getProgress(story.slug, sceneCount);
         const progressBar = document.createElement('div');
@@ -480,7 +503,7 @@
         card.appendChild(progressBar);
       }
 
-      // Add meta info (reading time + scene count) below the description
+      // Meta info (reading time + scene count)
       if (sceneCount > 0 || readMins > 0) {
         const metaEl = document.createElement('div');
         metaEl.className = 'story-card-meta';
@@ -489,22 +512,22 @@
         if (textContainer) textContainer.appendChild(metaEl);
       }
 
-      // Add info button (ℹ) — opens story detail modal
+      // Info button (ℹ) — story detail modal
       const infoBtn = document.createElement('button');
       infoBtn.className = 'story-card-info-btn';
       infoBtn.textContent = 'ℹ';
       infoBtn.title = 'Story details';
       infoBtn.setAttribute('aria-label', `Details for ${story.title}`);
       infoBtn.addEventListener('click', (e) => {
-        e.stopPropagation(); // Don't trigger card click (start story)
+        e.stopPropagation();
         storyInfo.show(story, CHARACTER_DATA[story.slug] || []);
       });
       card.appendChild(infoBtn);
 
       // Favorite button (heart)
+      const isFav = tracker.isFavorite(story.slug);
       const favBtn = document.createElement('button');
       favBtn.className = 'story-card-fav-btn';
-      const isFav = tracker.isFavorite(story.slug);
       favBtn.textContent = isFav ? '❤️' : '🤍';
       favBtn.title = isFav ? 'Remove from favorites' : 'Add to favorites';
       favBtn.setAttribute('aria-label', isFav ? `Remove ${story.title} from favorites` : `Add ${story.title} to favorites`);
@@ -517,12 +540,11 @@
         favBtn.setAttribute('aria-pressed', nowFav ? 'true' : 'false');
         favBtn.setAttribute('aria-label', nowFav ? `Remove ${story.title} from favorites` : `Add ${story.title} to favorites`);
         card.dataset.favorite = nowFav ? '1' : '0';
-        if (typeof Toast !== 'undefined') {
-          Toast.show(nowFav ? 'Added to favorites' : 'Removed from favorites', { icon: nowFav ? '❤️' : '💔', duration: 1500 });
-        }
+        Toast.show(nowFav ? 'Added to favorites' : 'Removed from favorites', { icon: nowFav ? '❤️' : '💔', duration: 1500 });
       });
       card.appendChild(favBtn);
 
+      // Data attributes for filtering/sorting
       card.dataset.slug = story.slug;
       card.dataset.title = story.title.toLowerCase();
       card.dataset.desc = (story.description || '').toLowerCase();
@@ -571,7 +593,12 @@
   const filterTags = document.querySelectorAll('.filter-tag');
   const sortSelect = document.getElementById('sort-select');
 
-  filterInput.addEventListener('input', () => applyFilter());
+  // Debounced search input for smoother performance with 30 cards
+  let _filterTimer = null;
+  filterInput.addEventListener('input', () => {
+    if (_filterTimer) clearTimeout(_filterTimer);
+    _filterTimer = setTimeout(() => applyFilter(), 80);
+  });
   filterTags.forEach(tag => {
     tag.addEventListener('click', () => {
       filterTags.forEach(t => {
@@ -594,6 +621,7 @@
     const query = (filterInput.value || '').toLowerCase().trim();
     const cards = document.querySelectorAll('.story-card');
 
+    let visibleCount = 0;
     cards.forEach(card => {
       let show = true;
 
@@ -613,7 +641,23 @@
       }
 
       card.classList.toggle('hidden-by-filter', !show);
+      if (show) visibleCount++;
     });
+
+    // Update result count indicator
+    let countEl = document.getElementById('filter-count');
+    if (!countEl) {
+      countEl = document.createElement('span');
+      countEl.id = 'filter-count';
+      countEl.className = 'filter-count';
+      filterInput.parentElement.appendChild(countEl);
+    }
+    if (query || activeFilter !== 'all') {
+      countEl.textContent = `${visibleCount} stor${visibleCount === 1 ? 'y' : 'ies'}`;
+      countEl.style.display = '';
+    } else {
+      countEl.style.display = 'none';
+    }
   }
 
   /**
@@ -755,6 +799,11 @@
       sceneSelect.isVisible
         ? sceneSelect.hide()
         : sceneSelect.show(currentEngine, currentEngine.state.currentScene);
+    }
+
+    if (key === 'f' && noMod && currentEngine) {
+      const fs = !settings.get('fullscreen');
+      settings.set('fullscreen', fs);
     }
 
     if (key === 's' && noMod) {
