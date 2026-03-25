@@ -24,7 +24,8 @@ class StoryEngine {
       flags: new Set(),
       visited: new Set(),
       turns: 0,
-      history: []
+      history: [],       // scene IDs for simple backward nav
+      snapshots: []      // full state snapshots for accurate rewind
     };
   }
 
@@ -47,6 +48,16 @@ class StoryEngine {
       if (choice.set_flags) choice.set_flags.forEach(f => this.state.flags.add(f));
       if (choice.remove_flag) this.state.flags.delete(choice.remove_flag);
     }
+
+    // Snapshot current state before transitioning (for accurate rewind)
+    this.state.snapshots.push({
+      scene: this.state.currentScene,
+      inventory: [...this.state.inventory],
+      flags: [...this.state.flags],
+      turns: this.state.turns
+    });
+    // Cap snapshot history to prevent memory bloat
+    if (this.state.snapshots.length > 200) this.state.snapshots.shift();
 
     // Track visit + turns
     this.state.visited.add(this.state.currentScene);
@@ -136,6 +147,25 @@ class StoryEngine {
   }
 
   /**
+   * Rewind to the previous scene, restoring inventory and flags from the snapshot.
+   * Returns the scene object or null if nothing to rewind to.
+   * @returns {Object|null}
+   */
+  rewindScene() {
+    if (this.state.snapshots.length === 0) return null;
+
+    const snap = this.state.snapshots.pop();
+    this.state.history.pop();
+
+    this.state.currentScene = snap.scene;
+    this.state.inventory = snap.inventory;
+    this.state.flags = new Set(snap.flags);
+    this.state.turns = snap.turns;
+
+    return this.getCurrentScene();
+  }
+
+  /**
    * Jump directly to a scene while preserving the current playthrough state.
    * Useful for revisiting already-unlocked scenes from a scene-select panel.
    * Flags, inventory, and visited history are kept as-is.
@@ -158,7 +188,8 @@ class StoryEngine {
       flags: [...this.state.flags],
       visited: [...this.state.visited],
       turns: this.state.turns,
-      history: this.state.history
+      history: this.state.history,
+      snapshots: this.state.snapshots
     });
   }
 
@@ -170,5 +201,6 @@ class StoryEngine {
     this.state.visited = new Set(data.visited);
     this.state.turns = data.turns;
     this.state.history = data.history || [];
+    this.state.snapshots = data.snapshots || [];
   }
 }

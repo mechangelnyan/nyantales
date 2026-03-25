@@ -52,6 +52,7 @@
   ui.typewriterSpeed = settings.get('textSpeed');
   applyParticlesSetting(settings.get('particles'));
   applyColorTheme(settings.get('colorTheme'));
+  applyFontSize(settings.get('fontSize'));
 
   // ── Settings Reactivity ──
 
@@ -63,6 +64,7 @@
       audio.masterGain.gain.setTargetAtTime(value, audio.ctx.currentTime, 0.1);
     }
     if (key === 'colorTheme') applyColorTheme(value);
+    if (key === 'fontSize')   applyFontSize(value);
   });
 
   function applyParticlesSetting(on) {
@@ -77,6 +79,10 @@
     amber:   { accent: '#ffd700', rgb: '255, 215, 0' },
     violet:  { accent: '#cc66ff', rgb: '204, 102, 255' }
   };
+
+  function applyFontSize(pct) {
+    document.documentElement.style.setProperty('--text-scale', `${pct}%`);
+  }
 
   function applyColorTheme(themeName) {
     const theme = COLOR_THEMES[themeName] || COLOR_THEMES.cyan;
@@ -158,6 +164,29 @@
     } else if (autoPlayIndicator) {
       autoPlayIndicator.style.display = 'none';
     }
+  }
+
+  // ── In-Game Progress HUD ──
+
+  let progressHUD = null;
+
+  function updateProgressHUD() {
+    if (!currentEngine) return;
+
+    if (!progressHUD) {
+      progressHUD = document.createElement('div');
+      progressHUD.className = 'progress-hud';
+      progressHUD.setAttribute('aria-live', 'off');
+      document.querySelector('.vn-container').appendChild(progressHUD);
+    }
+
+    const totalScenes = Object.keys(currentEngine.scenes).length;
+    const visited = currentEngine.state.visited.size;
+    const pct = totalScenes > 0 ? Math.round((visited / totalScenes) * 100) : 0;
+
+    progressHUD.innerHTML = `<span>📍 ${visited}/${totalScenes}</span> <span>· Turn ${currentEngine.state.turns}</span>`;
+    progressHUD.title = `${pct}% explored · Turn ${currentEngine.state.turns}`;
+    progressHUD.style.display = '';
   }
 
   // ── Skip-Read Logic ──
@@ -242,6 +271,9 @@
       saveManager.autoSave(currentSlug, currentEngine, scene);
       tracker.recordVisitedScenes(currentSlug, currentEngine.state.visited);
     }
+
+    // Update in-game progress HUD
+    updateProgressHUD();
 
     // Handle endings
     if (scene.ending) return;
@@ -349,6 +381,7 @@
     updateSkipIndicator(false);
     if (sceneSelect.isVisible) sceneSelect.hide();
     if (autoPlayIndicator) autoPlayIndicator.style.display = 'none';
+    if (progressHUD) progressHUD.style.display = 'none';
     ui.showTitleScreen();
     renderTitleScreen();
   }
@@ -691,23 +724,19 @@
   const btnRewind = document.getElementById('btn-rewind');
 
   function updateRewindButton() {
-    const canRewind = currentEngine && currentEngine.state.history.length > 0;
+    const canRewind = currentEngine && currentEngine.state.snapshots.length > 0;
     btnRewind.style.opacity = canRewind ? '0.85' : '0.35';
     btnRewind.disabled = !canRewind;
   }
 
   function rewindOneScene() {
-    if (!currentEngine || currentEngine.state.history.length === 0) return;
+    if (!currentEngine || currentEngine.state.snapshots.length === 0) return;
 
     clearAutoPlayTimer();
     updateSkipIndicator(false);
 
-    // Pop the current scene from history to go back
-    const prevSceneId = currentEngine.state.history.pop();
-    currentEngine.state.turns = Math.max(0, currentEngine.state.turns - 1);
-    currentEngine.state.currentScene = prevSceneId;
-
-    const prevScene = currentEngine.getCurrentScene();
+    // Use engine's proper rewind which restores inventory + flags from snapshot
+    const prevScene = currentEngine.rewindScene();
     if (prevScene) {
       playScene(prevScene);
     }
@@ -753,6 +782,18 @@
 
   document.getElementById('btn-settings').addEventListener('click', () => {
     settingsPanel.isVisible ? settingsPanel.hide() : settingsPanel.show();
+  });
+
+  // ── Random Story ──
+
+  document.getElementById('btn-random').addEventListener('click', () => {
+    if (storyIndex.length === 0) return;
+    // Prefer unplayed stories, fall back to any
+    const unplayed = storyIndex.filter(s => !tracker.isCompleted(s.slug));
+    const pool = unplayed.length > 0 ? unplayed : storyIndex;
+    const pick = pool[Math.floor(Math.random() * pool.length)];
+    if (!audio.ctx) audio.init();
+    startStory(pick);
   });
 
   // ── Gallery ──

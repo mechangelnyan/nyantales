@@ -63,6 +63,14 @@ class SettingsPanel {
             <div class="settings-group-title">🎨 Visual</div>
 
             <div class="settings-row">
+              <label class="settings-label">Font Size</label>
+              <div class="settings-control">
+                <input type="range" id="set-font-size" min="80" max="140" step="5" class="settings-slider" />
+                <span class="settings-value" id="set-font-size-val"></span>
+              </div>
+            </div>
+
+            <div class="settings-row">
               <label class="settings-label">Screen Effects</label>
               <div class="settings-control">
                 <button id="set-screen-shake" class="settings-toggle"></button>
@@ -147,6 +155,7 @@ class SettingsPanel {
 
     this._wireSlider('set-auto-delay', 'autoPlayDelay', v => `${(v / 1000).toFixed(1)}s`);
     this._wireToggle('set-skip-read', 'skipRead');
+    this._wireSlider('set-font-size', 'fontSize', v => `${v}%`);
     this._wireToggle('set-screen-shake', 'screenShake');
     this._wireToggle('set-particles', 'particles');
 
@@ -298,8 +307,13 @@ class SettingsPanel {
       }
     };
 
-    sync('set-text-speed', 'textSpeed', v => `${v}ms`);
+    sync('set-text-speed', 'textSpeed', v => {
+      const labels = { 2: 'Instant', 6: 'Very Fast', 12: 'Fast', 18: 'Normal', 26: 'Slow', 34: 'Very Slow', 40: 'Crawl' };
+      const closest = Object.keys(labels).reduce((a, b) => Math.abs(b - v) < Math.abs(a - v) ? b : a);
+      return labels[closest] || `${v}ms`;
+    });
     sync('set-auto-delay', 'autoPlayDelay', v => `${(v / 1000).toFixed(1)}s`);
+    sync('set-font-size', 'fontSize', v => `${v}%`);
     sync('set-volume', 'audioVolume', v => `${v}%`, { fromSetting: v => Math.round(v * 100) });
     syncToggle('set-auto-play', 'autoPlay');
     syncToggle('set-skip-read', 'skipRead');

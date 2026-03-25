@@ -15,7 +15,8 @@ class SettingsManager {
       screenShake: true,   // enable shake/glitch effects
       particles: true,     // floating particle overlay
       fullscreen: false,   // fullscreen mode (not persisted)
-      colorTheme: 'cyan'   // accent color theme: cyan, magenta, green, amber, violet
+      colorTheme: 'cyan',  // accent color theme: cyan, magenta, green, amber, violet
+      fontSize: 100        // text font size as percentage (80–140)
     };
     this.data = this._load();
     this._listeners = [];
