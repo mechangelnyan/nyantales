@@ -236,6 +236,25 @@ cd /tmp/nyantales && python3 -m http.server 9876
 - **Keyboard hints** updated with `B` for Back
 - **Service worker** cache bumped to v3
 
+## Phase 18: Story Sorting, Data Management, Offline Polish ✅
+- **Story sorting** — 6 sort options in title screen dropdown
+  - A → Z (default), Z → A, Recently Played, Most Progress, Shortest First, Longest First
+  - Sorts by reordering DOM elements (no re-render needed)
+  - Story cards carry `data-read-mins`, `data-progress`, `data-last-played` attributes
+  - `<select>` dropdown styled to match cyberpunk theme
+  - Works alongside search + filter (composable)
+- **Data export/import** — `DataManager` class (`web/js/data-manager.js`)
+  - Exports all NyanTales localStorage data (tracker, achievements, settings, all save slots) as JSON
+  - Downloads as `nyantales-backup-YYYY-MM-DD.json`
+  - Import reads JSON file, validates keys, merges into localStorage
+  - Data stats: shows stories tracked, save file count, estimated storage usage
+  - Export/Import buttons in Settings panel → Data section
+- **Online/offline notifications** — toast messages for network state changes
+  - "📶 Back online" / "📴 Offline — saves still work!"
+  - Auto-dismissing, non-blocking toasts
+- **Service worker** cache bumped to v4 with data-manager.js
+- **Code quality** — all 17 JS files pass `node --check` syntax validation
+
 ## Still Possible Future Work
 - Generate remaining character portraits (GPU timeout issue — needs investigation, possibly during lower GPU load)
 - AI-generated scene background images
@@ -254,3 +273,4 @@ cd /tmp/nyantales && python3 -m http.server 9876
 - 2026-03-25 (7:27 AM): Save slots, touch gestures, PWA support. SaveManager with 3 manual + 1 auto slot per story, full save/load UI panel. TouchHandler for swipe gestures (left=advance, right=history, down=settings). PWA manifest + service worker for offline play. "Continue" button on title screen. Fixed isNewEnding bug in tracker. Fixed monkey-patching in main.js. Safe area CSS for notch phones. Code refactored for cleaner separation. Committed & pushed.
 - 2026-03-25 (8:27 AM): Accessibility & loading polish — loading screen with progress bar, ARIA roles/labels/live regions throughout (dialogs, toolbars, lists, tabs), FocusTrap utility for modal focus management, keyboard-navigable story cards, prefers-reduced-motion (disables all animations), prefers-contrast high contrast mode, sr-only labels, keyboard shortcut hints toast, story card progress bars. SW cache bumped to v2. All 16 JS files pass syntax validation. Committed & pushed.
 - 2026-03-25 (9:27 AM): Rewind button, color themes, scene progress tracking, reading time estimates, Space advance. 5 color theme options in settings. Progress bars now reflect actual scene exploration %. Story cards show reading time and scene count metadata. Rewind (B key) goes back one scene. SW cache v3. All 16 JS files pass. Committed & pushed.
+- 2026-03-25 (10:27 AM): Story sorting (6 modes: A-Z, Z-A, recent, progress, shortest, longest), data export/import (full backup/restore of all game data as JSON), online/offline toast notifications. DataManager class for localStorage backup. Settings panel gained Data section with export/import buttons + usage stats. SW cache v4. All 17 JS files pass. Committed & pushed.
