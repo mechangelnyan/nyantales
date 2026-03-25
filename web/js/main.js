@@ -34,6 +34,8 @@
   const historyPanel  = new HistoryPanel(textHistory);
   const saveManager   = new SaveManager();
   const storyInfo     = new StoryInfoModal(tracker, saveManager, ui.portraits);
+  const keyboardHelp  = new KeyboardHelp();
+  const aboutPanel    = new AboutPanel();
   const sceneSelect   = new SceneSelect((sceneId) => {
     if (!currentEngine) return;
     clearAutoPlayTimer();
@@ -133,7 +135,6 @@
   let currentSlug   = null;
   let activeFilter  = 'all';
   let activeSort    = 'title-asc';
-  const dataManager = new DataManager();
 
   // ── Auto-play State ──
 
@@ -233,11 +234,20 @@
     const base = storyBasePath();
     const results = await Promise.allSettled(
       STORY_SLUGS.map(async slug => {
-        const resp = await fetch(`${base}/${slug}/story.yaml`);
-        if (!resp.ok) return null;
-        const text = await resp.text();
-        const parsed = YAMLParser.parse(text);
-        return { slug, title: parsed.title || slug, description: parsed.description || '', _raw: text, _parsed: parsed };
+        try {
+          const resp = await fetch(`${base}/${slug}/story.yaml`);
+          if (!resp.ok) return null;
+          const text = await resp.text();
+          const parsed = YAMLParser.parse(text);
+          if (!parsed || !parsed.scenes) {
+            console.warn(`[NyanTales] Invalid story data: ${slug}`);
+            return null;
+          }
+          return { slug, title: parsed.title || slug, description: parsed.description || '', _raw: text, _parsed: parsed };
+        } catch (err) {
+          console.warn(`[NyanTales] Failed to load story: ${slug}`, err);
+          return null;
+        }
       })
     );
     storyIndex = results.filter(r => r.status === 'fulfilled' && r.value).map(r => r.value);
@@ -659,6 +669,8 @@
     const isSearchFocused = filterInput.matches(':focus');
 
     if (e.key === 'Escape') {
+      if (keyboardHelp.isVisible)   { keyboardHelp.hide(); return; }
+      if (aboutPanel.isVisible)     { aboutPanel.hide(); return; }
       if (storyInfo.isVisible)      { storyInfo.hide(); return; }
       if (saveManager.isVisible)    { saveManager.hide(); return; }
       if (settingsPanel.isVisible)  { settingsPanel.hide(); return; }
@@ -696,6 +708,9 @@
 
     if (key === 'm' && noMod) toggleAudio();
     if (key === 'b' && noMod && currentEngine) rewindOneScene();
+    if (e.key === '?' || (key === '/' && e.shiftKey)) {
+      keyboardHelp.isVisible ? keyboardHelp.hide() : keyboardHelp.show();
+    }
 
     if (key === 'a' && noMod && currentEngine) toggleAutoPlay();
 
@@ -822,6 +837,10 @@
     settingsPanel.isVisible ? settingsPanel.hide() : settingsPanel.show();
   });
 
+  document.getElementById('btn-help').addEventListener('click', () => {
+    keyboardHelp.isVisible ? keyboardHelp.hide() : keyboardHelp.show();
+  });
+
   // ── Random Story ──
 
   document.getElementById('btn-random').addEventListener('click', () => {
@@ -832,6 +851,20 @@
     const pick = pool[Math.floor(Math.random() * pool.length)];
     if (!audio.ctx) audio.init();
     startStory(pick);
+  });
+
+  // ── About Panel ──
+
+  document.getElementById('btn-about').addEventListener('click', () => {
+    const achStats = achievements.getStats();
+    // Count unique characters across all stories
+    const allChars = new Set();
+    Object.values(CHARACTER_DATA).forEach(chars => chars.forEach(c => allChars.add(c.name)));
+    aboutPanel.show({
+      stories: storyIndex.length,
+      characters: allChars.size,
+      achievements: `${achStats.unlocked}/${achStats.total}`
+    });
   });
 
   // ── Gallery ──
@@ -917,29 +950,8 @@
   function showKeyboardHints() {
     if (localStorage.getItem('nyantales-hints-shown')) return;
     localStorage.setItem('nyantales-hints-shown', '1');
-
-    const toast = document.createElement('div');
-    toast.className = 'shortcut-toast';
-    toast.innerHTML = `
-      <span><kbd>Space</kbd> Advance</span>
-      <span><kbd>1-9</kbd> Choices</span>
-      <span><kbd>B</kbd> Back</span>
-      <span><kbd>A</kbd> Auto-play</span>
-      <span><kbd>H</kbd> History</span>
-      <span><kbd>G</kbd> Scenes</span>
-      <span><kbd>S</kbd> Settings</span>
-      <span><kbd>Q</kbd> Save/Load</span>
-      <span><kbd>Esc</kbd> Menu</span>
-    `;
-    toast.setAttribute('role', 'status');
-    toast.setAttribute('aria-live', 'polite');
-    document.querySelector('.vn-container').appendChild(toast);
-
-    requestAnimationFrame(() => toast.classList.add('visible'));
-    setTimeout(() => {
-      toast.classList.remove('visible');
-      setTimeout(() => toast.remove(), 600);
-    }, 6000);
+    // Brief toast pointing to full help
+    Toast.show('Press ? for keyboard shortcuts', { icon: '⌨️', duration: 4000 });
   }
 
   async function boot() {

@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <meta name="theme-color" content="#00d4ff">
   <meta name="description" content="Interactive cat stories from the terminal — a visual novel experience">
   <meta name="apple-mobile-web-app-capable" content="yes">
@@ -47,6 +47,7 @@
             <button id="btn-random" class="gallery-btn" aria-label="Play a random story">🎲 Random</button>
             <button id="btn-gallery" class="gallery-btn" aria-label="Browse character gallery">🐱 Characters</button>
             <button id="btn-achievements" class="achievements-btn" aria-label="View achievements">🏆 Achievements</button>
+            <button id="btn-about" class="gallery-btn" aria-label="About NyanTales">ℹ️ About</button>
           </div>
           <div id="story-filter" class="story-filter" role="search" aria-label="Filter stories">
             <input type="text" id="filter-input" placeholder="🔍 Search stories..." autocomplete="off" aria-label="Search stories by title or description" />
@@ -122,12 +123,24 @@
           <button id="btn-scenes" class="hud-btn hud-collapsible" title="Scene Select (G)" aria-label="Open scene select">📍</button>
           <button id="btn-settings" class="hud-btn hud-collapsible" title="Settings (S)" aria-label="Open settings">⚙️</button>
           <button id="btn-audio" class="hud-btn hud-collapsible" title="Toggle Ambient Audio (M)" aria-label="Toggle ambient audio" aria-pressed="false" style="opacity:0.5">🔇</button>
+          <button id="btn-help" class="hud-btn hud-collapsible" title="Keyboard Shortcuts (?)" aria-label="Show keyboard shortcuts">❓</button>
         </div>
       </div>
     </div>
   </div>
 
+  <noscript>
+    <div class="noscript-msg">
+      <div>
+        /\_/\<br>( o.o ) NyanTales requires JavaScript to run.<br> > ^ < <br><br>
+        Please enable JavaScript and reload the page.
+      </div>
+    </div>
+  </noscript>
+
   <script src="js/toast.js"></script>
+  <script src="js/keyboard-help.js"></script>
+  <script src="js/about.js"></script>
   <script src="js/story-intro.js"></script>
   <script src="js/data-manager.js"></script>
   <script src="js/focus-trap.js"></script>
