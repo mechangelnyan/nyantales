@@ -153,13 +153,51 @@ cd /tmp/nyantales && python3 -m http.server 9876
 - README updated with live GitHub Pages link
 - **URL:** https://mechangelnyan.github.io/nyantales/web/
 
+## Phase 15: Save Slots, Touch Gestures, PWA ✅
+- `SaveManager` class (`web/js/save-manager.js`) — multiple save slots per story
+  - 3 manual slots + 1 auto-save slot per story
+  - Auto-saves after every scene transition
+  - Save/Load panel UI with mode toggle, slot preview (text, speaker, turns, scenes visited, timestamp)
+  - Delete individual slots, flash feedback on save
+  - Legacy save migration from old `nyantales-save-{slug}` format
+  - `getMostRecentSave()` scans all stories for "Continue" button
+  - Opens via 💾 HUD button or 'Q' keyboard shortcut
+- `TouchHandler` class (`web/js/touch.js`) — mobile gesture support
+  - Swipe left → advance text / go to next scene
+  - Swipe right → open text history
+  - Swipe down → open settings
+  - Min 50px distance, max 400ms window for gesture detection
+  - Single-touch only (ignores multi-touch)
+- **PWA Support** — installable as app, offline-capable
+  - `manifest.json` with app name, theme color, icons
+  - `sw.js` service worker: cache-first for static, network-first for story YAML files
+  - PWA icons (192x192, 512x512) generated as neon cat face on dark bg
+  - Apple mobile web app meta tags
+  - Viewport `viewport-fit=cover` for notch/island phones
+- **"Continue" button** on title screen
+  - Shows most recent save across all stories (title + turns)
+  - Green pulsing accent, loads directly into saved state
+  - Hidden when no saves exist
+- **Bug Fixes**
+  - `tracker.recordEnding()` — `isNewEnding` logic was inverted (always reported old endings as new)
+  - `main.js` no longer monkey-patches `ui._showEnding` each time `startStory` runs — uses clean `_onEndingHook` callback
+  - Save indicator (💾) shown on story cards that have existing saves
+- **CSS Additions**
+  - Continue button styles with pulse animation
+  - Save/Load panel overlay with slot cards
+  - Safe area padding for notch/island phones (`env(safe-area-inset-*)`)
+- **Code Quality**
+  - `startStory` and `initEngine` cleanly separated (no repeated event binding)
+  - Audio theme update moved to `playScene` (not monkey-patched onto renderScene)
+  - All 15 JS files pass `node --check` syntax validation
+
 ## Still Possible Future Work
 - Generate remaining character portraits (GPU timeout issue — needs investigation, possibly during lower GPU load)
 - AI-generated scene background images
 - More advanced sprite animations (idle, emote variants)
 - Style consistency pass on existing portraits (3 different styles detected: realistic cat, anime catgirl, victorian anthropomorphic)
-- Save slot management (multiple saves per story)
-- Touch gesture support (swipe to advance/go back)
+- Chapter/route progress tracking (% completion per story)
+- Accessibility: screen reader support, high-contrast mode, reduced motion
 
 ## Log
 - 2026-03-24: Built complete web visual novel engine (ui.js + main.js). All 30 stories load and play in browser. Core VN loop works: title screen → story select → scene rendering → choices → state tracking → endings → restart/menu.
@@ -168,3 +206,4 @@ cd /tmp/nyantales && python3 -m http.server 9876
 - 2026-03-25 (12:27 AM): Added Character Gallery (gallery.js) — browse all 45 characters with pixel sprites, search/filter, click story tags to play. Added Achievement System (achievements.js) — 16 achievements with animated toast unlocks and modal panel. Stats bar shows achievement progress. Committed & pushed.
 - 2026-03-25 (1:27 AM): Integrated AI character portraits into web VN engine. Created PortraitManager for 6 characters with graceful fallback. Added vignette, textbox glow, blinking cursor polish. Updated README. Moved generation scripts to tools/. Attempted new portrait generation but GPU hit Metal timeout errors — deferred to future session. Committed & pushed (3 commits: portrait integration, tools reorganization, visual polish).
 - 2026-03-25 (6:27 AM): Major web engine polish — settings menu, auto-play mode, text history/backlog, skip-read-text. 3 new JS modules (settings.js, settings-panel.js, history.js). 3 new HUD buttons + keyboard shortcuts (A/H/S). Settings persist to localStorage with live reactivity. Set up GitHub Pages deployment via Actions workflow. Root index.html redirect. README updated with Pages link + new features. Committed & pushed.
+- 2026-03-25 (7:27 AM): Save slots, touch gestures, PWA support. SaveManager with 3 manual + 1 auto slot per story, full save/load UI panel. TouchHandler for swipe gestures (left=advance, right=history, down=settings). PWA manifest + service worker for offline play. "Continue" button on title screen. Fixed isNewEnding bug in tracker. Fixed monkey-patching in main.js. Safe area CSS for notch phones. Code refactored for cleaner separation. Committed & pushed.
