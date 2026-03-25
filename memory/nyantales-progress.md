@@ -355,6 +355,28 @@ cd /tmp/nyantales && python3 -m http.server 9876
 - **Service worker** cache bumped to v9 with stats-dashboard.js
 - All 26 JS files pass `node --check` validation
 
+## Phase 24: Favorites, History Search, Ending Share ✅
+- **Story Favorites** — heart button on each story card
+  - `StoryTracker.toggleFavorite()` / `isFavorite()` / `getFavorites()` — persisted in localStorage
+  - Heart button (🤍/❤️) on story cards, visible on hover, always visible when favorited
+  - Smooth scale animation on click, toast feedback on toggle
+  - New "❤️ Favorites" filter tab on title screen
+  - New "Favorites First" sort option (favorites sorted alphabetically, then non-favorites)
+  - `data-favorite` attribute on cards for filter/sort integration
+- **History Search** — search bar in the text history panel
+  - `<input>` with real-time filtering by speaker name or dialogue text
+  - Count label updates to show `X/Y matching` during search
+  - `data-searchable` attribute on each entry for efficient filtering
+  - Styled to match cyberpunk theme, focus border accent
+- **Ending Share Card** — copy ending summary to clipboard or native share
+  - New "📋 Share" button on ending overlay
+  - Generates formatted text: story title, ending name, stats (turns, scenes, items), play URL
+  - Uses Web Share API on mobile (native share sheet), clipboard fallback on desktop
+  - Toast feedback on copy success/failure
+- **CSS additions** — `.story-card-fav-btn` (positioned, hover reveal, pressed state), `.history-search-wrap`, `.ending-btn-share`
+- **Service worker** cache bumped to v10
+- All 26 JS files pass `node --check` validation
+
 ## Still Possible Future Work
 - Generate remaining character portraits (GPU timeout issue — needs investigation, possibly during lower GPU load)
 - AI-generated scene background images
@@ -364,6 +386,7 @@ cd /tmp/nyantales && python3 -m http.server 9876
 - ~~Accessibility: screen reader support, high-contrast mode, reduced motion~~ ✅ Done in Phase 16
 
 ## Log (continued)
+- 2026-03-25 (5:27 PM): Phase 24 — Story favorites system (heart button + filter tab + sort option), history panel search bar for filtering dialogue, ending share card with Web Share API + clipboard fallback. CSS for new components. SW cache v10. All 26 JS files pass. Committed & pushed.
 - 2026-03-25 (4:27 PM): Added Statistics Dashboard with per-story breakdown table, global progress cards, recently played section. Added history export as .txt download. Landscape mobile media queries for compact layout. Fixed duplicate max-height CSS bug on textbox. SW cache v9. All 26 JS files pass. Committed & pushed.
 - 2026-03-25 (3:27 PM): Added keyboard help modal (? key + ❓ HUD button), about/credits panel (ℹ️ title button), fixed missing SW cache entry for js-yaml.min.js, removed user-scalable=no a11y issue, removed duplicate DataManager, added error handling to story loader, added <noscript> fallback. All 25 JS files pass. Committed & pushed.
 
