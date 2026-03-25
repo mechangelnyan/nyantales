@@ -116,12 +116,13 @@
           <button id="btn-back" class="hud-btn" title="Back to Stories (Esc)" aria-label="Back to story list">⏎</button>
           <button id="btn-rewind" class="hud-btn" title="Back one scene (B)" aria-label="Go back one scene" style="opacity:0.35">⏪</button>
           <button id="btn-save" class="hud-btn" title="Save/Load (Q)" aria-label="Save or load game">💾</button>
-          <button id="btn-fast" class="hud-btn" title="Toggle Fast Mode" aria-label="Toggle fast text mode">⏩</button>
-          <button id="btn-auto" class="hud-btn" title="Auto-Play (A)" aria-label="Toggle auto-play" aria-pressed="false" style="opacity:0.5">▶️</button>
-          <button id="btn-history" class="hud-btn" title="Text History (H)" aria-label="View text history">📜</button>
-          <button id="btn-scenes" class="hud-btn" title="Scene Select (G)" aria-label="Open scene select">📍</button>
-          <button id="btn-settings" class="hud-btn" title="Settings (S)" aria-label="Open settings">⚙️</button>
-          <button id="btn-audio" class="hud-btn" title="Toggle Ambient Audio (M)" aria-label="Toggle ambient audio" aria-pressed="false" style="opacity:0.5">🔇</button>
+          <button id="btn-hud-more" class="hud-btn hud-overflow-toggle" title="More controls" aria-label="Show more controls">⋯</button>
+          <button id="btn-fast" class="hud-btn hud-collapsible" title="Toggle Fast Mode" aria-label="Toggle fast text mode">⏩</button>
+          <button id="btn-auto" class="hud-btn hud-collapsible" title="Auto-Play (A)" aria-label="Toggle auto-play" aria-pressed="false" style="opacity:0.5">▶️</button>
+          <button id="btn-history" class="hud-btn hud-collapsible" title="Text History (H)" aria-label="View text history">📜</button>
+          <button id="btn-scenes" class="hud-btn hud-collapsible" title="Scene Select (G)" aria-label="Open scene select">📍</button>
+          <button id="btn-settings" class="hud-btn hud-collapsible" title="Settings (S)" aria-label="Open settings">⚙️</button>
+          <button id="btn-audio" class="hud-btn hud-collapsible" title="Toggle Ambient Audio (M)" aria-label="Toggle ambient audio" aria-pressed="false" style="opacity:0.5">🔇</button>
         </div>
       </div>
     </div>
@@ -144,6 +145,7 @@
   <script src="js/settings.js"></script>
   <script src="js/settings-panel.js"></script>
   <script src="js/history.js"></script>
+  <script src="js/story-info.js"></script>
   <script src="js/save-manager.js"></script>
   <script src="js/touch.js"></script>
   <script src="js/ui.js"></script>

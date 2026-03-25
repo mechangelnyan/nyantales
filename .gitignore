@@ -1,3 +1,6 @@
 node_modules/
 saves/
 loras/
+test-results/
+playwright.config.js
+tests/

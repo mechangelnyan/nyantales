@@ -33,6 +33,7 @@
   const textHistory   = new TextHistory();
   const historyPanel  = new HistoryPanel(textHistory);
   const saveManager   = new SaveManager();
+  const storyInfo     = new StoryInfoModal(tracker, saveManager, ui.portraits);
   const sceneSelect   = new SceneSelect((sceneId) => {
     if (!currentEngine) return;
     clearAutoPlayTimer();
@@ -42,11 +43,50 @@
     updateRewindButton();
   });
 
+  // Wire story info modal callbacks
+  storyInfo.onPlay = (story) => {
+    if (!audio.ctx) audio.init();
+    startStory(story);
+  };
+  storyInfo.onLoad = (slug, stateJson) => {
+    const story = storyIndex.find(s => s.slug === slug);
+    if (story) {
+      if (!audio.ctx) audio.init();
+      startStory(story, stateJson);
+    }
+  };
+
   // Migrate legacy save format to new slot system
   saveManager.migrateLegacy();
 
   // Preload AI portraits (non-blocking visual improvement)
   await ui.portraits.preloadAll();
+
+  // ── Color Themes (must be before initial settings) ──
+
+  const COLOR_THEMES = {
+    cyan:    { accent: '#00d4ff', rgb: '0, 212, 255' },
+    magenta: { accent: '#ff36ab', rgb: '255, 54, 171' },
+    green:   { accent: '#00ff88', rgb: '0, 255, 136' },
+    amber:   { accent: '#ffd700', rgb: '255, 215, 0' },
+    violet:  { accent: '#cc66ff', rgb: '204, 102, 255' }
+  };
+
+  function applyParticlesSetting(on) {
+    document.body.classList.toggle('no-particles', !on);
+  }
+
+  function applyFontSize(pct) {
+    document.documentElement.style.setProperty('--text-scale', `${pct}%`);
+  }
+
+  function applyColorTheme(themeName) {
+    const theme = COLOR_THEMES[themeName] || COLOR_THEMES.cyan;
+    const root = document.documentElement;
+    root.style.setProperty('--accent-cyan', theme.accent);
+    const meta = document.querySelector('meta[name="theme-color"]');
+    if (meta) meta.setAttribute('content', theme.accent);
+  }
 
   // Apply initial settings
   ui.typewriterSpeed = settings.get('textSpeed');
@@ -67,31 +107,7 @@
     if (key === 'fontSize')   applyFontSize(value);
   });
 
-  function applyParticlesSetting(on) {
-    document.body.classList.toggle('no-particles', !on);
-  }
-
-  /** Apply a color theme by setting CSS custom properties on :root */
-  const COLOR_THEMES = {
-    cyan:    { accent: '#00d4ff', rgb: '0, 212, 255' },
-    magenta: { accent: '#ff36ab', rgb: '255, 54, 171' },
-    green:   { accent: '#00ff88', rgb: '0, 255, 136' },
-    amber:   { accent: '#ffd700', rgb: '255, 215, 0' },
-    violet:  { accent: '#cc66ff', rgb: '204, 102, 255' }
-  };
-
-  function applyFontSize(pct) {
-    document.documentElement.style.setProperty('--text-scale', `${pct}%`);
-  }
-
-  function applyColorTheme(themeName) {
-    const theme = COLOR_THEMES[themeName] || COLOR_THEMES.cyan;
-    const root = document.documentElement;
-    root.style.setProperty('--accent-cyan', theme.accent);
-    // Update meta theme-color for mobile browsers
-    const meta = document.querySelector('meta[name="theme-color"]');
-    if (meta) meta.setAttribute('content', theme.accent);
-  }
+  // (COLOR_THEMES, applyParticlesSetting, applyFontSize, applyColorTheme moved above initial settings)
 
   // ── Story Index ──
 
@@ -462,6 +478,18 @@
         if (textContainer) textContainer.appendChild(metaEl);
       }
 
+      // Add info button (ℹ) — opens story detail modal
+      const infoBtn = document.createElement('button');
+      infoBtn.className = 'story-card-info-btn';
+      infoBtn.textContent = 'ℹ';
+      infoBtn.title = 'Story details';
+      infoBtn.setAttribute('aria-label', `Details for ${story.title}`);
+      infoBtn.addEventListener('click', (e) => {
+        e.stopPropagation(); // Don't trigger card click (start story)
+        storyInfo.show(story, CHARACTER_DATA[story.slug] || []);
+      });
+      card.appendChild(infoBtn);
+
       card.dataset.slug = story.slug;
       card.dataset.title = story.title.toLowerCase();
       card.dataset.desc = (story.description || '').toLowerCase();
@@ -631,6 +659,7 @@
     const isSearchFocused = filterInput.matches(':focus');
 
     if (e.key === 'Escape') {
+      if (storyInfo.isVisible)      { storyInfo.hide(); return; }
       if (saveManager.isVisible)    { saveManager.hide(); return; }
       if (settingsPanel.isVisible)  { settingsPanel.hide(); return; }
       if (historyPanel.isVisible)   { historyPanel.hide(); return; }
@@ -718,6 +747,15 @@
   // ── HUD Buttons ──
 
   ui.btnBack.addEventListener('click', () => returnToMenu());
+
+  // ── HUD Overflow Toggle (mobile) ──
+
+  const hudMoreBtn = document.getElementById('btn-hud-more');
+  const hudToolbar = document.querySelector('.vn-hud');
+  hudMoreBtn.addEventListener('click', () => {
+    hudToolbar.classList.toggle('hud-expanded');
+    hudMoreBtn.textContent = hudToolbar.classList.contains('hud-expanded') ? '✕' : '⋯';
+  });
 
   // ── Rewind (Back one scene) ──
 
