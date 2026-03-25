@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>NyanTales — Visual Novel</title>
+  <link rel="stylesheet" href="css/style.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Nunito:wght@400;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+  <div id="app">
+    <!-- Title Screen -->
+    <div id="title-screen" class="screen active">
+      <div class="title-bg">
+        <div class="scanlines"></div>
+        <div class="title-content">
+          <pre class="title-ascii">
+ /\_/\  ╔═══════════════════╗  /\_/\
+( o.o ) ║   N Y A N T A L E S   ║ ( o.o )
+ > ^ <  ╚═══════════════════╝  > ^ <
+          </pre>
+          <p class="title-subtitle">Interactive Cat Stories from the Terminal</p>
+          <div id="story-list" class="story-grid"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Story Screen (Visual Novel) -->
+    <div id="story-screen" class="screen">
+      <div class="vn-container">
+        <!-- Background layer -->
+        <div id="vn-background" class="vn-bg"></div>
+
+        <!-- Character sprite layer -->
+        <div id="vn-sprites" class="vn-sprites"></div>
+
+        <!-- Location bar -->
+        <div id="vn-location" class="vn-location hidden"></div>
+
+        <!-- Mood indicator -->
+        <div id="vn-mood" class="vn-mood hidden"></div>
+
+        <!-- ASCII art display -->
+        <div id="vn-art" class="vn-art hidden"></div>
+
+        <!-- Dialogue / Narrative box -->
+        <div id="vn-textbox" class="vn-textbox">
+          <div id="vn-speaker" class="vn-speaker hidden"></div>
+          <div id="vn-text" class="vn-text"></div>
+          <div id="vn-click-indicator" class="vn-click-indicator hidden">▼</div>
+        </div>
+
+        <!-- Inventory bar -->
+        <div id="vn-inventory" class="vn-inventory hidden"></div>
+
+        <!-- Choices overlay -->
+        <div id="vn-choices" class="vn-choices hidden"></div>
+
+        <!-- Conditional text -->
+        <div id="vn-conditional" class="vn-conditional hidden"></div>
+
+        <!-- Ending overlay -->
+        <div id="vn-ending" class="vn-ending hidden"></div>
+
+        <!-- HUD -->
+        <div class="vn-hud">
+          <button id="btn-back" class="hud-btn" title="Back to Stories">⏎</button>
+          <button id="btn-save" class="hud-btn" title="Save">💾</button>
+          <button id="btn-fast" class="hud-btn" title="Toggle Fast Mode">⏩</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="js/yaml-parser.js"></script>
+  <script src="js/engine.js"></script>
+  <script src="js/ui.js"></script>
+  <script src="js/main.js"></script>
+</body>
+</html>

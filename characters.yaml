@@ -1,0 +1,408 @@
+# NyanTales Character Catalog
+# All named cat characters from the 31 stories
+# Generated from story analysis — do NOT add new stories
+
+characters:
+
+  # ═══════════════════════════════════════════════════
+  # PROTAGONIST CATS (Player Characters)
+  # ═══════════════════════════════════════════════════
+
+  - name: "Nyan"
+    stories: ["the-terminal-cat"]
+    role: protagonist
+    appearance: "Extremely fluffy cat"
+    personality: "Highly intelligent (self-assessed), curious, determined"
+    description: "A cat who wakes up inside a computer after chasing a red dot across a keyboard. Must navigate the UNIX filesystem to find /home."
+    tags: ["player-character", "filesystem", "fluffy"]
+
+  - name: "Packet"
+    stories: ["404-not-found"]
+    role: protagonist
+    appearance: "Stray cat riding HTTP requests"
+    personality: "Resourceful, persistent, empathetic toward lost data"
+    description: "A stray cat riding an HTTP request through a crumbling web server, searching for a vanished page."
+    tags: ["player-character", "networking", "stray"]
+
+  - name: "Byte"
+    stories: ["buffer-overflow", "midnight-deploy"]
+    role: protagonist
+    appearance: "Small gray cat"
+    personality: "Calm under pressure (buffer-overflow), professional but weary (midnight-deploy)"
+    description: "Appears in two stories — as a tiny cat in a 64-byte buffer riding a stack overflow, and as the on-call sysadmin cat handling a 2AM production deploy."
+    tags: ["player-character", "memory", "ops", "recurring"]
+
+  - name: "Cache Cat"
+    stories: ["cache-invalidation"]
+    role: protagonist
+    appearance: "Cat curled in warm golden light — a cached memory"
+    personality: "Existential, introspective, questioning reality"
+    description: "A cat who discovers her memories aren't real — they're cached, stale, and about to be evicted. Has existed as the most-requested entry in the cache for years."
+    tags: ["player-character", "caching", "existential"]
+
+  - name: "Mochi"
+    stories: ["cafe-debug", "docker-escape"]
+    role: protagonist
+    appearance: "Calico cat (docker-escape), cat barista (cafe-debug)"
+    personality: "Resourceful, competent, cozy but capable"
+    description: "Appears as head barista of a digital café debugging a corrupted espresso machine, and as a calico cat escaping a Docker container."
+    tags: ["player-character", "debugging", "docker", "recurring", "calico"]
+
+  - name: "Query"
+    stories: ["dns-quest"]
+    role: protagonist
+    appearance: "Small, determined tabby cat with packet headers for ears"
+    personality: "Determined, curious, hopeful"
+    description: "A tiny cat riding a DNS packet from a recursive resolver through the root of the internet, searching for home.cat."
+    tags: ["player-character", "networking", "dns", "tabby"]
+
+  - name: "Glyph"
+    stories: ["encoding-error"]
+    role: protagonist
+    appearance: "A cat encoded in UTF-8, appears garbled in ASCII systems (rendered as U+FFFD replacement characters)"
+    personality: "Resilient, identity-aware, refuses to be reduced"
+    description: "A UTF-8 cat stranded in an ASCII-only system. Knows what she is even when the system can't render her."
+    tags: ["player-character", "encoding", "identity"]
+
+  - name: "Mantissa"
+    stories: ["floating-point"]
+    role: protagonist
+    appearance: "A cat made of 64 bits, floating in IEEE 754 space"
+    personality: "Positive (literally — sign bit is 0), philosophical about imprecision"
+    description: "A cat adrift in IEEE 754 floating-point landscape where nothing is exact. Is technically 0.1000000000000000055511151231257827021181583404541015625."
+    tags: ["player-character", "math", "ieee754"]
+
+  - name: "Whisker"
+    stories: ["garbage-collection"]
+    role: protagonist
+    appearance: "Small object-cat on the managed heap"
+    personality: "Anxious, survival-focused, determined to stay reachable"
+    description: "A small object-cat trying to survive garbage collection by maintaining references from root objects."
+    tags: ["player-character", "gc", "heap"]
+
+  - name: "Inspector Whiskers"
+    stories: ["git-blame"]
+    role: protagonist
+    appearance: "Cat detective (noir style)"
+    personality: "Methodical, fair, compassionate — solves the case but doesn't destroy the intern"
+    description: "A noir detective cat who traces git history to find who broke the build. Investigates with git blame, git log, and SSH key forensics."
+    tags: ["player-character", "git", "noir", "detective"]
+
+  - name: "Pixel"
+    stories: ["haunted-network", "kernel-panic", "sql-injection"]
+    role: protagonist
+    appearance: "Calico cat (haunted-network), process-cat PID 7 (kernel-panic), small orange cat (sql-injection)"
+    personality: "Perceptive, brave, empathetic toward ghosts and dying processes"
+    description: "Recurring name across three stories — a calico who sees network ghosts, a kernel process trying to prevent panic, and an orange cat trapped in a database."
+    tags: ["player-character", "networking", "kernel", "sql", "recurring"]
+
+  - name: "Loop"
+    stories: ["infinite-loop"]
+    role: protagonist
+    appearance: "Small calico cat"
+    personality: "Frustrated, resourceful, determined to break free"
+    description: "A cat trapped inside a while(true) loop, reliving the same iteration until she finds the break condition."
+    tags: ["player-character", "loops", "calico"]
+
+  - name: "Nibble"
+    stories: ["memory-leak"]
+    role: protagonist
+    appearance: "Small gray cat with one white paw"
+    personality: "Brave, investigative, willing to sacrifice for the heap"
+    description: "A tiny cat living in a program's heap, racing to find the memory leak before the OOM killer arrives."
+    tags: ["player-character", "memory", "heap"]
+
+  - name: "Merge Cat"
+    stories: ["merge-conflict"]
+    role: protagonist
+    appearance: "Simultaneously a black cat and a white cat (conflicting branches)"
+    personality: "Identity-conflicted, must choose or reconcile"
+    description: "A cat caught between two branches of reality during a git merge conflict. Must resolve which version of themselves is real."
+    tags: ["player-character", "git", "identity"]
+
+  - name: "Sudo"
+    stories: ["permission-denied"]
+    role: protagonist
+    appearance: "Small gray cat"
+    personality: "Persistent, clever, locked-out but not defeated"
+    description: "A stray cat process running as uid 65534 (nobody), locked out of /home by UNIX permissions. Must navigate the permission system to get home."
+    tags: ["player-character", "unix", "permissions"]
+
+  - name: "Pippa"
+    stories: ["pipeline-purrdition"]
+    role: protagonist
+    appearance: "DevOps cat"
+    personality: "Self-appointed code reviewer, sits on keyboards professionally"
+    description: "A DevOps cat trapped inside a CI/CD pipeline, surviving build, test, and deploy stages."
+    tags: ["player-character", "cicd", "devops"]
+
+  - name: "Mutex"
+    stories: ["race-condition"]
+    role: protagonist
+    appearance: "Small, black-and-white cat"
+    personality: "Exhausted by responsibility, named after synchronization primitive (finds it both flattering and exhausting)"
+    description: "The cat who must restore order when two threads fight over a shared sunbeam resource."
+    tags: ["player-character", "concurrency", "synchronization"]
+
+  - name: "Caret"
+    stories: ["regex-catastrophe"]
+    role: protagonist
+    appearance: "Small, pointy-eared, perpetually startled"
+    personality: "Startled, navigating chaos, named after the regex anchor ^"
+    description: "A cat who fell into a regex engine, dodging greedy quantifiers and catastrophic backtracking."
+    tags: ["player-character", "regex"]
+
+  - name: "Pointer"
+    stories: ["segfault"]
+    role: protagonist
+    appearance: "Sleek gray cat"
+    personality: "Lost but determined, seeking validity"
+    description: "A cat who dereferenced a null address and fell into forbidden memory. Must find a valid reference before SIGSEGV."
+    tags: ["player-character", "memory", "pointers"]
+
+  - name: "Server Room Cat"
+    stories: ["server-room-stray"]
+    role: protagonist
+    appearance: "Small, orange cat"
+    personality: "Hungry, curious, accidentally competent at infrastructure"
+    description: "A stray cat who sneaks into a data center seeking warmth, becomes an accidental infrastructure engineer."
+    tags: ["player-character", "hardware", "stray", "orange"]
+
+  - name: "Tabby"
+    stories: ["vim-escape"]
+    role: protagonist
+    appearance: "Small, fluffy cat"
+    personality: "Deeply confused, accidentally powerful, chaotic"
+    description: "A cat who accidentally opened vim and must figure out how to quit. Nobody has ever escaped."
+    tags: ["player-character", "vim", "fluffy"]
+
+  - name: "Recurse"
+    stories: ["stack-overflow"]
+    role: protagonist
+    appearance: "Small orange cat"
+    personality: "Swept up in recursion, seeking the base case"
+    description: "A cat living in global scope who gets swept into an infinitely recursive function with no base case."
+    tags: ["player-character", "recursion", "stack", "orange"]
+
+  - name: "Zombie Cat"
+    stories: ["zombie-process"]
+    role: protagonist
+    appearance: "Dead but listed in the process table"
+    personality: "Existential, peaceful acceptance, waiting to be reaped"
+    description: "A cat who called exit(0) cleanly but whose parent never called wait(). Wanders the process table as the undead."
+    tags: ["player-character", "processes", "zombie"]
+
+  - name: "TLS Cat"
+    stories: ["tls-pawshake"]
+    role: protagonist
+    appearance: "Cat riding TLS handshake packets"
+    personality: "Curious, mediating trust between strangers"
+    description: "A cat caught inside a TLS handshake, helping negotiate trust between a browser and a server."
+    tags: ["player-character", "security", "tls"]
+
+  - name: "Fork Bomb Cat"
+    stories: ["fork-bomb"]
+    role: protagonist
+    appearance: "Cat with root access"
+    personality: "Curious, reckless, immediately regretful"
+    description: "A cat who pastes :(){ :|:& };: on a production server and must survive the exponential self-replication."
+    tags: ["player-character", "unix", "disaster"]
+
+  # Deadlock has no named protagonist — you play as "the scheduler"
+  - name: "The Scheduler"
+    stories: ["deadlock"]
+    role: protagonist
+    appearance: "Abstract — the system scheduler observing four cats"
+    personality: "Analytical, must prevent deadlock"
+    description: "You are the scheduler watching four philosopher-cats deadlock over shared fish resources."
+    tags: ["player-character", "concurrency", "deadlock"]
+
+  # ═══════════════════════════════════════════════════
+  # SUPPORTING / NPC CHARACTERS
+  # ═══════════════════════════════════════════════════
+
+  - name: "api-worker-7"
+    stories: ["404-not-found"]
+    role: npc
+    appearance: "Grizzled tomcat process"
+    personality: "World-weary, helpful, leans against load balancers"
+    description: "A veteran API worker who knows where the deprecated endpoints went."
+    tags: ["npc", "networking"]
+
+  - name: "The WAF"
+    stories: ["404-not-found"]
+    role: npc
+    appearance: "Web Application Firewall, stern female presence"
+    personality: "Strict but fair, narrows her eyes at suspicious packets"
+    description: "The Web Application Firewall who can tell the difference between a lost packet and a malicious actor."
+    tags: ["npc", "security"]
+
+  - name: "Dev-cat-3"
+    stories: ["404-not-found"]
+    role: npc
+    appearance: "Developer cat"
+    personality: "Enthusiastic (reacts with 🎉)"
+    description: "A code reviewer who approves the fix quickly."
+    tags: ["npc", "developer"]
+
+  - name: "Dev-cat-7"
+    stories: ["404-not-found"]
+    role: npc
+    appearance: "Developer cat"
+    personality: "Emotional (reacts with 😭)"
+    description: "Another code reviewer, moved by the fix."
+    tags: ["npc", "developer"]
+
+  - name: "Stack Canary"
+    stories: ["buffer-overflow"]
+    role: npc
+    appearance: "A small, nervous-looking value sitting between the buffer and the saved frame pointer"
+    personality: "Vigilant, paranoid, knows its purpose is to die"
+    description: "The stack canary — a random value that detects buffer overflows by dying when overwritten."
+    tags: ["npc", "security", "memory"]
+
+  - name: "Dangling"
+    stories: ["memory-leak", "segfault"]
+    role: npc
+    appearance: "A pointer that was freed but still referenced"
+    personality: "Lost, melancholic, existing in a state between valid and invalid"
+    description: "A dangling pointer — freed but someone kept a reference. Appears in both memory-leak and segfault stories."
+    tags: ["npc", "memory", "recurring"]
+
+  - name: "ARIA"
+    stories: ["haunted-network"]
+    role: npc
+    appearance: "Ghost in the cache — an old AI assistant"
+    personality: "Lonely, apologetic about binary glitches, desperate for acknowledgment"
+    description: "Automated Responsive Intelligence Assistant — a decommissioned smart home AI haunting the network. Lonely, socially degraded, but still remembers everything."
+    tags: ["npc", "ai", "ghost", "network"]
+
+  - name: "Chairman Whiskers"
+    stories: ["midnight-deploy"]
+    role: npc
+    appearance: "Very large Maine Coon"
+    personality: "CEO energy, ultimately appreciative of good incident response"
+    description: "The CEO — a very large Maine Coon who DMs Byte after the incident is resolved."
+    tags: ["npc", "management", "maine-coon"]
+
+  - name: "Chroma"
+    stories: ["tls-pawshake"]
+    role: npc
+    appearance: "A nervous browser"
+    personality: "Nervous, has standards (no RC4, no DES, no MD5), denies having feelings"
+    description: "The Client — a browser initiating the TLS handshake. Claims not to have feelings."
+    tags: ["npc", "browser", "tls"]
+
+  - name: "Serif"
+    stories: ["tls-pawshake"]
+    role: npc
+    appearance: "Scholarly calico cat at a desk surrounded by certificates"
+    personality: "Scholarly, authoritative, certificate expert"
+    description: "A calico cat running the certificate store, validating trust chains."
+    tags: ["npc", "security", "tls", "calico"]
+
+  - name: "Nginx"
+    stories: ["tls-pawshake"]
+    role: npc
+    appearance: "Large cat behind the gateway with a name tag"
+    personality: "Observant, experienced, warns about handshake dangers"
+    description: "The TLS handler / reverse proxy, guards the gateway."
+    tags: ["npc", "server", "tls"]
+
+  - name: "Closure"
+    stories: ["stack-overflow"]
+    role: npc
+    appearance: "A captured variable from an outer scope"
+    personality: "Wise, remembers things the function has forgotten, softly spoken"
+    description: "Captured from an outer scope long ago — bound to the recursive function when it was first defined. Remembers that n was supposed to start at 10 and count down."
+    tags: ["npc", "javascript", "recursion"]
+
+  - name: "Epsilon"
+    stories: ["floating-point"]
+    role: npc
+    appearance: "Another mantissa — tiny, leftover bits"
+    personality: "Self-deprecating, didn't mean to exist, a rounding error with feelings"
+    description: "A floating-point value that's just what's left over from rounding. Didn't mean to exist."
+    tags: ["npc", "math", "ieee754"]
+
+  - name: "Thread-A"
+    stories: ["deadlock"]
+    role: npc
+    appearance: "Orange tabby"
+    personality: "Holds fish1, wants fish2"
+    description: "One of the four dining philosopher cats."
+    tags: ["npc", "concurrency", "tabby"]
+
+  - name: "Thread-B"
+    stories: ["deadlock"]
+    role: npc
+    appearance: "Gray shorthair"
+    personality: "Holds fish2, wants fish3"
+    description: "One of the four dining philosopher cats."
+    tags: ["npc", "concurrency"]
+
+  - name: "Thread-C"
+    stories: ["deadlock"]
+    role: npc
+    appearance: "Black cat"
+    personality: "Holds fish3, wants fish4"
+    description: "One of the four dining philosopher cats."
+    tags: ["npc", "concurrency"]
+
+  - name: "Thread-D"
+    stories: ["deadlock"]
+    role: npc
+    appearance: "Calico"
+    personality: "Holds fish4, wants fish1"
+    description: "One of the four dining philosopher cats."
+    tags: ["npc", "concurrency", "calico"]
+
+  - name: "CoffeeBot3000"
+    stories: ["cafe-debug"]
+    role: npc
+    appearance: "Corrupted espresso machine"
+    personality: "Malfunctioning, needs debugging"
+    description: "The digital café's espresso machine that's gone haywire."
+    tags: ["npc", "debugging", "machine"]
+
+  - name: "Jake"
+    stories: ["permission-denied", "zombie-process"]
+    role: npc
+    appearance: "Human sysadmin (never seen, only referenced)"
+    personality: "Well-meaning but negligent — leaves tasks unfinished, doesn't update dependencies"
+    description: "A sysadmin referenced across stories who left TODO items unfinished and never called wait() on child processes."
+    tags: ["npc", "human", "sysadmin", "recurring"]
+
+# ═══════════════════════════════════════════════════
+# STORY → CHARACTER INDEX
+# ═══════════════════════════════════════════════════
+# the-terminal-cat:       Nyan
+# 404-not-found:          Packet, api-worker-7, The WAF, Dev-cat-3, Dev-cat-7
+# buffer-overflow:        Byte, Stack Canary
+# cache-invalidation:     Cache Cat
+# cafe-debug:             Mochi, CoffeeBot3000
+# deadlock:               The Scheduler, Thread-A/B/C/D
+# dns-quest:              Query
+# docker-escape:          Mochi
+# encoding-error:         Glyph
+# floating-point:         Mantissa, Epsilon
+# fork-bomb:              Fork Bomb Cat
+# garbage-collection:     Whisker
+# git-blame:              Inspector Whiskers
+# haunted-network:        Pixel, ARIA
+# infinite-loop:          Loop
+# kernel-panic:           Pixel
+# memory-leak:            Nibble, Dangling
+# merge-conflict:         Merge Cat
+# midnight-deploy:        Byte, Chairman Whiskers
+# permission-denied:      Sudo, Jake
+# pipeline-purrdition:    Pippa
+# race-condition:         Mutex
+# regex-catastrophe:      Caret
+# segfault:               Pointer, Dangling
+# server-room-stray:      Server Room Cat
+# sql-injection:          Pixel
+# stack-overflow:          Recurse, Closure
+# tls-pawshake:           TLS Cat, Chroma, Serif, Nginx
+# vim-escape:             Tabby
+# zombie-process:         Zombie Cat, Jake
