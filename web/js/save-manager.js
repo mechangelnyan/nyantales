@@ -267,10 +267,19 @@ class SaveManager {
     });
 
     slotsEl.querySelectorAll('.delete-action').forEach(btn => {
-      btn.addEventListener('click', () => {
+      btn.addEventListener('click', async () => {
         const slotName = btn.dataset.slot;
-        this.deleteSlot(this._currentSlug, slotName);
-        this._renderSlots();
+        const confirmed = await ConfirmDialog.show({
+          title: 'Delete Save?',
+          message: `This will permanently delete ${slotName === 'auto' ? 'the auto-save' : slotName.replace('slot', 'Slot ')}.`,
+          confirmText: '🗑 Delete',
+          cancelText: 'Keep',
+          danger: true
+        });
+        if (confirmed) {
+          this.deleteSlot(this._currentSlug, slotName);
+          this._renderSlots();
+        }
       });
     });
   }

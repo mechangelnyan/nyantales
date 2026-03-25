@@ -190,6 +190,17 @@ class SettingsPanel {
     document.getElementById('set-import-file').addEventListener('change', async (e) => {
       const file = e.target.files[0];
       if (!file) return;
+      const confirmed = await ConfirmDialog.show({
+        title: 'Import Data?',
+        message: `Import from "${file.name}"? This will merge with your existing data and may overwrite current saves.`,
+        confirmText: '📥 Import',
+        cancelText: 'Cancel',
+        danger: false
+      });
+      if (!confirmed) {
+        e.target.value = '';
+        return;
+      }
       try {
         const result = await this._dataManager.importFromFile(file);
         const btn = document.getElementById('set-import');
@@ -205,10 +216,19 @@ class SettingsPanel {
       e.target.value = ''; // Reset file input
     });
 
-    // Reset button
-    document.getElementById('set-reset').addEventListener('click', () => {
-      this.settings.reset();
-      this._syncAll();
+    // Reset button (with confirmation)
+    document.getElementById('set-reset').addEventListener('click', async () => {
+      const confirmed = await ConfirmDialog.show({
+        title: 'Reset All Settings?',
+        message: 'This will restore all settings to their default values.',
+        confirmText: '↺ Reset',
+        cancelText: 'Cancel',
+        danger: true
+      });
+      if (confirmed) {
+        this.settings.reset();
+        this._syncAll();
+      }
     });
   }
 

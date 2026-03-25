@@ -255,6 +255,25 @@ cd /tmp/nyantales && python3 -m http.server 9876
 - **Service worker** cache bumped to v4 with data-manager.js
 - **Code quality** — all 17 JS files pass `node --check` syntax validation
 
+## Phase 19: Scene Select + Safety Guardrails ✅
+- **Confirmation dialog system** (`web/js/confirm-dialog.js`) — reusable modal for destructive actions
+  - Delete-save confirmation in Save/Load panel
+  - Settings reset confirmation
+  - Data import confirmation before merge/overwrite risk
+- **Scene Select panel** (`web/js/scene-select.js`) — jump to any previously visited scene in the current playthrough state
+  - Opens via new 📍 HUD button or `G` keyboard shortcut
+  - Search/filter scenes by ID, speaker, location, or preview text
+  - Shows current scene badge, ending markers, and choice counts
+  - Escape closes panel before exiting to menu
+- **Engine support** — `StoryEngine.jumpToScene()` preserves current inventory/flags while revisiting unlocked scenes
+- **UI polish**
+  - New Scene Select HUD button added to `web/index.html`
+  - Keyboard shortcut hints updated with `G` for Scenes
+  - Added modal/panel styling for confirmation + scene select overlays
+- **Code quality**
+  - Added/expanded JSDoc in touched modules
+  - All JS files pass `node --check`
+
 ## Still Possible Future Work
 - Generate remaining character portraits (GPU timeout issue — needs investigation, possibly during lower GPU load)
 - AI-generated scene background images
@@ -274,3 +293,4 @@ cd /tmp/nyantales && python3 -m http.server 9876
 - 2026-03-25 (8:27 AM): Accessibility & loading polish — loading screen with progress bar, ARIA roles/labels/live regions throughout (dialogs, toolbars, lists, tabs), FocusTrap utility for modal focus management, keyboard-navigable story cards, prefers-reduced-motion (disables all animations), prefers-contrast high contrast mode, sr-only labels, keyboard shortcut hints toast, story card progress bars. SW cache bumped to v2. All 16 JS files pass syntax validation. Committed & pushed.
 - 2026-03-25 (9:27 AM): Rewind button, color themes, scene progress tracking, reading time estimates, Space advance. 5 color theme options in settings. Progress bars now reflect actual scene exploration %. Story cards show reading time and scene count metadata. Rewind (B key) goes back one scene. SW cache v3. All 16 JS files pass. Committed & pushed.
 - 2026-03-25 (10:27 AM): Story sorting (6 modes: A-Z, Z-A, recent, progress, shortest, longest), data export/import (full backup/restore of all game data as JSON), online/offline toast notifications. DataManager class for localStorage backup. Settings panel gained Data section with export/import buttons + usage stats. SW cache v4. All 17 JS files pass. Committed & pushed.
+- 2026-03-25 (11:27 AM): Added reusable confirmation dialogs for destructive actions (delete save, reset settings, import data) and a Scene Select panel for jumping to previously visited scenes via new 📍 HUD button or `G` shortcut. Added `StoryEngine.jumpToScene()`, updated keyboard hints, and styled new overlays. All JS files pass syntax validation. Committed & pushed.

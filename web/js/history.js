@@ -1,6 +1,8 @@
 /**
  * NyanTales — Text History / Backlog
  * Records all dialogue/narration during a playthrough for review.
+ *
+ * @class TextHistory
  */
 
 class TextHistory {

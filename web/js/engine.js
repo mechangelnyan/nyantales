@@ -135,6 +135,21 @@ class StoryEngine {
     this.state.inventory = this.state.inventory.filter(i => i !== item);
   }
 
+  /**
+   * Jump directly to a scene while preserving the current playthrough state.
+   * Useful for revisiting already-unlocked scenes from a scene-select panel.
+   * Flags, inventory, and visited history are kept as-is.
+   * @param {string} sceneId
+   * @returns {Object|null}
+   */
+  jumpToScene(sceneId) {
+    if (!this.scenes[sceneId]) return null;
+    this.state.history.push(this.state.currentScene);
+    this.state.currentScene = sceneId;
+    this.state.visited.add(sceneId);
+    return this.getCurrentScene();
+  }
+
   /** Save/Load state */
   saveState() {
     return JSON.stringify({

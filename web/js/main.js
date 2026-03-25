@@ -33,6 +33,14 @@
   const textHistory   = new TextHistory();
   const historyPanel  = new HistoryPanel(textHistory);
   const saveManager   = new SaveManager();
+  const sceneSelect   = new SceneSelect((sceneId) => {
+    if (!currentEngine) return;
+    clearAutoPlayTimer();
+    updateSkipIndicator(false);
+    const scene = currentEngine.jumpToScene(sceneId);
+    if (scene) playScene(scene);
+    updateRewindButton();
+  });
 
   // Migrate legacy save format to new slot system
   saveManager.migrateLegacy();
@@ -334,6 +342,7 @@
     audio.stop();
     textHistory.clear();
     updateSkipIndicator(false);
+    if (sceneSelect.isVisible) sceneSelect.hide();
     if (autoPlayIndicator) autoPlayIndicator.style.display = 'none';
     ui.showTitleScreen();
     renderTitleScreen();
@@ -587,6 +596,7 @@
       if (saveManager.isVisible)    { saveManager.hide(); return; }
       if (settingsPanel.isVisible)  { settingsPanel.hide(); return; }
       if (historyPanel.isVisible)   { historyPanel.hide(); return; }
+      if (sceneSelect.isVisible)    { sceneSelect.hide(); return; }
       if (currentEngine)            { returnToMenu(); return; }
     }
 
@@ -624,6 +634,12 @@
 
     if (key === 'h' && noMod && currentEngine) {
       historyPanel.isVisible ? historyPanel.hide() : historyPanel.show();
+    }
+
+    if (key === 'g' && noMod && currentEngine) {
+      sceneSelect.isVisible
+        ? sceneSelect.hide()
+        : sceneSelect.show(currentEngine, currentEngine.state.currentScene);
     }
 
     if (key === 's' && noMod) {
@@ -719,6 +735,14 @@
   document.getElementById('btn-history').addEventListener('click', () => {
     if (currentEngine) {
       historyPanel.isVisible ? historyPanel.hide() : historyPanel.show();
+    }
+  });
+
+  document.getElementById('btn-scenes').addEventListener('click', () => {
+    if (currentEngine) {
+      sceneSelect.isVisible
+        ? sceneSelect.hide()
+        : sceneSelect.show(currentEngine, currentEngine.state.currentScene);
     }
   });
 
@@ -818,6 +842,7 @@
       <span><kbd>B</kbd> Back</span>
       <span><kbd>A</kbd> Auto-play</span>
       <span><kbd>H</kbd> History</span>
+      <span><kbd>G</kbd> Scenes</span>
       <span><kbd>S</kbd> Settings</span>
       <span><kbd>Q</kbd> Save/Load</span>
       <span><kbd>Esc</kbd> Menu</span>
