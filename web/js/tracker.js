@@ -37,12 +37,13 @@ class StoryTracker {
 
     // Track unique endings
     const endingKey = ending.title || ending.type || 'unknown';
-    if (!story.endingsFound.includes(endingKey)) {
+    const isNew = !story.endingsFound.includes(endingKey);
+    if (isNew) {
       story.endingsFound.push(endingKey);
     }
 
     this._save();
-    return { isNewEnding: story.endingsFound.length > story.endingsFound.indexOf(endingKey) + 1 ? false : true };
+    return { isNewEnding: isNew };
   }
 
   /** Get overall stats */

@@ -2,8 +2,15 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no">
+  <meta name="theme-color" content="#00d4ff">
+  <meta name="description" content="Interactive cat stories from the terminal — a visual novel experience">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <title>NyanTales — Visual Novel</title>
+  <link rel="manifest" href="manifest.json">
+  <link rel="icon" type="image/png" sizes="192x192" href="assets/icon-192.png">
+  <link rel="apple-touch-icon" href="assets/icon-192.png">
   <link rel="stylesheet" href="css/style.css">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Nunito:wght@400;600;700&display=swap" rel="stylesheet">
@@ -23,6 +30,7 @@
           <p class="title-subtitle">Interactive Cat Stories from the Terminal</p>
           <div id="title-stats" class="title-stats"></div>
           <div class="title-actions">
+            <button id="btn-continue" class="continue-btn hidden">▶ Continue</button>
             <button id="btn-gallery" class="gallery-btn">🐱 Characters</button>
             <button id="btn-achievements" class="achievements-btn">🏆 Achievements</button>
           </div>
@@ -79,7 +87,7 @@
         <!-- HUD -->
         <div class="vn-hud">
           <button id="btn-back" class="hud-btn" title="Back to Stories">⏎</button>
-          <button id="btn-save" class="hud-btn" title="Save">💾</button>
+          <button id="btn-save" class="hud-btn" title="Save/Load (Q)" >💾</button>
           <button id="btn-fast" class="hud-btn" title="Toggle Fast Mode">⏩</button>
           <button id="btn-auto" class="hud-btn" title="Auto-Play (A)" style="opacity:0.5">▶️</button>
           <button id="btn-history" class="hud-btn" title="Text History (H)">📜</button>
@@ -101,7 +109,15 @@
   <script src="js/settings.js"></script>
   <script src="js/settings-panel.js"></script>
   <script src="js/history.js"></script>
+  <script src="js/save-manager.js"></script>
+  <script src="js/touch.js"></script>
   <script src="js/ui.js"></script>
   <script src="js/main.js"></script>
+  <script>
+    // Register service worker for PWA / offline support
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('sw.js').catch(() => {});
+    }
+  </script>
 </body>
 </html>

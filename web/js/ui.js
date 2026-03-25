@@ -338,6 +338,8 @@ class VNUI {
     // Check for ending
     if (scene.ending) {
       this._showEnding(scene, engine);
+      // Notify external hook (tracker, achievements)
+      if (this._onEndingHook) this._onEndingHook(scene, engine);
       return;
     }
 
