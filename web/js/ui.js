@@ -1,6 +1,6 @@
 /**
  * NyanTales Visual Novel — UI Controller
- * Handles DOM updates, typewriter text, scene rendering, transitions.
+ * Handles DOM updates, typewriter text, scene rendering, transitions, character sprites.
  */
 
 class VNUI {
@@ -30,69 +30,50 @@ class VNUI {
     this.btnSave = document.getElementById('btn-save');
     this.btnFast = document.getElementById('btn-fast');
 
+    // Sprite generator
+    this.spriteGen = new CatSpriteGenerator();
+    this.currentStorySlug = null;
+    this._activeSprites = new Map(); // name -> element
+
     // State
-    this.typewriterSpeed = 20; // ms per character
+    this.typewriterSpeed = 18; // ms per character
     this.fastMode = false;
     this.isTyping = false;
     this._typewriterResolve = null;
     this._typewriterTimeout = null;
     this._fullText = '';
+    this._lastBgClass = '';
+    this._transitioning = false;
 
     // Mood emoji map
     this.moodEmojis = {
-      tense: '😰',
-      peaceful: '😌',
-      mysterious: '🔮',
-      funny: '😹',
-      glitch: '⚡',
-      danger: '💀',
-      warm: '☀️',
-      sad: '😿',
-      excited: '✨',
-      spooky: '👻'
+      tense: '😰', peaceful: '😌', mysterious: '🔮', funny: '😹',
+      glitch: '⚡', danger: '💀', warm: '☀️', sad: '😿',
+      excited: '✨', spooky: '👻'
     };
 
-    // Background keyword map — tries to pick background from scene location/mood
+    // Background keyword map
     this.bgKeywords = {
-      'terminal': 'bg-terminal',
-      'shell': 'bg-terminal',
-      'filesystem': 'bg-filesystem',
-      'directory': 'bg-filesystem',
-      '/home': 'bg-filesystem',
-      '/root': 'bg-filesystem',
-      '/bin': 'bg-filesystem',
-      '/tmp': 'bg-filesystem',
-      '/etc': 'bg-filesystem',
-      '/proc': 'bg-danger',
-      '/var': 'bg-filesystem',
-      'server': 'bg-server-room',
-      'rack': 'bg-server-room',
-      'datacenter': 'bg-server-room',
-      'network': 'bg-network',
-      'http': 'bg-network',
-      'dns': 'bg-network',
-      'tcp': 'bg-network',
-      'packet': 'bg-network',
-      'memory': 'bg-memory',
-      'heap': 'bg-memory',
-      'stack': 'bg-memory',
-      'buffer': 'bg-memory',
-      'database': 'bg-database',
-      'sql': 'bg-database',
-      'table': 'bg-database',
-      'café': 'bg-cafe',
-      'cafe': 'bg-cafe',
-      'coffee': 'bg-cafe',
-      'warm': 'bg-warm',
-      'home': 'bg-warm',
-      'cozy': 'bg-warm',
-      'danger': 'bg-danger',
-      'kernel': 'bg-danger',
-      'panic': 'bg-danger',
-      'crash': 'bg-danger',
-      'void': 'bg-void',
-      'null': 'bg-void',
-      'empty': 'bg-void'
+      'terminal': 'bg-terminal', 'shell': 'bg-terminal',
+      'filesystem': 'bg-filesystem', 'directory': 'bg-filesystem',
+      '/home': 'bg-filesystem', '/root': 'bg-filesystem', '/bin': 'bg-filesystem',
+      '/tmp': 'bg-filesystem', '/etc': 'bg-filesystem', '/proc': 'bg-danger', '/var': 'bg-filesystem',
+      'server': 'bg-server-room', 'rack': 'bg-server-room', 'datacenter': 'bg-server-room',
+      'network': 'bg-network', 'http': 'bg-network', 'dns': 'bg-network',
+      'tcp': 'bg-network', 'packet': 'bg-network',
+      'memory': 'bg-memory', 'heap': 'bg-memory', 'stack': 'bg-memory', 'buffer': 'bg-memory',
+      'database': 'bg-database', 'sql': 'bg-database', 'table': 'bg-database',
+      'café': 'bg-cafe', 'cafe': 'bg-cafe', 'coffee': 'bg-cafe',
+      'warm': 'bg-warm', 'home': 'bg-warm', 'cozy': 'bg-warm',
+      'danger': 'bg-danger', 'kernel': 'bg-danger', 'panic': 'bg-danger', 'crash': 'bg-danger',
+      'void': 'bg-void', 'null': 'bg-void', 'empty': 'bg-void',
+      'docker': 'bg-server-room', 'container': 'bg-server-room',
+      'git': 'bg-terminal', 'branch': 'bg-terminal',
+      'regex': 'bg-danger', 'loop': 'bg-memory',
+      'process': 'bg-server-room', 'pipe': 'bg-terminal',
+      'deploy': 'bg-server-room', 'production': 'bg-danger',
+      'cache': 'bg-memory', 'tls': 'bg-network', 'ssl': 'bg-network',
+      'cipher': 'bg-network', 'handshake': 'bg-network'
     };
   }
 
@@ -100,7 +81,12 @@ class VNUI {
 
   showTitleScreen() {
     this.storyScreen.classList.remove('active');
-    this.titleScreen.classList.add('active');
+    this.storyScreen.classList.add('exiting');
+    setTimeout(() => {
+      this.storyScreen.classList.remove('exiting');
+      this.titleScreen.classList.add('active');
+    }, 400);
+    this._clearSprites();
   }
 
   showStoryScreen() {
@@ -108,20 +94,154 @@ class VNUI {
     this.storyScreen.classList.add('active');
   }
 
+  setStorySlug(slug) {
+    this.currentStorySlug = slug;
+  }
+
   // ── Story List ──
 
   renderStoryList(stories, onSelect) {
     this.storyListEl.innerHTML = '';
-    stories.forEach(story => {
+    stories.forEach((story, idx) => {
       const card = document.createElement('div');
       card.className = 'story-card fade-in';
+      card.style.animationDelay = `${Math.min(idx * 0.04, 1.2)}s`;
+
+      // Get protagonist for this story
+      const chars = CHARACTER_DATA[story.slug] || [];
+      const protag = chars.find(c => c.role === 'protagonist');
+      let spriteHtml = '';
+      if (protag) {
+        const url = this.spriteGen.generate(protag.name, protag.appearance);
+        spriteHtml = `<img src="${url}" class="story-card-sprite" alt="${protag.name}" />`;
+      }
+
       card.innerHTML = `
-        <h3>${this._escapeHtml(story.title)}</h3>
-        <p>${this._escapeHtml(story.description || '')}</p>
+        <div class="story-card-inner">
+          ${spriteHtml}
+          <div class="story-card-text">
+            <h3>${this._escapeHtml(story.title)}</h3>
+            <p>${this._escapeHtml(story.description || '')}</p>
+          </div>
+        </div>
       `;
       card.addEventListener('click', () => onSelect(story));
       this.storyListEl.appendChild(card);
     });
+  }
+
+  // ── Character Sprites ──
+
+  _clearSprites() {
+    this.spritesEl.innerHTML = '';
+    this._activeSprites.clear();
+  }
+
+  _updateSprites(scene, engine) {
+    const slug = this.currentStorySlug;
+    if (!slug) return;
+
+    const chars = CHARACTER_DATA[slug] || [];
+    if (chars.length === 0) return;
+
+    // Determine which characters should be visible
+    // 1. The speaker (if named)
+    // 2. Characters mentioned in text
+    const speaker = scene.speaker || '';
+    const text = (scene.text || '').toLowerCase();
+    const sceneId = (engine.state.currentScene || '').toLowerCase();
+
+    const visible = [];
+    for (const char of chars) {
+      const nameLower = char.name.toLowerCase();
+      const isSpeaker = speaker.toLowerCase() === nameLower ||
+                        speaker.toLowerCase().includes(nameLower);
+      const inText = text.includes(nameLower);
+      const inScene = sceneId.includes(nameLower.replace(/\s+/g, '-'));
+
+      if (isSpeaker || inText || inScene) {
+        visible.push({ ...char, isSpeaker });
+      }
+    }
+
+    // If no one's visible, show protagonist
+    if (visible.length === 0 && chars.length > 0) {
+      const protag = chars.find(c => c.role === 'protagonist') || chars[0];
+      visible.push({ ...protag, isSpeaker: false });
+    }
+
+    // Position sprites
+    const positions = this._getSpritePositions(visible.length);
+
+    // Fade out removed sprites
+    for (const [name, el] of this._activeSprites) {
+      if (!visible.find(v => v.name === name)) {
+        el.classList.remove('visible');
+        el.classList.add('sprite-exit');
+        setTimeout(() => el.remove(), 500);
+        this._activeSprites.delete(name);
+      }
+    }
+
+    // Add/update visible sprites
+    visible.forEach((char, i) => {
+      let spriteEl = this._activeSprites.get(char.name);
+      const pos = positions[i];
+
+      if (!spriteEl) {
+        // Create new sprite
+        spriteEl = document.createElement('div');
+        spriteEl.className = 'vn-sprite-wrap';
+        const img = document.createElement('img');
+        img.src = this.spriteGen.generatePortrait(char.name, char.appearance);
+        img.className = 'vn-sprite';
+        img.alt = char.name;
+
+        const label = document.createElement('div');
+        label.className = 'sprite-label';
+        label.textContent = char.name;
+
+        spriteEl.appendChild(img);
+        spriteEl.appendChild(label);
+        this.spritesEl.appendChild(spriteEl);
+        this._activeSprites.set(char.name, spriteEl);
+
+        // Trigger entrance animation
+        requestAnimationFrame(() => {
+          spriteEl.style.left = pos.x;
+          spriteEl.style.transform = `translateX(-50%) scale(${pos.scale})`;
+          img.classList.add('visible');
+        });
+      } else {
+        // Move existing sprite
+        spriteEl.style.left = pos.x;
+        spriteEl.style.transform = `translateX(-50%) scale(${pos.scale})`;
+      }
+
+      // Highlight speaker
+      const img = spriteEl.querySelector('.vn-sprite');
+      if (char.isSpeaker) {
+        spriteEl.classList.add('speaking');
+        img.style.filter = 'drop-shadow(0 0 12px rgba(0, 212, 255, 0.6)) brightness(1.1)';
+      } else {
+        spriteEl.classList.remove('speaking');
+        img.style.filter = 'drop-shadow(0 0 6px rgba(0, 0, 0, 0.5)) brightness(0.8)';
+      }
+    });
+  }
+
+  _getSpritePositions(count) {
+    if (count === 0) return [];
+    if (count === 1) return [{ x: '50%', scale: 1 }];
+    if (count === 2) return [{ x: '30%', scale: 0.9 }, { x: '70%', scale: 0.9 }];
+    if (count === 3) return [
+      { x: '20%', scale: 0.8 }, { x: '50%', scale: 0.9 }, { x: '80%', scale: 0.8 }
+    ];
+    // 4+: spread evenly
+    return Array.from({ length: count }, (_, i) => ({
+      x: `${15 + (70 * i / (count - 1))}%`,
+      scale: 0.75
+    }));
   }
 
   // ── Scene Rendering ──
@@ -135,8 +255,11 @@ class VNUI {
     this.hideConditional();
     this.clickIndicator.classList.add('hidden');
 
-    // Background
-    this._updateBackground(scene, engine);
+    // Scene transition effect
+    await this._sceneTransition(scene, engine);
+
+    // Update sprites
+    this._updateSprites(scene, engine);
 
     // Location
     if (scene.location) {
@@ -151,7 +274,6 @@ class VNUI {
       const emoji = this.moodEmojis[scene.mood] || '';
       this.moodEl.textContent = emoji;
       this.moodEl.classList.remove('hidden');
-      // Apply mood text color
       this.textEl.className = 'vn-text';
       if (scene.mood) this.textEl.classList.add(`mood-${scene.mood}`);
     } else {
@@ -167,9 +289,19 @@ class VNUI {
       this.artEl.classList.add('hidden');
     }
 
-    // Speaker
+    // Speaker (with portrait in name plate)
     if (scene.speaker) {
-      this.speakerEl.textContent = scene.speaker;
+      const chars = CHARACTER_DATA[this.currentStorySlug] || [];
+      const speakerChar = chars.find(c =>
+        c.name.toLowerCase() === scene.speaker.toLowerCase() ||
+        scene.speaker.toLowerCase().includes(c.name.toLowerCase())
+      );
+      if (speakerChar) {
+        const spriteUrl = this.spriteGen.generate(speakerChar.name, speakerChar.appearance);
+        this.speakerEl.innerHTML = `<img src="${spriteUrl}" class="speaker-icon" /> ${this._escapeHtml(scene.speaker)}`;
+      } else {
+        this.speakerEl.textContent = scene.speaker;
+      }
       this.speakerEl.classList.remove('hidden');
     } else {
       this.speakerEl.classList.add('hidden');
@@ -211,11 +343,68 @@ class VNUI {
     }
   }
 
+  // ── Scene Transition ──
+
+  async _sceneTransition(scene, engine) {
+    const newBg = this._inferBackground(scene, engine);
+
+    if (newBg !== this._lastBgClass && this._lastBgClass) {
+      // Crossfade background
+      this._transitioning = true;
+
+      // Add transition overlay
+      const overlay = document.createElement('div');
+      overlay.className = 'scene-transition-overlay';
+      this.bgEl.parentElement.appendChild(overlay);
+
+      // Fade in overlay
+      requestAnimationFrame(() => overlay.classList.add('active'));
+
+      await this._wait(300);
+
+      // Switch background
+      this.bgEl.className = 'vn-bg';
+      if (newBg) this.bgEl.classList.add(newBg);
+
+      await this._wait(100);
+
+      // Fade out overlay
+      overlay.classList.remove('active');
+      await this._wait(300);
+      overlay.remove();
+
+      this._transitioning = false;
+    } else {
+      this.bgEl.className = 'vn-bg';
+      if (newBg) this.bgEl.classList.add(newBg);
+    }
+
+    this._lastBgClass = newBg;
+  }
+
+  _inferBackground(scene, engine) {
+    if (scene.background) return `bg-${scene.background}`;
+
+    const haystack = [
+      scene.location || '',
+      engine.state.currentScene || '',
+      scene.text || ''
+    ].join(' ').toLowerCase();
+
+    for (const [keyword, bgClass] of Object.entries(this.bgKeywords)) {
+      if (haystack.includes(keyword)) return bgClass;
+    }
+    return '';
+  }
+
+  _wait(ms) {
+    return new Promise(r => setTimeout(r, this.fastMode ? 0 : ms));
+  }
+
   // ── Typewriter Effect ──
 
   typewriterText(text) {
     return new Promise(resolve => {
-      // Cancel any existing typewriter
       this._cancelTypewriter();
 
       this._fullText = text;
@@ -236,7 +425,6 @@ class VNUI {
 
       const type = () => {
         if (index < text.length) {
-          // Add characters in small chunks for performance
           const chunk = text.slice(index, index + 2);
           index += 2;
           this.textEl.innerHTML = this._formatText(text.slice(0, index));
@@ -281,21 +469,26 @@ class VNUI {
     choices.forEach((choice, i) => {
       const btn = document.createElement('button');
       btn.className = 'choice-btn fade-in';
-      btn.style.animationDelay = `${i * 0.1}s`;
-      
+      btn.style.animationDelay = `${i * 0.08}s`;
+
       let label = engine.interpolate(choice.label || choice.text || `Choice ${i + 1}`);
-      
-      // Show required item hint
       if (choice.requires_item) {
         const hasItem = engine.state.inventory.includes(choice.requires_item);
         if (hasItem) label += ` [${choice.requires_item}]`;
       }
-      
-      btn.textContent = label;
+
+      // Number hint
+      const numHint = i < 9 ? `<span class="choice-num">${i + 1}</span>` : '';
+      btn.innerHTML = `${numHint}${this._escapeHtml(label)}`;
+
       btn.addEventListener('click', () => {
-        this.choicesEl.classList.add('hidden');
-        this.textboxEl.style.display = '';
-        if (this._onChoice) this._onChoice(choice);
+        // Click ripple effect
+        btn.classList.add('chosen');
+        setTimeout(() => {
+          this.choicesEl.classList.add('hidden');
+          this.textboxEl.style.display = '';
+          if (this._onChoice) this._onChoice(choice);
+        }, 200);
       });
       this.choicesEl.appendChild(btn);
     });
@@ -345,6 +538,13 @@ class VNUI {
     const type = ending.type || 'neutral';
     const icon = { good: '🌟', bad: '💀', neutral: '📋', secret: '🔮' }[type] || '📋';
 
+    // Dim sprites
+    this.spritesEl.querySelectorAll('.vn-sprite').forEach(s => {
+      s.style.filter = type === 'good' 
+        ? 'drop-shadow(0 0 15px rgba(0, 255, 136, 0.5)) brightness(1.2)' 
+        : (type === 'bad' ? 'grayscale(0.8) brightness(0.5)' : 'brightness(0.7)');
+    });
+
     this.endingEl.classList.remove('hidden');
     this.endingEl.innerHTML = `
       <div class="ending-icon">${icon}</div>
@@ -374,37 +574,9 @@ class VNUI {
   onRestart(callback) { this._onRestart = callback; }
   onMenu(callback) { this._onMenu = callback; }
 
-  // ── Background ──
-
-  _updateBackground(scene, engine) {
-    // Remove all bg- classes
-    this.bgEl.className = 'vn-bg';
-
-    // Try explicit background
-    if (scene.background) {
-      this.bgEl.classList.add(`bg-${scene.background}`);
-      return;
-    }
-
-    // Infer from location, scene id, or text
-    const haystack = [
-      scene.location || '',
-      engine.state.currentScene || '',
-      scene.text || ''
-    ].join(' ').toLowerCase();
-
-    for (const [keyword, bgClass] of Object.entries(this.bgKeywords)) {
-      if (haystack.includes(keyword)) {
-        this.bgEl.classList.add(bgClass);
-        return;
-      }
-    }
-  }
-
   // ── Text Formatting ──
 
   _formatText(text) {
-    // Convert backticks to code, *bold*, newlines
     return text
       .replace(/&/g, '&amp;')
       .replace(/</g, '&lt;')

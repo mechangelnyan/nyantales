@@ -68,6 +68,7 @@
   // ── Start Story ──
   async function startStory(story) {
     currentSlug = story.slug;
+    ui.setStorySlug(story.slug);
     const parsed = story._parsed;
     currentEngine = new StoryEngine(parsed);
 
@@ -92,6 +93,7 @@
     ui.onMenu(() => {
       currentEngine = null;
       currentSlug = null;
+      ui.setStorySlug(null);
       ui.showTitleScreen();
     });
 
@@ -123,6 +125,7 @@
       if (currentEngine) {
         currentEngine = null;
         currentSlug = null;
+        ui.setStorySlug(null);
         ui.showTitleScreen();
       }
     }
@@ -138,6 +141,7 @@
   ui.btnBack.addEventListener('click', () => {
     currentEngine = null;
     currentSlug = null;
+    ui.setStorySlug(null);
     ui.showTitleScreen();
   });
 
