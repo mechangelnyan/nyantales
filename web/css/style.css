@@ -106,7 +106,7 @@ body {
 }
 
 .title-ascii {
-  font-family: var(--font-mono);
+  font-family: 'Courier New', 'Lucida Console', monospace;
   color: var(--accent-cyan);
   font-size: clamp(0.55rem, 1.8vw, 1rem);
   line-height: 1.4;
