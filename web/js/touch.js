@@ -7,15 +7,16 @@
  *   - Swipe left  → advance (same as tap/Enter)
  *   - Swipe right → open history
  *   - Swipe down  → open settings
+ *   - Swipe up    → open save/load panel
  *
  * Only active on the story screen (.vn-container).
- * Minimum swipe distance: 50px. Max swipe time: 300ms.
+ * Minimum swipe distance: 50px. Max swipe time: 400ms.
  */
 
 class TouchHandler {
   constructor(container, callbacks) {
     this.container = container;
-    this.callbacks = callbacks; // { onAdvance, onOpenHistory, onOpenSettings }
+    this.callbacks = callbacks; // { onAdvance, onOpenHistory, onOpenSettings, onOpenSave }
     this._touchStart = null;
     this._touchStartTime = 0;
     this.minSwipeDist = 50;  // px
@@ -70,6 +71,10 @@ class TouchHandler {
         // Swipe DOWN → settings
         e.preventDefault();
         this.callbacks.onOpenSettings?.();
+      } else if (dy < -this.minSwipeDist) {
+        // Swipe UP → save/load panel
+        e.preventDefault();
+        this.callbacks.onOpenSave?.();
       }
     }
   }

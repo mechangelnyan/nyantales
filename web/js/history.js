@@ -118,6 +118,57 @@ class HistoryPanel {
     requestAnimationFrame(() => this.overlay.classList.add('visible'));
     if (!this._focusTrap) this._focusTrap = new FocusTrap(this.overlay.querySelector('.history-panel'));
     this._focusTrap.activate();
+
+    // Attach keyboard scroll handler
+    if (!this._keyHandler) {
+      this._keyHandler = (e) => this._onKeydown(e);
+    }
+    document.addEventListener('keydown', this._keyHandler);
+  }
+
+  /**
+   * Handle keyboard scrolling in the history panel.
+   * Page Up/Down scroll the list by a large step, Arrow Up/Down by a small step.
+   * Home/End jump to top/bottom of the backlog.
+   */
+  _onKeydown(e) {
+    if (!this.isVisible) return;
+    const listEl = this.overlay.querySelector('.history-list');
+    if (!listEl) return;
+
+    const scrollStep = listEl.clientHeight * 0.8;  // ~80% of visible height
+    const smallStep = 60;
+
+    switch (e.key) {
+      case 'PageUp':
+        e.preventDefault();
+        listEl.scrollBy({ top: -scrollStep, behavior: 'smooth' });
+        break;
+      case 'PageDown':
+        e.preventDefault();
+        listEl.scrollBy({ top: scrollStep, behavior: 'smooth' });
+        break;
+      case 'ArrowUp':
+        if (document.activeElement === this._searchInput) return; // don't hijack search
+        e.preventDefault();
+        listEl.scrollBy({ top: -smallStep, behavior: 'smooth' });
+        break;
+      case 'ArrowDown':
+        if (document.activeElement === this._searchInput) return;
+        e.preventDefault();
+        listEl.scrollBy({ top: smallStep, behavior: 'smooth' });
+        break;
+      case 'Home':
+        if (document.activeElement === this._searchInput) return;
+        e.preventDefault();
+        listEl.scrollTo({ top: 0, behavior: 'smooth' });
+        break;
+      case 'End':
+        if (document.activeElement === this._searchInput) return;
+        e.preventDefault();
+        listEl.scrollTo({ top: listEl.scrollHeight, behavior: 'smooth' });
+        break;
+    }
   }
 
   /** Filter history entries by search query */
@@ -149,6 +200,7 @@ class HistoryPanel {
     this.overlay.classList.remove('visible');
     this.overlay.setAttribute('aria-hidden', 'true');
     if (this._focusTrap) this._focusTrap.deactivate();
+    if (this._keyHandler) document.removeEventListener('keydown', this._keyHandler);
   }
 
   get isVisible() {

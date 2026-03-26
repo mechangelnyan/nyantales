@@ -14,9 +14,13 @@
 class Toast {
   static _container = null;
   static _topContainer = null;
+  static _activeToasts = [];
+  static MAX_VISIBLE = 3;
 
   /**
    * Show a toast notification.
+   * Caps visible toasts to MAX_VISIBLE — oldest are auto-dismissed when exceeded.
+   *
    * @param {string} message - Text to display
    * @param {Object} [opts] - Options
    * @param {string} [opts.icon] - Emoji/icon prefix
@@ -34,6 +38,16 @@ class Toast {
       position = 'bottom',
       className = ''
     } = opts;
+
+    // Enforce max visible toasts — dismiss oldest if at capacity
+    while (Toast._activeToasts.length >= Toast.MAX_VISIBLE) {
+      const oldest = Toast._activeToasts.shift();
+      if (oldest && oldest.parentNode) {
+        oldest.style.opacity = '0';
+        oldest.style.transform = 'translateY(8px)';
+        setTimeout(() => oldest.remove(), 300);
+      }
+    }
 
     const container = Toast._getContainer(position);
     const el = document.createElement('div');
@@ -59,6 +73,7 @@ class Toast {
     el.textContent = icon ? `${icon} ${message}` : message;
 
     container.appendChild(el);
+    Toast._activeToasts.push(el);
 
     // Animate in
     requestAnimationFrame(() => {
@@ -80,6 +95,9 @@ class Toast {
    */
   static dismiss(el) {
     if (!el || !el.parentNode) return;
+    // Remove from active tracking
+    const idx = Toast._activeToasts.indexOf(el);
+    if (idx !== -1) Toast._activeToasts.splice(idx, 1);
     el.style.opacity = '0';
     el.style.transform = 'translateY(8px)';
     setTimeout(() => el.remove(), 400);

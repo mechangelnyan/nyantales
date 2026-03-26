@@ -83,16 +83,28 @@ class VNUI {
   showTitleScreen() {
     this.storyScreen.classList.remove('active');
     this.storyScreen.classList.add('exiting');
+    // Prepare title screen for entrance
+    this.titleScreen.classList.add('entering');
+    this.titleScreen.style.display = 'flex';
     setTimeout(() => {
       this.storyScreen.classList.remove('exiting');
+      this.titleScreen.classList.remove('entering');
       this.titleScreen.classList.add('active');
-    }, 400);
+    }, 450);
     this._clearSprites();
   }
 
   showStoryScreen() {
     this.titleScreen.classList.remove('active');
-    this.storyScreen.classList.add('active');
+    this.titleScreen.classList.add('exiting');
+    // Prepare story screen for entrance
+    this.storyScreen.classList.add('entering');
+    this.storyScreen.style.display = 'flex';
+    setTimeout(() => {
+      this.titleScreen.classList.remove('exiting');
+      this.storyScreen.classList.remove('entering');
+      this.storyScreen.classList.add('active');
+    }, 450);
   }
 
   setStorySlug(slug) {

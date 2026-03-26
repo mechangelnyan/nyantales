@@ -54,10 +54,17 @@ class KeyboardHelp {
             <div class="kh-row"><kbd>?</kbd><span>This help screen</span></div>
           </div>
           <div class="kh-section">
+            <div class="kh-section-title">History Panel</div>
+            <div class="kh-row"><kbd>PgUp</kbd> / <kbd>PgDn</kbd><span>Scroll history (large step)</span></div>
+            <div class="kh-row"><kbd>↑</kbd> / <kbd>↓</kbd><span>Scroll history (small step)</span></div>
+            <div class="kh-row"><kbd>Home</kbd> / <kbd>End</kbd><span>Jump to start / end of history</span></div>
+          </div>
+          <div class="kh-section">
             <div class="kh-section-title">Mobile Gestures</div>
             <div class="kh-row"><span class="kh-gesture">← Swipe left</span><span>Advance text</span></div>
             <div class="kh-row"><span class="kh-gesture">→ Swipe right</span><span>Open history</span></div>
             <div class="kh-row"><span class="kh-gesture">↓ Swipe down</span><span>Open settings</span></div>
+            <div class="kh-row"><span class="kh-gesture">↑ Swipe up</span><span>Open save/load</span></div>
           </div>
         </div>
       </div>

@@ -164,16 +164,25 @@
     if (autoPlayTimer) { clearTimeout(autoPlayTimer); autoPlayTimer = null; }
   }
 
+  /** Check if any overlay panel is currently visible */
+  function isAnyPanelOpen() {
+    return settingsPanel.isVisible || historyPanel.isVisible || saveManager.isVisible
+      || sceneSelect.isVisible || routeMap.isVisible || keyboardHelp.isVisible;
+  }
+
   function scheduleAutoAdvance() {
     clearAutoPlayTimer();
     if (!settings.get('autoPlay') || !currentEngine) return;
+
+    // Pause auto-play while any panel/overlay is open
+    if (isAnyPanelOpen()) return;
 
     const scene = currentEngine.getCurrentScene();
     if (!scene || scene.ending) return;
     if (currentEngine.getAvailableChoices().length > 0) return;
 
     autoPlayTimer = setTimeout(() => {
-      if (!currentEngine) return;
+      if (!currentEngine || isAnyPanelOpen()) return;
       const s = currentEngine.getCurrentScene();
       if (s && s.next) {
         const next = currentEngine.goToScene(s.next);
@@ -204,15 +213,24 @@
   // ── In-Game Progress HUD ──
 
   let progressHUD = null;
+  let progressBar = null;
 
   function updateProgressHUD() {
     if (!currentEngine) return;
+
+    const vnContainer = document.querySelector('.vn-container');
 
     if (!progressHUD) {
       progressHUD = document.createElement('div');
       progressHUD.className = 'progress-hud';
       progressHUD.setAttribute('aria-live', 'off');
-      document.querySelector('.vn-container').appendChild(progressHUD);
+      vnContainer.appendChild(progressHUD);
+    }
+
+    if (!progressBar) {
+      progressBar = document.createElement('div');
+      progressBar.className = 'story-progress-bar';
+      vnContainer.appendChild(progressBar);
     }
 
     const totalScenes = Object.keys(currentEngine.scenes).length;
@@ -222,6 +240,10 @@
     progressHUD.innerHTML = `<span>📍 ${visited}/${totalScenes}</span> <span>· Turn ${currentEngine.state.turns}</span>`;
     progressHUD.title = `${pct}% explored · Turn ${currentEngine.state.turns}`;
     progressHUD.style.display = '';
+
+    // Update thin top progress bar
+    progressBar.style.width = `${pct}%`;
+    progressBar.style.display = '';
   }
 
   // ── Skip-Read Logic ──
@@ -426,6 +448,7 @@
     if (sceneSelect.isVisible) sceneSelect.hide();
     if (autoPlayIndicator) autoPlayIndicator.style.display = 'none';
     if (progressHUD) progressHUD.style.display = 'none';
+    if (progressBar) progressBar.style.display = 'none';
     ui.showTitleScreen();
     renderTitleScreen();
   }
@@ -737,6 +760,11 @@
     },
     onOpenSettings: () => {
       if (!settingsPanel.isVisible) settingsPanel.show();
+    },
+    onOpenSave: () => {
+      if (currentEngine && currentSlug && !saveManager.isVisible) {
+        saveManager.show(currentSlug, currentEngine, 'save');
+      }
     }
   });
 
@@ -746,16 +774,21 @@
     const isSearchFocused = filterInput.matches(':focus');
 
     if (e.key === 'Escape') {
-      if (keyboardHelp.isVisible)   { keyboardHelp.hide(); return; }
-      if (aboutPanel.isVisible)     { aboutPanel.hide(); return; }
-      if (achPanel.isVisible)       { achPanel.hide(); return; }
-      if (statsDashboard.isVisible) { statsDashboard.hide(); return; }
-      if (storyInfo.isVisible)      { storyInfo.hide(); return; }
-      if (routeMap.isVisible)       { routeMap.hide(); return; }
-      if (saveManager.isVisible)    { saveManager.hide(); return; }
-      if (settingsPanel.isVisible)  { settingsPanel.hide(); return; }
-      if (historyPanel.isVisible)   { historyPanel.hide(); return; }
-      if (sceneSelect.isVisible)    { sceneSelect.hide(); return; }
+      const resumeAutoPlay = () => {
+        if (settings.get('autoPlay') && currentEngine && !isAnyPanelOpen()) {
+          scheduleAutoAdvance();
+        }
+      };
+      if (keyboardHelp.isVisible)   { keyboardHelp.hide(); resumeAutoPlay(); return; }
+      if (aboutPanel.isVisible)     { aboutPanel.hide(); resumeAutoPlay(); return; }
+      if (achPanel.isVisible)       { achPanel.hide(); resumeAutoPlay(); return; }
+      if (statsDashboard.isVisible) { statsDashboard.hide(); resumeAutoPlay(); return; }
+      if (storyInfo.isVisible)      { storyInfo.hide(); resumeAutoPlay(); return; }
+      if (routeMap.isVisible)       { routeMap.hide(); resumeAutoPlay(); return; }
+      if (saveManager.isVisible)    { saveManager.hide(); resumeAutoPlay(); return; }
+      if (settingsPanel.isVisible)  { settingsPanel.hide(); resumeAutoPlay(); return; }
+      if (historyPanel.isVisible)   { historyPanel.hide(); resumeAutoPlay(); return; }
+      if (sceneSelect.isVisible)    { sceneSelect.hide(); resumeAutoPlay(); return; }
       if (currentEngine)            { returnToMenu(); return; }
     }
 

@@ -42,15 +42,28 @@ body {
   inset: 0;
   display: none;
   opacity: 0;
-  transition: opacity 0.5s ease;
+  transform: scale(1);
+  transition: opacity 0.45s ease, transform 0.45s ease, filter 0.45s ease;
+  will-change: opacity, transform;
 }
 .screen.active {
   display: flex;
   opacity: 1;
+  transform: scale(1);
+  filter: none;
 }
 .screen.exiting {
   display: flex;
   opacity: 0;
+  transform: scale(0.97);
+  filter: blur(4px);
+  pointer-events: none;
+}
+.screen.entering {
+  display: flex;
+  opacity: 0;
+  transform: scale(1.02);
+  filter: blur(2px);
   pointer-events: none;
 }
 
@@ -1778,6 +1791,24 @@ body {
 }
 .vn-container:hover .progress-hud {
   opacity: 0.7;
+}
+
+/* Thin top-of-screen story progress bar */
+.story-progress-bar {
+  position: absolute;
+  top: 0;
+  left: 0;
+  height: 2px;
+  z-index: 30;
+  background: var(--accent-cyan);
+  box-shadow: 0 0 6px var(--accent-cyan);
+  opacity: 0.6;
+  transition: width 0.5s ease-out, opacity 0.3s;
+  pointer-events: none;
+}
+.vn-container:hover .story-progress-bar {
+  opacity: 0.9;
+  height: 3px;
 }
 
 /* ── No-particles mode ── */
