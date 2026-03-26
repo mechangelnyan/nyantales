@@ -571,6 +571,21 @@ cd /tmp/nyantales && python3 -m http.server 9876
 - SW cache bumped to v20, production build regenerated (134KB bundle)
 - All 30 JS files pass `node --check` validation
 
+## Phase 36: Theme-Aware Accent Colors + A11y ✅
+- **CSS accent color RGB components** — added `--accent-r`, `--accent-g`, `--accent-b` custom properties
+  - Replaced all 138 hardcoded `rgba(0, 212, 255, X)` values with `rgba(var(--accent-r), var(--accent-g), var(--accent-b), X)`
+  - Color themes (cyan/magenta/green/amber/violet) now affect **all** UI elements: borders, glows, shadows, scrollbars, particles, grid overlay, sprite highlights
+  - Previously only `var(--accent-cyan)` solid color swapped — all semi-transparent uses were stuck on cyan
+- **Route map theme support** — canvas rendering reads accent color from CSS vars
+  - `_cacheAccentRGB()` reads once per render frame (avoids dozens of `getComputedStyle` calls)
+  - All edge/node/label colors now follow active theme
+- **UI sprite highlight** — speaking character glow uses dynamic accent color
+- **Ending screen accessibility** — `role="dialog"`, `aria-label` with ending title, auto-focus on "Play Again" button
+- **Choices `aria-live="polite"`** — screen readers now announce when choices appear
+- **JS `COLOR_THEMES` now stores RGB arrays** — `applyColorTheme()` sets all 4 CSS vars (hex + r/g/b)
+- SW cache bumped to v21, production build regenerated (135KB bundle)
+- All 30 JS files pass `node --check` validation
+
 ## Still Possible Future Work
 - Generate remaining character portraits (GPU timeout issue — needs investigation, possibly during lower GPU load)
 - AI-generated scene background images
@@ -615,6 +630,7 @@ cd /tmp/nyantales && python3 -m http.server 9876
 - All 30 JS files pass `node --check` validation
 
 ## Log (continued)
+- 2026-03-26 (5:27 AM): Phase 36 — Theme-aware accent colors: replaced 138 hardcoded rgba(0,212,255,...) with CSS var RGB components (--accent-r/g/b). All 5 color themes now affect every UI element (borders, glows, shadows, particles, grid, sprites, scrollbars, canvas route map). Route map caches accent RGB per render frame. Ending screen gets focus management + aria. Choices get aria-live. SW v21. 135KB bundle. All 30 JS pass. Committed & pushed.
 - 2026-03-26 (4:27 AM): Phase 35 — Total reading time tracking (per-story + global, persistent), title stats show cumulative reading time, ending display uses shared formatter. Visited choice hints (✓ badge + green border on explored paths). Achievement _buildContext() now reads tracker data directly instead of raw localStorage. Title screen scroll-to-top on return. SW v20. All 30 JS pass. Committed & pushed.
 - 2026-03-26 (3:27 AM): Phase 34 — Dynamic document title, debounced StoryTracker saves (500ms coalesce for skip mode, immediate for endings/favorites), auto-play pause on tab hidden, CSS contain:content on story cards, preload hints, preconnect to gstatic. SW v19. All 30 JS pass. Committed & pushed.
 - 2026-03-26 (2:27 AM): Phase 33 — Touch gesture suspension (swipe gestures now blocked behind open panels), skip-to-content link for a11y, GitHub Pages 404.html, removed test_cat.png (420KB), lazy loading for story card sprites. SW cache v18. All 30 JS pass. Committed & pushed.
