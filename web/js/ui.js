@@ -739,9 +739,10 @@ class VNUI {
   }
 
   _escapeHtml(text) {
-    const div = document.createElement('div');
-    div.textContent = text;
-    return div.innerHTML;
+    // Reuse a single off-screen element instead of creating one per call
+    if (!VNUI._escapeDiv) VNUI._escapeDiv = document.createElement('div');
+    VNUI._escapeDiv.textContent = text;
+    return VNUI._escapeDiv.innerHTML;
   }
 
   // ── Fast Mode ──

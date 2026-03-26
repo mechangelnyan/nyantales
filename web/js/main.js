@@ -694,8 +694,9 @@
       startStory(story);
     });
 
-    // Decorate each freshly-created card
-    const cards = document.querySelectorAll('.story-card');
+    // Invalidate and rebuild cached card list after grid re-render
+    _cachedCards = [...storyGrid.querySelectorAll('.story-card')];
+    const cards = _cachedCards;
     storyIndex.forEach((story, idx) => {
       const card = cards[idx];
       if (card) decorateStoryCard(card, story);
@@ -724,14 +725,7 @@
     }
   }
 
-  document.getElementById('btn-continue').addEventListener('click', () => {
-    const recent = saveManager.getMostRecentSave();
-    if (!recent) return;
-    const story = storyIndex.find(s => s.slug === recent.slug);
-    if (!story) return;
-    ensureAudio();
-    startStory(story, recent.state);
-  });
+  // btn-continue click is handled by title-actions event delegation above
 
   // ── Search, Filter & Sort ──
 
@@ -763,9 +757,18 @@
     applySortToGrid();
   });
 
+  // Cached card list — refreshed in renderTitleScreen, reused by filter/sort
+  let _cachedCards = null;
+  function getStoryCards() {
+    if (!_cachedCards || _cachedCards.length === 0) {
+      _cachedCards = [...storyGrid.querySelectorAll('.story-card')];
+    }
+    return _cachedCards;
+  }
+
   function applyFilter() {
     const query = (filterInput.value || '').toLowerCase().trim();
-    const cards = document.querySelectorAll('.story-card');
+    const cards = getStoryCards();
 
     let visibleCount = 0;
     cards.forEach(card => {
@@ -829,7 +832,7 @@
    * Uses CSS order property for smooth re-sorting without re-rendering.
    */
   function applySortToGrid() {
-    const cards = [...storyGrid.querySelectorAll('.story-card')];
+    const cards = [...getStoryCards()];
 
     cards.sort((a, b) => {
       switch (activeSort) {
@@ -982,10 +985,7 @@
   // ── Audio Toggle ──
 
   const btnAudio = document.getElementById('btn-audio');
-  btnAudio.addEventListener('click', () => {
-    ensureAudio();
-    toggleAudio();
-  });
+  // btn-audio click is handled by HUD event delegation
 
   function toggleAudio() {
     const enabled = audio.toggle();
@@ -996,22 +996,11 @@
     if (enabled && ui._lastBgClass) audio.setTheme(ui._lastBgClass);
   }
 
-  // ── HUD Buttons ──
-
-  ui.btnBack.addEventListener('click', () => returnToMenu());
-
-  // ── HUD Overflow Toggle (mobile) ──
-
-  const hudMoreBtn = document.getElementById('btn-hud-more');
-  const hudToolbar = document.querySelector('.vn-hud');
-  hudMoreBtn.addEventListener('click', () => {
-    hudToolbar.classList.toggle('hud-expanded');
-    hudMoreBtn.textContent = hudToolbar.classList.contains('hud-expanded') ? '✕' : '⋯';
-  });
-
-  // ── Rewind (Back one scene) ──
+  // ── Rewind helpers (referenced by HUD delegation + keyboard) ──
 
   const btnRewind = document.getElementById('btn-rewind');
+  const hudMoreBtn = document.getElementById('btn-hud-more');
+  const hudToolbar = document.querySelector('.vn-hud');
 
   function updateRewindButton() {
     const canRewind = currentEngine && currentEngine.state.snapshots.length > 0;
@@ -1021,25 +1010,12 @@
 
   function rewindOneScene() {
     if (!currentEngine || currentEngine.state.snapshots.length === 0) return;
-
     clearAutoPlayTimer();
     updateSkipIndicator(false);
-
-    // Use engine's proper rewind which restores inventory + flags from snapshot
     const prevScene = currentEngine.rewindScene();
-    if (prevScene) {
-      playScene(prevScene);
-    }
+    if (prevScene) playScene(prevScene);
     updateRewindButton();
   }
-
-  btnRewind.addEventListener('click', rewindOneScene);
-
-  ui.btnSave.addEventListener('click', () => {
-    if (currentEngine && currentSlug) {
-      saveManager.show(currentSlug, currentEngine, 'save');
-    }
-  });
 
   // Wire save manager's load callback
   saveManager.onLoad = (slug, stateJson) => {
@@ -1047,81 +1023,93 @@
     if (story) startStory(story, stateJson);
   };
 
-  ui.btnFast.addEventListener('click', () => {
-    const fast = ui.toggleFastMode();
-    ui.btnFast.title = fast ? 'Fast Mode ON' : 'Fast Mode OFF';
+  // ── HUD Event Delegation ──
+  // Single listener on the HUD toolbar handles all button clicks (replaces 12 individual listeners)
+
+  hudToolbar.addEventListener('click', (e) => {
+    const btn = e.target.closest('.hud-btn');
+    if (!btn) return;
+    const id = btn.id;
+
+    switch (id) {
+      case 'btn-back':    returnToMenu(); break;
+      case 'btn-rewind':  rewindOneScene(); break;
+      case 'btn-save':    if (currentEngine && currentSlug) saveManager.show(currentSlug, currentEngine, 'save'); break;
+      case 'btn-hud-more':
+        hudToolbar.classList.toggle('hud-expanded');
+        hudMoreBtn.textContent = hudToolbar.classList.contains('hud-expanded') ? '✕' : '⋯';
+        break;
+      case 'btn-fast': {
+        const fast = ui.toggleFastMode();
+        ui.btnFast.title = fast ? 'Fast Mode ON' : 'Fast Mode OFF';
+        break;
+      }
+      case 'btn-auto':    if (currentEngine) toggleAutoPlay(); break;
+      case 'btn-history': if (currentEngine) togglePanel(historyPanel); break;
+      case 'btn-scenes':  if (currentEngine) togglePanel(sceneSelect, currentEngine, currentEngine.state.currentScene); break;
+      case 'btn-settings': togglePanel(settingsPanel); break;
+      case 'btn-audio':   ensureAudio(); toggleAudio(); break;
+      case 'btn-routemap': if (currentEngine) togglePanel(routeMap, currentEngine); break;
+      case 'btn-help':    togglePanel(keyboardHelp); break;
+    }
   });
 
-  btnAutoEl.addEventListener('click', () => {
-    if (currentEngine) toggleAutoPlay();
+  // ── Title Screen Event Delegation ──
+  // Single listener on title-actions toolbar handles Random, Gallery, Achievements, Stats, About buttons
+
+  const titleActions = document.querySelector('.title-actions');
+  titleActions.addEventListener('click', (e) => {
+    const btn = e.target.closest('button');
+    if (!btn) return;
+    const id = btn.id;
+
+    switch (id) {
+      case 'btn-continue': {
+        const recent = saveManager.getMostRecentSave();
+        if (!recent) return;
+        const story = storyIndex.find(s => s.slug === recent.slug);
+        if (!story) return;
+        ensureAudio();
+        startStory(story, recent.state);
+        break;
+      }
+      case 'btn-random': {
+        if (storyIndex.length === 0) return;
+        const unplayed = storyIndex.filter(s => !tracker.isCompleted(s.slug));
+        const pool = unplayed.length > 0 ? unplayed : storyIndex;
+        const pick = pool[Math.floor(Math.random() * pool.length)];
+        ensureAudio();
+        startStory(pick);
+        break;
+      }
+      case 'btn-gallery': {
+        gallery.onStoryClick((slug) => {
+          const story = storyIndex.find(s => s.slug === slug);
+          if (story) { ensureAudio(); startStory(story); }
+        });
+        gallery.show();
+        break;
+      }
+      case 'btn-achievements': togglePanel(achPanel); break;
+      case 'btn-stats': {
+        statsDashboard.setStories(storyIndex);
+        statsDashboard.onPlay = (story) => { ensureAudio(); startStory(story); };
+        statsDashboard.show();
+        break;
+      }
+      case 'btn-about': {
+        const achStats = achievements.getStats();
+        const allChars = new Set();
+        Object.values(CHARACTER_DATA).forEach(chars => chars.forEach(c => allChars.add(c.name)));
+        aboutPanel.show({
+          stories: storyIndex.length,
+          characters: allChars.size,
+          achievements: `${achStats.unlocked}/${achStats.total}`
+        });
+        break;
+      }
+    }
   });
-
-  document.getElementById('btn-history').addEventListener('click', () => {
-    if (currentEngine) togglePanel(historyPanel);
-  });
-
-  document.getElementById('btn-scenes').addEventListener('click', () => {
-    if (currentEngine) togglePanel(sceneSelect, currentEngine, currentEngine.state.currentScene);
-  });
-
-  document.getElementById('btn-settings').addEventListener('click', () => togglePanel(settingsPanel));
-
-  document.getElementById('btn-routemap').addEventListener('click', () => {
-    if (currentEngine) togglePanel(routeMap, currentEngine);
-  });
-
-  document.getElementById('btn-help').addEventListener('click', () => togglePanel(keyboardHelp));
-
-  // ── Random Story ──
-
-  document.getElementById('btn-random').addEventListener('click', () => {
-    if (storyIndex.length === 0) return;
-    // Prefer unplayed stories, fall back to any
-    const unplayed = storyIndex.filter(s => !tracker.isCompleted(s.slug));
-    const pool = unplayed.length > 0 ? unplayed : storyIndex;
-    const pick = pool[Math.floor(Math.random() * pool.length)];
-    ensureAudio();
-    startStory(pick);
-  });
-
-  // ── Stats Dashboard ──
-
-  document.getElementById('btn-stats').addEventListener('click', () => {
-    statsDashboard.setStories(storyIndex);
-    statsDashboard.onPlay = (story) => {
-      ensureAudio();
-      startStory(story);
-    };
-    statsDashboard.show();
-  });
-
-  // ── About Panel ──
-
-  document.getElementById('btn-about').addEventListener('click', () => {
-    const achStats = achievements.getStats();
-    // Count unique characters across all stories
-    const allChars = new Set();
-    Object.values(CHARACTER_DATA).forEach(chars => chars.forEach(c => allChars.add(c.name)));
-    aboutPanel.show({
-      stories: storyIndex.length,
-      characters: allChars.size,
-      achievements: `${achStats.unlocked}/${achStats.total}`
-    });
-  });
-
-  // ── Gallery ──
-
-  document.getElementById('btn-gallery').addEventListener('click', () => {
-    gallery.onStoryClick((slug) => {
-      const story = storyIndex.find(s => s.slug === slug);
-      if (story) { ensureAudio(); startStory(story); }
-    });
-    gallery.show();
-  });
-
-  // ── Achievements Panel ──
-
-  document.getElementById('btn-achievements').addEventListener('click', () => togglePanel(achPanel));
 
   // ── Boot ──
 
