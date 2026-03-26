@@ -153,6 +153,7 @@
   let currentSlug   = null;
   let activeFilter  = 'all';
   let activeSort    = 'title-asc';
+  let storyStartTime = null; // timestamp when current story session began
 
   // ── Auto-play State ──
 
@@ -375,6 +376,25 @@
       clearAutoPlayTimer();
       updateSkipIndicator(false);
 
+      // Calculate and display reading time
+      if (storyStartTime) {
+        const elapsed = Date.now() - storyStartTime;
+        const mins = Math.floor(elapsed / 60000);
+        const secs = Math.floor((elapsed % 60000) / 1000);
+        const timeStr = mins > 0 ? `${mins}m ${secs}s` : `${secs}s`;
+        // Inject reading time into ending overlay after it renders
+        setTimeout(() => {
+          const endingEl = document.getElementById('vn-ending');
+          const statsGrid = endingEl?.querySelector('.ending-stats-grid');
+          if (statsGrid) {
+            const timeBox = document.createElement('div');
+            timeBox.className = 'ending-stat-box';
+            timeBox.innerHTML = `<span class="ending-stat-value">⏱ ${timeStr}</span><span class="ending-stat-label">Reading Time</span>`;
+            statsGrid.insertBefore(timeBox, statsGrid.firstChild);
+          }
+        }, 50);
+      }
+
       const result = tracker.recordEnding(currentSlug, scene.ending, engine.state.turns);
 
       if (result.isNewEnding) {
@@ -409,6 +429,7 @@
 
   async function startStory(story, savedState) {
     currentSlug = story.slug;
+    storyStartTime = Date.now();
     ui.setStorySlug(story.slug);
 
     initEngine(story._parsed);
@@ -441,6 +462,7 @@
     clearAutoPlayTimer();
     currentEngine = null;
     currentSlug = null;
+    storyStartTime = null;
     ui.setStorySlug(null);
     audio.stop();
     textHistory.clear();

@@ -83,28 +83,34 @@ class VNUI {
   showTitleScreen() {
     this.storyScreen.classList.remove('active');
     this.storyScreen.classList.add('exiting');
-    // Prepare title screen for entrance
+    // Show title with entering animation, then promote to active
     this.titleScreen.classList.add('entering');
-    this.titleScreen.style.display = 'flex';
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        this.titleScreen.classList.remove('entering');
+        this.titleScreen.classList.add('active');
+      });
+    });
     setTimeout(() => {
       this.storyScreen.classList.remove('exiting');
-      this.titleScreen.classList.remove('entering');
-      this.titleScreen.classList.add('active');
-    }, 450);
+    }, 500);
     this._clearSprites();
   }
 
   showStoryScreen() {
     this.titleScreen.classList.remove('active');
     this.titleScreen.classList.add('exiting');
-    // Prepare story screen for entrance
+    // Show story with entering animation, then promote to active
     this.storyScreen.classList.add('entering');
-    this.storyScreen.style.display = 'flex';
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        this.storyScreen.classList.remove('entering');
+        this.storyScreen.classList.add('active');
+      });
+    });
     setTimeout(() => {
       this.titleScreen.classList.remove('exiting');
-      this.storyScreen.classList.remove('entering');
-      this.storyScreen.classList.add('active');
-    }, 450);
+    }, 500);
   }
 
   setStorySlug(slug) {
