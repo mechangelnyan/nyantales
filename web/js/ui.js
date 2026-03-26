@@ -80,6 +80,7 @@ class VNUI {
 
   // ── Screen Transitions ──
 
+  /** Switch to title screen with fade animation */
   showTitleScreen() {
     this.storyScreen.classList.remove('active');
     this.storyScreen.classList.add('exiting');
@@ -97,6 +98,7 @@ class VNUI {
     this._clearSprites();
   }
 
+  /** Switch to story VN screen with fade animation */
   showStoryScreen() {
     this.titleScreen.classList.remove('active');
     this.titleScreen.classList.add('exiting');
@@ -119,6 +121,11 @@ class VNUI {
 
   // ── Story List ──
 
+  /**
+   * Render story selection grid on title screen.
+   * @param {Array} stories - Story index entries
+   * @param {Function} onSelect - Callback when a story card is clicked
+   */
   renderStoryList(stories, onSelect) {
     this.storyListEl.innerHTML = '';
     stories.forEach((story, idx) => {
@@ -277,6 +284,11 @@ class VNUI {
 
   // ── Scene Rendering ──
 
+  /**
+   * Render a scene: background transition, sprites, text, choices, endings.
+   * @param {Object} scene - Scene data from story YAML
+   * @param {StoryEngine} engine - Current game engine instance
+   */
   async renderScene(scene, engine) {
     if (!scene) return;
 
@@ -437,6 +449,11 @@ class VNUI {
 
   // ── Typewriter Effect ──
 
+  /**
+   * Display text with typewriter animation. Resolves when fully displayed or skipped.
+   * @param {string} text - Text to display
+   * @returns {Promise<void>}
+   */
   typewriterText(text) {
     return new Promise(resolve => {
       this._cancelTypewriter();
