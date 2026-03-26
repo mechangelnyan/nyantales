@@ -3612,6 +3612,12 @@ body {
    Ending Share Button
    ═══════════════════════════════════════ */
 
+.ending-btn-secondary {
+  margin-top: 0.5rem;
+}
+.ending-stat-wide {
+  grid-column: span 2;
+}
 .ending-btn-share {
   background: rgba(var(--accent-r), var(--accent-g), var(--accent-b), 0.08) !important;
   border: 1px solid rgba(var(--accent-r), var(--accent-g), var(--accent-b), 0.2) !important;

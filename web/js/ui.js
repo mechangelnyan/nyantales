@@ -49,6 +49,10 @@ class VNUI {
     this._lastBgClass = '';
     this._transitioning = false;
 
+    // Reusable transition overlay (avoids DOM create/remove on every bg change)
+    this._transOverlay = document.createElement('div');
+    this._transOverlay.className = 'scene-transition-overlay';
+
     // Init ending event delegation (one-time, prevents listener leak)
     this._initEndingDelegation();
 
@@ -123,6 +127,28 @@ class VNUI {
 
   setStorySlug(slug) {
     this.currentStorySlug = slug;
+    this._speakerCache = new Map(); // reset speaker lookup cache per story
+  }
+
+  /**
+   * Find a character matching a speaker name, with per-story caching.
+   * Avoids repeated array.find() on every scene render for the same speaker.
+   * @param {string} speakerName
+   * @returns {Object|null}
+   */
+  _findSpeakerChar(speakerName) {
+    if (!this._speakerCache) this._speakerCache = new Map();
+    if (this._speakerCache.has(speakerName)) return this._speakerCache.get(speakerName);
+
+    const chars = CHARACTER_DATA[this.currentStorySlug] || [];
+    const speakerLower = speakerName.toLowerCase();
+    const found = chars.find(c =>
+      c.name.toLowerCase() === speakerLower ||
+      speakerLower.includes(c.name.toLowerCase())
+    ) || null;
+
+    this._speakerCache.set(speakerName, found);
+    return found;
   }
 
   // ── Story List ──
@@ -330,13 +356,9 @@ class VNUI {
       this.artEl.classList.add('hidden');
     }
 
-    // Speaker (with portrait in name plate)
+    // Speaker (with portrait in name plate) — uses cache to avoid repeated find()
     if (scene.speaker) {
-      const chars = CHARACTER_DATA[this.currentStorySlug] || [];
-      const speakerChar = chars.find(c =>
-        c.name.toLowerCase() === scene.speaker.toLowerCase() ||
-        scene.speaker.toLowerCase().includes(c.name.toLowerCase())
-      );
+      const speakerChar = this._findSpeakerChar(scene.speaker);
       if (speakerChar) {
         const spriteUrl = this.portraits.getSprite(speakerChar.name, speakerChar.appearance);
         const iconCls = this.portraits.hasPortrait(speakerChar.name) ? 'speaker-icon ai-icon' : 'speaker-icon';
@@ -393,29 +415,24 @@ class VNUI {
     const newBg = this._inferBackground(scene, engine);
 
     if (newBg !== this._lastBgClass && this._lastBgClass) {
-      // Crossfade background
+      // Crossfade background using reusable overlay (no DOM create/remove per transition)
       this._transitioning = true;
-
-      // Add transition overlay
-      const overlay = document.createElement('div');
-      overlay.className = 'scene-transition-overlay';
+      const overlay = this._transOverlay;
       this.bgEl.parentElement.appendChild(overlay);
 
       // Fade in overlay
       requestAnimationFrame(() => overlay.classList.add('active'));
-
       await this._wait(300);
 
       // Switch background
       this.bgEl.className = 'vn-bg';
       if (newBg) this.bgEl.classList.add(newBg);
-
       await this._wait(100);
 
-      // Fade out overlay
+      // Fade out overlay, then detach (keeps it reusable)
       overlay.classList.remove('active');
       await this._wait(300);
-      overlay.remove();
+      if (overlay.parentElement) overlay.parentElement.removeChild(overlay);
 
       this._transitioning = false;
     } else {
@@ -633,15 +650,15 @@ class VNUI {
           <span class="ending-stat-label">Scenes (${visitPct}%)</span>
         </div>
         ${engine.state.inventory.length ? `
-        <div class="ending-stat-box" style="grid-column:span 2">
+        <div class="ending-stat-box ending-stat-wide">
           <span class="ending-stat-value">🎒 ${engine.state.inventory.join(', ')}</span>
           <span class="ending-stat-label">Items Collected</span>
         </div>
         ` : ''}
       </div>
       <button class="ending-btn" data-action="restart">↻ Play Again</button>
-      <button class="ending-btn" data-action="menu" style="margin-top:0.5rem">⏎ Story List</button>
-      <button class="ending-btn ending-btn-share" data-action="share" style="margin-top:0.5rem" title="Copy ending summary to clipboard">📋 Share</button>
+      <button class="ending-btn ending-btn-secondary" data-action="menu">⏎ Story List</button>
+      <button class="ending-btn ending-btn-secondary ending-btn-share" data-action="share" title="Copy ending summary to clipboard">📋 Share</button>
     `;
     this.endingEl.setAttribute('role', 'dialog');
     this.endingEl.setAttribute('aria-label', `Ending: ${ending.title || type}`);
