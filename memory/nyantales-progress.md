@@ -586,6 +586,24 @@ cd /tmp/nyantales && python3 -m http.server 9876
 - SW cache bumped to v21, production build regenerated (135KB bundle)
 - All 30 JS files pass `node --check` validation
 
+## Phase 37: Code Quality — Ending Listener Leak, CSS Sprite States, Engine Guards ✅
+- **Ending event listener leak fix** — `_showEnding()` was creating 3 new `addEventListener` calls every time an ending was reached (restart, menu, share buttons). Over a multi-ending session, dozens of orphaned listeners accumulated on destroyed DOM elements.
+  - Refactored to **event delegation**: single click listener on `endingEl` (initialized once in constructor) delegates via `data-action` attributes
+  - Share data stored in `_endingShareData` object for delegation handler to access
+  - `_shareEnding()` extracted as proper async method on VNUI
+- **Sprite highlighting moved from inline JS to CSS** — speaking/non-speaking/ending states
+  - Previously: `img.style.filter = 'drop-shadow(...)'` set inline on every sprite update (not theme-reactive, could conflict with CSS)
+  - Now: `.vn-sprite-wrap.speaking .vn-sprite` CSS rule handles glow with `var(--accent-r/g/b)` — properly follows color theme changes
+  - `.vn-sprite-wrap:not(.speaking) .vn-sprite` dims inactive characters via CSS
+  - `.vn-sprite-wrap.ending-good/bad/neutral` CSS classes for ending sprite states (was inline JS)
+- **Removed `VNUI._accentRGBA()` static method** — was only used for the inline sprite highlight that's now CSS. RouteMap keeps its own copy for canvas rendering.
+- **Engine `goToScene()` safety** — now validates scene ID exists before processing
+  - Returns `null` with console warning for missing scenes instead of silent undefined behavior
+  - Prevents cascading errors if story YAML has a broken `goto` reference
+- **Reading time injection fix** — ending stats grid now has `id="ending-stats-grid"`, allowing synchronous DOM insert instead of fragile `setTimeout(..., 50)` hack
+- SW cache bumped to v22, production build regenerated (135KB bundle)
+- All 30 JS files pass `node --check` validation
+
 ## Still Possible Future Work
 - Generate remaining character portraits (GPU timeout issue — needs investigation, possibly during lower GPU load)
 - AI-generated scene background images
@@ -630,6 +648,7 @@ cd /tmp/nyantales && python3 -m http.server 9876
 - All 30 JS files pass `node --check` validation
 
 ## Log (continued)
+- 2026-03-26 (6:27 AM): Phase 37 — Code quality: fixed ending event listener leak (was creating 3 new listeners per ending, now uses event delegation), moved sprite speaking/ending highlights from inline JS styles to CSS classes (theme-reactive), removed dead VNUI._accentRGBA(), added goToScene null guard in engine, fixed reading time injection to use synchronous DOM instead of setTimeout. SW v22. 135KB bundle. All 30 JS pass. Committed & pushed.
 - 2026-03-26 (5:27 AM): Phase 36 — Theme-aware accent colors: replaced 138 hardcoded rgba(0,212,255,...) with CSS var RGB components (--accent-r/g/b). All 5 color themes now affect every UI element (borders, glows, shadows, particles, grid, sprites, scrollbars, canvas route map). Route map caches accent RGB per render frame. Ending screen gets focus management + aria. Choices get aria-live. SW v21. 135KB bundle. All 30 JS pass. Committed & pushed.
 - 2026-03-26 (4:27 AM): Phase 35 — Total reading time tracking (per-story + global, persistent), title stats show cumulative reading time, ending display uses shared formatter. Visited choice hints (✓ badge + green border on explored paths). Achievement _buildContext() now reads tracker data directly instead of raw localStorage. Title screen scroll-to-top on return. SW v20. All 30 JS pass. Committed & pushed.
 - 2026-03-26 (3:27 AM): Phase 34 — Dynamic document title, debounced StoryTracker saves (500ms coalesce for skip mode, immediate for endings/favorites), auto-play pause on tab hidden, CSS contain:content on story cards, preload hints, preconnect to gstatic. SW v19. All 30 JS pass. Committed & pushed.
