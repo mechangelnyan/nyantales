@@ -640,6 +640,23 @@ cd /tmp/nyantales && python3 -m http.server 9876
 - SW cache bumped to v24, production build regenerated (134KB bundle)
 - All 30 JS files pass `node --check` validation
 
+## Phase 40: Event Delegation, Cached DOM Queries, Reusable Escape Element ✅
+- **HUD event delegation** — single click listener on `.vn-hud` handles all 14 button clicks
+  - Replaces 12 individual `getElementById().addEventListener()` calls for: back, rewind, save, more, fast, auto, history, scenes, settings, audio, routemap, help
+  - Uses `switch` on `btn.id` for fast dispatch
+- **Title bar event delegation** — single listener on `.title-actions` handles 6 buttons
+  - Continue, Random, Gallery, Achievements, Stats, About — all via one delegated listener
+  - Replaces 6 individual `getElementById().addEventListener()` calls
+- **addEventListener count in main.js: 28 → 12** (57% reduction)
+- **Cached `_escapeHtml` element** — `VNUI._escapeDiv` static property reused across all calls
+  - Previously created a new `document.createElement('div')` on every invocation
+  - Called hundreds of times per story session (every speaker name, choice label, text render)
+- **Cached story card NodeList** — `getStoryCards()` helper avoids `querySelectorAll('.story-card')` on every filter keystroke and sort change
+  - `_cachedCards` array built once per title screen render, reused by `applyFilter()` and `applySortToGrid()`
+  - Invalidated and rebuilt in `renderTitleScreen()` when grid is re-created
+- SW cache bumped to v25, production build regenerated (134KB bundle)
+- All 30 JS files pass `node --check` validation
+
 ## Still Possible Future Work
 - Generate remaining character portraits (GPU timeout issue — needs investigation, possibly during lower GPU load)
 - AI-generated scene background images
@@ -684,6 +701,7 @@ cd /tmp/nyantales && python3 -m http.server 9876
 - All 30 JS files pass `node --check` validation
 
 ## Log (continued)
+- 2026-03-26 (9:27 AM): Phase 40 — Event delegation: HUD toolbar + title bar buttons now use 2 delegated listeners instead of 18 individual ones (addEventListener count 28→12, 57% fewer). Cached VNUI._escapeDiv (reuses 1 element instead of creating hundreds). Cached story card NodeList for filter/sort reuse. SW v25. 134KB bundle. All 30 JS pass. Committed & pushed.
 - 2026-03-26 (8:27 AM): Phase 39 — CRITICAL FIX: ensureAudio() was infinitely recursive (called itself instead of audio.init()), crashing app on any audio-triggering click. DRYed Escape key handler (10 if/return blocks → array find loop). Cached btnAutoEl + statsEl + reused storyGrid ref (eliminates 6 repeated getElementById calls). SW v24. 134KB bundle. All 30 JS pass. Committed & pushed.
 - 2026-03-26 (7:27 AM): Phase 38 — Code quality: story grid event delegation (60+ per-card listeners → 1 delegated), extracted decorateStoryCard() + getStoryMeta() from renderTitleScreen(), ensureAudio() helper (7 call sites), cached vnContainer + containerEl DOM refs (eliminates 6 querySelector calls), replaced inline style= on formatted text with CSS classes (.vn-inline-code, .vn-bold) for theme-reactivity. SW v23. 135KB bundle. All 30 JS pass. Committed & pushed.
 - 2026-03-26 (6:27 AM): Phase 37 — Code quality: fixed ending event listener leak (was creating 3 new listeners per ending, now uses event delegation), moved sprite speaking/ending highlights from inline JS styles to CSS classes (theme-reactive), removed dead VNUI._accentRGBA(), added goToScene null guard in engine, fixed reading time injection to use synchronous DOM instead of setTimeout. SW v22. 135KB bundle. All 30 JS pass. Committed & pushed.
