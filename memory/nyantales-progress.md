@@ -394,6 +394,26 @@ cd /tmp/nyantales && python3 -m http.server 9876
 - SW cache bumped to v11
 - All 26 JS files pass `node --check` validation
 
+## Phase 26: Route Map & SW Update Banner ✅
+- **Story Route Map** (`web/js/route-map.js`) — interactive canvas-based branching graph
+  - Visualizes all scenes as nodes in a topologically-layered layout
+  - Edges show connections with choice labels on branching paths
+  - Node states: visited (cyan border), unvisited (dim), current (green glow), endings (gold)
+  - Ending nodes distinguished by type: good (green), bad (red), secret (purple), neutral (gold)
+  - Pan (mouse drag / touch), zoom (scroll wheel / buttons), fit-to-view (⊡ button)
+  - Tooltip on hover with scene ID, speaker, type, visit status
+  - Legend showing color meanings
+  - Focus trap for keyboard accessibility
+  - Opens via 🗺️ HUD button or `R` keyboard shortcut
+- **Service Worker update notification** — banner when new version available
+  - Detects `updatefound` → `installed` state change with existing controller
+  - Shows non-blocking bottom banner with "Reload" button and dismiss ✕
+  - Styled to match cyberpunk theme with slide-in animation
+  - Responsive: full-width on mobile
+- **Keyboard help** updated with `R` for Route Map
+- SW cache bumped to v12 with route-map.js
+- All 27 JS files pass `node --check` validation
+
 ## Still Possible Future Work
 - Generate remaining character portraits (GPU timeout issue — needs investigation, possibly during lower GPU load)
 - AI-generated scene background images
@@ -403,6 +423,7 @@ cd /tmp/nyantales && python3 -m http.server 9876
 - ~~Accessibility: screen reader support, high-contrast mode, reduced motion~~ ✅ Done in Phase 16
 
 ## Log (continued)
+- 2026-03-25 (7:27 PM): Phase 26 — Story Route Map (canvas-based interactive branching graph with pan/zoom/tooltips), SW update notification banner, R keyboard shortcut. SW cache v12. All 27 JS pass. Committed & pushed.
 - 2026-03-25 (6:27 PM): Phase 25 — Fullscreen sync (F key + settings + browser UI), debounced search, filter count indicator, GPU will-change hints, touch-action/tap-highlight polish, code docs. SW cache v11. All 26 JS pass. Committed & pushed.
 - 2026-03-25 (5:27 PM): Phase 24 — Story favorites system (heart button + filter tab + sort option), history panel search bar for filtering dialogue, ending share card with Web Share API + clipboard fallback. CSS for new components. SW cache v10. All 26 JS files pass. Committed & pushed.
 - 2026-03-25 (4:27 PM): Added Statistics Dashboard with per-story breakdown table, global progress cards, recently played section. Added history export as .txt download. Landscape mobile media queries for compact layout. Fixed duplicate max-height CSS bug on textbox. SW cache v9. All 26 JS files pass. Committed & pushed.
