@@ -539,7 +539,22 @@ cd /tmp/nyantales && python3 -m http.server 9876
 - Chapter/route progress tracking (% completion per story)
 - ~~Accessibility: screen reader support, high-contrast mode, reduced motion~~ ✅ Done in Phase 16
 
+## Phase 32: Bug Fix — Dist Story Path + Code Quality ✅
+- **Critical fix:** `storyBasePath()` now detects `/web/dist/` path and returns `../../stories`
+  - Production build was broken — stories wouldn't load when served from `web/dist/` on GitHub Pages
+  - Root cause: path check only looked for `/web/`, returning `../stories` which resolves to `web/stories/` (wrong)
+  - Fix adds explicit `/web/dist` check that returns `../../stories` (correct: goes to repo root `stories/`)
+- **Share URL simplified** — ending share text now uses root URL `https://mechangelnyan.github.io/nyantales/` (redirect handles routing)
+- **README** — play link updated to root URL
+- **Dead code removal** — removed unused `rgb` property from `COLOR_THEMES` object (was never referenced anywhere)
+- **JSDoc** — added documentation to key VNUI public methods (showTitleScreen, showStoryScreen, renderStoryList, renderScene, typewriterText)
+- **Service worker** cache bumped to v17
+- Production build regenerated (133KB minified bundle)
+- All 30 JS files pass `node --check` validation
+- 2 commits pushed
+
 ## Log (continued)
+- 2026-03-26 (1:27 AM): Phase 32 — Fixed critical bug: dist build couldn't load stories (storyBasePath returned wrong relative path for /web/dist/). Fixed share URL, removed dead code (COLOR_THEMES.rgb), added JSDoc to VNUI. SW cache v17. 2 commits pushed.
 - 2026-03-26 (12:27 AM): Phase 31 — Production build pipeline: build.sh bundles 30 JS files into single minified bundle (225KB→132KB, 41% smaller), CSS minified (93KB→68KB), HTTP requests 30→3. Production service worker, CI updated with build step, root redirect to dist/, OG URL fixes. README updated. Committed & pushed.
 - 2026-03-25 (11:27 PM): Phase 30 — Code quality refactor: extracted SafeStorage into own file (was crammed in error-boundary.js), fixed isAnyPanelOpen() missing 4 panels (achPanel/aboutPanel/statsDashboard/storyInfo — auto-play bug), hoisted achPanel to init block, added togglePanel() DRY helper (saves ~40 lines), removed duplicate comment. SW cache v16. All 30 JS pass. Committed & pushed.
 - 2026-03-25 (10:27 PM): Phase 29 — Error boundary + SafeStorage (global error handler, localStorage quota handling with auto-eviction), Open Graph + Twitter Card meta tags for rich link previews, fixed memory leaks in StoryIntro + ConfirmDialog (keydown handlers), progress HUD throttling, empty filter state with contextual hints. SaveManager/Settings/Tracker all use SafeStorage. SW cache v15. All 29 JS pass. 2 commits pushed.
