@@ -706,6 +706,27 @@ cd /tmp/nyantales && python3 -m http.server 9876
 - Production build regenerated (135KB bundle)
 - All 30 JS files pass `node --check` validation
 
+## Phase 44: Choice Delegation, Shared Escape, Toast CSS ✅
+- **Choice button event delegation** — `showChoices()` now uses single delegated listener on `choicesEl`
+  - Previously: per-button `addEventListener` created on every `showChoices()` call (leaked on re-render)
+  - Now: one-time delegation via `_initChoiceDelegation()`, buttons use `data-choice-idx` for lookup
+  - `_currentChoices` array stored for delegation handler reference
+- **Shared HTML escape element** — 3 modules now reuse `VNUI._escapeDiv` instead of creating new elements per call
+  - `ConfirmDialog._esc()` — was creating `createElement('div')` per escape (called for title + message + buttons)
+  - `HistoryPanel._esc()` — was creating new element per entry (called hundreds of times for full backlog)
+  - `StoryIntro._esc()` — was creating new element per story intro (title + description)
+  - All now check for `VNUI._escapeDiv` first, with local fallback for pre-UI-init calls
+- **Toast inline styles → CSS classes** — moved 12-line `style.cssText` blob per toast to proper CSS
+  - `.nt-toast` base class: border, padding, font, border-radius, shadow, transition
+  - `.nt-toast.visible` / `.nt-toast.dismissing` for animation states
+  - `.nt-toast-container` / `.nt-toast-bottom` / `.nt-toast-top` for container positioning
+  - Only custom `background` set inline when non-default color is used
+  - Toast overflow dismissal also uses CSS classes instead of inline style manipulation
+- **CharacterGallery `isVisible` getter** — added for consistency with all other panel classes
+  - Was the only panel without `isVisible` property; could cause issues if added to `isAnyPanelOpen()` later
+- SW cache bumped to v29, production build regenerated (135KB bundle)
+- All 30 JS files pass `node --check` validation
+
 ## Still Possible Future Work
 - Generate remaining character portraits (GPU timeout issue — needs investigation, possibly during lower GPU load)
 - AI-generated scene background images
@@ -750,6 +771,7 @@ cd /tmp/nyantales && python3 -m http.server 9876
 - All 30 JS files pass `node --check` validation
 
 ## Log (continued)
+- 2026-03-26 (1:27 PM): Phase 44 — Choice button delegation (single listener on choicesEl replaces per-button addEventListener leak). Shared _escapeHtml (ConfirmDialog, HistoryPanel, StoryIntro reuse VNUI._escapeDiv). Toast inline styles→CSS classes (.nt-toast base, .visible/.dismissing states, container positioning). Gallery isVisible getter. SW v29. 135KB bundle. All 30 JS pass. Committed & pushed.
 - 2026-03-26 (12:27 PM): Phase 43 — Reusable transition overlay (single DOM element reused across all bg transitions instead of create/remove per change). Cached speaker character lookup (_findSpeakerChar with Map cache, reset per story). Moved ending button + stat inline styles to CSS classes (ending-btn-secondary, ending-stat-wide). Fixed stale prod SW (v26→v28). SW v28. 135KB bundle. All 30 JS pass. Committed & pushed.
 - 2026-03-26 (11:27 AM): Phase 42 — SaveManager delegation: fixed slot listener leak (_renderSlots created new listeners per re-render → single delegated listener). Shared _esc element (SaveManager, StoryInfoModal, StatsDashboard all reuse VNUI._escapeDiv). Moved inline style.cssText to CSS classes (.new-ending-badge, .save-badge-bottom). Fixed save feedback (detached btn → Toast). SW v27. 134KB bundle. All 30 JS pass. Committed & pushed.
 - 2026-03-26 (10:27 AM): Phase 41 — Story card delegation: moved 60 per-card click/keydown listeners to 2 grid-level delegated listeners. Cached textboxEl, titleBg, themeColorMeta DOM refs. Optimized _updateSprites toLowerCase calls (15→3 per render). Fixed stale prod SW version (v23→v26). addEventListener count: 13. SW v26. 134KB bundle. All 30 JS pass. Committed & pushed.
