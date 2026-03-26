@@ -179,6 +179,44 @@ class SaveManager {
       });
     });
 
+    // Event delegation on save-slots container (one listener handles all slot actions)
+    const slotsEl = this.overlay.querySelector('.save-slots');
+    slotsEl.addEventListener('click', async (e) => {
+      const btn = e.target.closest('[data-action]');
+      if (!btn) return;
+      const slotName = btn.dataset.slot;
+      const action = btn.dataset.action;
+
+      if (action === 'save') {
+        if (this._currentEngine && this._currentSlug) {
+          const scene = this._currentEngine.getCurrentScene();
+          this.save(this._currentSlug, slotName, this._currentEngine, scene);
+          // Re-render updates slot preview; show feedback via toast (btn is replaced by re-render)
+          this._renderSlots();
+          if (typeof Toast !== 'undefined') Toast.show('Saved!', { icon: '💾', duration: 1000 });
+        }
+      } else if (action === 'load') {
+        const slots = this.getSlots(this._currentSlug);
+        const slot = slots[slotName];
+        if (slot && this.onLoad) {
+          this.hide();
+          this.onLoad(this._currentSlug, slot.state);
+        }
+      } else if (action === 'delete') {
+        const confirmed = await ConfirmDialog.show({
+          title: 'Delete Save?',
+          message: `This will permanently delete ${slotName === 'auto' ? 'the auto-save' : slotName.replace('slot', 'Slot ')}.`,
+          confirmText: '🗑 Delete',
+          cancelText: 'Keep',
+          danger: true
+        });
+        if (confirmed) {
+          this.deleteSlot(this._currentSlug, slotName);
+          this._renderSlots();
+        }
+      }
+    });
+
     this._built = true;
   }
 
@@ -213,21 +251,21 @@ class SaveManager {
               <span class="save-slot-label">${label}</span>
               <span class="save-slot-time">${timeStr}</span>
             </div>
-            <div class="save-slot-preview">${this._esc(preview)}</div>
+            <div class="save-slot-preview">${SaveManager._esc(preview)}</div>
             <div class="save-slot-meta">
-              ${slot.sceneSpeaker ? `<span>🗣 ${this._esc(slot.sceneSpeaker)}</span>` : ''}
+              ${slot.sceneSpeaker ? `<span>🗣 ${SaveManager._esc(slot.sceneSpeaker)}</span>` : ''}
               <span>📍 ${slot.turns} turns</span>
               <span>👁 ${slot.visitedCount || '?'} scenes</span>
             </div>
             <div class="save-slot-actions">
               ${mode === 'save' && !isAuto
-                ? `<button class="save-slot-btn save-action" data-slot="${name}">💾 Save</button>`
+                ? `<button class="save-slot-btn save-action" data-slot="${name}" data-action="save">💾 Save</button>`
                 : ''}
               ${mode === 'load'
-                ? `<button class="save-slot-btn load-action" data-slot="${name}">📂 Load</button>`
+                ? `<button class="save-slot-btn load-action" data-slot="${name}" data-action="load">📂 Load</button>`
                 : ''}
               ${!isAuto
-                ? `<button class="save-slot-btn delete-action" data-slot="${name}">🗑</button>`
+                ? `<button class="save-slot-btn delete-action" data-slot="${name}" data-action="delete">🗑</button>`
                 : ''}
             </div>
           </div>
@@ -240,55 +278,12 @@ class SaveManager {
             </div>
             <div class="save-slot-empty-msg">— Empty —</div>
             ${mode === 'save' && !isAuto
-              ? `<div class="save-slot-actions"><button class="save-slot-btn save-action" data-slot="${name}">💾 Save</button></div>`
+              ? `<div class="save-slot-actions"><button class="save-slot-btn save-action" data-slot="${name}" data-action="save">💾 Save</button></div>`
               : ''}
           </div>
         `;
       }
     }).join('');
-
-    // Wire actions
-    slotsEl.querySelectorAll('.save-action').forEach(btn => {
-      btn.addEventListener('click', () => {
-        const slotName = btn.dataset.slot;
-        if (this._currentEngine && this._currentSlug) {
-          const scene = this._currentEngine.getCurrentScene();
-          this.save(this._currentSlug, slotName, this._currentEngine, scene);
-          this._renderSlots();
-          // Flash feedback
-          btn.textContent = '✅ Saved!';
-          setTimeout(() => { btn.textContent = '💾 Save'; }, 800);
-        }
-      });
-    });
-
-    slotsEl.querySelectorAll('.load-action').forEach(btn => {
-      btn.addEventListener('click', () => {
-        const slotName = btn.dataset.slot;
-        const slot = slots[slotName];
-        if (slot && this.onLoad) {
-          this.hide();
-          this.onLoad(this._currentSlug, slot.state);
-        }
-      });
-    });
-
-    slotsEl.querySelectorAll('.delete-action').forEach(btn => {
-      btn.addEventListener('click', async () => {
-        const slotName = btn.dataset.slot;
-        const confirmed = await ConfirmDialog.show({
-          title: 'Delete Save?',
-          message: `This will permanently delete ${slotName === 'auto' ? 'the auto-save' : slotName.replace('slot', 'Slot ')}.`,
-          confirmText: '🗑 Delete',
-          cancelText: 'Keep',
-          danger: true
-        });
-        if (confirmed) {
-          this.deleteSlot(this._currentSlug, slotName);
-          this._renderSlots();
-        }
-      });
-    });
   }
 
   /** Show the save/load panel for a story */
@@ -324,9 +319,10 @@ class SaveManager {
     return this.overlay?.classList.contains('visible') || false;
   }
 
-  _esc(text) {
-    const d = document.createElement('div');
-    d.textContent = text;
-    return d.innerHTML;
+  /** Static HTML escape using a shared off-screen element (avoids allocating per call) */
+  static _esc(text) {
+    if (!SaveManager._escDiv) SaveManager._escDiv = document.createElement('div');
+    SaveManager._escDiv.textContent = text;
+    return SaveManager._escDiv.innerHTML;
   }
 }

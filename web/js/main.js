@@ -457,7 +457,6 @@
           const badge = document.createElement('div');
           badge.className = 'new-ending-badge';
           badge.textContent = '✨ New Ending Discovered!';
-          badge.style.cssText = 'color:var(--accent-yellow);font-family:var(--font-mono);font-size:0.75rem;margin-top:0.5rem;animation:fadeIn 0.5s ease';
           endingEl.appendChild(badge);
         }, 100);
       }
@@ -636,10 +635,9 @@
     // Save indicator
     if (saveManager.hasSave(story.slug)) {
       const saveIcon = document.createElement('div');
-      saveIcon.className = 'story-card-badge story-card-save-badge';
-      saveIcon.style.cssText = completed
-        ? 'top:auto;bottom:6px;color:var(--accent-cyan);'
-        : 'color:var(--accent-cyan);';
+      saveIcon.className = completed
+        ? 'story-card-badge story-card-save-badge save-badge-bottom'
+        : 'story-card-badge story-card-save-badge';
       saveIcon.textContent = '💾';
       card.appendChild(saveIcon);
     }

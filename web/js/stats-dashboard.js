@@ -281,10 +281,10 @@ class StatsDashboard {
     return new Date(ts).toLocaleDateString();
   }
 
-  /** Escape HTML */
+  /** Escape HTML (reuses shared off-screen element) */
   _escapeHtml(text) {
-    const div = document.createElement('div');
-    div.textContent = text;
-    return div.innerHTML;
+    if (!VNUI._escapeDiv) VNUI._escapeDiv = document.createElement('div');
+    VNUI._escapeDiv.textContent = text;
+    return VNUI._escapeDiv.innerHTML;
   }
 }

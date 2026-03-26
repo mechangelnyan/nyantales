@@ -204,10 +204,10 @@ class StoryInfoModal {
     return this.overlay?.classList.contains('visible') || false;
   }
 
-  /** @private HTML-escape a string */
+  /** @private HTML-escape using shared off-screen element */
   _esc(text) {
-    const d = document.createElement('div');
-    d.textContent = text;
-    return d.innerHTML;
+    if (!VNUI._escapeDiv) VNUI._escapeDiv = document.createElement('div');
+    VNUI._escapeDiv.textContent = text;
+    return VNUI._escapeDiv.innerHTML;
   }
 }

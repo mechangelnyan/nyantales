@@ -3926,6 +3926,24 @@ body {
   animation: badge-pulse 2s ease-in-out 3;
 }
 
+/* Save badge on story cards */
+.story-card-save-badge {
+  color: var(--accent-cyan);
+}
+.story-card-save-badge.save-badge-bottom {
+  top: auto;
+  bottom: 6px;
+}
+
+/* New ending discovery badge on ending overlay */
+.new-ending-badge {
+  color: var(--accent-yellow, #ffd700);
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  margin-top: 0.5rem;
+  animation: fadeIn 0.5s ease;
+}
+
 /* ═══════════════════════════════════════
    Visited Choice Hints
    ═══════════════════════════════════════ */
