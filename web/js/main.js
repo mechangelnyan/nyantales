@@ -216,6 +216,10 @@
   let progressHUD = null;
   let progressBar = null;
 
+  // Throttle progress HUD updates: only re-render if values actually changed
+  let _lastProgressPct = -1;
+  let _lastProgressTurns = -1;
+
   function updateProgressHUD() {
     if (!currentEngine) return;
 
@@ -237,9 +241,19 @@
     const totalScenes = Object.keys(currentEngine.scenes).length;
     const visited = currentEngine.state.visited.size;
     const pct = totalScenes > 0 ? Math.round((visited / totalScenes) * 100) : 0;
+    const turns = currentEngine.state.turns;
 
-    progressHUD.innerHTML = `<span>📍 ${visited}/${totalScenes}</span> <span>· Turn ${currentEngine.state.turns}</span>`;
-    progressHUD.title = `${pct}% explored · Turn ${currentEngine.state.turns}`;
+    // Skip DOM writes if nothing changed (avoids layout thrash during skip mode)
+    if (pct === _lastProgressPct && turns === _lastProgressTurns) {
+      progressHUD.style.display = '';
+      progressBar.style.display = '';
+      return;
+    }
+    _lastProgressPct = pct;
+    _lastProgressTurns = turns;
+
+    progressHUD.innerHTML = `<span>📍 ${visited}/${totalScenes}</span> <span>· Turn ${turns}</span>`;
+    progressHUD.title = `${pct}% explored · Turn ${turns}`;
     progressHUD.style.display = '';
 
     // Update thin top progress bar
@@ -463,6 +477,8 @@
     currentEngine = null;
     currentSlug = null;
     storyStartTime = null;
+    _lastProgressPct = -1;
+    _lastProgressTurns = -1;
     ui.setStorySlug(null);
     audio.stop();
     textHistory.clear();
@@ -703,6 +719,25 @@
       countEl.style.display = '';
     } else {
       countEl.style.display = 'none';
+    }
+
+    // Show/hide empty state message
+    const grid = document.getElementById('story-list');
+    let emptyEl = document.getElementById('filter-empty');
+    if (visibleCount === 0 && (query || activeFilter !== 'all')) {
+      if (!emptyEl) {
+        emptyEl = document.createElement('div');
+        emptyEl.id = 'filter-empty';
+        emptyEl.className = 'filter-empty';
+        grid.parentElement.appendChild(emptyEl);
+      }
+      const hint = activeFilter === 'favorites' ? 'Tap 🤍 on a story card to favorite it!'
+        : activeFilter === 'completed' ? 'No stories completed yet — start playing!'
+        : 'No matches found. Try a different search.';
+      emptyEl.innerHTML = `<span class="filter-empty-icon">🐱</span><span>${hint}</span>`;
+      emptyEl.style.display = '';
+    } else if (emptyEl) {
+      emptyEl.style.display = 'none';
     }
   }
 

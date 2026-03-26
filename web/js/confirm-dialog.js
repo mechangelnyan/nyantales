@@ -62,7 +62,12 @@ class ConfirmDialog {
         </div>
       `;
 
+      const keyHandler = (e) => {
+        if (e.key === 'Escape') cleanup(false);
+      };
+
       const cleanup = (result) => {
+        document.removeEventListener('keydown', keyHandler);
         overlay.classList.remove('visible');
         setTimeout(() => {
           overlay.remove();
@@ -77,13 +82,6 @@ class ConfirmDialog {
         if (e.target === overlay) cleanup(false);
       });
 
-      // Escape key cancels
-      const keyHandler = (e) => {
-        if (e.key === 'Escape') {
-          document.removeEventListener('keydown', keyHandler);
-          cleanup(false);
-        }
-      };
       document.addEventListener('keydown', keyHandler);
 
       document.body.appendChild(overlay);

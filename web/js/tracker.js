@@ -157,6 +157,9 @@ class StoryTracker {
   // ── Storage ──
 
   _load() {
+    if (typeof SafeStorage !== 'undefined') {
+      return SafeStorage.getJSON(this.STORAGE_KEY, { stories: {} });
+    }
     try {
       const raw = localStorage.getItem(this.STORAGE_KEY);
       return raw ? JSON.parse(raw) : { stories: {} };
@@ -166,8 +169,10 @@ class StoryTracker {
   }
 
   _save() {
-    try {
-      localStorage.setItem(this.STORAGE_KEY, JSON.stringify(this.data));
-    } catch (e) { /* localStorage might be unavailable */ }
+    if (typeof SafeStorage !== 'undefined') {
+      SafeStorage.setJSON(this.STORAGE_KEY, this.data);
+    } else {
+      try { localStorage.setItem(this.STORAGE_KEY, JSON.stringify(this.data)); } catch { /* noop */ }
+    }
   }
 }

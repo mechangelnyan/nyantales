@@ -46,9 +46,11 @@ class StoryIntro {
       });
 
       let dismissed = false;
+      const keyHandler = (e) => dismiss();
       const dismiss = () => {
         if (dismissed) return;
         dismissed = true;
+        document.removeEventListener('keydown', keyHandler);
         overlay.classList.remove('visible');
         overlay.classList.add('exiting');
         setTimeout(() => {
@@ -58,10 +60,6 @@ class StoryIntro {
       };
 
       overlay.addEventListener('click', dismiss);
-      const keyHandler = (e) => {
-        dismiss();
-        document.removeEventListener('keydown', keyHandler);
-      };
       document.addEventListener('keydown', keyHandler);
 
       // Auto-dismiss after 8 seconds

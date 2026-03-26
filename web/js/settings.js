@@ -51,6 +51,10 @@ class SettingsManager {
   }
 
   _load() {
+    if (typeof SafeStorage !== 'undefined') {
+      const stored = SafeStorage.getJSON(this.STORAGE_KEY, null);
+      return stored ? { ...this.defaults, ...stored } : { ...this.defaults };
+    }
     try {
       const raw = localStorage.getItem(this.STORAGE_KEY);
       return raw ? { ...this.defaults, ...JSON.parse(raw) } : { ...this.defaults };
@@ -60,9 +64,11 @@ class SettingsManager {
   }
 
   _save() {
-    try {
-      const { fullscreen, ...persist } = this.data;
-      localStorage.setItem(this.STORAGE_KEY, JSON.stringify(persist));
-    } catch (e) { /* noop */ }
+    const { fullscreen, ...persist } = this.data;
+    if (typeof SafeStorage !== 'undefined') {
+      SafeStorage.setJSON(this.STORAGE_KEY, persist);
+    } else {
+      try { localStorage.setItem(this.STORAGE_KEY, JSON.stringify(persist)); } catch { /* noop */ }
+    }
   }
 }
