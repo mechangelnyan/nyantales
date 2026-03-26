@@ -25,6 +25,18 @@ cd nyantales && python3 -m http.server 8080
 # Open http://localhost:8080/web/
 ```
 
+### Production Build
+
+The build script bundles 30 JS files into a single minified file, minifies CSS, and generates an optimized service worker — reducing HTTP requests from 30 to 3:
+
+```bash
+cd web && bash build.sh
+# Output in web/dist/ — serve with any static server
+cd dist && python3 -m http.server 9877
+```
+
+Build output: **132KB JS** (from 225KB), **68KB CSS** (from 93KB). GitHub Pages CI runs the build automatically.
+
 **Features:**
 - 🎮 30 interactive stories with branching narratives
 - 🐱 Character sprites (procedural pixel art + AI-generated portraits)

@@ -25,13 +25,21 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Build optimized bundle
+        run: cd web && bash build.sh
+
       - name: Setup Pages
         uses: actions/configure-pages@v5
 
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          # Upload the entire repo (web/ references ../stories/)
+          # Upload the entire repo (web/dist/ references ../stories/)
           path: '.'
 
       - name: Deploy to GitHub Pages
