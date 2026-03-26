@@ -158,6 +158,8 @@
     return 'stories';
   }
 
+  const APP_TITLE = 'NyanTales — Visual Novel';
+
   let storyIndex   = [];
   let currentEngine = null;
   let currentSlug   = null;
@@ -465,6 +467,7 @@
   async function startStory(story, savedState) {
     currentSlug = story.slug;
     storyStartTime = Date.now();
+    document.title = `${story.title} — NyanTales`;
     ui.setStorySlug(story.slug);
 
     initEngine(story._parsed);
@@ -500,6 +503,7 @@
     storyStartTime = null;
     _lastProgressPct = -1;
     _lastProgressTurns = -1;
+    document.title = APP_TITLE;
     ui.setStorySlug(null);
     audio.stop();
     textHistory.clear();
@@ -1123,6 +1127,15 @@
 
   window.addEventListener('online', () => Toast.show('Back online', { icon: '📶', color: 'rgba(0,255,136,0.88)' }));
   window.addEventListener('offline', () => Toast.show('Offline — saves still work!', { icon: '📴', color: 'rgba(255,68,68,0.88)' }));
+
+  // Pause auto-play when tab is hidden (saves CPU / prevents unexpected advances)
+  document.addEventListener('visibilitychange', () => {
+    if (document.hidden) {
+      clearAutoPlayTimer();
+    } else if (settings.get('autoPlay') && currentEngine && !isAnyPanelOpen()) {
+      scheduleAutoAdvance();
+    }
+  });
 
   boot();
 })();

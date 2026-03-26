@@ -18,6 +18,8 @@ class StoryTracker {
   constructor() {
     this.STORAGE_KEY = 'nyantales-tracker';
     this.data = this._load();
+    this._saveTimer = null;
+    this._SAVE_DEBOUNCE_MS = 500;
   }
 
   /** Get tracking data for a story, creating if absent */
@@ -90,7 +92,8 @@ class StoryTracker {
       story.endingsFound.push(endingKey);
     }
 
-    this._save();
+    // Endings are critical — flush immediately, don't debounce
+    this._saveNow();
     return { isNewEnding: isNew };
   }
 
@@ -134,7 +137,8 @@ class StoryTracker {
     } else {
       this.data.favorites.splice(idx, 1);
     }
-    this._save();
+    // User action — flush immediately
+    this._saveNow();
     return this.isFavorite(slug);
   }
 
@@ -168,7 +172,18 @@ class StoryTracker {
     }
   }
 
+  /**
+   * Debounced save — coalesces rapid writes (e.g. during skip mode)
+   * into a single localStorage write after _SAVE_DEBOUNCE_MS idle.
+   */
   _save() {
+    if (this._saveTimer) clearTimeout(this._saveTimer);
+    this._saveTimer = setTimeout(() => this._saveNow(), this._SAVE_DEBOUNCE_MS);
+  }
+
+  /** Immediately persist data to localStorage. */
+  _saveNow() {
+    if (this._saveTimer) { clearTimeout(this._saveTimer); this._saveTimer = null; }
     if (typeof SafeStorage !== 'undefined') {
       SafeStorage.setJSON(this.STORAGE_KEY, this.data);
     } else {
