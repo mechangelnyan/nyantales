@@ -42,6 +42,7 @@ class KeyboardHelp {
             <div class="kh-section-title">Panels</div>
             <div class="kh-row"><kbd>H</kbd><span>Text history</span></div>
             <div class="kh-row"><kbd>G</kbd><span>Scene select</span></div>
+            <div class="kh-row"><kbd>R</kbd><span>Route map (branching graph)</span></div>
             <div class="kh-row"><kbd>Q</kbd><span>Save / Load</span></div>
             <div class="kh-row"><kbd>S</kbd><span>Settings</span></div>
           </div>

@@ -37,6 +37,7 @@
   const keyboardHelp  = new KeyboardHelp();
   const aboutPanel    = new AboutPanel();
   const statsDashboard = new StatsDashboard(tracker, achievements, saveManager, ui.portraits);
+  const routeMap      = new RouteMap();
   const sceneSelect   = new SceneSelect((sceneId) => {
     if (!currentEngine) return;
     clearAutoPlayTimer();
@@ -749,6 +750,7 @@
       if (aboutPanel.isVisible)     { aboutPanel.hide(); return; }
       if (statsDashboard.isVisible) { statsDashboard.hide(); return; }
       if (storyInfo.isVisible)      { storyInfo.hide(); return; }
+      if (routeMap.isVisible)       { routeMap.hide(); return; }
       if (saveManager.isVisible)    { saveManager.hide(); return; }
       if (settingsPanel.isVisible)  { settingsPanel.hide(); return; }
       if (historyPanel.isVisible)   { historyPanel.hide(); return; }
@@ -799,6 +801,10 @@
       sceneSelect.isVisible
         ? sceneSelect.hide()
         : sceneSelect.show(currentEngine, currentEngine.state.currentScene);
+    }
+
+    if (key === 'r' && noMod && currentEngine) {
+      routeMap.isVisible ? routeMap.hide() : routeMap.show(currentEngine);
     }
 
     if (key === 'f' && noMod && currentEngine) {
@@ -917,6 +923,12 @@
 
   document.getElementById('btn-settings').addEventListener('click', () => {
     settingsPanel.isVisible ? settingsPanel.hide() : settingsPanel.show();
+  });
+
+  document.getElementById('btn-routemap').addEventListener('click', () => {
+    if (currentEngine) {
+      routeMap.isVisible ? routeMap.hide() : routeMap.show(currentEngine);
+    }
   });
 
   document.getElementById('btn-help').addEventListener('click', () => {

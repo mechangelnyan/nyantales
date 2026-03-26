@@ -126,6 +126,7 @@
           <button id="btn-scenes" class="hud-btn hud-collapsible" title="Scene Select (G)" aria-label="Open scene select">📍</button>
           <button id="btn-settings" class="hud-btn hud-collapsible" title="Settings (S)" aria-label="Open settings">⚙️</button>
           <button id="btn-audio" class="hud-btn hud-collapsible" title="Toggle Ambient Audio (M)" aria-label="Toggle ambient audio" aria-pressed="false" style="opacity:0.5">🔇</button>
+          <button id="btn-routemap" class="hud-btn hud-collapsible" title="Route Map (R)" aria-label="View story route map">🗺️</button>
           <button id="btn-help" class="hud-btn hud-collapsible" title="Keyboard Shortcuts (?)" aria-label="Show keyboard shortcuts">❓</button>
         </div>
       </div>
@@ -141,6 +142,7 @@
     </div>
   </noscript>
 
+  <script src="js/route-map.js"></script>
   <script src="js/stats-dashboard.js"></script>
   <script src="js/toast.js"></script>
   <script src="js/keyboard-help.js"></script>
@@ -167,9 +169,29 @@
   <script src="js/ui.js"></script>
   <script src="js/main.js"></script>
   <script>
-    // Register service worker for PWA / offline support
+    // Register service worker for PWA / offline support with update notification
     if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.register('sw.js').catch(() => {});
+      navigator.serviceWorker.register('sw.js').then(reg => {
+        // Check for updates periodically
+        reg.addEventListener('updatefound', () => {
+          const newWorker = reg.installing;
+          if (!newWorker) return;
+          newWorker.addEventListener('statechange', () => {
+            if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+              // New version available — show update banner
+              const banner = document.createElement('div');
+              banner.className = 'sw-update-banner';
+              banner.innerHTML = `
+                <span class="sw-update-text">🐱 NyanTales updated!</span>
+                <button class="sw-update-btn" onclick="location.reload()">Reload</button>
+                <button class="sw-dismiss-btn" onclick="this.parentElement.remove()" aria-label="Dismiss">✕</button>
+              `;
+              document.body.appendChild(banner);
+              requestAnimationFrame(() => banner.classList.add('visible'));
+            }
+          });
+        });
+      }).catch(() => {});
     }
   </script>
 </body>
