@@ -70,11 +70,11 @@
   // ── Color Themes (must be before initial settings) ──
 
   const COLOR_THEMES = {
-    cyan:    { accent: '#00d4ff' },
-    magenta: { accent: '#ff36ab' },
-    green:   { accent: '#00ff88' },
-    amber:   { accent: '#ffd700' },
-    violet:  { accent: '#cc66ff' }
+    cyan:    { accent: '#00d4ff', rgb: [0, 212, 255] },
+    magenta: { accent: '#ff36ab', rgb: [255, 54, 171] },
+    green:   { accent: '#00ff88', rgb: [0, 255, 136] },
+    amber:   { accent: '#ffd700', rgb: [255, 215, 0] },
+    violet:  { accent: '#cc66ff', rgb: [204, 102, 255] }
   };
 
   function applyParticlesSetting(on) {
@@ -89,6 +89,11 @@
     const theme = COLOR_THEMES[themeName] || COLOR_THEMES.cyan;
     const root = document.documentElement;
     root.style.setProperty('--accent-cyan', theme.accent);
+    // Set RGB components for rgba() usage throughout CSS
+    const [r, g, b] = theme.rgb;
+    root.style.setProperty('--accent-r', r);
+    root.style.setProperty('--accent-g', g);
+    root.style.setProperty('--accent-b', b);
     const meta = document.querySelector('meta[name="theme-color"]');
     if (meta) meta.setAttribute('content', theme.accent);
   }

@@ -260,7 +260,7 @@ class VNUI {
       const img = spriteEl.querySelector('.vn-sprite');
       if (char.isSpeaker) {
         spriteEl.classList.add('speaking');
-        img.style.filter = 'drop-shadow(0 0 12px rgba(0, 212, 255, 0.6)) brightness(1.1)';
+        img.style.filter = `drop-shadow(0 0 12px ${VNUI._accentRGBA(0.6)}) brightness(1.1)`;
       } else {
         spriteEl.classList.remove('speaking');
         img.style.filter = 'drop-shadow(0 0 6px rgba(0, 0, 0, 0.5)) brightness(0.8)';
@@ -630,6 +630,14 @@ class VNUI {
       <button class="ending-btn" id="btn-menu" style="margin-top:0.5rem">⏎ Story List</button>
       <button class="ending-btn ending-btn-share" id="btn-share-ending" style="margin-top:0.5rem" title="Copy ending summary to clipboard">📋 Share</button>
     `;
+    this.endingEl.setAttribute('role', 'dialog');
+    this.endingEl.setAttribute('aria-label', `Ending: ${ending.title || type}`);
+
+    // Auto-focus the "Play Again" button for keyboard users
+    requestAnimationFrame(() => {
+      const restartBtn = document.getElementById('btn-restart');
+      if (restartBtn) restartBtn.focus();
+    });
 
     document.getElementById('btn-restart').addEventListener('click', () => {
       if (this._onRestart) this._onRestart();
@@ -704,5 +712,14 @@ class VNUI {
     this.fastMode = !this.fastMode;
     this.btnFast.style.opacity = this.fastMode ? '1' : '0.5';
     return this.fastMode;
+  }
+
+  /** Get current accent color as rgba() string from CSS custom properties */
+  static _accentRGBA(a) {
+    const style = getComputedStyle(document.documentElement);
+    const r = parseInt(style.getPropertyValue('--accent-r')) || 0;
+    const g = parseInt(style.getPropertyValue('--accent-g')) || 212;
+    const b = parseInt(style.getPropertyValue('--accent-b')) || 255;
+    return `rgba(${r}, ${g}, ${b}, ${a})`;
   }
 }

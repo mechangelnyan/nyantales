@@ -26,6 +26,18 @@ class RouteMap {
     this._boundHandlers = {};
   }
 
+  /** Cache accent color RGB from CSS custom properties (call once per render frame) */
+  _cacheAccentRGB() {
+    const style = getComputedStyle(document.documentElement);
+    this._accentR = parseInt(style.getPropertyValue('--accent-r')) || 0;
+    this._accentG = parseInt(style.getPropertyValue('--accent-g')) || 212;
+    this._accentB = parseInt(style.getPropertyValue('--accent-b')) || 255;
+  }
+
+  _accentRGBA(a) {
+    return `rgba(${this._accentR}, ${this._accentG}, ${this._accentB}, ${a})`;
+  }
+
   /**
    * Build a graph layout from a StoryEngine's scene data.
    * Uses a topological layering approach for clean branching display.
@@ -425,6 +437,9 @@ class RouteMap {
   _render() {
     if (!this.ctx || !this.canvas) return;
 
+    // Cache accent color once per frame (avoids dozens of getComputedStyle calls)
+    this._cacheAccentRGB();
+
     const ctx = this.ctx;
     const w = this._canvasW;
     const h = this._canvasH;
@@ -454,7 +469,7 @@ class RouteMap {
     const { from, to, visited, label } = edge;
 
     ctx.beginPath();
-    ctx.strokeStyle = visited ? 'rgba(0, 212, 255, 0.5)' : 'rgba(255, 255, 255, 0.12)';
+    ctx.strokeStyle = visited ? this._accentRGBA(0.5) : 'rgba(255, 255, 255, 0.12)';
     ctx.lineWidth = visited ? 2.5 : 1.2;
 
     // Curved arrow
@@ -473,7 +488,7 @@ class RouteMap {
     ctx.translate(to.x, to.y - 15);
     ctx.rotate(angle);
     ctx.beginPath();
-    ctx.fillStyle = visited ? 'rgba(0, 212, 255, 0.6)' : 'rgba(255, 255, 255, 0.15)';
+    ctx.fillStyle = visited ? this._accentRGBA(0.6) : 'rgba(255, 255, 255, 0.15)';
     ctx.moveTo(0, 0);
     ctx.lineTo(-8, -4);
     ctx.lineTo(-8, 4);
@@ -484,7 +499,7 @@ class RouteMap {
     if (label) {
       ctx.save();
       ctx.font = '9px "JetBrains Mono", monospace';
-      ctx.fillStyle = visited ? 'rgba(0, 212, 255, 0.5)' : 'rgba(255, 255, 255, 0.2)';
+      ctx.fillStyle = visited ? this._accentRGBA(0.5) : 'rgba(255, 255, 255, 0.2)';
       ctx.textAlign = 'center';
       ctx.fillText(label, cpX, cpY - 5);
       ctx.restore();
@@ -504,7 +519,7 @@ class RouteMap {
 
     // Glow for current/hovered
     if (current || isHovered) {
-      ctx.shadowColor = current ? '#00ff88' : '#00d4ff';
+      ctx.shadowColor = current ? '#00ff88' : this._accentRGBA(1);
       ctx.shadowBlur = 15;
     }
 
@@ -525,8 +540,8 @@ class RouteMap {
       ctx.fillStyle = endColors[node.endingType] || endColors.neutral;
       ctx.strokeStyle = visited ? '#ffd700' : 'rgba(255, 215, 0, 0.3)';
     } else if (visited) {
-      ctx.fillStyle = 'rgba(0, 212, 255, 0.1)';
-      ctx.strokeStyle = 'rgba(0, 212, 255, 0.5)';
+      ctx.fillStyle = this._accentRGBA(0.1);
+      ctx.strokeStyle = this._accentRGBA(0.5);
     } else {
       ctx.fillStyle = 'rgba(30, 30, 50, 0.7)';
       ctx.strokeStyle = 'rgba(255, 255, 255, 0.12)';
