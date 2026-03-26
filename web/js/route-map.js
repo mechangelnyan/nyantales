@@ -3,6 +3,9 @@
  * Visual branching graph of story paths using Canvas 2D.
  * Shows visited vs unvisited nodes, current position, endings, and choices.
  *
+ * Overlay is built once and reused across show/hide cycles (no DOM re-creation).
+ * Canvas event handlers are bound on show and unbound on hide.
+ *
  * @class RouteMap
  */
 
@@ -13,6 +16,7 @@ class RouteMap {
     this.ctx = null;
     this.isVisible = false;
     this._focusTrap = null;
+    this._panelEl = null;
     this._nodes = [];      // { id, x, y, type, visited, current, label }
     this._edges = [];      // { from, to, choiceLabel }
     this._pan = { x: 0, y: 0 };
@@ -24,6 +28,7 @@ class RouteMap {
     this._tooltip = null;
     this._animFrame = null;
     this._boundHandlers = {};
+    this._built = false;
   }
 
   /** Cache accent color RGB from CSS custom properties (call once per render frame) */
@@ -186,12 +191,19 @@ class RouteMap {
     if (!engine) return;
 
     this._buildGraph(engine);
-    this._createOverlay();
+    this._ensureOverlay();
     this.isVisible = true;
+
+    // Size canvas now that overlay is visible
+    this._resizeCanvas();
 
     // Setup event handlers
     this._bindEvents();
     this._render();
+
+    this.overlay.setAttribute('aria-hidden', 'false');
+    requestAnimationFrame(() => this.overlay.classList.add('visible'));
+    if (this._focusTrap) this._focusTrap.activate();
   }
 
   /** Hide the route map overlay */
@@ -202,19 +214,25 @@ class RouteMap {
     if (this._animFrame) cancelAnimationFrame(this._animFrame);
     if (this.overlay) {
       this.overlay.classList.remove('visible');
-      setTimeout(() => this.overlay.remove(), 300);
-      this.overlay = null;
+      this.overlay.setAttribute('aria-hidden', 'true');
     }
+    if (this._tooltip) this._tooltip.classList.add('hidden');
     if (this._focusTrap) this._focusTrap.deactivate();
+    this._hoveredNode = null;
   }
 
-  _createOverlay() {
-    if (this.overlay) this.overlay.remove();
+  /**
+   * Build overlay DOM once; subsequent calls are no-ops.
+   * Event delegation on overlay handles close + zoom button clicks.
+   */
+  _ensureOverlay() {
+    if (this._built) return;
 
     this.overlay = document.createElement('div');
     this.overlay.className = 'route-map-overlay';
     this.overlay.setAttribute('role', 'dialog');
     this.overlay.setAttribute('aria-label', 'Story Route Map');
+    this.overlay.setAttribute('aria-hidden', 'true');
 
     this.overlay.innerHTML = `
       <div class="route-map-panel">
@@ -236,7 +254,7 @@ class RouteMap {
         <div class="route-map-canvas-wrap">
           <canvas class="route-map-canvas"></canvas>
         </div>
-        <div class="route-map-tooltip" style="display:none"></div>
+        <div class="route-map-tooltip hidden"></div>
       </div>
     `;
 
@@ -244,34 +262,31 @@ class RouteMap {
     this.canvas = this.overlay.querySelector('.route-map-canvas');
     this.ctx = this.canvas.getContext('2d');
     this._tooltip = this.overlay.querySelector('.route-map-tooltip');
+    this._panelEl = this.overlay.querySelector('.route-map-panel');
 
-    // Size canvas
-    this._resizeCanvas();
-
-    // Close handlers
-    this.overlay.querySelector('.route-map-close').addEventListener('click', () => this.hide());
+    // Delegated click listener for close + zoom buttons + backdrop
     this.overlay.addEventListener('click', (e) => {
-      if (e.target === this.overlay) this.hide();
-    });
-
-    // Zoom buttons
-    this.overlay.querySelectorAll('.route-map-zoom-btn').forEach(btn => {
-      btn.addEventListener('click', () => {
-        const action = btn.dataset.zoom;
+      // Backdrop click
+      if (e.target === this.overlay) { this.hide(); return; }
+      // Close button
+      if (e.target.closest('.route-map-close')) { this.hide(); return; }
+      // Zoom buttons
+      const zoomBtn = e.target.closest('.route-map-zoom-btn');
+      if (zoomBtn) {
+        const action = zoomBtn.dataset.zoom;
         if (action === 'in') this._zoom = Math.min(3, this._zoom * 1.3);
         else if (action === 'out') this._zoom = Math.max(0.2, this._zoom / 1.3);
         else if (action === 'fit') this._fitToView();
         this._render();
-      });
+      }
     });
 
-    // Focus trap
+    // Focus trap (created once, activated/deactivated on show/hide)
     if (typeof FocusTrap !== 'undefined') {
-      this._focusTrap = new FocusTrap(this.overlay.querySelector('.route-map-panel'));
-      this._focusTrap.activate();
+      this._focusTrap = new FocusTrap(this._panelEl);
     }
 
-    requestAnimationFrame(() => this.overlay.classList.add('visible'));
+    this._built = true;
   }
 
   _resizeCanvas() {
@@ -423,11 +438,11 @@ class RouteMap {
         if (hovered.current) tip += `<br>📍 You are here`;
         if (!hovered.visited) tip += `<br>❓ Not yet visited`;
         this._tooltip.innerHTML = tip;
-        this._tooltip.style.display = '';
+        this._tooltip.classList.remove('hidden');
         this._tooltip.style.left = `${e.clientX - this.overlay.getBoundingClientRect().left + 12}px`;
         this._tooltip.style.top = `${e.clientY - this.overlay.getBoundingClientRect().top - 10}px`;
       } else if (this._tooltip) {
-        this._tooltip.style.display = 'none';
+        this._tooltip.classList.add('hidden');
       }
       this._render();
     }

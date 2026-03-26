@@ -10,6 +10,7 @@ class AboutPanel {
   constructor() {
     this.overlay = null;
     this._focusTrap = null;
+    this._statsEl = null;
     this._built = false;
   }
 
@@ -65,11 +66,12 @@ class AboutPanel {
     `;
 
     document.body.appendChild(this.overlay);
+    this._statsEl = this.overlay.querySelector('#about-stats');
 
+    // Single delegated click listener for close + backdrop
     this.overlay.addEventListener('click', (e) => {
-      if (e.target === this.overlay) this.hide();
+      if (e.target === this.overlay || e.target.closest('.about-close')) this.hide();
     });
-    this.overlay.querySelector('.about-close').addEventListener('click', () => this.hide());
 
     this._built = true;
   }
@@ -81,9 +83,8 @@ class AboutPanel {
   show(stats) {
     this._build();
 
-    if (stats) {
-      const el = document.getElementById('about-stats');
-      el.innerHTML = `
+    if (stats && this._statsEl) {
+      this._statsEl.innerHTML = `
         <div class="about-stat"><span class="about-stat-val">${stats.stories}</span><span class="about-stat-lbl">Stories</span></div>
         <div class="about-stat"><span class="about-stat-val">${stats.characters}</span><span class="about-stat-lbl">Characters</span></div>
         <div class="about-stat"><span class="about-stat-val">${stats.achievements}</span><span class="about-stat-lbl">Achievements</span></div>
