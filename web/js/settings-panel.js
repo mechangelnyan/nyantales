@@ -122,10 +122,10 @@ class SettingsPanel {
             <div class="settings-group-title">💾 Data</div>
             <div class="settings-row">
               <label class="settings-label">Backup / Restore</label>
-              <div class="settings-control" style="gap:0.4rem">
-                <button id="set-export" class="settings-toggle on" style="font-size:0.68rem">📤 Export</button>
-                <button id="set-import" class="settings-toggle" style="font-size:0.68rem">📥 Import</button>
-                <input type="file" id="set-import-file" accept=".json" style="display:none" />
+              <div class="settings-control settings-data-btns">
+                <button id="set-export" class="settings-toggle on settings-data-btn">📤 Export</button>
+                <button id="set-import" class="settings-toggle settings-data-btn">📥 Import</button>
+                <input type="file" id="set-import-file" accept=".json" class="hidden" />
               </div>
             </div>
             <div id="set-data-stats" class="settings-data-stats"></div>
@@ -155,7 +155,7 @@ class SettingsPanel {
     });
 
     this._wireToggle('set-auto-play', 'autoPlay', (val) => {
-      document.getElementById('row-auto-delay').style.display = val ? '' : 'none';
+      document.getElementById('row-auto-delay').classList.toggle('hidden', !val);
     });
 
     this._wireSlider('set-auto-delay', 'autoPlayDelay', v => `${(v / 1000).toFixed(1)}s`);
@@ -311,7 +311,7 @@ class SettingsPanel {
     syncToggle('set-particles', 'particles');
     syncToggle('set-fullscreen', 'fullscreen');
 
-    document.getElementById('row-auto-delay').style.display = this.settings.get('autoPlay') ? '' : 'none';
+    document.getElementById('row-auto-delay').classList.toggle('hidden', !this.settings.get('autoPlay'));
 
     // Sync color theme swatches
     const currentTheme = this.settings.get('colorTheme');

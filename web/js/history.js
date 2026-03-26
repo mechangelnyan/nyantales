@@ -65,7 +65,7 @@ class HistoryPanel {
             <div class="history-title">📜 Text History</div>
             <div class="history-count"></div>
           </div>
-          <div style="display:flex;gap:0.4rem;align-items:center">
+          <div class="history-header-actions">
             <button class="history-export-btn" title="Export as text file">📥 Export</button>
             <button class="history-close">✕</button>
           </div>
@@ -179,12 +179,12 @@ class HistoryPanel {
 
     entries.forEach(el => {
       if (!query) {
-        el.style.display = '';
+        el.classList.remove('hidden');
         visible++;
       } else {
         const text = el.dataset.searchable || '';
         const match = text.includes(query);
-        el.style.display = match ? '' : 'none';
+        el.classList.toggle('hidden', !match);
         if (match) visible++;
       }
     });

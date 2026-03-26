@@ -1676,6 +1676,12 @@ body {
 }
 
 /* Settings data stats */
+.settings-data-btns {
+  gap: 0.4rem;
+}
+.settings-data-btn {
+  font-size: 0.68rem;
+}
 .settings-data-stats {
   font-family: var(--font-mono);
   font-size: 0.65rem;
@@ -1729,6 +1735,11 @@ body {
   justify-content: space-between;
   align-items: center;
   margin-bottom: 1rem;
+}
+.history-header-actions {
+  display: flex;
+  gap: 0.4rem;
+  align-items: center;
 }
 .history-title {
   font-family: var(--font-mono);

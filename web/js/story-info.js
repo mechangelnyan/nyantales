@@ -27,7 +27,7 @@ class StoryInfoModal {
     this.onLoad = null;   // (slug, stateJson) => void
   }
 
-  /** Lazy-build the overlay DOM */
+  /** Lazy-build the overlay DOM with event delegation (called once) */
   _build() {
     if (this._built) return;
 
@@ -39,8 +39,30 @@ class StoryInfoModal {
     this.overlay.innerHTML = '<div class="story-info-panel"></div>';
     document.body.appendChild(this.overlay);
 
+    // Single delegated click handler for close/play/continue + backdrop
     this.overlay.addEventListener('click', (e) => {
-      if (e.target === this.overlay) this.hide();
+      if (e.target === this.overlay) { this.hide(); return; }
+      const btn = e.target.closest('button');
+      if (!btn) return;
+      if (btn.classList.contains('story-info-close')) { this.hide(); return; }
+      if (btn.classList.contains('story-info-play-btn')) {
+        this.hide();
+        if (this.onPlay && this._currentStory) this.onPlay(this._currentStory);
+        return;
+      }
+      if (btn.classList.contains('story-info-continue-btn')) {
+        if (!this._currentStory) return;
+        const slots = this.saves.getSlots(this._currentStory.slug);
+        let best = null;
+        for (const slot of Object.values(slots)) {
+          if (slot && (!best || slot.timestamp > best.timestamp)) best = slot;
+        }
+        if (best && this.onLoad) {
+          this.hide();
+          this.onLoad(this._currentStory.slug, best.state);
+        }
+        return;
+      }
     });
 
     this._built = true;
@@ -53,6 +75,7 @@ class StoryInfoModal {
    */
   show(story, characters) {
     this._build();
+    this._currentStory = story;
 
     const panel = this.overlay.querySelector('.story-info-panel');
     const data = this.tracker.getStory(story.slug);
@@ -149,38 +172,6 @@ class StoryInfoModal {
       </div>
     `;
 
-    // Wire close
-    panel.querySelector('.story-info-close').addEventListener('click', () => this.hide());
-
-    // Wire play
-    panel.querySelector('.story-info-play-btn').addEventListener('click', () => {
-      this.hide();
-      if (this.onPlay) this.onPlay(story);
-    });
-
-    // Wire continue (load most recent save for this slug)
-    const contBtn = panel.querySelector('.story-info-continue-btn');
-    if (contBtn) {
-      contBtn.addEventListener('click', () => {
-        const slots = this.saves.getSlots(story.slug);
-        // Find the most recent slot
-        let best = null;
-        for (const slot of Object.values(slots)) {
-          if (slot && (!best || slot.timestamp > best.timestamp)) best = slot;
-        }
-        if (best && this.onLoad) {
-          this.hide();
-          this.onLoad(story.slug, best.state);
-        }
-      });
-    }
-
-    // Keyboard: Escape to close
-    this._keyHandler = (e) => {
-      if (e.key === 'Escape') { e.stopPropagation(); this.hide(); }
-    };
-    document.addEventListener('keydown', this._keyHandler, true);
-
     this.overlay.setAttribute('aria-hidden', 'false');
     requestAnimationFrame(() => this.overlay.classList.add('visible'));
 
@@ -194,10 +185,7 @@ class StoryInfoModal {
       this.overlay.setAttribute('aria-hidden', 'true');
     }
     if (this._focusTrap) this._focusTrap.deactivate();
-    if (this._keyHandler) {
-      document.removeEventListener('keydown', this._keyHandler, true);
-      this._keyHandler = null;
-    }
+    this._currentStory = null;
   }
 
   get isVisible() {

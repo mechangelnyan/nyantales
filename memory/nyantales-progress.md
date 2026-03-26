@@ -757,6 +757,23 @@ cd /tmp/nyantales && python3 -m http.server 9876
 - SW cache bumped to v31, production build regenerated (135KB bundle)
 - All 30 JS files pass `node --check` validation
 
+## Phase 47: StoryInfo Delegation, Inline Style Cleanup, History Filter Fix ✅
+- **StoryInfoModal event listener leak fix** — `show()` was adding 3-4 new `addEventListener` calls per invocation (close, play, continue buttons + escape keydown). Over repeated info modal opens, dozens of orphaned listeners accumulated on destroyed innerHTML.
+  - Refactored to **single delegated click listener** on overlay, initialized once in `_build()`
+  - Buttons matched via CSS class (`story-info-close`, `story-info-play-btn`, `story-info-continue-btn`)
+  - `_currentStory` ref stored for delegation handler to access
+  - Removed per-show Escape keydown listener (already handled by main.js Escape priority chain)
+- **HistoryPanel filter uses `.hidden` class** — replaced `style.display = ''|'none'` with `classList.toggle('hidden')` for consistency with the rest of the codebase
+- **SettingsPanel inline styles → CSS classes**
+  - Data buttons container: `style="gap:0.4rem"` → `.settings-data-btns` CSS class
+  - Export/Import buttons: `style="font-size:0.68rem"` → `.settings-data-btn` CSS class
+  - File input: `style="display:none"` → `.hidden` class
+  - Auto-play delay row: `style.display` → `classList.toggle('hidden')`
+- **HistoryPanel header inline style → CSS class** — `style="display:flex;gap:0.4rem;align-items:center"` → `.history-header-actions`
+- **Production SW synced** — dev `v32`, prod `v32-prod` (was 4 versions behind)
+- Production build regenerated (135KB bundle)
+- All 30 JS files pass `node --check` validation
+
 ## Still Possible Future Work
 - Generate remaining character portraits (GPU timeout issue — needs investigation, possibly during lower GPU load)
 - AI-generated scene background images
@@ -801,6 +818,7 @@ cd /tmp/nyantales && python3 -m http.server 9876
 - All 30 JS files pass `node --check` validation
 
 ## Log (continued)
+- 2026-03-26 (4:27 PM): Phase 47 — StoryInfoModal delegation (3-4 per-show listeners → single delegated click on overlay, fixes listener leak on repeated opens). HistoryPanel filter uses .hidden class. SettingsPanel inline styles→CSS classes (data-btns gap, btn font-size, file input hidden, auto-delay row toggle). History header inline style→.history-header-actions CSS. Prod SW synced to v32. 135KB bundle. All 30 JS pass. Committed & pushed.
 - 2026-03-26 (3:27 PM): Phase 46 — SceneSelect delegation (per-item click/keydown listeners → delegated on list container, fixes leak on repeated opens). SceneSelect._esc() reuses VNUI._escapeDiv. StatsDashboard delegation (close + recent-item re-bound every render → _initDelegation once, cursor:pointer to CSS). Gallery filter delegation (3 per-button → 1 on row). Gallery focus trap added. Fast mode uses CSS class not style.opacity. SW v31. 135KB bundle. All 30 JS pass. Committed & pushed.
 - 2026-03-26 (2:27 PM): Phase 45 — CSS classes for inline styles (HUD .hud-dim/.hud-inactive), CSP-safe SW update banner (no inline onclick), filter tag delegation (4→1 listener), 12 style.display toggles→.hidden class, boot error→.boot-error CSS. SW v30. 135KB bundle. All 30 JS pass. Committed & pushed.
 - 2026-03-26 (1:27 PM): Phase 44 — Choice button delegation (single listener on choicesEl replaces per-button addEventListener leak). Shared _escapeHtml (ConfirmDialog, HistoryPanel, StoryIntro reuse VNUI._escapeDiv). Toast inline styles→CSS classes (.nt-toast base, .visible/.dismissing states, container positioning). Gallery isVisible getter. SW v29. 135KB bundle. All 30 JS pass. Committed & pushed.
