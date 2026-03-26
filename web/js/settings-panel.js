@@ -357,6 +357,7 @@ class SettingsPanel {
   show() {
     this._syncAll();
     this._updateDataStats();
+    this._runPreview(this.settings.get('textSpeed'));
     this.overlay.setAttribute('aria-hidden', 'false');
     requestAnimationFrame(() => this.overlay.classList.add('visible'));
     if (!this._focusTrap) this._focusTrap = new FocusTrap(this.overlay.querySelector('.settings-panel'));
@@ -367,6 +368,7 @@ class SettingsPanel {
     this.overlay.classList.remove('visible');
     this.overlay.setAttribute('aria-hidden', 'true');
     if (this._focusTrap) this._focusTrap.deactivate();
+    if (this._previewTimer) { clearTimeout(this._previewTimer); this._previewTimer = null; }
   }
 
   get isVisible() {

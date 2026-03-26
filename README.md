@@ -30,17 +30,26 @@ cd nyantales && python3 -m http.server 8080
 - 🐱 Character sprites (procedural pixel art + AI-generated portraits)
 - 🎵 Procedural ambient audio (9 themed soundscapes via Web Audio API)
 - 🏆 16 achievements to unlock
-- 📊 Story completion tracking & ending discovery
-- 🔍 Search & filter stories
+- 📊 Statistics dashboard with per-story breakdowns
+- 🔍 Search, filter & sort stories (A-Z, recent, progress, favorites, length)
+- ❤️ Favorites system with heart button and filter tab
 - 🐱 Character gallery — browse all 45+ characters
-- 💾 Save/load via localStorage
-- ⚙️ Settings menu (text speed, auto-play, skip read, effects toggles, fullscreen)
+- 💾 Multiple save slots (3 manual + auto-save per story) with Continue button
+- ⚙️ Settings menu (text speed with live preview, auto-play, skip read, font size, color themes, effects toggles)
+- 🎨 5 color themes: Cyan, Magenta, Green, Amber, Violet
 - ▶️ Auto-play mode with configurable delay
-- 📜 Text history / backlog — review all past dialogue
+- 📜 Text history with search and export to .txt
 - ⏭ Skip-read-text mode — fast-forward through previously visited scenes
-- ⌨️ Keyboard shortcuts (1-9 choices, Space/Enter advance, A auto-play, H history, S settings, M audio, Esc menu)
-- 📱 Responsive design (mobile-friendly)
-- 🌙 Cyberpunk dark theme with animated backgrounds
+- ⏪ Scene rewind with full state restore (inventory/flags)
+- 🗺️ Interactive route map — canvas-based branching graph with pan/zoom
+- 📍 Scene select — jump to any visited scene
+- 📋 Share ending cards via Web Share API / clipboard
+- 💾 Data export/import — full backup/restore as JSON
+- ⌨️ Full keyboard shortcuts (1-9, Space, Enter, A, H, S, M, B, R, G, Q, F, ?)
+- 📱 Mobile: responsive design, touch gestures, collapsible HUD, landscape mode
+- ♿ Accessible: ARIA roles, focus traps, reduced motion support, high contrast mode
+- 📲 PWA: installable, offline-capable with service worker
+- 🌙 Cyberpunk dark terminal theme with animated backgrounds and particles
 
 ---
 
