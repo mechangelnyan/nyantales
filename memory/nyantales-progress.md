@@ -572,7 +572,29 @@ cd /tmp/nyantales && python3 -m http.server 9876
 - All 30 JS files pass `node --check` validation
 - 2 commits pushed
 
+## Phase 34: Code Quality — Dynamic Title, Debounced Tracker, Visibility Pause ✅
+- **Dynamic document title** — browser tab shows current story name during play
+  - `startStory()` sets `document.title` to `${story.title} — NyanTales`
+  - `returnToMenu()` resets to `NyanTales — Visual Novel`
+  - Helps distinguish multiple NyanTales tabs
+- **Debounced StoryTracker saves** — coalesces rapid localStorage writes
+  - `_save()` now debounced at 500ms — during skip mode, dozens of `recordVisitedScenes()` calls collapse into a single write
+  - `_saveNow()` for immediate flush on critical actions: `recordEnding()`, `toggleFavorite()`
+  - Reduces localStorage I/O during fast skip by ~90%
+- **Auto-play pauses on tab visibility change** — `visibilitychange` listener
+  - Hidden tab → clear auto-play timer (saves CPU, prevents unexpected advances)
+  - Visible tab → resume auto-play if enabled and no panels open
+- **CSS `contain: content`** on `.story-card` — paint isolation for 30+ card grid
+  - Browser can skip re-painting off-screen cards during hover/animation
+- **Resource preloading** — `<link rel="preload" href="js/js-yaml.min.js" as="script">`
+  - Critical path: YAML parser is needed before stories can load
+  - Added `<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>` (font files served from different origin than CSS)
+- SW cache bumped to v19 (dev) and v19-prod (build)
+- Production build regenerated (133KB bundle)
+- All 30 JS files pass `node --check` validation
+
 ## Log (continued)
+- 2026-03-26 (3:27 AM): Phase 34 — Dynamic document title, debounced StoryTracker saves (500ms coalesce for skip mode, immediate for endings/favorites), auto-play pause on tab hidden, CSS contain:content on story cards, preload hints, preconnect to gstatic. SW v19. All 30 JS pass. Committed & pushed.
 - 2026-03-26 (2:27 AM): Phase 33 — Touch gesture suspension (swipe gestures now blocked behind open panels), skip-to-content link for a11y, GitHub Pages 404.html, removed test_cat.png (420KB), lazy loading for story card sprites. SW cache v18. All 30 JS pass. Committed & pushed.
 - 2026-03-26 (1:27 AM): Phase 32 — Fixed critical bug: dist build couldn't load stories (storyBasePath returned wrong relative path for /web/dist/). Fixed share URL, removed dead code (COLOR_THEMES.rgb), added JSDoc to VNUI. SW cache v17. 2 commits pushed.
 - 2026-03-26 (12:27 AM): Phase 31 — Production build pipeline: build.sh bundles 30 JS files into single minified bundle (225KB→132KB, 41% smaller), CSS minified (93KB→68KB), HTTP requests 30→3. Production service worker, CI updated with build step, root redirect to dist/, OG URL fixes. README updated. Committed & pushed.
