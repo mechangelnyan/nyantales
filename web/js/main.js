@@ -50,7 +50,7 @@
 
   /** Ensure audio context is initialized (safe to call repeatedly). */
   function ensureAudio() {
-    ensureAudio();
+    if (!audio.ctx) audio.init();
   }
 
   // Wire story info modal callbacks
@@ -226,10 +226,9 @@
   }
 
   function updateAutoPlayHUD(on) {
-    const btn = document.getElementById('btn-auto');
-    btn.style.opacity = on ? '1' : '0.5';
-    btn.title = on ? 'Auto-Play ON (A)' : 'Auto-Play OFF (A)';
-    btn.setAttribute('aria-pressed', on ? 'true' : 'false');
+    btnAutoEl.style.opacity = on ? '1' : '0.5';
+    btnAutoEl.title = on ? 'Auto-Play ON (A)' : 'Auto-Play OFF (A)';
+    btnAutoEl.setAttribute('aria-pressed', on ? 'true' : 'false');
 
     if (on) {
       if (!autoPlayIndicator) {
@@ -247,6 +246,8 @@
   // ── Cached DOM refs ──
 
   const vnContainer = document.querySelector('.vn-container');
+  const btnAutoEl   = document.getElementById('btn-auto');
+  const statsEl     = document.getElementById('title-stats');
 
   // ── In-Game Progress HUD ──
 
@@ -679,7 +680,6 @@
     const stats = tracker.getStats();
     const achStats = achievements.getStats();
     const totalTime = StoryTracker.formatDuration(tracker.getTotalReadingMs());
-    const statsEl = document.getElementById('title-stats');
     statsEl.innerHTML = `
       <div class="stat">📖 <span class="stat-value">${stats.storiesCompleted}</span>/${storyIndex.length} complete</div>
       <div class="stat">🔮 <span class="stat-value">${stats.totalEndings}</span> endings found</div>
@@ -806,14 +806,13 @@
     }
 
     // Show/hide empty state message
-    const grid = document.getElementById('story-list');
     let emptyEl = document.getElementById('filter-empty');
     if (visibleCount === 0 && (query || activeFilter !== 'all')) {
       if (!emptyEl) {
         emptyEl = document.createElement('div');
         emptyEl.id = 'filter-empty';
         emptyEl.className = 'filter-empty';
-        grid.parentElement.appendChild(emptyEl);
+        storyGrid.parentElement.appendChild(emptyEl);
       }
       const hint = activeFilter === 'favorites' ? 'Tap 🤍 on a story card to favorite it!'
         : activeFilter === 'completed' ? 'No stories completed yet — start playing!'
@@ -830,8 +829,7 @@
    * Uses CSS order property for smooth re-sorting without re-rendering.
    */
   function applySortToGrid() {
-    const grid = document.getElementById('story-list');
-    const cards = [...grid.querySelectorAll('.story-card')];
+    const cards = [...storyGrid.querySelectorAll('.story-card')];
 
     cards.sort((a, b) => {
       switch (activeSort) {
@@ -871,7 +869,7 @@
     });
 
     // Reorder DOM elements
-    cards.forEach(card => grid.appendChild(card));
+    cards.forEach(card => storyGrid.appendChild(card));
   }
 
   // ── Click/Tap to Advance ──
@@ -913,22 +911,22 @@
     const isSearchFocused = filterInput.matches(':focus');
 
     if (e.key === 'Escape') {
-      const resumeAutoPlay = () => {
+      // Close the topmost open panel (priority: lightweight overlays first, then core panels)
+      const panelCloseOrder = [
+        keyboardHelp, aboutPanel, achPanel, statsDashboard, storyInfo,
+        routeMap, saveManager, settingsPanel, historyPanel, sceneSelect
+      ];
+      const openPanel = panelCloseOrder.find(p => p.isVisible);
+      if (openPanel) {
+        openPanel.hide();
+        syncTouchSuspension();
+        // Resume auto-play if no panels remain open
         if (settings.get('autoPlay') && currentEngine && !isAnyPanelOpen()) {
           scheduleAutoAdvance();
         }
-      };
-      if (keyboardHelp.isVisible)   { keyboardHelp.hide(); syncTouchSuspension(); resumeAutoPlay(); return; }
-      if (aboutPanel.isVisible)     { aboutPanel.hide(); syncTouchSuspension(); resumeAutoPlay(); return; }
-      if (achPanel.isVisible)       { achPanel.hide(); syncTouchSuspension(); resumeAutoPlay(); return; }
-      if (statsDashboard.isVisible) { statsDashboard.hide(); syncTouchSuspension(); resumeAutoPlay(); return; }
-      if (storyInfo.isVisible)      { storyInfo.hide(); syncTouchSuspension(); resumeAutoPlay(); return; }
-      if (routeMap.isVisible)       { routeMap.hide(); syncTouchSuspension(); resumeAutoPlay(); return; }
-      if (saveManager.isVisible)    { saveManager.hide(); syncTouchSuspension(); resumeAutoPlay(); return; }
-      if (settingsPanel.isVisible)  { settingsPanel.hide(); syncTouchSuspension(); resumeAutoPlay(); return; }
-      if (historyPanel.isVisible)   { historyPanel.hide(); syncTouchSuspension(); resumeAutoPlay(); return; }
-      if (sceneSelect.isVisible)    { sceneSelect.hide(); syncTouchSuspension(); resumeAutoPlay(); return; }
-      if (currentEngine)            { returnToMenu(); return; }
+        return;
+      }
+      if (currentEngine) { returnToMenu(); return; }
     }
 
     if (isSearchFocused) return;
@@ -1054,7 +1052,7 @@
     ui.btnFast.title = fast ? 'Fast Mode ON' : 'Fast Mode OFF';
   });
 
-  document.getElementById('btn-auto').addEventListener('click', () => {
+  btnAutoEl.addEventListener('click', () => {
     if (currentEngine) toggleAutoPlay();
   });
 
@@ -1171,7 +1169,7 @@
     } catch (err) {
       console.error('Failed to boot NyanTales:', err);
       hideLoadingScreen();
-      document.getElementById('story-list').innerHTML =
+      storyGrid.innerHTML =
         `<p style="color:var(--accent-red);padding:2rem;font-family:var(--font-mono)" role="alert">
           Error loading stories. Make sure you're serving this from a web server.<br>
           <code>cd /tmp/nyantales && python3 -m http.server 8080</code><br>
