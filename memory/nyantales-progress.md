@@ -513,6 +513,24 @@ cd /tmp/nyantales && python3 -m http.server 9876
 - SW cache bumped to v16 with safe-storage.js
 - All 30 JS files pass `node --check` validation
 
+## Phase 31: Production Build Pipeline ✅
+- **Build script** (`web/build.sh`) — concatenates & minifies all JS/CSS for production deployment
+  - Bundles 29 app JS files into single `nyantales.bundle.js` (225KB uncompressed)
+  - Minifies with terser: 225KB → 132KB (41% reduction)
+  - CSS minification: 93KB → 68KB (Python fallback when csso unavailable)
+  - HTTP requests reduced from 30+ to 3 (index.html + bundle.min.js + style.min.css)
+  - Outputs to `web/dist/` directory
+- **Production service worker** — caches the optimized single bundle instead of 30 files
+  - Cache version `nyantales-v17-prod`
+  - Same cache-first/network-first strategy as dev SW
+- **GitHub Actions CI updated** — runs build step before deploying to Pages
+  - Installs Node.js 20, runs `cd web && bash build.sh`
+  - Full repo uploaded (dist/ + stories/)
+- **Root redirect** updated to point to `web/dist/` (optimized build)
+- **OG URLs** updated in dist build to reference correct dist path
+- **README** updated with production build instructions and output sizes
+- `web/dist/` added to `.gitignore` (CI generates it fresh)
+
 ## Still Possible Future Work
 - Generate remaining character portraits (GPU timeout issue — needs investigation, possibly during lower GPU load)
 - AI-generated scene background images
@@ -522,6 +540,7 @@ cd /tmp/nyantales && python3 -m http.server 9876
 - ~~Accessibility: screen reader support, high-contrast mode, reduced motion~~ ✅ Done in Phase 16
 
 ## Log (continued)
+- 2026-03-26 (12:27 AM): Phase 31 — Production build pipeline: build.sh bundles 30 JS files into single minified bundle (225KB→132KB, 41% smaller), CSS minified (93KB→68KB), HTTP requests 30→3. Production service worker, CI updated with build step, root redirect to dist/, OG URL fixes. README updated. Committed & pushed.
 - 2026-03-25 (11:27 PM): Phase 30 — Code quality refactor: extracted SafeStorage into own file (was crammed in error-boundary.js), fixed isAnyPanelOpen() missing 4 panels (achPanel/aboutPanel/statsDashboard/storyInfo — auto-play bug), hoisted achPanel to init block, added togglePanel() DRY helper (saves ~40 lines), removed duplicate comment. SW cache v16. All 30 JS pass. Committed & pushed.
 - 2026-03-25 (10:27 PM): Phase 29 — Error boundary + SafeStorage (global error handler, localStorage quota handling with auto-eviction), Open Graph + Twitter Card meta tags for rich link previews, fixed memory leaks in StoryIntro + ConfirmDialog (keydown handlers), progress HUD throttling, empty filter state with contextual hints. SaveManager/Settings/Tracker all use SafeStorage. SW cache v15. All 29 JS pass. 2 commits pushed.
 - 2026-03-25 (9:27 PM): Phase 28 — Toast queue (max 3 visible), history panel keyboard nav (PgUp/PgDn/Home/End/arrows), smooth screen transitions with scale+blur, top-of-screen progress bar, auto-play pauses when panels open, swipe up for save/load, reading time shown on endings, keyboard help updated. SW cache v14. All 28 JS pass. 2 commits pushed.
