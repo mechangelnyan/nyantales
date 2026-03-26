@@ -741,6 +741,22 @@ cd /tmp/nyantales && python3 -m http.server 9876
 - SW cache bumped to v30, production build regenerated (135KB bundle)
 - All 30 JS files pass `node --check` validation
 
+## Phase 46: Delegation & Accessibility — SceneSelect, StatsDashboard, Gallery ✅
+- **SceneSelect event delegation** — per-item click/keydown listeners (created on every `show()`) replaced with single delegated listener on `.scene-select-list`, initialized once in `_build()`
+  - Previously: N listeners per show (N = visited scene count), never cleaned up → leak on repeated opens
+  - Now: 2 permanent delegated listeners (click + keydown) on the list container
+- **SceneSelect._esc()** — reuses `VNUI._escapeDiv` instead of `document.createElement('div')` per call
+  - Fallback to `SceneSelect._escDiv` if VNUI not yet initialized
+- **StatsDashboard delegation** — close button + recent-item click handlers were re-bound on every `_render()` (called on every `show()`)
+  - Extracted `_initDelegation()` — single delegated click listener on `_overlay`, called once on first `show()`
+  - Matches `.stats-close` and `.stats-recent-item` via `closest()`
+  - `cursor: pointer` on recent items moved from inline JS (`el.style.cursor`) to CSS rule on `.stats-recent-item`
+- **Gallery filter delegation** — 3 per-button `addEventListener` calls → 1 delegated listener on `.gallery-filter-row`
+- **Gallery focus trap** — `FocusTrap` activated on `show()`, deactivated on `hide()` (was the only panel without one)
+- **Fast mode CSS class** — `ui.toggleFastMode()` now uses `classList.toggle('hud-inactive')` instead of `style.opacity`, consistent with all other HUD toggle buttons
+- SW cache bumped to v31, production build regenerated (135KB bundle)
+- All 30 JS files pass `node --check` validation
+
 ## Still Possible Future Work
 - Generate remaining character portraits (GPU timeout issue — needs investigation, possibly during lower GPU load)
 - AI-generated scene background images
@@ -785,6 +801,7 @@ cd /tmp/nyantales && python3 -m http.server 9876
 - All 30 JS files pass `node --check` validation
 
 ## Log (continued)
+- 2026-03-26 (3:27 PM): Phase 46 — SceneSelect delegation (per-item click/keydown listeners → delegated on list container, fixes leak on repeated opens). SceneSelect._esc() reuses VNUI._escapeDiv. StatsDashboard delegation (close + recent-item re-bound every render → _initDelegation once, cursor:pointer to CSS). Gallery filter delegation (3 per-button → 1 on row). Gallery focus trap added. Fast mode uses CSS class not style.opacity. SW v31. 135KB bundle. All 30 JS pass. Committed & pushed.
 - 2026-03-26 (2:27 PM): Phase 45 — CSS classes for inline styles (HUD .hud-dim/.hud-inactive), CSP-safe SW update banner (no inline onclick), filter tag delegation (4→1 listener), 12 style.display toggles→.hidden class, boot error→.boot-error CSS. SW v30. 135KB bundle. All 30 JS pass. Committed & pushed.
 - 2026-03-26 (1:27 PM): Phase 44 — Choice button delegation (single listener on choicesEl replaces per-button addEventListener leak). Shared _escapeHtml (ConfirmDialog, HistoryPanel, StoryIntro reuse VNUI._escapeDiv). Toast inline styles→CSS classes (.nt-toast base, .visible/.dismissing states, container positioning). Gallery isVisible getter. SW v29. 135KB bundle. All 30 JS pass. Committed & pushed.
 - 2026-03-26 (12:27 PM): Phase 43 — Reusable transition overlay (single DOM element reused across all bg transitions instead of create/remove per change). Cached speaker character lookup (_findSpeakerChar with Map cache, reset per story). Moved ending button + stat inline styles to CSS classes (ending-btn-secondary, ending-stat-wide). Fixed stale prod SW (v26→v28). SW v28. 135KB bundle. All 30 JS pass. Committed & pushed.
