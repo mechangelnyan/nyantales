@@ -46,6 +46,9 @@ class VNUI {
     this._lastBgClass = '';
     this._transitioning = false;
 
+    // Init ending event delegation (one-time, prevents listener leak)
+    this._initEndingDelegation();
+
     // Mood emoji map
     this.moodEmojis = {
       tense: '😰', peaceful: '😌', mysterious: '🔮', funny: '😹',
@@ -256,15 +259,14 @@ class VNUI {
         spriteEl.style.transform = `translateX(-50%) scale(${pos.scale})`;
       }
 
-      // Highlight speaker
-      const img = spriteEl.querySelector('.vn-sprite');
+      // Highlight speaker — use CSS classes instead of inline styles for theme reactivity
       if (char.isSpeaker) {
         spriteEl.classList.add('speaking');
-        img.style.filter = `drop-shadow(0 0 12px ${VNUI._accentRGBA(0.6)}) brightness(1.1)`;
       } else {
         spriteEl.classList.remove('speaking');
-        img.style.filter = 'drop-shadow(0 0 6px rgba(0, 0, 0, 0.5)) brightness(0.8)';
       }
+      // Clear any ending-state classes from previous scene
+      spriteEl.classList.remove('ending-good', 'ending-bad', 'ending-neutral');
     });
   }
 
@@ -590,27 +592,42 @@ class VNUI {
 
   // ── Ending ──
 
+  /**
+   * Show the ending overlay. Uses event delegation on the endingEl to avoid
+   * creating new listeners on every ending (prevents listener leak).
+   */
   _showEnding(scene, engine) {
     const ending = scene.ending;
     const type = ending.type || 'neutral';
     const icon = { good: '🌟', bad: '💀', neutral: '📋', secret: '🔮' }[type] || '📋';
 
-    // Dim sprites
-    this.spritesEl.querySelectorAll('.vn-sprite').forEach(s => {
-      s.style.filter = type === 'good' 
-        ? 'drop-shadow(0 0 15px rgba(0, 255, 136, 0.5)) brightness(1.2)' 
-        : (type === 'bad' ? 'grayscale(0.8) brightness(0.5)' : 'brightness(0.7)');
+    // Dim sprites with CSS class instead of inline styles
+    this.spritesEl.querySelectorAll('.vn-sprite-wrap').forEach(wrap => {
+      wrap.classList.remove('ending-good', 'ending-bad', 'ending-neutral');
+      wrap.classList.add(`ending-${type === 'secret' ? 'neutral' : type}`);
     });
 
     const totalScenes = Object.keys(engine.scenes).length;
     const visitPct = totalScenes > 0 ? Math.round((engine.state.visited.size / totalScenes) * 100) : 0;
+
+    // Store share data for delegation handler
+    this._endingShareData = {
+      icon,
+      endingTitle: ending.title || type.toUpperCase(),
+      storyTitle: engine.story.title || 'Unknown Story',
+      turns: engine.state.turns,
+      visitedSize: engine.state.visited.size,
+      totalScenes,
+      visitPct,
+      inventory: [...engine.state.inventory]
+    };
 
     this.endingEl.classList.remove('hidden');
     this.endingEl.innerHTML = `
       <div class="ending-icon">${icon}</div>
       <div class="ending-type ${type}">${(ending.title || type.toUpperCase()).toUpperCase()}</div>
       <div class="ending-text">${this._escapeHtml(engine.interpolate(ending.text || scene.text || ''))}</div>
-      <div class="ending-stats-grid">
+      <div class="ending-stats-grid" id="ending-stats-grid">
         <div class="ending-stat-box">
           <span class="ending-stat-value">${engine.state.turns}</span>
           <span class="ending-stat-label">Turns</span>
@@ -626,57 +643,75 @@ class VNUI {
         </div>
         ` : ''}
       </div>
-      <button class="ending-btn" id="btn-restart">↻ Play Again</button>
-      <button class="ending-btn" id="btn-menu" style="margin-top:0.5rem">⏎ Story List</button>
-      <button class="ending-btn ending-btn-share" id="btn-share-ending" style="margin-top:0.5rem" title="Copy ending summary to clipboard">📋 Share</button>
+      <button class="ending-btn" data-action="restart">↻ Play Again</button>
+      <button class="ending-btn" data-action="menu" style="margin-top:0.5rem">⏎ Story List</button>
+      <button class="ending-btn ending-btn-share" data-action="share" style="margin-top:0.5rem" title="Copy ending summary to clipboard">📋 Share</button>
     `;
     this.endingEl.setAttribute('role', 'dialog');
     this.endingEl.setAttribute('aria-label', `Ending: ${ending.title || type}`);
 
     // Auto-focus the "Play Again" button for keyboard users
     requestAnimationFrame(() => {
-      const restartBtn = document.getElementById('btn-restart');
+      const restartBtn = this.endingEl.querySelector('[data-action="restart"]');
       if (restartBtn) restartBtn.focus();
     });
+  }
 
-    document.getElementById('btn-restart').addEventListener('click', () => {
-      if (this._onRestart) this._onRestart();
-    });
-    document.getElementById('btn-menu').addEventListener('click', () => {
-      if (this._onMenu) this._onMenu();
-    });
+  /**
+   * Initialize event delegation on the ending overlay (called once).
+   * This avoids creating new listeners on every ending render.
+   * @private
+   */
+  _initEndingDelegation() {
+    if (this._endingDelegated) return;
+    this._endingDelegated = true;
 
-    // Share ending card (Web Share API → clipboard fallback)
-    document.getElementById('btn-share-ending').addEventListener('click', async () => {
-      const endingTitle = ending.title || type.toUpperCase();
-      const storyTitle = engine.story.title || 'Unknown Story';
-      const shareText = [
-        `🐱 NyanTales — ${storyTitle}`,
-        `${icon} Ending: ${endingTitle}`,
-        `📊 ${engine.state.turns} turns · ${engine.state.visited.size}/${totalScenes} scenes (${visitPct}%)`,
-        engine.state.inventory.length ? `🎒 Items: ${engine.state.inventory.join(', ')}` : '',
-        '',
-        '🎮 Play at: https://mechangelnyan.github.io/nyantales/'
-      ].filter(Boolean).join('\n');
+    this.endingEl.addEventListener('click', async (e) => {
+      const btn = e.target.closest('[data-action]');
+      if (!btn) return;
 
-      // Try Web Share API first (mobile), fallback to clipboard
-      if (navigator.share) {
-        try {
-          await navigator.share({ title: `NyanTales — ${storyTitle}`, text: shareText });
-          return;
-        } catch (e) { /* User cancelled or not supported — fall through to clipboard */ }
-      }
-
-      if (navigator.clipboard) {
-        navigator.clipboard.writeText(shareText).then(() => {
-          if (typeof Toast !== 'undefined') Toast.show('Copied to clipboard!', { icon: '📋', duration: 2000 });
-        }).catch(() => {
-          if (typeof Toast !== 'undefined') Toast.error('Failed to copy');
-        });
-      } else if (typeof Toast !== 'undefined') {
-        Toast.error('Clipboard not available');
+      const action = btn.dataset.action;
+      if (action === 'restart' && this._onRestart) {
+        this._onRestart();
+      } else if (action === 'menu' && this._onMenu) {
+        this._onMenu();
+      } else if (action === 'share') {
+        await this._shareEnding();
       }
     });
+  }
+
+  /** Share ending card via Web Share API → clipboard fallback */
+  async _shareEnding() {
+    const d = this._endingShareData;
+    if (!d) return;
+
+    const shareText = [
+      `🐱 NyanTales — ${d.storyTitle}`,
+      `${d.icon} Ending: ${d.endingTitle}`,
+      `📊 ${d.turns} turns · ${d.visitedSize}/${d.totalScenes} scenes (${d.visitPct}%)`,
+      d.inventory.length ? `🎒 Items: ${d.inventory.join(', ')}` : '',
+      '',
+      '🎮 Play at: https://mechangelnyan.github.io/nyantales/'
+    ].filter(Boolean).join('\n');
+
+    if (navigator.share) {
+      try {
+        await navigator.share({ title: `NyanTales — ${d.storyTitle}`, text: shareText });
+        return;
+      } catch { /* User cancelled — fall through to clipboard */ }
+    }
+
+    if (navigator.clipboard) {
+      try {
+        await navigator.clipboard.writeText(shareText);
+        if (typeof Toast !== 'undefined') Toast.show('Copied to clipboard!', { icon: '📋', duration: 2000 });
+      } catch {
+        if (typeof Toast !== 'undefined') Toast.error('Failed to copy');
+      }
+    } else if (typeof Toast !== 'undefined') {
+      Toast.error('Clipboard not available');
+    }
   }
 
   hideEnding() {
@@ -714,12 +749,6 @@ class VNUI {
     return this.fastMode;
   }
 
-  /** Get current accent color as rgba() string from CSS custom properties */
-  static _accentRGBA(a) {
-    const style = getComputedStyle(document.documentElement);
-    const r = parseInt(style.getPropertyValue('--accent-r')) || 0;
-    const g = parseInt(style.getPropertyValue('--accent-g')) || 212;
-    const b = parseInt(style.getPropertyValue('--accent-b')) || 255;
-    return `rgba(${r}, ${g}, ${b}, ${a})`;
-  }
+  // Note: _accentRGBA removed — sprite highlighting now uses pure CSS classes
+  // with var(--accent-r/g/b). RouteMap has its own copy for canvas rendering.
 }

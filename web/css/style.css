@@ -520,13 +520,19 @@ body {
   opacity: 1;
 }
 
+/* Non-speaking sprites: dim slightly */
+.vn-sprite-wrap:not(.speaking) .vn-sprite {
+  filter: drop-shadow(0 0 6px rgba(0, 0, 0, 0.5)) brightness(0.8);
+}
+/* Speaking sprite: accent glow + bob animation */
 .vn-sprite-wrap.speaking .vn-sprite {
   animation: spriteBob 2s ease-in-out infinite;
+  filter: drop-shadow(0 0 12px rgba(var(--accent-r), var(--accent-g), var(--accent-b), 0.6)) brightness(1.1);
 }
 .vn-sprite-wrap.speaking .vn-sprite.ai-portrait {
   animation: spriteBob 2s ease-in-out infinite;
   border-color: rgba(var(--accent-r), var(--accent-g), var(--accent-b), 0.5);
-  filter: drop-shadow(0 0 16px rgba(var(--accent-r), var(--accent-g), var(--accent-b), 0.5)) brightness(1.05) !important;
+  filter: drop-shadow(0 0 16px rgba(var(--accent-r), var(--accent-g), var(--accent-b), 0.5)) brightness(1.05);
 }
 
 @keyframes spriteBob {
@@ -552,6 +558,17 @@ body {
 .sprite-exit {
   opacity: 0;
   transition: opacity 0.5s ease;
+}
+
+/* Sprite states during endings */
+.vn-sprite-wrap.ending-good .vn-sprite {
+  filter: drop-shadow(0 0 15px rgba(0, 255, 136, 0.5)) brightness(1.2);
+}
+.vn-sprite-wrap.ending-bad .vn-sprite {
+  filter: grayscale(0.8) brightness(0.5);
+}
+.vn-sprite-wrap.ending-neutral .vn-sprite {
+  filter: brightness(0.7);
 }
 
 /* ── Location Bar ── */

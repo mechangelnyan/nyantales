@@ -34,8 +34,15 @@ class StoryEngine {
     return this.scenes[this.state.currentScene] || null;
   }
 
-  /** Navigate to a scene, processing give/remove/flags from the choice */
+  /** Navigate to a scene, processing give/remove/flags from the choice.
+   *  Returns the scene object, or null if the target scene doesn't exist.
+   */
   goToScene(sceneId, choice = null) {
+    if (!sceneId || !this.scenes[sceneId]) {
+      console.warn(`[StoryEngine] Scene not found: "${sceneId}"`);
+      return null;
+    }
+
     // Process choice effects before transitioning
     if (choice) {
       // Items

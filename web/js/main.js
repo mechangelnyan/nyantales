@@ -425,20 +425,16 @@
         storyStartTime = null; // prevent double-counting on menu return
       }
 
-      // Calculate and display reading time
+      // Inject reading time into ending stats grid
       if (sessionElapsed > 0) {
         const timeStr = StoryTracker.formatDuration(sessionElapsed);
-        // Inject reading time into ending overlay after it renders
-        setTimeout(() => {
-          const endingEl = document.getElementById('vn-ending');
-          const statsGrid = endingEl?.querySelector('.ending-stats-grid');
-          if (statsGrid) {
-            const timeBox = document.createElement('div');
-            timeBox.className = 'ending-stat-box';
-            timeBox.innerHTML = `<span class="ending-stat-value">⏱ ${timeStr}</span><span class="ending-stat-label">Reading Time</span>`;
-            statsGrid.insertBefore(timeBox, statsGrid.firstChild);
-          }
-        }, 50);
+        const statsGrid = document.getElementById('ending-stats-grid');
+        if (statsGrid) {
+          const timeBox = document.createElement('div');
+          timeBox.className = 'ending-stat-box';
+          timeBox.innerHTML = `<span class="ending-stat-value">⏱ ${timeStr}</span><span class="ending-stat-label">Reading Time</span>`;
+          statsGrid.insertBefore(timeBox, statsGrid.firstChild);
+        }
       }
 
       const result = tracker.recordEnding(currentSlug, scene.ending, engine.state.turns);
