@@ -727,6 +727,20 @@ cd /tmp/nyantales && python3 -m http.server 9876
 - SW cache bumped to v29, production build regenerated (135KB bundle)
 - All 30 JS files pass `node --check` validation
 
+## Phase 45: CSS Classes, CSP Safety, Filter Delegation, Hidden Class Consistency ✅
+- **HUD button inline styles → CSS classes** — replaced `style="opacity:0.35"` and `style="opacity:0.5"` with `.hud-dim` and `.hud-inactive` CSS classes
+  - `updateAutoPlayHUD()`, `updateRewindButton()`, `toggleAudio()` now use `classList.toggle()` instead of `style.opacity`
+  - HTML is now free of inline `style=` on HUD buttons
+- **CSP-safe SW update banner** — replaced `onclick="location.reload()"` and `onclick="this.parentElement.remove()"` with proper `addEventListener` calls
+  - No inline event handlers in the codebase anymore
+- **Filter tag delegation** — 4 individual `addEventListener` calls on `.filter-tag` buttons → 1 delegated listener on `.filter-tags` container
+- **`style.display` → `.hidden` class** — 12 direct `style.display = ''/='none'` toggles converted to `classList.add/remove('hidden')`
+  - Auto-play indicator, skip indicator, progress HUD, progress bar, filter count, empty state
+  - Consistent with existing `.hidden { display: none !important; }` utility class
+- **Boot error inline styles → CSS class** — `<p style="color:...;padding:...;font-family:...">` → `.boot-error` with `a` color rule
+- SW cache bumped to v30, production build regenerated (135KB bundle)
+- All 30 JS files pass `node --check` validation
+
 ## Still Possible Future Work
 - Generate remaining character portraits (GPU timeout issue — needs investigation, possibly during lower GPU load)
 - AI-generated scene background images
@@ -771,6 +785,7 @@ cd /tmp/nyantales && python3 -m http.server 9876
 - All 30 JS files pass `node --check` validation
 
 ## Log (continued)
+- 2026-03-26 (2:27 PM): Phase 45 — CSS classes for inline styles (HUD .hud-dim/.hud-inactive), CSP-safe SW update banner (no inline onclick), filter tag delegation (4→1 listener), 12 style.display toggles→.hidden class, boot error→.boot-error CSS. SW v30. 135KB bundle. All 30 JS pass. Committed & pushed.
 - 2026-03-26 (1:27 PM): Phase 44 — Choice button delegation (single listener on choicesEl replaces per-button addEventListener leak). Shared _escapeHtml (ConfirmDialog, HistoryPanel, StoryIntro reuse VNUI._escapeDiv). Toast inline styles→CSS classes (.nt-toast base, .visible/.dismissing states, container positioning). Gallery isVisible getter. SW v29. 135KB bundle. All 30 JS pass. Committed & pushed.
 - 2026-03-26 (12:27 PM): Phase 43 — Reusable transition overlay (single DOM element reused across all bg transitions instead of create/remove per change). Cached speaker character lookup (_findSpeakerChar with Map cache, reset per story). Moved ending button + stat inline styles to CSS classes (ending-btn-secondary, ending-stat-wide). Fixed stale prod SW (v26→v28). SW v28. 135KB bundle. All 30 JS pass. Committed & pushed.
 - 2026-03-26 (11:27 AM): Phase 42 — SaveManager delegation: fixed slot listener leak (_renderSlots created new listeners per re-render → single delegated listener). Shared _esc element (SaveManager, StoryInfoModal, StatsDashboard all reuse VNUI._escapeDiv). Moved inline style.cssText to CSS classes (.new-ending-badge, .save-badge-bottom). Fixed save feedback (detached btn → Toast). SW v27. 134KB bundle. All 30 JS pass. Committed & pushed.
