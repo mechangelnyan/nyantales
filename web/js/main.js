@@ -748,6 +748,7 @@
     if (e.key === 'Escape') {
       if (keyboardHelp.isVisible)   { keyboardHelp.hide(); return; }
       if (aboutPanel.isVisible)     { aboutPanel.hide(); return; }
+      if (achPanel.isVisible)       { achPanel.hide(); return; }
       if (statsDashboard.isVisible) { statsDashboard.hide(); return; }
       if (storyInfo.isVisible)      { storyInfo.hide(); return; }
       if (routeMap.isVisible)       { routeMap.hide(); return; }
@@ -984,49 +985,10 @@
 
   // ── Achievements Panel ──
 
-  const achBtn = document.getElementById('btn-achievements');
-  let achOverlay = null;
+  const achPanel = new AchievementPanel(achievements);
 
-  achBtn.addEventListener('click', () => {
-    if (!achOverlay) {
-      achOverlay = document.createElement('div');
-      achOverlay.className = 'achievements-overlay';
-      document.body.appendChild(achOverlay);
-      achOverlay.addEventListener('click', (e) => {
-        if (e.target === achOverlay) achOverlay.classList.remove('visible');
-      });
-    }
-
-    const allAch = achievements.getAll();
-    const achStats = achievements.getStats();
-
-    achOverlay.innerHTML = `
-      <div class="achievements-panel">
-        <div class="achievements-panel-header">
-          <div>
-            <div class="achievements-panel-title">🏆 Achievements</div>
-            <div class="achievements-panel-count">${achStats.unlocked} / ${achStats.total} unlocked</div>
-          </div>
-          <button class="achievements-panel-close">✕</button>
-        </div>
-        <div class="achievements-list">
-          ${allAch.map(a => `
-            <div class="achievement-item ${a.unlocked ? 'unlocked' : 'locked'}">
-              <div class="achievement-item-icon">${a.unlocked ? a.icon : '🔒'}</div>
-              <div class="achievement-item-info">
-                <div class="achievement-item-name">${a.unlocked ? a.name : '???'}</div>
-                <div class="achievement-item-desc">${a.desc}</div>
-              </div>
-            </div>
-          `).join('')}
-        </div>
-      </div>
-    `;
-
-    achOverlay.querySelector('.achievements-panel-close').addEventListener('click', () => {
-      achOverlay.classList.remove('visible');
-    });
-    requestAnimationFrame(() => achOverlay.classList.add('visible'));
+  document.getElementById('btn-achievements').addEventListener('click', () => {
+    achPanel.isVisible ? achPanel.hide() : achPanel.show();
   });
 
   // ── Boot ──

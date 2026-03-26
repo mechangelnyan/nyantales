@@ -35,6 +35,9 @@ class SettingsPanel {
                 <span class="settings-value" id="set-text-speed-val"></span>
               </div>
             </div>
+            <div class="settings-row">
+              <div class="settings-text-preview" id="set-text-preview" aria-label="Text speed preview"></div>
+            </div>
 
             <div class="settings-row">
               <label class="settings-label">Auto-Play</label>
@@ -143,9 +146,11 @@ class SettingsPanel {
     this.overlay.querySelector('.settings-close').addEventListener('click', () => this.hide());
 
     // Wire up controls
+    this._previewTimer = null;
     this._wireSlider('set-text-speed', 'textSpeed', v => {
       const labels = { 2: 'Instant', 6: 'Very Fast', 12: 'Fast', 18: 'Normal', 26: 'Slow', 34: 'Very Slow', 40: 'Crawl' };
       const closest = Object.keys(labels).reduce((a, b) => Math.abs(b - v) < Math.abs(a - v) ? b : a);
+      this._runPreview(parseInt(v));
       return labels[closest] || `${v}ms`;
     });
 
@@ -322,6 +327,31 @@ class SettingsPanel {
     const stats = this._dataManager.getStats();
     const sizeKB = (stats.estimatedBytes / 1024).toFixed(1);
     statsEl.innerHTML = `${stats.stories} stories tracked · ${stats.saves} save files · ~${sizeKB} KB`;
+  }
+
+  /** Run a typewriter preview in the settings panel at the given speed (ms per 2-char chunk) */
+  _runPreview(speedMs) {
+    if (this._previewTimer) clearTimeout(this._previewTimer);
+    const el = document.getElementById('set-text-preview');
+    if (!el) return;
+
+    const text = 'The terminal cat blinked at the blinking cursor…';
+    let idx = 0;
+    el.textContent = '';
+
+    if (speedMs <= 2) {
+      el.textContent = text;
+      return;
+    }
+
+    const step = () => {
+      if (idx < text.length) {
+        idx += 2;
+        el.textContent = text.slice(0, idx);
+        this._previewTimer = setTimeout(step, speedMs);
+      }
+    };
+    step();
   }
 
   show() {

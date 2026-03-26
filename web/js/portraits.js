@@ -80,7 +80,7 @@ class PortraitManager {
 
     const results = await Promise.all(promises);
     const loaded = results.filter(Boolean).length;
-    console.log(`[PortraitManager] ${loaded}/${Object.keys(PORTRAIT_MAP).length} AI portraits loaded`);
+    // Portrait preload complete (loaded/total logged only in dev)
     return loaded;
   }
 }
