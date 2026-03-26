@@ -48,15 +48,20 @@
     updateRewindButton();
   });
 
+  /** Ensure audio context is initialized (safe to call repeatedly). */
+  function ensureAudio() {
+    ensureAudio();
+  }
+
   // Wire story info modal callbacks
   storyInfo.onPlay = (story) => {
-    if (!audio.ctx) audio.init();
+    ensureAudio();
     startStory(story);
   };
   storyInfo.onLoad = (slug, stateJson) => {
     const story = storyIndex.find(s => s.slug === slug);
     if (story) {
-      if (!audio.ctx) audio.init();
+      ensureAudio();
       startStory(story, stateJson);
     }
   };
@@ -231,13 +236,17 @@
         autoPlayIndicator = document.createElement('div');
         autoPlayIndicator.className = 'auto-play-indicator';
         autoPlayIndicator.innerHTML = '<div class="auto-play-dot"></div> AUTO';
-        document.querySelector('.vn-container').appendChild(autoPlayIndicator);
+        vnContainer.appendChild(autoPlayIndicator);
       }
       autoPlayIndicator.style.display = '';
     } else if (autoPlayIndicator) {
       autoPlayIndicator.style.display = 'none';
     }
   }
+
+  // ── Cached DOM refs ──
+
+  const vnContainer = document.querySelector('.vn-container');
 
   // ── In-Game Progress HUD ──
 
@@ -250,8 +259,6 @@
 
   function updateProgressHUD() {
     if (!currentEngine) return;
-
-    const vnContainer = document.querySelector('.vn-container');
 
     if (!progressHUD) {
       progressHUD = document.createElement('div');
@@ -301,7 +308,7 @@
         skipIndicator = document.createElement('div');
         skipIndicator.className = 'skip-indicator';
         skipIndicator.innerHTML = '⏭ SKIP';
-        document.querySelector('.vn-container').appendChild(skipIndicator);
+        vnContainer.appendChild(skipIndicator);
       }
       skipIndicator.style.display = '';
       if (autoPlayIndicator) autoPlayIndicator.style.display = 'none';
@@ -532,6 +539,137 @@
 
   // ── Title Screen Rendering ──
 
+  // ── Story Grid Event Delegation ──
+  // Single listener handles info/fav clicks for all 30 cards (replaces 60+ per-card listeners)
+
+  const storyGrid = document.getElementById('story-list');
+  storyGrid.addEventListener('click', (e) => {
+    const infoBtn = e.target.closest('.story-card-info-btn');
+    if (infoBtn) {
+      e.stopPropagation();
+      const card = infoBtn.closest('.story-card');
+      const slug = card?.dataset.slug;
+      const story = storyIndex.find(s => s.slug === slug);
+      if (story) storyInfo.show(story, CHARACTER_DATA[story.slug] || []);
+      return;
+    }
+
+    const favBtn = e.target.closest('.story-card-fav-btn');
+    if (favBtn) {
+      e.stopPropagation();
+      const card = favBtn.closest('.story-card');
+      const slug = card?.dataset.slug;
+      const story = storyIndex.find(s => s.slug === slug);
+      if (!story) return;
+      const nowFav = tracker.toggleFavorite(slug);
+      favBtn.textContent = nowFav ? '❤️' : '🤍';
+      favBtn.title = nowFav ? 'Remove from favorites' : 'Add to favorites';
+      favBtn.setAttribute('aria-pressed', nowFav ? 'true' : 'false');
+      favBtn.setAttribute('aria-label', nowFav ? `Remove ${story.title} from favorites` : `Add ${story.title} to favorites`);
+      card.dataset.favorite = nowFav ? '1' : '0';
+      Toast.show(nowFav ? 'Added to favorites' : 'Removed from favorites', { icon: nowFav ? '❤️' : '💔', duration: 1500 });
+      return;
+    }
+  });
+
+  /**
+   * Compute reading-time estimate and scene count for a story.
+   * @param {Object} story - Story index entry with _parsed data
+   * @returns {{ sceneCount: number, readMins: number, wordCount: number }}
+   */
+  function getStoryMeta(story) {
+    const scenes = story._parsed?.scenes;
+    const sceneCount = scenes ? Object.keys(scenes).length : 0;
+    const wordCount = scenes
+      ? Object.values(scenes).reduce((sum, s) => sum + ((s.text || '').split(/\s+/).length), 0)
+      : 0;
+    const readMins = Math.max(1, Math.ceil(wordCount / 200));
+    return { sceneCount, readMins, wordCount };
+  }
+
+  /**
+   * Decorate a freshly-created story card with badges, progress, meta, and buttons.
+   * Separated from renderTitleScreen for clarity — called once per card.
+   * @param {HTMLElement} card - The story card DOM element
+   * @param {Object} story - Story index entry
+   */
+  function decorateStoryCard(card, story) {
+    const completed = tracker.isCompleted(story.slug);
+    const endings = tracker.endingCount(story.slug);
+    const { sceneCount, readMins } = getStoryMeta(story);
+
+    // Completion badge
+    if (completed) {
+      card.classList.add('completed');
+      const badge = document.createElement('div');
+      badge.className = 'story-card-badge';
+      badge.textContent = `✅ ${endings} ending${endings !== 1 ? 's' : ''}`;
+      card.appendChild(badge);
+    }
+
+    // Save indicator
+    if (saveManager.hasSave(story.slug)) {
+      const saveIcon = document.createElement('div');
+      saveIcon.className = 'story-card-badge story-card-save-badge';
+      saveIcon.style.cssText = completed
+        ? 'top:auto;bottom:6px;color:var(--accent-cyan);'
+        : 'color:var(--accent-cyan);';
+      saveIcon.textContent = '💾';
+      card.appendChild(saveIcon);
+    }
+
+    // Progress bar (actual visited scenes)
+    if (sceneCount > 0) {
+      const pct = tracker.getProgress(story.slug, sceneCount);
+      const bar = document.createElement('div');
+      bar.className = 'story-card-progress';
+      bar.innerHTML = `<div class="story-card-progress-fill" style="width:${pct}%"></div>`;
+      bar.setAttribute('role', 'progressbar');
+      bar.setAttribute('aria-valuenow', pct);
+      bar.setAttribute('aria-valuemin', '0');
+      bar.setAttribute('aria-valuemax', '100');
+      bar.setAttribute('aria-label', `${pct}% explored`);
+      card.appendChild(bar);
+    }
+
+    // Meta info (reading time + scene count)
+    if (sceneCount > 0 || readMins > 0) {
+      const metaEl = document.createElement('div');
+      metaEl.className = 'story-card-meta';
+      metaEl.innerHTML = `<span>⏱ ~${readMins} min</span><span>📄 ${sceneCount} scenes</span>`;
+      const textContainer = card.querySelector('.story-card-text');
+      if (textContainer) textContainer.appendChild(metaEl);
+    }
+
+    // Info button (ℹ) — click handled by grid delegation
+    const infoBtn = document.createElement('button');
+    infoBtn.className = 'story-card-info-btn';
+    infoBtn.textContent = 'ℹ';
+    infoBtn.title = 'Story details';
+    infoBtn.setAttribute('aria-label', `Details for ${story.title}`);
+    card.appendChild(infoBtn);
+
+    // Favorite button (heart) — click handled by grid delegation
+    const isFav = tracker.isFavorite(story.slug);
+    const favBtn = document.createElement('button');
+    favBtn.className = 'story-card-fav-btn';
+    favBtn.textContent = isFav ? '❤️' : '🤍';
+    favBtn.title = isFav ? 'Remove from favorites' : 'Add to favorites';
+    favBtn.setAttribute('aria-label', isFav ? `Remove ${story.title} from favorites` : `Add ${story.title} to favorites`);
+    favBtn.setAttribute('aria-pressed', isFav ? 'true' : 'false');
+    card.appendChild(favBtn);
+
+    // Data attributes for filtering/sorting
+    card.dataset.slug = story.slug;
+    card.dataset.title = story.title.toLowerCase();
+    card.dataset.desc = (story.description || '').toLowerCase();
+    card.dataset.completed = completed ? '1' : '0';
+    card.dataset.favorite = isFav ? '1' : '0';
+    card.dataset.readMins = readMins;
+    card.dataset.progress = sceneCount > 0 ? tracker.getProgress(story.slug, sceneCount) : 0;
+    card.dataset.lastPlayed = tracker.getStory(story.slug).lastPlayed || 0;
+  }
+
   /**
    * Render (or re-render) the title screen.
    * Uses ui.renderStoryList to create fresh cards, then decorates them once.
@@ -552,7 +690,7 @@
 
     // renderStoryList clears the grid and creates fresh cards — no duplicate risk
     ui.renderStoryList(storyIndex, (story) => {
-      if (!audio.ctx) audio.init();
+      ensureAudio();
       startStory(story);
     });
 
@@ -560,102 +698,7 @@
     const cards = document.querySelectorAll('.story-card');
     storyIndex.forEach((story, idx) => {
       const card = cards[idx];
-      if (!card) return;
-
-      const completed = tracker.isCompleted(story.slug);
-      const endings = tracker.endingCount(story.slug);
-      const sceneCount = story._parsed?.scenes ? Object.keys(story._parsed.scenes).length : 0;
-
-      // Reading time estimate (word count across all scenes, ~200 wpm)
-      const wordCount = story._parsed?.scenes
-        ? Object.values(story._parsed.scenes).reduce((sum, s) => sum + ((s.text || '').split(/\s+/).length), 0)
-        : 0;
-      const readMins = Math.max(1, Math.ceil(wordCount / 200));
-
-      // Completion badge
-      if (completed) {
-        card.classList.add('completed');
-        const badge = document.createElement('div');
-        badge.className = 'story-card-badge';
-        badge.textContent = `✅ ${endings} ending${endings !== 1 ? 's' : ''}`;
-        card.appendChild(badge);
-      }
-
-      // Save indicator
-      if (saveManager.hasSave(story.slug)) {
-        const saveIcon = document.createElement('div');
-        saveIcon.className = 'story-card-badge story-card-save-badge';
-        saveIcon.style.cssText = completed
-          ? 'top:auto;bottom:6px;color:var(--accent-cyan);'
-          : 'color:var(--accent-cyan);';
-        saveIcon.textContent = '💾';
-        card.appendChild(saveIcon);
-      }
-
-      // Progress bar (actual visited scenes)
-      if (sceneCount > 0) {
-        const pct = tracker.getProgress(story.slug, sceneCount);
-        const progressBar = document.createElement('div');
-        progressBar.className = 'story-card-progress';
-        progressBar.innerHTML = `<div class="story-card-progress-fill" style="width:${pct}%"></div>`;
-        progressBar.setAttribute('role', 'progressbar');
-        progressBar.setAttribute('aria-valuenow', pct);
-        progressBar.setAttribute('aria-valuemin', '0');
-        progressBar.setAttribute('aria-valuemax', '100');
-        progressBar.setAttribute('aria-label', `${pct}% explored`);
-        card.appendChild(progressBar);
-      }
-
-      // Meta info (reading time + scene count)
-      if (sceneCount > 0 || readMins > 0) {
-        const metaEl = document.createElement('div');
-        metaEl.className = 'story-card-meta';
-        metaEl.innerHTML = `<span>⏱ ~${readMins} min</span><span>📄 ${sceneCount} scenes</span>`;
-        const textContainer = card.querySelector('.story-card-text');
-        if (textContainer) textContainer.appendChild(metaEl);
-      }
-
-      // Info button (ℹ) — story detail modal
-      const infoBtn = document.createElement('button');
-      infoBtn.className = 'story-card-info-btn';
-      infoBtn.textContent = 'ℹ';
-      infoBtn.title = 'Story details';
-      infoBtn.setAttribute('aria-label', `Details for ${story.title}`);
-      infoBtn.addEventListener('click', (e) => {
-        e.stopPropagation();
-        storyInfo.show(story, CHARACTER_DATA[story.slug] || []);
-      });
-      card.appendChild(infoBtn);
-
-      // Favorite button (heart)
-      const isFav = tracker.isFavorite(story.slug);
-      const favBtn = document.createElement('button');
-      favBtn.className = 'story-card-fav-btn';
-      favBtn.textContent = isFav ? '❤️' : '🤍';
-      favBtn.title = isFav ? 'Remove from favorites' : 'Add to favorites';
-      favBtn.setAttribute('aria-label', isFav ? `Remove ${story.title} from favorites` : `Add ${story.title} to favorites`);
-      favBtn.setAttribute('aria-pressed', isFav ? 'true' : 'false');
-      favBtn.addEventListener('click', (e) => {
-        e.stopPropagation();
-        const nowFav = tracker.toggleFavorite(story.slug);
-        favBtn.textContent = nowFav ? '❤️' : '🤍';
-        favBtn.title = nowFav ? 'Remove from favorites' : 'Add to favorites';
-        favBtn.setAttribute('aria-pressed', nowFav ? 'true' : 'false');
-        favBtn.setAttribute('aria-label', nowFav ? `Remove ${story.title} from favorites` : `Add ${story.title} to favorites`);
-        card.dataset.favorite = nowFav ? '1' : '0';
-        Toast.show(nowFav ? 'Added to favorites' : 'Removed from favorites', { icon: nowFav ? '❤️' : '💔', duration: 1500 });
-      });
-      card.appendChild(favBtn);
-
-      // Data attributes for filtering/sorting
-      card.dataset.slug = story.slug;
-      card.dataset.title = story.title.toLowerCase();
-      card.dataset.desc = (story.description || '').toLowerCase();
-      card.dataset.completed = completed ? '1' : '0';
-      card.dataset.favorite = isFav ? '1' : '0';
-      card.dataset.readMins = readMins;
-      card.dataset.progress = sceneCount > 0 ? tracker.getProgress(story.slug, sceneCount) : 0;
-      card.dataset.lastPlayed = tracker.getStory(story.slug).lastPlayed || 0;
+      if (card) decorateStoryCard(card, story);
     });
 
     // "Continue" button — shows if there's a recent save
@@ -686,7 +729,7 @@
     if (!recent) return;
     const story = storyIndex.find(s => s.slug === recent.slug);
     if (!story) return;
-    if (!audio.ctx) audio.init();
+    ensureAudio();
     startStory(story, recent.state);
   });
 
@@ -838,8 +881,6 @@
   });
 
   // ── Touch Gestures (mobile) ──
-
-  const vnContainer = document.querySelector('.vn-container');
   const touch = new TouchHandler(vnContainer, {
     onAdvance: () => {
       if (ui.isTyping) {
@@ -944,7 +985,7 @@
 
   const btnAudio = document.getElementById('btn-audio');
   btnAudio.addEventListener('click', () => {
-    if (!audio.ctx) audio.init();
+    ensureAudio();
     toggleAudio();
   });
 
@@ -1041,7 +1082,7 @@
     const unplayed = storyIndex.filter(s => !tracker.isCompleted(s.slug));
     const pool = unplayed.length > 0 ? unplayed : storyIndex;
     const pick = pool[Math.floor(Math.random() * pool.length)];
-    if (!audio.ctx) audio.init();
+    ensureAudio();
     startStory(pick);
   });
 
@@ -1050,7 +1091,7 @@
   document.getElementById('btn-stats').addEventListener('click', () => {
     statsDashboard.setStories(storyIndex);
     statsDashboard.onPlay = (story) => {
-      if (!audio.ctx) audio.init();
+      ensureAudio();
       startStory(story);
     };
     statsDashboard.show();
@@ -1075,7 +1116,7 @@
   document.getElementById('btn-gallery').addEventListener('click', () => {
     gallery.onStoryClick((slug) => {
       const story = storyIndex.find(s => s.slug === slug);
-      if (story) { if (!audio.ctx) audio.init(); startStory(story); }
+      if (story) { ensureAudio(); startStory(story); }
     });
     gallery.show();
   });

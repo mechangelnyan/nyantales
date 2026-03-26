@@ -694,6 +694,16 @@ body {
 .vn-text::-webkit-scrollbar-track { background: transparent; }
 .vn-text::-webkit-scrollbar-thumb { background: rgba(var(--accent-r), var(--accent-g), var(--accent-b), 0.3); border-radius: 2px; }
 
+/* Inline formatting (replaces inline styles for theme-reactivity) */
+.vn-inline-code {
+  color: var(--accent-cyan);
+  font-family: var(--font-mono);
+  font-size: 0.9em;
+}
+.vn-bold {
+  color: var(--text-bright);
+}
+
 /* Mood text colors */
 .vn-text.mood-tense { color: var(--mood-tense); }
 .vn-text.mood-peaceful { color: var(--mood-peaceful); }

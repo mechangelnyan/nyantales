@@ -36,6 +36,9 @@ class VNUI {
     this.currentStorySlug = null;
     this._activeSprites = new Map(); // name -> element
 
+    // Cached container ref (used for shake effects)
+    this.containerEl = document.querySelector('.vn-container');
+
     // State
     this.typewriterSpeed = 18; // ms per character
     this.fastMode = false;
@@ -372,8 +375,8 @@ class VNUI {
       setTimeout(() => this.textEl.classList.remove('glitch-text'), 1000);
     }
     if (scene.effect === 'shake') {
-      document.querySelector('.vn-container').classList.add('shake');
-      setTimeout(() => document.querySelector('.vn-container').classList.remove('shake'), 500);
+      this.containerEl.classList.add('shake');
+      setTimeout(() => this.containerEl.classList.remove('shake'), 500);
     }
 
     // Check for ending
@@ -729,8 +732,8 @@ class VNUI {
       .replace(/&/g, '&amp;')
       .replace(/</g, '&lt;')
       .replace(/>/g, '&gt;')
-      .replace(/`([^`]+)`/g, '<code style="color:var(--accent-cyan);font-family:var(--font-mono);font-size:0.9em">$1</code>')
-      .replace(/\*\*([^*]+)\*\*/g, '<strong style="color:var(--text-bright)">$1</strong>')
+      .replace(/`([^`]+)`/g, '<code class="vn-inline-code">$1</code>')
+      .replace(/\*\*([^*]+)\*\*/g, '<strong class="vn-bold">$1</strong>')
       .replace(/\*([^*]+)\*/g, '<em>$1</em>')
       .replace(/\n/g, '<br>');
   }
