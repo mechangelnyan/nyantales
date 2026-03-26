@@ -774,6 +774,22 @@ cd /tmp/nyantales && python3 -m http.server 9876
 - Production build regenerated (135KB bundle)
 - All 30 JS files pass `node --check` validation
 
+## Phase 48: Cached DOM Refs, Achievement Delegation, Gallery Optimization ✅
+- **AchievementPanel close listener leak fix** — `show()` was adding new `addEventListener` on `.achievements-panel-close` after every `innerHTML` rebuild (leaked on repeated opens)
+  - Refactored to **single delegated click listener** on `_overlay` (initialized once in `_ensureOverlay`)
+  - Matches close button via `.closest('.achievements-panel-close')` + backdrop click
+- **HistoryPanel cached DOM refs** — `_listEl`, `_countEl`, `_panelEl` cached once in `_create()`
+  - `show()` no longer queries `.history-list`, `.history-count`, `.history-panel` each time
+  - `_filterEntries()` uses cached `_countEl` instead of querying `.history-count` per keystroke
+  - `_onKeydown()` uses cached `_listEl` instead of querying `.history-list` per keypress
+  - FocusTrap uses cached `_panelEl`
+- **CharacterGallery cached refs** — `_grid`, `_panelEl`, `_cachedCards` cached after build
+  - `_applyFilters()` uses `_cachedCards` array instead of `querySelectorAll('.gallery-card')` per filter change
+  - FocusTrap uses cached `_panelEl` instead of re-querying `.gallery-panel` on every `show()`
+  - `_applyFilters()` signature simplified (removed `grid` param, uses `this._grid`)
+- SW cache bumped to v33, production build regenerated (136KB bundle)
+- All 30 JS files pass `node --check` validation
+
 ## Still Possible Future Work
 - Generate remaining character portraits (GPU timeout issue — needs investigation, possibly during lower GPU load)
 - AI-generated scene background images
@@ -818,6 +834,7 @@ cd /tmp/nyantales && python3 -m http.server 9876
 - All 30 JS files pass `node --check` validation
 
 ## Log (continued)
+- 2026-03-26 (5:27 PM): Phase 48 — AchievementPanel close listener leak fix (per-show addEventListener → delegated on _overlay). HistoryPanel cached DOM refs (_listEl, _countEl, _panelEl — eliminates 6+ querySelector calls per show/filter/keydown). Gallery cached refs (_grid, _panelEl, _cachedCards — eliminates querySelectorAll per filter). SW v33. 136KB bundle. All 30 JS pass. Committed & pushed.
 - 2026-03-26 (4:27 PM): Phase 47 — StoryInfoModal delegation (3-4 per-show listeners → single delegated click on overlay, fixes listener leak on repeated opens). HistoryPanel filter uses .hidden class. SettingsPanel inline styles→CSS classes (data-btns gap, btn font-size, file input hidden, auto-delay row toggle). History header inline style→.history-header-actions CSS. Prod SW synced to v32. 135KB bundle. All 30 JS pass. Committed & pushed.
 - 2026-03-26 (3:27 PM): Phase 46 — SceneSelect delegation (per-item click/keydown listeners → delegated on list container, fixes leak on repeated opens). SceneSelect._esc() reuses VNUI._escapeDiv. StatsDashboard delegation (close + recent-item re-bound every render → _initDelegation once, cursor:pointer to CSS). Gallery filter delegation (3 per-button → 1 on row). Gallery focus trap added. Fast mode uses CSS class not style.opacity. SW v31. 135KB bundle. All 30 JS pass. Committed & pushed.
 - 2026-03-26 (2:27 PM): Phase 45 — CSS classes for inline styles (HUD .hud-dim/.hud-inactive), CSP-safe SW update banner (no inline onclick), filter tag delegation (4→1 listener), 12 style.display toggles→.hidden class, boot error→.boot-error CSS. SW v30. 135KB bundle. All 30 JS pass. Committed & pushed.

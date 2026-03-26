@@ -24,8 +24,10 @@ class AchievementPanel {
       this._overlay.setAttribute('aria-label', 'Achievements');
       document.body.appendChild(this._overlay);
 
+      // Single delegated click handler — handles close button + backdrop click
       this._overlay.addEventListener('click', (e) => {
-        if (e.target === this._overlay) this.hide();
+        if (e.target === this._overlay) { this.hide(); return; }
+        if (e.target.closest('.achievements-panel-close')) this.hide();
       });
 
       this._focusTrap = new FocusTrap(this._overlay);
@@ -63,7 +65,7 @@ class AchievementPanel {
       </div>
     `;
 
-    this._overlay.querySelector('.achievements-panel-close').addEventListener('click', () => this.hide());
+    // Close button click handled by delegated listener on _overlay (no per-show addEventListener)
 
     this.isVisible = true;
     requestAnimationFrame(() => {

@@ -75,7 +75,7 @@ class CharacterGallery {
       </div>
     `;
 
-    const grid = overlay.querySelector('.gallery-grid');
+    this._grid = overlay.querySelector('.gallery-grid');
     const search = overlay.querySelector('.gallery-search');
     const filterBtns = overlay.querySelectorAll('.gallery-filter-btn');
     const closeBtn = overlay.querySelector('.gallery-close');
@@ -115,7 +115,7 @@ class CharacterGallery {
         </div>
       `;
 
-      grid.appendChild(card);
+      this._grid.appendChild(card);
     }
 
     // Close handler
@@ -124,11 +124,14 @@ class CharacterGallery {
       if (e.target === overlay) this.hide();
     });
 
+    // Cache card NodeList after all cards are built
+    this._cachedCards = [...this._grid.querySelectorAll('.gallery-card')];
+
     // Search
     search.addEventListener('input', () => {
       const q = search.value.toLowerCase().trim();
       const activeRole = overlay.querySelector('.gallery-filter-btn.active')?.dataset.role || 'all';
-      this._applyFilters(grid, q, activeRole);
+      this._applyFilters(q, activeRole);
     });
 
     // Role filter — single delegated listener on filter row
@@ -139,11 +142,11 @@ class CharacterGallery {
       filterBtns.forEach(b => b.classList.remove('active'));
       btn.classList.add('active');
       const q = search.value.toLowerCase().trim();
-      this._applyFilters(grid, q, btn.dataset.role);
+      this._applyFilters(q, btn.dataset.role);
     });
 
     // Story tag click → launch story
-    grid.addEventListener('click', (e) => {
+    this._grid.addEventListener('click', (e) => {
       const tag = e.target.closest('.gallery-story-tag');
       if (tag && this.onStorySelect) {
         this.hide();
@@ -153,11 +156,12 @@ class CharacterGallery {
 
     document.body.appendChild(overlay);
     this.overlay = overlay;
+    this._panelEl = overlay.querySelector('.gallery-panel');
     this._built = true;
   }
 
-  _applyFilters(grid, query, role) {
-    const cards = grid.querySelectorAll('.gallery-card');
+  _applyFilters(query, role) {
+    const cards = this._cachedCards || [];
     cards.forEach(card => {
       let show = true;
       if (query) {
@@ -177,7 +181,7 @@ class CharacterGallery {
     this._buildOverlay();
     requestAnimationFrame(() => this.overlay.classList.add('visible'));
     if (typeof FocusTrap !== 'undefined') {
-      if (!this._focusTrap) this._focusTrap = new FocusTrap(this.overlay.querySelector('.gallery-panel'));
+      if (!this._focusTrap) this._focusTrap = new FocusTrap(this._panelEl);
       this._focusTrap.activate();
     }
   }

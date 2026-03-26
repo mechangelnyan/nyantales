@@ -78,6 +78,11 @@ class HistoryPanel {
     `;
     document.body.appendChild(this.overlay);
 
+    // Cache frequently accessed child elements
+    this._listEl = this.overlay.querySelector('.history-list');
+    this._countEl = this.overlay.querySelector('.history-count');
+    this._panelEl = this.overlay.querySelector('.history-panel');
+
     this.overlay.addEventListener('click', (e) => {
       if (e.target === this.overlay) this.hide();
     });
@@ -91,17 +96,15 @@ class HistoryPanel {
 
   show() {
     const entries = this.history.getAll();
-    const listEl = this.overlay.querySelector('.history-list');
-    const countEl = this.overlay.querySelector('.history-count');
-    countEl.textContent = `${entries.length} entries`;
+    this._countEl.textContent = `${entries.length} entries`;
 
     // Clear search
     this._searchInput.value = '';
 
     if (entries.length === 0) {
-      listEl.innerHTML = '<div class="history-empty">No text yet — start reading!</div>';
+      this._listEl.innerHTML = '<div class="history-empty">No text yet — start reading!</div>';
     } else {
-      listEl.innerHTML = entries.map(e => {
+      this._listEl.innerHTML = entries.map(e => {
         const searchable = ((e.speaker || '') + ' ' + e.text).toLowerCase();
         return `
           <div class="history-entry" data-searchable="${this._esc(searchable)}">
@@ -111,12 +114,12 @@ class HistoryPanel {
         `;
       }).join('');
       // Scroll to bottom
-      requestAnimationFrame(() => { listEl.scrollTop = listEl.scrollHeight; });
+      requestAnimationFrame(() => { this._listEl.scrollTop = this._listEl.scrollHeight; });
     }
 
     this.overlay.setAttribute('aria-hidden', 'false');
     requestAnimationFrame(() => this.overlay.classList.add('visible'));
-    if (!this._focusTrap) this._focusTrap = new FocusTrap(this.overlay.querySelector('.history-panel'));
+    if (!this._focusTrap) this._focusTrap = new FocusTrap(this._panelEl);
     this._focusTrap.activate();
 
     // Attach keyboard scroll handler
@@ -133,40 +136,39 @@ class HistoryPanel {
    */
   _onKeydown(e) {
     if (!this.isVisible) return;
-    const listEl = this.overlay.querySelector('.history-list');
-    if (!listEl) return;
+    if (!this._listEl) return;
 
-    const scrollStep = listEl.clientHeight * 0.8;  // ~80% of visible height
+    const scrollStep = this._listEl.clientHeight * 0.8;  // ~80% of visible height
     const smallStep = 60;
 
     switch (e.key) {
       case 'PageUp':
         e.preventDefault();
-        listEl.scrollBy({ top: -scrollStep, behavior: 'smooth' });
+        this._listEl.scrollBy({ top: -scrollStep, behavior: 'smooth' });
         break;
       case 'PageDown':
         e.preventDefault();
-        listEl.scrollBy({ top: scrollStep, behavior: 'smooth' });
+        this._listEl.scrollBy({ top: scrollStep, behavior: 'smooth' });
         break;
       case 'ArrowUp':
-        if (document.activeElement === this._searchInput) return; // don't hijack search
+        if (document.activeElement === this._searchInput) return;
         e.preventDefault();
-        listEl.scrollBy({ top: -smallStep, behavior: 'smooth' });
+        this._listEl.scrollBy({ top: -smallStep, behavior: 'smooth' });
         break;
       case 'ArrowDown':
         if (document.activeElement === this._searchInput) return;
         e.preventDefault();
-        listEl.scrollBy({ top: smallStep, behavior: 'smooth' });
+        this._listEl.scrollBy({ top: smallStep, behavior: 'smooth' });
         break;
       case 'Home':
         if (document.activeElement === this._searchInput) return;
         e.preventDefault();
-        listEl.scrollTo({ top: 0, behavior: 'smooth' });
+        this._listEl.scrollTo({ top: 0, behavior: 'smooth' });
         break;
       case 'End':
         if (document.activeElement === this._searchInput) return;
         e.preventDefault();
-        listEl.scrollTo({ top: listEl.scrollHeight, behavior: 'smooth' });
+        this._listEl.scrollTo({ top: this._listEl.scrollHeight, behavior: 'smooth' });
         break;
     }
   }
@@ -174,7 +176,7 @@ class HistoryPanel {
   /** Filter history entries by search query */
   _filterEntries() {
     const query = (this._searchInput.value || '').toLowerCase().trim();
-    const entries = this.overlay.querySelectorAll('.history-entry');
+    const entries = this._listEl.querySelectorAll('.history-entry');
     let visible = 0;
 
     entries.forEach(el => {
@@ -189,9 +191,8 @@ class HistoryPanel {
       }
     });
 
-    const countEl = this.overlay.querySelector('.history-count');
     const total = entries.length;
-    countEl.textContent = query
+    this._countEl.textContent = query
       ? `${visible}/${total} matching`
       : `${total} entries`;
   }
