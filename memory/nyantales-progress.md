@@ -471,6 +471,31 @@ cd /tmp/nyantales && python3 -m http.server 9876
 - All 28 JS files pass `node --check` validation
 - 2 commits pushed
 
+## Phase 29: Error Boundary, SafeStorage, OG Tags, Bug Fixes ✅
+- **Error Boundary** (`web/js/error-boundary.js`) — global error/rejection handler
+  - Catches uncaught errors and unhandled promise rejections
+  - Shows non-blocking toast ("Something went wrong — your saves are safe")
+  - Doesn't crash the app or lose current state
+- **SafeStorage class** — localStorage wrapper with quota-exceeded resilience
+  - `SafeStorage.getJSON(key, fallback)` — parse + fallback on corrupt/missing data
+  - `SafeStorage.setJSON(key, value)` — handles QuotaExceededError with auto-eviction
+  - Evicts oldest auto-save slot when storage is full, then retries
+  - `estimateUsage()` for NyanTales key byte count
+  - Integrated into: SettingsManager, StoryTracker, SaveManager (with raw localStorage fallback)
+- **Open Graph + Twitter Card meta tags** — rich link previews when sharing URL
+  - og:title, og:description, og:image (512px icon), og:url, og:site_name
+  - twitter:card (summary), twitter:title, twitter:description, twitter:image
+- **Memory leak fixes**
+  - `StoryIntro`: keydown handler now removed on click/timeout dismiss (was leaking)
+  - `ConfirmDialog`: keydown handler now removed on button click (was leaking)
+- **Progress HUD throttling** — skips DOM writes when pct/turns unchanged (reduces layout thrash during skip mode)
+- **Empty filter state** — shows helpful message with contextual hints when search/filter returns no stories
+  - Different messages for favorites ("Tap 🤍 to favorite"), completed ("Start playing!"), and search ("Try a different search")
+- SW cache bumped to v15 with error-boundary.js
+- All 29 JS files pass `node --check` validation
+- README updated with error boundary + OG tag features
+- 2 commits pushed
+
 ## Still Possible Future Work
 - Generate remaining character portraits (GPU timeout issue — needs investigation, possibly during lower GPU load)
 - AI-generated scene background images
@@ -480,6 +505,7 @@ cd /tmp/nyantales && python3 -m http.server 9876
 - ~~Accessibility: screen reader support, high-contrast mode, reduced motion~~ ✅ Done in Phase 16
 
 ## Log (continued)
+- 2026-03-25 (10:27 PM): Phase 29 — Error boundary + SafeStorage (global error handler, localStorage quota handling with auto-eviction), Open Graph + Twitter Card meta tags for rich link previews, fixed memory leaks in StoryIntro + ConfirmDialog (keydown handlers), progress HUD throttling, empty filter state with contextual hints. SaveManager/Settings/Tracker all use SafeStorage. SW cache v15. All 29 JS pass. 2 commits pushed.
 - 2026-03-25 (9:27 PM): Phase 28 — Toast queue (max 3 visible), history panel keyboard nav (PgUp/PgDn/Home/End/arrows), smooth screen transitions with scale+blur, top-of-screen progress bar, auto-play pauses when panels open, swipe up for save/load, reading time shown on endings, keyboard help updated. SW cache v14. All 28 JS pass. 2 commits pushed.
 - 2026-03-25 (8:27 PM): Phase 27 — Code quality refactor: extracted AchievementPanel class from main.js (with focus trap + progress bar + a11y), added text speed preview in settings panel, textbox auto-scroll during typewriter, removed debug console.log, updated README with all 28 features. SW cache v13. All 28 JS pass. 3 commits pushed.
 - 2026-03-25 (7:27 PM): Phase 26 — Story Route Map (canvas-based interactive branching graph with pan/zoom/tooltips), SW update notification banner, R keyboard shortcut. SW cache v12. All 27 JS pass. Committed & pushed.
