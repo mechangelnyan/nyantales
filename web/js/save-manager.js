@@ -25,6 +25,9 @@ class SaveManager {
 
   /** Get all save slots for a story */
   getSlots(slug) {
+    if (typeof SafeStorage !== 'undefined') {
+      return SafeStorage.getJSON(this.STORAGE_PREFIX + slug, {});
+    }
     try {
       const raw = localStorage.getItem(this.STORAGE_PREFIX + slug);
       return raw ? JSON.parse(raw) : {};
@@ -46,9 +49,11 @@ class SaveManager {
       visitedCount: engine.state.visited.size
     };
 
-    try {
-      localStorage.setItem(this.STORAGE_PREFIX + slug, JSON.stringify(slots));
-    } catch { /* storage full */ }
+    if (typeof SafeStorage !== 'undefined') {
+      SafeStorage.setJSON(this.STORAGE_PREFIX + slug, slots);
+    } else {
+      try { localStorage.setItem(this.STORAGE_PREFIX + slug, JSON.stringify(slots)); } catch { /* storage full */ }
+    }
 
     return slots[slotName];
   }
@@ -62,9 +67,11 @@ class SaveManager {
   deleteSlot(slug, slotName) {
     const slots = this.getSlots(slug);
     delete slots[slotName];
-    try {
-      localStorage.setItem(this.STORAGE_PREFIX + slug, JSON.stringify(slots));
-    } catch { /* noop */ }
+    if (typeof SafeStorage !== 'undefined') {
+      SafeStorage.setJSON(this.STORAGE_PREFIX + slug, slots);
+    } else {
+      try { localStorage.setItem(this.STORAGE_PREFIX + slug, JSON.stringify(slots)); } catch { /* noop */ }
+    }
   }
 
   /** Check if any save exists for a story */

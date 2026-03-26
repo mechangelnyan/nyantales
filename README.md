@@ -49,6 +49,8 @@ cd nyantales && python3 -m http.server 8080
 - 📱 Mobile: responsive design, touch gestures, collapsible HUD, landscape mode
 - ♿ Accessible: ARIA roles, focus traps, reduced motion support, high contrast mode
 - 📲 PWA: installable, offline-capable with service worker
+- 🛡️ Error boundary with SafeStorage — graceful quota handling, no lost saves
+- 🔗 Open Graph & Twitter Card meta tags for rich link previews
 - 🌙 Cyberpunk dark terminal theme with animated backgrounds and particles
 
 ---
