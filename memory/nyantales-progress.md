@@ -531,6 +531,25 @@ cd /tmp/nyantales && python3 -m http.server 9876
 - **README** updated with production build instructions and output sizes
 - `web/dist/` added to `.gitignore` (CI generates it fresh)
 
+## Phase 33: Touch Gesture Suspension, Skip Link, 404 Page, QoL ✅
+- **Touch gesture suspension during panels** — fixes swipe gestures firing behind open overlays
+  - `TouchHandler.suspend(bool)` — new method, checked alongside `enabled` in `_onTouchEnd`
+  - `syncTouchSuspension()` in main.js — called on every panel show/hide/toggle
+  - Previously: swiping while settings/history/save panels open could trigger advance/history/save actions underneath
+- **Skip-to-content link** — accessibility improvement for keyboard/screen reader users
+  - Visually hidden `<a href="#story-list">Skip to stories</a>` appears on Tab focus
+  - CSS: `.skip-link` with focus-visible positioning at top of page
+- **GitHub Pages 404 page** — themed 404.html at repo root
+  - Styled to match NyanTales cyberpunk aesthetic (cat ASCII art, dark bg, cyan accent)
+  - Links back to main page
+- **Removed test artifact** — deleted `web/assets/test_cat.png` (420KB wasted space)
+- **Story card lazy loading** — sprite `<img>` tags now use `loading="lazy" decoding="async"`
+  - Defers offscreen sprite rendering for faster initial paint with 30 cards
+- **CSS additions** — `.skip-link` styles, `.new-save-badge` pulse animation
+- SW cache bumped to v18
+- Production build regenerated (133KB bundle)
+- All 30 JS files pass `node --check` validation
+
 ## Still Possible Future Work
 - Generate remaining character portraits (GPU timeout issue — needs investigation, possibly during lower GPU load)
 - AI-generated scene background images
@@ -554,6 +573,7 @@ cd /tmp/nyantales && python3 -m http.server 9876
 - 2 commits pushed
 
 ## Log (continued)
+- 2026-03-26 (2:27 AM): Phase 33 — Touch gesture suspension (swipe gestures now blocked behind open panels), skip-to-content link for a11y, GitHub Pages 404.html, removed test_cat.png (420KB), lazy loading for story card sprites. SW cache v18. All 30 JS pass. Committed & pushed.
 - 2026-03-26 (1:27 AM): Phase 32 — Fixed critical bug: dist build couldn't load stories (storyBasePath returned wrong relative path for /web/dist/). Fixed share URL, removed dead code (COLOR_THEMES.rgb), added JSDoc to VNUI. SW cache v17. 2 commits pushed.
 - 2026-03-26 (12:27 AM): Phase 31 — Production build pipeline: build.sh bundles 30 JS files into single minified bundle (225KB→132KB, 41% smaller), CSS minified (93KB→68KB), HTTP requests 30→3. Production service worker, CI updated with build step, root redirect to dist/, OG URL fixes. README updated. Committed & pushed.
 - 2026-03-25 (11:27 PM): Phase 30 — Code quality refactor: extracted SafeStorage into own file (was crammed in error-boundary.js), fixed isAnyPanelOpen() missing 4 panels (achPanel/aboutPanel/statsDashboard/storyInfo — auto-play bug), hoisted achPanel to init block, added togglePanel() DRY helper (saves ~40 lines), removed duplicate comment. SW cache v16. All 30 JS pass. Committed & pushed.
