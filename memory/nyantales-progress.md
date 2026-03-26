@@ -550,6 +550,27 @@ cd /tmp/nyantales && python3 -m http.server 9876
 - Production build regenerated (133KB bundle)
 - All 30 JS files pass `node --check` validation
 
+## Phase 35: Reading Time Tracking, Visited Choice Hints, Code Quality ✅
+- **Total reading time tracking** — persistent per-story and global reading time
+  - `StoryTracker.recordReadingTime(slug, elapsedMs)` — accumulates reading time
+  - `StoryTracker.getTotalReadingMs()` — global total across all stories
+  - `StoryTracker.formatDuration(ms)` — static utility: `0s`, `3m 42s`, `1h 15m`
+  - Recorded on endings AND mid-story menu returns (no lost time)
+  - Title screen stats bar shows total reading time (e.g., `⏱ 2h 15m reading`)
+  - Ending screen reading time refactored to use shared `formatDuration()`
+- **Visited choice hints** — choices leading to previously explored scenes marked
+  - `✓` badge appended to choice text for visited `goto` targets
+  - Left green border accent on visited-path choice buttons
+  - Helps players discover unexplored branches on replays
+- **Achievement system code quality fix** — `_buildContext()` refactored
+  - Was reading raw localStorage and re-parsing JSON (redundant + potentially stale)
+  - Now reads `tracker.data.stories` directly — consistent with in-memory state
+- **Title screen scroll reset** — smooth scroll-to-top on menu return
+  - Prevents returning to a scrolled-down position after a long session
+- **CSS additions** — `.choice-visited`, `.choice-visited-path`, `.title-bg` smooth scroll
+- SW cache bumped to v20, production build regenerated (134KB bundle)
+- All 30 JS files pass `node --check` validation
+
 ## Still Possible Future Work
 - Generate remaining character portraits (GPU timeout issue — needs investigation, possibly during lower GPU load)
 - AI-generated scene background images
@@ -594,6 +615,7 @@ cd /tmp/nyantales && python3 -m http.server 9876
 - All 30 JS files pass `node --check` validation
 
 ## Log (continued)
+- 2026-03-26 (4:27 AM): Phase 35 — Total reading time tracking (per-story + global, persistent), title stats show cumulative reading time, ending display uses shared formatter. Visited choice hints (✓ badge + green border on explored paths). Achievement _buildContext() now reads tracker data directly instead of raw localStorage. Title screen scroll-to-top on return. SW v20. All 30 JS pass. Committed & pushed.
 - 2026-03-26 (3:27 AM): Phase 34 — Dynamic document title, debounced StoryTracker saves (500ms coalesce for skip mode, immediate for endings/favorites), auto-play pause on tab hidden, CSS contain:content on story cards, preload hints, preconnect to gstatic. SW v19. All 30 JS pass. Committed & pushed.
 - 2026-03-26 (2:27 AM): Phase 33 — Touch gesture suspension (swipe gestures now blocked behind open panels), skip-to-content link for a11y, GitHub Pages 404.html, removed test_cat.png (420KB), lazy loading for story card sprites. SW cache v18. All 30 JS pass. Committed & pushed.
 - 2026-03-26 (1:27 AM): Phase 32 — Fixed critical bug: dist build couldn't load stories (storyBasePath returned wrong relative path for /web/dist/). Fixed share URL, removed dead code (COLOR_THEMES.rgb), added JSDoc to VNUI. SW cache v17. 2 commits pushed.
