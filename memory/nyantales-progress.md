@@ -673,6 +673,23 @@ cd /tmp/nyantales && python3 -m http.server 9876
 - SW cache bumped to v26, production build regenerated (134KB bundle)
 - All 30 JS files pass `node --check` validation
 
+## Phase 42: SaveManager Delegation, Shared _esc, Inline Style Cleanup ✅
+- **SaveManager slot listener leak fix** — `_renderSlots()` was creating 3+ new `addEventListener` calls per slot on every re-render (save/load/delete buttons). Over a session with multiple save/load panel opens, dozens of orphaned listeners accumulated.
+  - Refactored to **single delegated click listener** on `.save-slots` container, initialized once in `_buildOverlay()`
+  - Buttons now use `data-action="save|load|delete"` attributes for delegation dispatch
+- **Shared `_esc()` / `_escapeHtml()` element** — 3 modules were each creating new `document.createElement('div')` per escape call:
+  - `SaveManager._esc()` → now static method reusing `SaveManager._escDiv`
+  - `StoryInfoModal._esc()` → now reuses `VNUI._escapeDiv` (shared across all modules)
+  - `StatsDashboard._escapeHtml()` → now reuses `VNUI._escapeDiv`
+  - Zero new element allocations across all HTML escape calls
+- **Inline `style.cssText` moved to CSS classes**:
+  - `.new-ending-badge` — was inline on every ending discovery (color, font, size, animation)
+  - `.story-card-save-badge` + `.save-badge-bottom` — was inline per card decoration
+  - Both now theme-reactive via CSS custom properties
+- **Save feedback fix** — save flash was setting `btn.textContent` after `_renderSlots()` which replaces innerHTML (btn was detached, feedback invisible). Now uses Toast notification.
+- SW cache bumped to v27, production build regenerated (134KB bundle)
+- All 30 JS files pass `node --check` validation
+
 ## Still Possible Future Work
 - Generate remaining character portraits (GPU timeout issue — needs investigation, possibly during lower GPU load)
 - AI-generated scene background images
@@ -717,6 +734,7 @@ cd /tmp/nyantales && python3 -m http.server 9876
 - All 30 JS files pass `node --check` validation
 
 ## Log (continued)
+- 2026-03-26 (11:27 AM): Phase 42 — SaveManager delegation: fixed slot listener leak (_renderSlots created new listeners per re-render → single delegated listener). Shared _esc element (SaveManager, StoryInfoModal, StatsDashboard all reuse VNUI._escapeDiv). Moved inline style.cssText to CSS classes (.new-ending-badge, .save-badge-bottom). Fixed save feedback (detached btn → Toast). SW v27. 134KB bundle. All 30 JS pass. Committed & pushed.
 - 2026-03-26 (10:27 AM): Phase 41 — Story card delegation: moved 60 per-card click/keydown listeners to 2 grid-level delegated listeners. Cached textboxEl, titleBg, themeColorMeta DOM refs. Optimized _updateSprites toLowerCase calls (15→3 per render). Fixed stale prod SW version (v23→v26). addEventListener count: 13. SW v26. 134KB bundle. All 30 JS pass. Committed & pushed.
 - 2026-03-26 (9:27 AM): Phase 40 — Event delegation: HUD toolbar + title bar buttons now use 2 delegated listeners instead of 18 individual ones (addEventListener count 28→12, 57% fewer). Cached VNUI._escapeDiv (reuses 1 element instead of creating hundreds). Cached story card NodeList for filter/sort reuse. SW v25. 134KB bundle. All 30 JS pass. Committed & pushed.
 - 2026-03-26 (8:27 AM): Phase 39 — CRITICAL FIX: ensureAudio() was infinitely recursive (called itself instead of audio.init()), crashing app on any audio-triggering click. DRYed Escape key handler (10 if/return blocks → array find loop). Cached btnAutoEl + statsEl + reused storyGrid ref (eliminates 6 repeated getElementById calls). SW v24. 134KB bundle. All 30 JS pass. Committed & pushed.
