@@ -74,6 +74,45 @@ class StoryTracker {
     return Math.min(100, Math.round((story.visitedScenes.length / totalScenes) * 100));
   }
 
+  /**
+   * Record elapsed reading time for a story session.
+   * Called on ending or when returning to menu mid-story.
+   * @param {string} slug - Story slug
+   * @param {number} elapsedMs - Milliseconds spent reading
+   */
+  recordReadingTime(slug, elapsedMs) {
+    if (!elapsedMs || elapsedMs <= 0) return;
+    const story = this.getStory(slug);
+    story.totalReadingMs = (story.totalReadingMs || 0) + elapsedMs;
+    // Also track global total
+    this.data.totalReadingMs = (this.data.totalReadingMs || 0) + elapsedMs;
+    this._save();
+  }
+
+  /**
+   * Get total reading time across all stories in ms.
+   * @returns {number}
+   */
+  getTotalReadingMs() {
+    return this.data.totalReadingMs || 0;
+  }
+
+  /**
+   * Format milliseconds as a human-readable duration string.
+   * @param {number} ms
+   * @returns {string}
+   */
+  static formatDuration(ms) {
+    if (!ms || ms <= 0) return '0s';
+    const totalSecs = Math.floor(ms / 1000);
+    const hours = Math.floor(totalSecs / 3600);
+    const mins = Math.floor((totalSecs % 3600) / 60);
+    const secs = totalSecs % 60;
+    if (hours > 0) return `${hours}h ${mins}m`;
+    if (mins > 0) return `${mins}m ${secs}s`;
+    return `${secs}s`;
+  }
+
   /** Record a story completion */
   recordEnding(slug, ending, turns) {
     const story = this.getStory(slug);

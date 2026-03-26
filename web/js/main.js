@@ -413,12 +413,16 @@
       clearAutoPlayTimer();
       updateSkipIndicator(false);
 
+      // Record reading time to tracker for persistent stats
+      const sessionElapsed = storyStartTime ? Date.now() - storyStartTime : 0;
+      if (currentSlug && sessionElapsed > 0) {
+        tracker.recordReadingTime(currentSlug, sessionElapsed);
+        storyStartTime = null; // prevent double-counting on menu return
+      }
+
       // Calculate and display reading time
-      if (storyStartTime) {
-        const elapsed = Date.now() - storyStartTime;
-        const mins = Math.floor(elapsed / 60000);
-        const secs = Math.floor((elapsed % 60000) / 1000);
-        const timeStr = mins > 0 ? `${mins}m ${secs}s` : `${secs}s`;
+      if (sessionElapsed > 0) {
+        const timeStr = StoryTracker.formatDuration(sessionElapsed);
         // Inject reading time into ending overlay after it renders
         setTimeout(() => {
           const endingEl = document.getElementById('vn-ending');
@@ -497,6 +501,11 @@
   }
 
   function returnToMenu() {
+    // Record reading time before clearing state
+    if (currentSlug && storyStartTime) {
+      tracker.recordReadingTime(currentSlug, Date.now() - storyStartTime);
+    }
+
     clearAutoPlayTimer();
     currentEngine = null;
     currentSlug = null;
@@ -514,6 +523,10 @@
     if (progressBar) progressBar.style.display = 'none';
     ui.showTitleScreen();
     renderTitleScreen();
+
+    // Scroll title screen back to top
+    const titleBg = document.querySelector('.title-bg');
+    if (titleBg) titleBg.scrollTo({ top: 0, behavior: 'smooth' });
   }
 
   // ── Title Screen Rendering ──
@@ -526,12 +539,14 @@
   function renderTitleScreen() {
     const stats = tracker.getStats();
     const achStats = achievements.getStats();
+    const totalTime = StoryTracker.formatDuration(tracker.getTotalReadingMs());
     const statsEl = document.getElementById('title-stats');
     statsEl.innerHTML = `
       <div class="stat">📖 <span class="stat-value">${stats.storiesCompleted}</span>/${storyIndex.length} complete</div>
       <div class="stat">🔮 <span class="stat-value">${stats.totalEndings}</span> endings found</div>
       <div class="stat">🎮 <span class="stat-value">${stats.totalPlays}</span> plays</div>
       <div class="stat">🏆 <span class="stat-value">${achStats.unlocked}</span>/${achStats.total}</div>
+      ${tracker.getTotalReadingMs() > 0 ? `<div class="stat">⏱ <span class="stat-value">${totalTime}</span> reading</div>` : ''}
     `;
 
     // renderStoryList clears the grid and creates fresh cards — no duplicate risk

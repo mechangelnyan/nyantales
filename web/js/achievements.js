@@ -140,30 +140,27 @@ class AchievementSystem {
     } catch { /* noop */ }
   }
 
-  /** Build context object from tracker for checking achievements */
+  /**
+   * Build context object from tracker for checking achievements.
+   * Uses tracker instance data directly instead of reading raw localStorage,
+   * which avoids parsing overhead and ensures consistency with in-memory state.
+   */
   _buildContext() {
     const stats = this.tracker.getStats();
     const completedSlugs = new Set();
     let bestTurns = null;
     let maxTurns = null;
 
-    // Read tracker data
-    try {
-      const raw = localStorage.getItem('nyantales-tracker');
-      if (raw) {
-        const data = JSON.parse(raw);
-        const stories = data.stories || data;
-        for (const [slug, info] of Object.entries(stories)) {
-          if (info.completed) {
-            completedSlugs.add(slug);
-          }
-          if (info.bestTurns != null) {
-            if (bestTurns === null || info.bestTurns < bestTurns) bestTurns = info.bestTurns;
-            if (maxTurns === null || info.bestTurns > maxTurns) maxTurns = info.bestTurns;
-          }
-        }
+    const stories = this.tracker.data.stories || {};
+    for (const [slug, info] of Object.entries(stories)) {
+      if (info.completed) {
+        completedSlugs.add(slug);
       }
-    } catch { /* noop */ }
+      if (info.bestTurns != null) {
+        if (bestTurns === null || info.bestTurns < bestTurns) bestTurns = info.bestTurns;
+        if (maxTurns === null || info.bestTurns > maxTurns) maxTurns = info.bestTurns;
+      }
+    }
 
     return {
       ...stats,

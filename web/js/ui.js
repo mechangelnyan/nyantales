@@ -533,9 +533,12 @@ class VNUI {
         if (hasItem) label += ` [${choice.requires_item}]`;
       }
 
-      // Number hint
+      // Number hint + visited badge
       const numHint = i < 9 ? `<span class="choice-num">${i + 1}</span>` : '';
-      btn.innerHTML = `${numHint}${this._escapeHtml(label)}`;
+      const visited = choice.goto && engine.state.visited.has(choice.goto);
+      const visitedHint = visited ? '<span class="choice-visited" title="Previously visited">✓</span>' : '';
+      btn.innerHTML = `${numHint}${this._escapeHtml(label)}${visitedHint}`;
+      if (visited) btn.classList.add('choice-visited-path');
 
       btn.addEventListener('click', () => {
         // Click ripple effect

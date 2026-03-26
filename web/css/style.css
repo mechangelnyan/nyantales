@@ -3894,3 +3894,28 @@ body {
 .story-card-badge.new-save-badge {
   animation: badge-pulse 2s ease-in-out 3;
 }
+
+/* ═══════════════════════════════════════
+   Visited Choice Hints
+   ═══════════════════════════════════════ */
+
+.choice-visited {
+  display: inline-block;
+  margin-left: 0.5em;
+  font-size: 0.7em;
+  color: var(--accent-green);
+  opacity: 0.6;
+  vertical-align: middle;
+}
+
+.choice-btn.choice-visited-path {
+  border-left: 2px solid rgba(0, 255, 136, 0.25);
+}
+
+/* ═══════════════════════════════════════
+   Title Stats Scroll
+   ═══════════════════════════════════════ */
+
+.title-bg {
+  scroll-behavior: smooth;
+}
