@@ -624,6 +624,22 @@ cd /tmp/nyantales && python3 -m http.server 9876
 - SW cache bumped to v23, production build regenerated (135KB bundle)
 - All 30 JS files pass `node --check` validation
 
+## Phase 39: Critical Bug Fix — ensureAudio Recursion, DRY Escape, Cached DOM ✅
+- **CRITICAL BUG FIX:** `ensureAudio()` was calling itself recursively instead of `audio.init()`
+  - Caused infinite stack overflow on first audio-triggering interaction (story start, continue, random, gallery click)
+  - Introduced in Phase 38 when the 7 call sites were DRYed into `ensureAudio()` — function body was `ensureAudio()` instead of `if (!audio.ctx) audio.init()`
+  - Every click that triggered audio would crash the app with `RangeError: Maximum call stack size exceeded`
+- **Escape key handler DRYed** — 10 repetitive if/return blocks replaced with array-based `find()` loop
+  - Same behavior: closes topmost visible panel in priority order, syncs touch suspension, resumes auto-play
+  - ~15 fewer lines, eliminates per-keypress closure allocation for `resumeAutoPlay`
+- **Cached DOM refs expanded** — `btnAutoEl` and `statsEl` cached at init
+  - `updateAutoPlayHUD()` was querying `getElementById('btn-auto')` on every call
+  - `renderTitleScreen()` was querying `getElementById('title-stats')` on every menu return
+- **`storyGrid` ref reused** in `applyFilter()`, `applySortToGrid()`, and boot error fallback
+  - Was calling `getElementById('story-list')` 4 times (now 1)
+- SW cache bumped to v24, production build regenerated (134KB bundle)
+- All 30 JS files pass `node --check` validation
+
 ## Still Possible Future Work
 - Generate remaining character portraits (GPU timeout issue — needs investigation, possibly during lower GPU load)
 - AI-generated scene background images
@@ -668,6 +684,7 @@ cd /tmp/nyantales && python3 -m http.server 9876
 - All 30 JS files pass `node --check` validation
 
 ## Log (continued)
+- 2026-03-26 (8:27 AM): Phase 39 — CRITICAL FIX: ensureAudio() was infinitely recursive (called itself instead of audio.init()), crashing app on any audio-triggering click. DRYed Escape key handler (10 if/return blocks → array find loop). Cached btnAutoEl + statsEl + reused storyGrid ref (eliminates 6 repeated getElementById calls). SW v24. 134KB bundle. All 30 JS pass. Committed & pushed.
 - 2026-03-26 (7:27 AM): Phase 38 — Code quality: story grid event delegation (60+ per-card listeners → 1 delegated), extracted decorateStoryCard() + getStoryMeta() from renderTitleScreen(), ensureAudio() helper (7 call sites), cached vnContainer + containerEl DOM refs (eliminates 6 querySelector calls), replaced inline style= on formatted text with CSS classes (.vn-inline-code, .vn-bold) for theme-reactivity. SW v23. 135KB bundle. All 30 JS pass. Committed & pushed.
 - 2026-03-26 (6:27 AM): Phase 37 — Code quality: fixed ending event listener leak (was creating 3 new listeners per ending, now uses event delegation), moved sprite speaking/ending highlights from inline JS styles to CSS classes (theme-reactive), removed dead VNUI._accentRGBA(), added goToScene null guard in engine, fixed reading time injection to use synchronous DOM instead of setTimeout. SW v22. 135KB bundle. All 30 JS pass. Committed & pushed.
 - 2026-03-26 (5:27 AM): Phase 36 — Theme-aware accent colors: replaced 138 hardcoded rgba(0,212,255,...) with CSS var RGB components (--accent-r/g/b). All 5 color themes now affect every UI element (borders, glows, shadows, particles, grid, sprites, scrollbars, canvas route map). Route map caches accent RGB per render frame. Ending screen gets focus management + aria. Choices get aria-live. SW v21. 135KB bundle. All 30 JS pass. Committed & pushed.
