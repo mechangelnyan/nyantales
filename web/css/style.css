@@ -591,6 +591,7 @@ body {
   min-height: 170px;
   max-height: 40vh;
   overflow-y: auto;
+  scroll-behavior: smooth;
   cursor: pointer;
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
@@ -633,6 +634,9 @@ body {
   padding-right: 0.5rem;
 }
 
+.vn-textbox::-webkit-scrollbar { width: 4px; }
+.vn-textbox::-webkit-scrollbar-track { background: transparent; }
+.vn-textbox::-webkit-scrollbar-thumb { background: rgba(0, 212, 255, 0.3); border-radius: 2px; }
 .vn-text::-webkit-scrollbar { width: 4px; }
 .vn-text::-webkit-scrollbar-track { background: transparent; }
 .vn-text::-webkit-scrollbar-thumb { background: rgba(0, 212, 255, 0.3); border-radius: 2px; }

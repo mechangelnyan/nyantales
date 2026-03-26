@@ -432,6 +432,7 @@ class VNUI {
         this.textEl.innerHTML = this._formatText(text);
         this.isTyping = false;
         this.clickIndicator.classList.remove('hidden');
+        this.textboxEl.scrollTop = this.textboxEl.scrollHeight;
         resolve();
         return;
       }
@@ -444,10 +445,13 @@ class VNUI {
           const chunk = text.slice(index, index + 2);
           index += 2;
           this.textEl.innerHTML = this._formatText(text.slice(0, index));
+          // Auto-scroll textbox to keep new text visible
+          this.textboxEl.scrollTop = this.textboxEl.scrollHeight;
           this._typewriterTimeout = setTimeout(type, this.typewriterSpeed);
         } else {
           this.isTyping = false;
           this.clickIndicator.classList.remove('hidden');
+          this.textboxEl.scrollTop = this.textboxEl.scrollHeight;
           resolve();
         }
       };
@@ -461,6 +465,7 @@ class VNUI {
       this.textEl.innerHTML = this._formatText(this._fullText);
       this.isTyping = false;
       this.clickIndicator.classList.remove('hidden');
+      this.textboxEl.scrollTop = this.textboxEl.scrollHeight;
       if (this._typewriterResolve) {
         this._typewriterResolve();
         this._typewriterResolve = null;
