@@ -227,7 +227,7 @@
   }
 
   function updateAutoPlayHUD(on) {
-    btnAutoEl.style.opacity = on ? '1' : '0.5';
+    btnAutoEl.classList.toggle('hud-inactive', !on);
     btnAutoEl.title = on ? 'Auto-Play ON (A)' : 'Auto-Play OFF (A)';
     btnAutoEl.setAttribute('aria-pressed', on ? 'true' : 'false');
 
@@ -238,9 +238,9 @@
         autoPlayIndicator.innerHTML = '<div class="auto-play-dot"></div> AUTO';
         vnContainer.appendChild(autoPlayIndicator);
       }
-      autoPlayIndicator.style.display = '';
+      autoPlayIndicator.classList.remove('hidden');
     } else if (autoPlayIndicator) {
-      autoPlayIndicator.style.display = 'none';
+      autoPlayIndicator.classList.add('hidden');
     }
   }
 
@@ -283,8 +283,8 @@
 
     // Skip DOM writes if nothing changed (avoids layout thrash during skip mode)
     if (pct === _lastProgressPct && turns === _lastProgressTurns) {
-      progressHUD.style.display = '';
-      progressBar.style.display = '';
+      progressHUD.classList.remove('hidden');
+      progressBar.classList.remove('hidden');
       return;
     }
     _lastProgressPct = pct;
@@ -292,11 +292,11 @@
 
     progressHUD.innerHTML = `<span>📍 ${visited}/${totalScenes}</span> <span>· Turn ${turns}</span>`;
     progressHUD.title = `${pct}% explored · Turn ${turns}`;
-    progressHUD.style.display = '';
+    progressHUD.classList.remove('hidden');
 
     // Update thin top progress bar
     progressBar.style.width = `${pct}%`;
-    progressBar.style.display = '';
+    progressBar.classList.remove('hidden');
   }
 
   // ── Skip-Read Logic ──
@@ -313,11 +313,11 @@
         skipIndicator.innerHTML = '⏭ SKIP';
         vnContainer.appendChild(skipIndicator);
       }
-      skipIndicator.style.display = '';
-      if (autoPlayIndicator) autoPlayIndicator.style.display = 'none';
+      skipIndicator.classList.remove('hidden');
+      if (autoPlayIndicator) autoPlayIndicator.classList.add('hidden');
     } else if (skipIndicator) {
-      skipIndicator.style.display = 'none';
-      if (settings.get('autoPlay') && autoPlayIndicator) autoPlayIndicator.style.display = '';
+      skipIndicator.classList.add('hidden');
+      if (settings.get('autoPlay') && autoPlayIndicator) autoPlayIndicator.classList.remove('hidden');
     }
   }
 
@@ -528,9 +528,9 @@
     textHistory.clear();
     updateSkipIndicator(false);
     if (sceneSelect.isVisible) sceneSelect.hide();
-    if (autoPlayIndicator) autoPlayIndicator.style.display = 'none';
-    if (progressHUD) progressHUD.style.display = 'none';
-    if (progressBar) progressBar.style.display = 'none';
+    if (autoPlayIndicator) autoPlayIndicator.classList.add('hidden');
+    if (progressHUD) progressHUD.classList.add('hidden');
+    if (progressBar) progressBar.classList.add('hidden');
     ui.showTitleScreen();
     renderTitleScreen();
 
@@ -751,7 +751,7 @@
   // ── Search, Filter & Sort ──
 
   const filterInput = document.getElementById('filter-input');
-  const filterTags = document.querySelectorAll('.filter-tag');
+  const filterTagsContainer = document.querySelector('.filter-tags');
   const sortSelect = document.getElementById('sort-select');
 
   // Debounced search input for smoother performance with 30 cards
@@ -760,17 +760,19 @@
     if (_filterTimer) clearTimeout(_filterTimer);
     _filterTimer = setTimeout(() => applyFilter(), 80);
   });
-  filterTags.forEach(tag => {
-    tag.addEventListener('click', () => {
-      filterTags.forEach(t => {
-        t.classList.remove('active');
-        t.setAttribute('aria-selected', 'false');
-      });
-      tag.classList.add('active');
-      tag.setAttribute('aria-selected', 'true');
-      activeFilter = tag.dataset.filter;
-      applyFilter();
+
+  // Single delegated listener on filter tags container (replaces 4 individual listeners)
+  filterTagsContainer.addEventListener('click', (e) => {
+    const tag = e.target.closest('.filter-tag');
+    if (!tag) return;
+    filterTagsContainer.querySelectorAll('.filter-tag').forEach(t => {
+      t.classList.remove('active');
+      t.setAttribute('aria-selected', 'false');
     });
+    tag.classList.add('active');
+    tag.setAttribute('aria-selected', 'true');
+    activeFilter = tag.dataset.filter;
+    applyFilter();
   });
 
   sortSelect.addEventListener('change', () => {
@@ -824,9 +826,9 @@
     }
     if (query || activeFilter !== 'all') {
       countEl.textContent = `${visibleCount} stor${visibleCount === 1 ? 'y' : 'ies'}`;
-      countEl.style.display = '';
+      countEl.classList.remove('hidden');
     } else {
-      countEl.style.display = 'none';
+      countEl.classList.add('hidden');
     }
 
     // Show/hide empty state message
@@ -842,9 +844,9 @@
         : activeFilter === 'completed' ? 'No stories completed yet — start playing!'
         : 'No matches found. Try a different search.';
       emptyEl.innerHTML = `<span class="filter-empty-icon">🐱</span><span>${hint}</span>`;
-      emptyEl.style.display = '';
+      emptyEl.classList.remove('hidden');
     } else if (emptyEl) {
-      emptyEl.style.display = 'none';
+      emptyEl.classList.add('hidden');
     }
   }
 
@@ -1011,7 +1013,7 @@
   function toggleAudio() {
     const enabled = audio.toggle();
     btnAudio.textContent = enabled ? '🔊' : '🔇';
-    btnAudio.style.opacity = enabled ? '1' : '0.5';
+    btnAudio.classList.toggle('hud-inactive', !enabled);
     btnAudio.title = enabled ? 'Audio ON (M)' : 'Audio OFF (M)';
     btnAudio.setAttribute('aria-pressed', enabled ? 'true' : 'false');
     if (enabled && ui._lastBgClass) audio.setTheme(ui._lastBgClass);
@@ -1026,7 +1028,7 @@
 
   function updateRewindButton() {
     const canRewind = currentEngine && currentEngine.state.snapshots.length > 0;
-    btnRewind.style.opacity = canRewind ? '0.85' : '0.35';
+    btnRewind.classList.toggle('hud-dim', !canRewind);
     btnRewind.disabled = !canRewind;
   }
 
@@ -1180,10 +1182,10 @@
       console.error('Failed to boot NyanTales:', err);
       hideLoadingScreen();
       storyGrid.innerHTML =
-        `<p style="color:var(--accent-red);padding:2rem;font-family:var(--font-mono)" role="alert">
+        `<p class="boot-error" role="alert">
           Error loading stories. Make sure you're serving this from a web server.<br>
           <code>cd /tmp/nyantales && python3 -m http.server 8080</code><br>
-          Then open <a href="http://localhost:8080/web/" style="color:var(--accent-cyan)">http://localhost:8080/web/</a>
+          Then open <a href="http://localhost:8080/web/">http://localhost:8080/web/</a>
         </p>`;
     }
   }

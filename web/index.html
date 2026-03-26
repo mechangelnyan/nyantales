@@ -134,15 +134,15 @@
         <!-- HUD -->
         <div class="vn-hud" role="toolbar" aria-label="Game controls">
           <button id="btn-back" class="hud-btn" title="Back to Stories (Esc)" aria-label="Back to story list">⏎</button>
-          <button id="btn-rewind" class="hud-btn" title="Back one scene (B)" aria-label="Go back one scene" style="opacity:0.35">⏪</button>
+          <button id="btn-rewind" class="hud-btn hud-dim" title="Back one scene (B)" aria-label="Go back one scene">⏪</button>
           <button id="btn-save" class="hud-btn" title="Save/Load (Q)" aria-label="Save or load game">💾</button>
           <button id="btn-hud-more" class="hud-btn hud-overflow-toggle" title="More controls" aria-label="Show more controls">⋯</button>
           <button id="btn-fast" class="hud-btn hud-collapsible" title="Toggle Fast Mode" aria-label="Toggle fast text mode">⏩</button>
-          <button id="btn-auto" class="hud-btn hud-collapsible" title="Auto-Play (A)" aria-label="Toggle auto-play" aria-pressed="false" style="opacity:0.5">▶️</button>
+          <button id="btn-auto" class="hud-btn hud-collapsible hud-inactive" title="Auto-Play (A)" aria-label="Toggle auto-play" aria-pressed="false">▶️</button>
           <button id="btn-history" class="hud-btn hud-collapsible" title="Text History (H)" aria-label="View text history">📜</button>
           <button id="btn-scenes" class="hud-btn hud-collapsible" title="Scene Select (G)" aria-label="Open scene select">📍</button>
           <button id="btn-settings" class="hud-btn hud-collapsible" title="Settings (S)" aria-label="Open settings">⚙️</button>
-          <button id="btn-audio" class="hud-btn hud-collapsible" title="Toggle Ambient Audio (M)" aria-label="Toggle ambient audio" aria-pressed="false" style="opacity:0.5">🔇</button>
+          <button id="btn-audio" class="hud-btn hud-collapsible hud-inactive" title="Toggle Ambient Audio (M)" aria-label="Toggle ambient audio" aria-pressed="false">🔇</button>
           <button id="btn-routemap" class="hud-btn hud-collapsible" title="Route Map (R)" aria-label="View story route map">🗺️</button>
           <button id="btn-help" class="hud-btn hud-collapsible" title="Keyboard Shortcuts (?)" aria-label="Show keyboard shortcuts">❓</button>
         </div>
@@ -198,14 +198,22 @@
           if (!newWorker) return;
           newWorker.addEventListener('statechange', () => {
             if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
-              // New version available — show update banner
+              // New version available — show update banner (no inline handlers for CSP safety)
               const banner = document.createElement('div');
               banner.className = 'sw-update-banner';
-              banner.innerHTML = `
-                <span class="sw-update-text">🐱 NyanTales updated!</span>
-                <button class="sw-update-btn" onclick="location.reload()">Reload</button>
-                <button class="sw-dismiss-btn" onclick="this.parentElement.remove()" aria-label="Dismiss">✕</button>
-              `;
+              const text = document.createElement('span');
+              text.className = 'sw-update-text';
+              text.textContent = '🐱 NyanTales updated!';
+              const reloadBtn = document.createElement('button');
+              reloadBtn.className = 'sw-update-btn';
+              reloadBtn.textContent = 'Reload';
+              reloadBtn.addEventListener('click', () => location.reload());
+              const dismissBtn = document.createElement('button');
+              dismissBtn.className = 'sw-dismiss-btn';
+              dismissBtn.setAttribute('aria-label', 'Dismiss');
+              dismissBtn.textContent = '✕';
+              dismissBtn.addEventListener('click', () => banner.remove());
+              banner.append(text, reloadBtn, dismissBtn);
               document.body.appendChild(banner);
               requestAnimationFrame(() => banner.classList.add('visible'));
             }

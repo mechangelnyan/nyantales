@@ -941,6 +941,12 @@ body {
   border-color: var(--accent-cyan);
   color: var(--text-bright);
 }
+.hud-btn.hud-dim {
+  opacity: 0.35;
+}
+.hud-btn.hud-inactive {
+  opacity: 0.5;
+}
 
 /* ── HUD overflow menu for mobile ── */
 .hud-overflow-toggle {
@@ -3628,6 +3634,15 @@ body {
 .ending-btn-share:hover {
   opacity: 1;
   background: rgba(var(--accent-r), var(--accent-g), var(--accent-b), 0.18) !important;
+}
+
+.boot-error {
+  color: var(--accent-red, #ff4444);
+  padding: 2rem;
+  font-family: var(--font-mono, 'JetBrains Mono', monospace);
+}
+.boot-error a {
+  color: var(--accent-cyan, #00d4ff);
 }
 
 .noscript-msg {
