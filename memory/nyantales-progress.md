@@ -790,6 +790,20 @@ cd /tmp/nyantales && python3 -m http.server 9876
 - SW cache bumped to v33, production build regenerated (136KB bundle)
 - All 30 JS files pass `node --check` validation
 
+## Phase 49: RouteMap Reuse Overlay, AboutPanel Delegation, Tooltip Cleanup ✅
+- **RouteMap overlay reuse** — overlay built once via `_ensureOverlay()` instead of destroyed/recreated every `show()`
+  - Previously: `_createOverlay()` built full DOM + appended to body + bound close/zoom listeners per `show()`
+  - `hide()` removed overlay from DOM entirely, forcing full rebuild next time
+  - Now: overlay persists, show/hide toggles `.visible` class + `aria-hidden`
+  - Close + zoom button clicks consolidated into **single delegated listener** on overlay
+  - FocusTrap created once, activated/deactivated on show/hide
+  - Canvas event handlers (mouse/touch/wheel/resize) still bound/unbound per show/hide (reference canvas element)
+- **RouteMap tooltip** uses `.hidden` class instead of `style.display` (consistent with rest of codebase)
+- **AboutPanel delegation** — 2 click listeners (close button + backdrop) merged into 1 delegated click on overlay
+- **AboutPanel cached `_statsEl`** — was querying `getElementById('about-stats')` on every `show()`
+- SW cache bumped to v34, production build regenerated (136KB bundle)
+- All 30 JS files pass `node --check` validation
+
 ## Still Possible Future Work
 - Generate remaining character portraits (GPU timeout issue — needs investigation, possibly during lower GPU load)
 - AI-generated scene background images
@@ -834,6 +848,7 @@ cd /tmp/nyantales && python3 -m http.server 9876
 - All 30 JS files pass `node --check` validation
 
 ## Log (continued)
+- 2026-03-26 (6:27 PM): Phase 49 — RouteMap overlay reuse (built once via _ensureOverlay instead of destroy/recreate per show; close+zoom delegated to single listener; FocusTrap created once). Tooltip uses .hidden class. AboutPanel delegation (2 listeners→1). AboutPanel cached _statsEl. SW v34. 136KB bundle. All 30 JS pass. Committed & pushed.
 - 2026-03-26 (5:27 PM): Phase 48 — AchievementPanel close listener leak fix (per-show addEventListener → delegated on _overlay). HistoryPanel cached DOM refs (_listEl, _countEl, _panelEl — eliminates 6+ querySelector calls per show/filter/keydown). Gallery cached refs (_grid, _panelEl, _cachedCards — eliminates querySelectorAll per filter). SW v33. 136KB bundle. All 30 JS pass. Committed & pushed.
 - 2026-03-26 (4:27 PM): Phase 47 — StoryInfoModal delegation (3-4 per-show listeners → single delegated click on overlay, fixes listener leak on repeated opens). HistoryPanel filter uses .hidden class. SettingsPanel inline styles→CSS classes (data-btns gap, btn font-size, file input hidden, auto-delay row toggle). History header inline style→.history-header-actions CSS. Prod SW synced to v32. 135KB bundle. All 30 JS pass. Committed & pushed.
 - 2026-03-26 (3:27 PM): Phase 46 — SceneSelect delegation (per-item click/keydown listeners → delegated on list container, fixes leak on repeated opens). SceneSelect._esc() reuses VNUI._escapeDiv. StatsDashboard delegation (close + recent-item re-bound every render → _initDelegation once, cursor:pointer to CSS). Gallery filter delegation (3 per-button → 1 on row). Gallery focus trap added. Fast mode uses CSS class not style.opacity. SW v31. 135KB bundle. All 30 JS pass. Committed & pushed.
