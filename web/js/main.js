@@ -90,6 +90,8 @@
     document.documentElement.style.setProperty('--text-scale', `${pct}%`);
   }
 
+  const themeColorMeta = document.querySelector('meta[name="theme-color"]');
+
   function applyColorTheme(themeName) {
     const theme = COLOR_THEMES[themeName] || COLOR_THEMES.cyan;
     const root = document.documentElement;
@@ -99,8 +101,7 @@
     root.style.setProperty('--accent-r', r);
     root.style.setProperty('--accent-g', g);
     root.style.setProperty('--accent-b', b);
-    const meta = document.querySelector('meta[name="theme-color"]');
-    if (meta) meta.setAttribute('content', theme.accent);
+    if (themeColorMeta) themeColorMeta.setAttribute('content', theme.accent);
   }
 
   // Apply initial settings
@@ -248,6 +249,7 @@
   const vnContainer = document.querySelector('.vn-container');
   const btnAutoEl   = document.getElementById('btn-auto');
   const statsEl     = document.getElementById('title-stats');
+  const textboxEl   = document.getElementById('vn-textbox');
 
   // ── In-Game Progress HUD ──
 
@@ -534,7 +536,6 @@
     renderTitleScreen();
 
     // Scroll title screen back to top
-    const titleBg = document.querySelector('.title-bg');
     if (titleBg) titleBg.scrollTo({ top: 0, behavior: 'smooth' });
   }
 
@@ -544,13 +545,26 @@
   // Single listener handles info/fav clicks for all 30 cards (replaces 60+ per-card listeners)
 
   const storyGrid = document.getElementById('story-list');
+  /** Resolve a story from a card element via data-slug */
+  function storyFromCard(card) {
+    const slug = card?.dataset.slug;
+    return slug ? storyIndex.find(s => s.slug === slug) : null;
+  }
+
+  /** Start a story from a card click (shared by click + keydown delegation) */
+  function selectStoryCard(card) {
+    const story = storyFromCard(card);
+    if (!story) return;
+    ensureAudio();
+    startStory(story);
+  }
+
   storyGrid.addEventListener('click', (e) => {
     const infoBtn = e.target.closest('.story-card-info-btn');
     if (infoBtn) {
       e.stopPropagation();
       const card = infoBtn.closest('.story-card');
-      const slug = card?.dataset.slug;
-      const story = storyIndex.find(s => s.slug === slug);
+      const story = storyFromCard(card);
       if (story) storyInfo.show(story, CHARACTER_DATA[story.slug] || []);
       return;
     }
@@ -559,10 +573,9 @@
     if (favBtn) {
       e.stopPropagation();
       const card = favBtn.closest('.story-card');
-      const slug = card?.dataset.slug;
-      const story = storyIndex.find(s => s.slug === slug);
+      const story = storyFromCard(card);
       if (!story) return;
-      const nowFav = tracker.toggleFavorite(slug);
+      const nowFav = tracker.toggleFavorite(story.slug);
       favBtn.textContent = nowFav ? '❤️' : '🤍';
       favBtn.title = nowFav ? 'Remove from favorites' : 'Add to favorites';
       favBtn.setAttribute('aria-pressed', nowFav ? 'true' : 'false');
@@ -571,6 +584,18 @@
       Toast.show(nowFav ? 'Added to favorites' : 'Removed from favorites', { icon: nowFav ? '❤️' : '💔', duration: 1500 });
       return;
     }
+
+    // Card click — start story (only if the card itself was clicked, not a child button)
+    const card = e.target.closest('.story-card');
+    if (card) selectStoryCard(card);
+  });
+
+  storyGrid.addEventListener('keydown', (e) => {
+    if (e.key !== 'Enter' && e.key !== ' ') return;
+    const card = e.target.closest('.story-card');
+    if (!card) return;
+    e.preventDefault();
+    selectStoryCard(card);
   });
 
   /**
@@ -689,10 +714,8 @@
     `;
 
     // renderStoryList clears the grid and creates fresh cards — no duplicate risk
-    ui.renderStoryList(storyIndex, (story) => {
-      ensureAudio();
-      startStory(story);
-    });
+    // Card click/keydown events are handled by grid-level delegation (see below)
+    ui.renderStoryList(storyIndex);
 
     // Invalidate and rebuild cached card list after grid re-render
     _cachedCards = [...storyGrid.querySelectorAll('.story-card')];
@@ -877,7 +900,7 @@
 
   // ── Click/Tap to Advance ──
 
-  document.getElementById('vn-textbox').addEventListener('click', () => {
+  textboxEl.addEventListener('click', () => {
     if (ui.isTyping) ui.skipTypewriter();
   });
 
@@ -1001,6 +1024,7 @@
   const btnRewind = document.getElementById('btn-rewind');
   const hudMoreBtn = document.getElementById('btn-hud-more');
   const hudToolbar = document.querySelector('.vn-hud');
+  const titleBg    = document.querySelector('.title-bg');
 
   function updateRewindButton() {
     const canRewind = currentEngine && currentEngine.state.snapshots.length > 0;

@@ -129,10 +129,11 @@ class VNUI {
 
   /**
    * Render story selection grid on title screen.
+   * Card click/keydown events are NOT attached here — they are handled by
+   * grid-level event delegation in main.js (single listener for all 30 cards).
    * @param {Array} stories - Story index entries
-   * @param {Function} onSelect - Callback when a story card is clicked
    */
-  renderStoryList(stories, onSelect) {
+  renderStoryList(stories) {
     this.storyListEl.innerHTML = '';
     stories.forEach((story, idx) => {
       const card = document.createElement('div');
@@ -162,13 +163,6 @@ class VNUI {
           </div>
         </div>
       `;
-      card.addEventListener('click', () => onSelect(story));
-      card.addEventListener('keydown', (e) => {
-        if (e.key === 'Enter' || e.key === ' ') {
-          e.preventDefault();
-          onSelect(story);
-        }
-      });
       this.storyListEl.appendChild(card);
     });
   }
@@ -190,17 +184,16 @@ class VNUI {
     // Determine which characters should be visible
     // 1. The speaker (if named)
     // 2. Characters mentioned in text
-    const speaker = scene.speaker || '';
-    const text = (scene.text || '').toLowerCase();
-    const sceneId = (engine.state.currentScene || '').toLowerCase();
+    const speakerLower = (scene.speaker || '').toLowerCase();
+    const textLower = (scene.text || '').toLowerCase();
+    const sceneIdLower = (engine.state.currentScene || '').toLowerCase();
 
     const visible = [];
     for (const char of chars) {
       const nameLower = char.name.toLowerCase();
-      const isSpeaker = speaker.toLowerCase() === nameLower ||
-                        speaker.toLowerCase().includes(nameLower);
-      const inText = text.includes(nameLower);
-      const inScene = sceneId.includes(nameLower.replace(/\s+/g, '-'));
+      const isSpeaker = speakerLower === nameLower || speakerLower.includes(nameLower);
+      const inText = textLower.includes(nameLower);
+      const inScene = sceneIdLower.includes(nameLower.replace(/\s+/g, '-'));
 
       if (isSpeaker || inText || inScene) {
         visible.push({ ...char, isSpeaker });
