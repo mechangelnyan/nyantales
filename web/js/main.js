@@ -38,6 +38,7 @@
   const aboutPanel    = new AboutPanel();
   const statsDashboard = new StatsDashboard(tracker, achievements, saveManager, ui.portraits);
   const routeMap      = new RouteMap();
+  const achPanel      = new AchievementPanel(achievements);
   const sceneSelect   = new SceneSelect((sceneId) => {
     if (!currentEngine) return;
     clearAutoPlayTimer();
@@ -127,6 +128,11 @@
     }
   });
 
+  /** Toggle a panel's visibility. For panels with custom show args, pass them in showArgs. */
+  function togglePanel(panel, ...showArgs) {
+    panel.isVisible ? panel.hide() : panel.show(...showArgs);
+  }
+
   // (COLOR_THEMES, applyParticlesSetting, applyFontSize, applyColorTheme moved above initial settings)
 
   // ── Story Index ──
@@ -168,7 +174,9 @@
   /** Check if any overlay panel is currently visible */
   function isAnyPanelOpen() {
     return settingsPanel.isVisible || historyPanel.isVisible || saveManager.isVisible
-      || sceneSelect.isVisible || routeMap.isVisible || keyboardHelp.isVisible;
+      || sceneSelect.isVisible || routeMap.isVisible || keyboardHelp.isVisible
+      || aboutPanel.isVisible || statsDashboard.isVisible || storyInfo.isVisible
+      || achPanel.isVisible;
   }
 
   function scheduleAutoAdvance() {
@@ -878,39 +886,17 @@
 
     if (key === 'm' && noMod) toggleAudio();
     if (key === 'b' && noMod && currentEngine) rewindOneScene();
-    if (e.key === '?' || (key === '/' && e.shiftKey)) {
-      keyboardHelp.isVisible ? keyboardHelp.hide() : keyboardHelp.show();
-    }
+    if (e.key === '?' || (key === '/' && e.shiftKey)) togglePanel(keyboardHelp);
 
     if (key === 'a' && noMod && currentEngine) toggleAutoPlay();
-
-    if (key === 'h' && noMod && currentEngine) {
-      historyPanel.isVisible ? historyPanel.hide() : historyPanel.show();
-    }
-
-    if (key === 'g' && noMod && currentEngine) {
-      sceneSelect.isVisible
-        ? sceneSelect.hide()
-        : sceneSelect.show(currentEngine, currentEngine.state.currentScene);
-    }
-
-    if (key === 'r' && noMod && currentEngine) {
-      routeMap.isVisible ? routeMap.hide() : routeMap.show(currentEngine);
-    }
-
-    if (key === 'f' && noMod && currentEngine) {
-      const fs = !settings.get('fullscreen');
-      settings.set('fullscreen', fs);
-    }
-
-    if (key === 's' && noMod) {
-      settingsPanel.isVisible ? settingsPanel.hide() : settingsPanel.show();
-    }
+    if (key === 'h' && noMod && currentEngine) togglePanel(historyPanel);
+    if (key === 'g' && noMod && currentEngine) togglePanel(sceneSelect, currentEngine, currentEngine.state.currentScene);
+    if (key === 'r' && noMod && currentEngine) togglePanel(routeMap, currentEngine);
+    if (key === 'f' && noMod && currentEngine) settings.set('fullscreen', !settings.get('fullscreen'));
+    if (key === 's' && noMod) togglePanel(settingsPanel);
 
     // 'Q' for save/load panel
-    if (key === 'q' && noMod && currentEngine && currentSlug) {
-      saveManager.isVisible ? saveManager.hide() : saveManager.show(currentSlug, currentEngine, 'save');
-    }
+    if (key === 'q' && noMod && currentEngine && currentSlug) togglePanel(saveManager, currentSlug, currentEngine, 'save');
   });
 
   // ── Auto-play Toggle ──
@@ -999,32 +985,20 @@
   });
 
   document.getElementById('btn-history').addEventListener('click', () => {
-    if (currentEngine) {
-      historyPanel.isVisible ? historyPanel.hide() : historyPanel.show();
-    }
+    if (currentEngine) togglePanel(historyPanel);
   });
 
   document.getElementById('btn-scenes').addEventListener('click', () => {
-    if (currentEngine) {
-      sceneSelect.isVisible
-        ? sceneSelect.hide()
-        : sceneSelect.show(currentEngine, currentEngine.state.currentScene);
-    }
+    if (currentEngine) togglePanel(sceneSelect, currentEngine, currentEngine.state.currentScene);
   });
 
-  document.getElementById('btn-settings').addEventListener('click', () => {
-    settingsPanel.isVisible ? settingsPanel.hide() : settingsPanel.show();
-  });
+  document.getElementById('btn-settings').addEventListener('click', () => togglePanel(settingsPanel));
 
   document.getElementById('btn-routemap').addEventListener('click', () => {
-    if (currentEngine) {
-      routeMap.isVisible ? routeMap.hide() : routeMap.show(currentEngine);
-    }
+    if (currentEngine) togglePanel(routeMap, currentEngine);
   });
 
-  document.getElementById('btn-help').addEventListener('click', () => {
-    keyboardHelp.isVisible ? keyboardHelp.hide() : keyboardHelp.show();
-  });
+  document.getElementById('btn-help').addEventListener('click', () => togglePanel(keyboardHelp));
 
   // ── Random Story ──
 
@@ -1075,11 +1049,7 @@
 
   // ── Achievements Panel ──
 
-  const achPanel = new AchievementPanel(achievements);
-
-  document.getElementById('btn-achievements').addEventListener('click', () => {
-    achPanel.isVisible ? achPanel.hide() : achPanel.show();
-  });
+  document.getElementById('btn-achievements').addEventListener('click', () => togglePanel(achPanel));
 
   // ── Boot ──
 
@@ -1136,9 +1106,7 @@
     }
   }
 
-  // ── Online/Offline Notifications ──
-
-  // ── Online/Offline Toasts (using centralized Toast system) ──
+  // ── Online/Offline Toasts ──
 
   window.addEventListener('online', () => Toast.show('Back online', { icon: '📶', color: 'rgba(0,255,136,0.88)' }));
   window.addEventListener('offline', () => Toast.show('Offline — saves still work!', { icon: '📴', color: 'rgba(255,68,68,0.88)' }));
