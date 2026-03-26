@@ -184,6 +184,10 @@ class CharacterGallery {
     }
   }
 
+  get isVisible() {
+    return this.overlay?.classList.contains('visible') || false;
+  }
+
   /** Set callback for when a story tag is clicked */
   onStoryClick(cb) {
     this.onStorySelect = cb;

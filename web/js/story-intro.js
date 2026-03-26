@@ -67,10 +67,14 @@ class StoryIntro {
     });
   }
 
-  /** @private */
+  /** @private — reuses VNUI's shared escape element when available */
   static _esc(text) {
-    const d = document.createElement('div');
-    d.textContent = text;
-    return d.innerHTML;
+    if (typeof VNUI !== 'undefined' && VNUI._escapeDiv) {
+      VNUI._escapeDiv.textContent = text;
+      return VNUI._escapeDiv.innerHTML;
+    }
+    if (!StoryIntro._escDiv) StoryIntro._escDiv = document.createElement('div');
+    StoryIntro._escDiv.textContent = text;
+    return StoryIntro._escDiv.innerHTML;
   }
 }

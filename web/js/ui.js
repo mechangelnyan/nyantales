@@ -532,15 +532,21 @@ class VNUI {
 
   // ── Choices ──
 
+  /**
+   * Show choices using event delegation on choicesEl (single listener,
+   * initialized once in constructor-like flow via _initChoiceDelegation).
+   */
   showChoices(choices, engine) {
     this.choicesEl.innerHTML = '';
     this.choicesEl.classList.remove('hidden');
-    // Keep the text/art visible — choices appear below, not replacing them
+    // Store current choices for delegation handler lookup
+    this._currentChoices = choices;
 
     choices.forEach((choice, i) => {
       const btn = document.createElement('button');
       btn.className = 'choice-btn fade-in';
       btn.style.animationDelay = `${i * 0.08}s`;
+      btn.dataset.choiceIdx = i;
 
       let label = engine.interpolate(choice.label || choice.text || `Choice ${i + 1}`);
       if (choice.requires_item) {
@@ -555,21 +561,42 @@ class VNUI {
       btn.innerHTML = `${numHint}${this._escapeHtml(label)}${visitedHint}`;
       if (visited) btn.classList.add('choice-visited-path');
 
-      btn.addEventListener('click', () => {
-        // Click ripple effect
-        btn.classList.add('chosen');
-        setTimeout(() => {
-          this.choicesEl.classList.add('hidden');
-          if (this._onChoice) this._onChoice(choice);
-        }, 200);
-      });
       this.choicesEl.appendChild(btn);
+    });
+
+    // One-time delegation setup
+    this._initChoiceDelegation();
+  }
+
+  /**
+   * Set up a single delegated click listener on choicesEl (called once).
+   * Replaces per-button addEventListener that leaked on each showChoices call.
+   * @private
+   */
+  _initChoiceDelegation() {
+    if (this._choicesDelegated) return;
+    this._choicesDelegated = true;
+
+    this.choicesEl.addEventListener('click', (e) => {
+      const btn = e.target.closest('.choice-btn');
+      if (!btn || !this._currentChoices) return;
+      const idx = parseInt(btn.dataset.choiceIdx, 10);
+      const choice = this._currentChoices[idx];
+      if (!choice) return;
+
+      // Click ripple effect
+      btn.classList.add('chosen');
+      setTimeout(() => {
+        this.choicesEl.classList.add('hidden');
+        if (this._onChoice) this._onChoice(choice);
+      }, 200);
     });
   }
 
   hideChoices() {
     this.choicesEl.classList.add('hidden');
     this.choicesEl.innerHTML = '';
+    this._currentChoices = null;
   }
 
   onChoice(callback) {

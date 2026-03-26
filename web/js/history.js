@@ -232,9 +232,14 @@ class HistoryPanel {
     }
   }
 
+  /** Reuses VNUI's shared escape element to avoid per-call allocations */
   _esc(text) {
-    const d = document.createElement('div');
-    d.textContent = text;
-    return d.innerHTML;
+    if (typeof VNUI !== 'undefined' && VNUI._escapeDiv) {
+      VNUI._escapeDiv.textContent = text;
+      return VNUI._escapeDiv.innerHTML;
+    }
+    if (!HistoryPanel._escDiv) HistoryPanel._escDiv = document.createElement('div');
+    HistoryPanel._escDiv.textContent = text;
+    return HistoryPanel._escDiv.innerHTML;
   }
 }

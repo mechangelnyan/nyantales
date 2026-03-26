@@ -95,10 +95,14 @@ class ConfirmDialog {
     });
   }
 
-  /** @private */
+  /** @private — reuses VNUI's shared escape element when available */
   static _esc(text) {
-    const d = document.createElement('div');
-    d.textContent = text;
-    return d.innerHTML;
+    if (typeof VNUI !== 'undefined' && VNUI._escapeDiv) {
+      VNUI._escapeDiv.textContent = text;
+      return VNUI._escapeDiv.innerHTML;
+    }
+    if (!ConfirmDialog._escDiv) ConfirmDialog._escDiv = document.createElement('div');
+    ConfirmDialog._escDiv.textContent = text;
+    return ConfirmDialog._escDiv.innerHTML;
   }
 }
