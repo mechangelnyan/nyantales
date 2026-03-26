@@ -435,6 +435,42 @@ cd /tmp/nyantales && python3 -m http.server 9876
 - SW cache bumped to v13 with achievement-panel.js
 - All 28 JS files pass `node --check` validation
 
+## Phase 28: QoL Polish, Reading Time, Transitions ✅
+- **Toast queue system** — max 3 visible toasts at once
+  - Oldest toast auto-dismissed when new ones exceed the cap
+  - Tracks active toasts in `Toast._activeToasts` array
+  - Properly removes from tracking array on dismiss
+- **History panel keyboard navigation** — scroll through text backlog with keyboard
+  - `Page Up` / `Page Down` scrolls by ~80% of visible height (smooth)
+  - `Arrow Up` / `Arrow Down` scrolls by 60px (small step)
+  - `Home` / `End` jumps to start/end of backlog
+  - Keyboard handler attached on show, removed on hide (no leaks)
+  - Doesn't interfere with search input focus
+- **Smooth screen transitions** — improved title ↔ story animation
+  - New `.screen.entering` CSS class: subtle scale(1.02) + blur(2px) fade-in
+  - `.screen.exiting` now uses scale(0.97) + blur(4px) fade-out
+  - Uses double-rAF for clean animation without display:none flash
+  - `will-change: opacity, transform` for GPU compositing
+- **Thin top-of-screen progress bar** — accent-colored glowing bar
+  - Shows story exploration % at the very top of the VN container
+  - 2px height, expands to 3px on container hover
+  - Smooth width transition, hidden on menu return
+- **Auto-play pauses when panels are open**
+  - `isAnyPanelOpen()` helper checks settings, history, save, scene select, route map, keyboard help
+  - `scheduleAutoAdvance()` skips scheduling when any panel is visible
+  - Auto-play resumes when panels are closed via Escape key
+- **Swipe up gesture** on mobile opens save/load panel
+  - New `onOpenSave` callback in `TouchHandler`
+  - Documented in keyboard help modal under Mobile Gestures
+- **Reading time on ending screen**
+  - Tracks `storyStartTime` when entering a story
+  - Displays elapsed time as first stat in ending overlay stats grid
+  - Format: `Xm Ys` or `Ys` for short reads
+- **Keyboard help updated** with history nav keys (PgUp/PgDn/Home/End) and swipe up gesture
+- SW cache bumped to v14
+- All 28 JS files pass `node --check` validation
+- 2 commits pushed
+
 ## Still Possible Future Work
 - Generate remaining character portraits (GPU timeout issue — needs investigation, possibly during lower GPU load)
 - AI-generated scene background images
@@ -444,6 +480,7 @@ cd /tmp/nyantales && python3 -m http.server 9876
 - ~~Accessibility: screen reader support, high-contrast mode, reduced motion~~ ✅ Done in Phase 16
 
 ## Log (continued)
+- 2026-03-25 (9:27 PM): Phase 28 — Toast queue (max 3 visible), history panel keyboard nav (PgUp/PgDn/Home/End/arrows), smooth screen transitions with scale+blur, top-of-screen progress bar, auto-play pauses when panels open, swipe up for save/load, reading time shown on endings, keyboard help updated. SW cache v14. All 28 JS pass. 2 commits pushed.
 - 2026-03-25 (8:27 PM): Phase 27 — Code quality refactor: extracted AchievementPanel class from main.js (with focus trap + progress bar + a11y), added text speed preview in settings panel, textbox auto-scroll during typewriter, removed debug console.log, updated README with all 28 features. SW cache v13. All 28 JS pass. 3 commits pushed.
 - 2026-03-25 (7:27 PM): Phase 26 — Story Route Map (canvas-based interactive branching graph with pan/zoom/tooltips), SW update notification banner, R keyboard shortcut. SW cache v12. All 27 JS pass. Committed & pushed.
 - 2026-03-25 (6:27 PM): Phase 25 — Fullscreen sync (F key + settings + browser UI), debounced search, filter count indicator, GPU will-change hints, touch-action/tap-highlight polish, code docs. SW cache v11. All 26 JS pass. Committed & pushed.
