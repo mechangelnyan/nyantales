@@ -604,6 +604,26 @@ cd /tmp/nyantales && python3 -m http.server 9876
 - SW cache bumped to v22, production build regenerated (135KB bundle)
 - All 30 JS files pass `node --check` validation
 
+## Phase 38: Code Quality — Event Delegation, Cached DOM, CSS Classes ✅
+- **Story grid event delegation** — single click listener on `#story-list` handles info + favorite button clicks for all 30 story cards
+  - Previously: 60+ per-card `addEventListener` calls (2 per card × 30 cards)
+  - Now: 1 delegated listener matches `.story-card-info-btn` and `.story-card-fav-btn` via `closest()`
+  - Buttons still created in `decorateStoryCard()` but without inline click handlers
+- **Extracted `decorateStoryCard()`** — 80+ lines of card decoration logic moved out of `renderTitleScreen()`
+  - Clean separation: `renderTitleScreen()` handles stats + grid creation, `decorateStoryCard()` adds per-card UI
+  - New `getStoryMeta(story)` helper computes scene count + reading time (DRY, reusable)
+- **`ensureAudio()` helper** — centralizes the repeated `if (!audio.ctx) audio.init()` pattern
+  - Replaced 7 identical call sites across main.js
+- **Cached DOM refs** — eliminates repeated `querySelector` calls
+  - `vnContainer` cached once at init, used by `updateProgressHUD`, `updateAutoPlayHUD`, `updateSkipIndicator`, and `TouchHandler`
+  - `VNUI.containerEl` cached in constructor, used for shake effects (was querying twice per shake)
+- **CSS classes for inline text formatting** — replaced inline `style=` attributes on formatted text
+  - `<code style="color:...;font-family:...">` → `<code class="vn-inline-code">`
+  - `<strong style="color:...">` → `<strong class="vn-bold">`
+  - Both now use CSS custom properties — properly follow color theme changes
+- SW cache bumped to v23, production build regenerated (135KB bundle)
+- All 30 JS files pass `node --check` validation
+
 ## Still Possible Future Work
 - Generate remaining character portraits (GPU timeout issue — needs investigation, possibly during lower GPU load)
 - AI-generated scene background images
@@ -648,6 +668,7 @@ cd /tmp/nyantales && python3 -m http.server 9876
 - All 30 JS files pass `node --check` validation
 
 ## Log (continued)
+- 2026-03-26 (7:27 AM): Phase 38 — Code quality: story grid event delegation (60+ per-card listeners → 1 delegated), extracted decorateStoryCard() + getStoryMeta() from renderTitleScreen(), ensureAudio() helper (7 call sites), cached vnContainer + containerEl DOM refs (eliminates 6 querySelector calls), replaced inline style= on formatted text with CSS classes (.vn-inline-code, .vn-bold) for theme-reactivity. SW v23. 135KB bundle. All 30 JS pass. Committed & pushed.
 - 2026-03-26 (6:27 AM): Phase 37 — Code quality: fixed ending event listener leak (was creating 3 new listeners per ending, now uses event delegation), moved sprite speaking/ending highlights from inline JS styles to CSS classes (theme-reactive), removed dead VNUI._accentRGBA(), added goToScene null guard in engine, fixed reading time injection to use synchronous DOM instead of setTimeout. SW v22. 135KB bundle. All 30 JS pass. Committed & pushed.
 - 2026-03-26 (5:27 AM): Phase 36 — Theme-aware accent colors: replaced 138 hardcoded rgba(0,212,255,...) with CSS var RGB components (--accent-r/g/b). All 5 color themes now affect every UI element (borders, glows, shadows, particles, grid, sprites, scrollbars, canvas route map). Route map caches accent RGB per render frame. Ending screen gets focus management + aria. Choices get aria-live. SW v21. 135KB bundle. All 30 JS pass. Committed & pushed.
 - 2026-03-26 (4:27 AM): Phase 35 — Total reading time tracking (per-story + global, persistent), title stats show cumulative reading time, ending display uses shared formatter. Visited choice hints (✓ badge + green border on explored paths). Achievement _buildContext() now reads tracker data directly instead of raw localStorage. Title screen scroll-to-top on return. SW v20. All 30 JS pass. Committed & pushed.
