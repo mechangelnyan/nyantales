@@ -690,6 +690,22 @@ cd /tmp/nyantales && python3 -m http.server 9876
 - SW cache bumped to v27, production build regenerated (134KB bundle)
 - All 30 JS files pass `node --check` validation
 
+## Phase 43: Reusable Transition Overlay, Cached Speaker Lookup, Style Cleanup ✅
+- **Scene transition overlay reused** — `_transOverlay` created once in constructor, appended/detached per transition
+  - Previously: `document.createElement('div')` + `.remove()` on every background change
+  - Now: single element reused across all transitions (zero DOM allocation per scene)
+- **Speaker character lookup cached** — `_findSpeakerChar()` with per-story `Map` cache
+  - Previously: `chars.find()` + 2× `toLowerCase()` per render for speaker name plate
+  - Now: single lookup per unique speaker per story, result cached
+  - Cache reset on `setStorySlug()` (story change)
+- **Inline styles moved to CSS classes**:
+  - `ending-btn-secondary` — `margin-top: 0.5rem` for non-primary ending buttons (was inline `style=`)
+  - `ending-stat-wide` — `grid-column: span 2` for inventory stat box (was inline `style=`)
+- **Fixed stale production SW version** — build.sh was generating `v26-prod` while dev SW was at `v28`
+- SW cache bumped to v28 (dev) and v28-prod (build)
+- Production build regenerated (135KB bundle)
+- All 30 JS files pass `node --check` validation
+
 ## Still Possible Future Work
 - Generate remaining character portraits (GPU timeout issue — needs investigation, possibly during lower GPU load)
 - AI-generated scene background images
@@ -734,6 +750,7 @@ cd /tmp/nyantales && python3 -m http.server 9876
 - All 30 JS files pass `node --check` validation
 
 ## Log (continued)
+- 2026-03-26 (12:27 PM): Phase 43 — Reusable transition overlay (single DOM element reused across all bg transitions instead of create/remove per change). Cached speaker character lookup (_findSpeakerChar with Map cache, reset per story). Moved ending button + stat inline styles to CSS classes (ending-btn-secondary, ending-stat-wide). Fixed stale prod SW (v26→v28). SW v28. 135KB bundle. All 30 JS pass. Committed & pushed.
 - 2026-03-26 (11:27 AM): Phase 42 — SaveManager delegation: fixed slot listener leak (_renderSlots created new listeners per re-render → single delegated listener). Shared _esc element (SaveManager, StoryInfoModal, StatsDashboard all reuse VNUI._escapeDiv). Moved inline style.cssText to CSS classes (.new-ending-badge, .save-badge-bottom). Fixed save feedback (detached btn → Toast). SW v27. 134KB bundle. All 30 JS pass. Committed & pushed.
 - 2026-03-26 (10:27 AM): Phase 41 — Story card delegation: moved 60 per-card click/keydown listeners to 2 grid-level delegated listeners. Cached textboxEl, titleBg, themeColorMeta DOM refs. Optimized _updateSprites toLowerCase calls (15→3 per render). Fixed stale prod SW version (v23→v26). addEventListener count: 13. SW v26. 134KB bundle. All 30 JS pass. Committed & pushed.
 - 2026-03-26 (9:27 AM): Phase 40 — Event delegation: HUD toolbar + title bar buttons now use 2 delegated listeners instead of 18 individual ones (addEventListener count 28→12, 57% fewer). Cached VNUI._escapeDiv (reuses 1 element instead of creating hundreds). Cached story card NodeList for filter/sort reuse. SW v25. 134KB bundle. All 30 JS pass. Committed & pushed.
