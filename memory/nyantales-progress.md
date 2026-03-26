@@ -496,6 +496,23 @@ cd /tmp/nyantales && python3 -m http.server 9876
 - README updated with error boundary + OG tag features
 - 2 commits pushed
 
+## Phase 30: Code Quality Refactor — Extract SafeStorage, Fix Panel State, DRY Toggles ✅
+- **SafeStorage extraction** — moved `SafeStorage` class from `error-boundary.js` into its own `web/js/safe-storage.js`
+  - Was sharing a file with unrelated global error handlers (confusing coupling)
+  - Clean separation: `safe-storage.js` = localStorage wrapper, `error-boundary.js` = error handling
+  - Added to index.html script chain (loads after toast.js, before error-boundary.js)
+- **isAnyPanelOpen() fix** — added 4 missing panel checks: `achPanel`, `aboutPanel`, `statsDashboard`, `storyInfo`
+  - Bug since Phase 28: auto-play could resume behind these open panels
+  - Now all 10 overlay panels are checked before scheduling auto-advance
+- **achPanel hoisted** — moved `const achPanel` from line 1050 to init block (line ~42)
+  - Avoids temporal dead zone risk (was a `const` used in closure before declaration)
+- **togglePanel() helper** — new DRY utility for show/hide toggle patterns
+  - Replaced ~40 lines of repetitive `panel.isVisible ? panel.hide() : panel.show(...)` code
+  - Used in all keyboard shortcut handlers and HUD button click handlers
+- **Cleanup** — removed duplicate comment block ("Online/Offline Notifications" appeared twice)
+- SW cache bumped to v16 with safe-storage.js
+- All 30 JS files pass `node --check` validation
+
 ## Still Possible Future Work
 - Generate remaining character portraits (GPU timeout issue — needs investigation, possibly during lower GPU load)
 - AI-generated scene background images
@@ -505,6 +522,7 @@ cd /tmp/nyantales && python3 -m http.server 9876
 - ~~Accessibility: screen reader support, high-contrast mode, reduced motion~~ ✅ Done in Phase 16
 
 ## Log (continued)
+- 2026-03-25 (11:27 PM): Phase 30 — Code quality refactor: extracted SafeStorage into own file (was crammed in error-boundary.js), fixed isAnyPanelOpen() missing 4 panels (achPanel/aboutPanel/statsDashboard/storyInfo — auto-play bug), hoisted achPanel to init block, added togglePanel() DRY helper (saves ~40 lines), removed duplicate comment. SW cache v16. All 30 JS pass. Committed & pushed.
 - 2026-03-25 (10:27 PM): Phase 29 — Error boundary + SafeStorage (global error handler, localStorage quota handling with auto-eviction), Open Graph + Twitter Card meta tags for rich link previews, fixed memory leaks in StoryIntro + ConfirmDialog (keydown handlers), progress HUD throttling, empty filter state with contextual hints. SaveManager/Settings/Tracker all use SafeStorage. SW cache v15. All 29 JS pass. 2 commits pushed.
 - 2026-03-25 (9:27 PM): Phase 28 — Toast queue (max 3 visible), history panel keyboard nav (PgUp/PgDn/Home/End/arrows), smooth screen transitions with scale+blur, top-of-screen progress bar, auto-play pauses when panels open, swipe up for save/load, reading time shown on endings, keyboard help updated. SW cache v14. All 28 JS pass. 2 commits pushed.
 - 2026-03-25 (8:27 PM): Phase 27 — Code quality refactor: extracted AchievementPanel class from main.js (with focus trap + progress bar + a11y), added text speed preview in settings panel, textbox auto-scroll during typewriter, removed debug console.log, updated README with all 28 features. SW cache v13. All 28 JS pass. 3 commits pushed.
