@@ -150,6 +150,9 @@
 
   function storyBasePath() {
     const path = window.location.pathname;
+    // Running from web/dist/ (production build) — stories are two levels up
+    if (path.includes('/web/dist')) return '../../stories';
+    // Running from web/ (dev) — stories are one level up
     if (path.includes('/web/') || path.endsWith('/web')) return '../stories';
     return 'stories';
   }

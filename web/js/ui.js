@@ -628,7 +628,7 @@ class VNUI {
         `📊 ${engine.state.turns} turns · ${engine.state.visited.size}/${totalScenes} scenes (${visitPct}%)`,
         engine.state.inventory.length ? `🎒 Items: ${engine.state.inventory.join(', ')}` : '',
         '',
-        '🎮 Play at: https://mechangelnyan.github.io/nyantales/web/'
+        '🎮 Play at: https://mechangelnyan.github.io/nyantales/'
       ].filter(Boolean).join('\n');
 
       // Try Web Share API first (mobile), fallback to clipboard

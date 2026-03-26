@@ -16,7 +16,7 @@ Now also available as a **web-based visual novel** with character sprites, ambie
 
 ## 🌐 Web Visual Novel
 
-**▶️ [Play on GitHub Pages](https://mechangelnyan.github.io/nyantales/web/)** — no install required!
+**▶️ [Play on GitHub Pages](https://mechangelnyan.github.io/nyantales/)** — no install required!
 
 Or run locally:
 
