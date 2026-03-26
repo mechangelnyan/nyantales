@@ -131,6 +131,7 @@
   /** Toggle a panel's visibility. For panels with custom show args, pass them in showArgs. */
   function togglePanel(panel, ...showArgs) {
     panel.isVisible ? panel.hide() : panel.show(...showArgs);
+    syncTouchSuspension();
   }
 
   // (COLOR_THEMES, applyParticlesSetting, applyFontSize, applyColorTheme moved above initial settings)
@@ -180,6 +181,15 @@
       || sceneSelect.isVisible || routeMap.isVisible || keyboardHelp.isVisible
       || aboutPanel.isVisible || statsDashboard.isVisible || storyInfo.isVisible
       || achPanel.isVisible;
+  }
+
+  /**
+   * Sync touch gesture suspension with panel state.
+   * Called after any panel show/hide to prevent swipe gestures
+   * from triggering behind open overlays.
+   */
+  function syncTouchSuspension() {
+    touch.suspend(isAnyPanelOpen());
   }
 
   function scheduleAutoAdvance() {
@@ -847,16 +857,16 @@
           scheduleAutoAdvance();
         }
       };
-      if (keyboardHelp.isVisible)   { keyboardHelp.hide(); resumeAutoPlay(); return; }
-      if (aboutPanel.isVisible)     { aboutPanel.hide(); resumeAutoPlay(); return; }
-      if (achPanel.isVisible)       { achPanel.hide(); resumeAutoPlay(); return; }
-      if (statsDashboard.isVisible) { statsDashboard.hide(); resumeAutoPlay(); return; }
-      if (storyInfo.isVisible)      { storyInfo.hide(); resumeAutoPlay(); return; }
-      if (routeMap.isVisible)       { routeMap.hide(); resumeAutoPlay(); return; }
-      if (saveManager.isVisible)    { saveManager.hide(); resumeAutoPlay(); return; }
-      if (settingsPanel.isVisible)  { settingsPanel.hide(); resumeAutoPlay(); return; }
-      if (historyPanel.isVisible)   { historyPanel.hide(); resumeAutoPlay(); return; }
-      if (sceneSelect.isVisible)    { sceneSelect.hide(); resumeAutoPlay(); return; }
+      if (keyboardHelp.isVisible)   { keyboardHelp.hide(); syncTouchSuspension(); resumeAutoPlay(); return; }
+      if (aboutPanel.isVisible)     { aboutPanel.hide(); syncTouchSuspension(); resumeAutoPlay(); return; }
+      if (achPanel.isVisible)       { achPanel.hide(); syncTouchSuspension(); resumeAutoPlay(); return; }
+      if (statsDashboard.isVisible) { statsDashboard.hide(); syncTouchSuspension(); resumeAutoPlay(); return; }
+      if (storyInfo.isVisible)      { storyInfo.hide(); syncTouchSuspension(); resumeAutoPlay(); return; }
+      if (routeMap.isVisible)       { routeMap.hide(); syncTouchSuspension(); resumeAutoPlay(); return; }
+      if (saveManager.isVisible)    { saveManager.hide(); syncTouchSuspension(); resumeAutoPlay(); return; }
+      if (settingsPanel.isVisible)  { settingsPanel.hide(); syncTouchSuspension(); resumeAutoPlay(); return; }
+      if (historyPanel.isVisible)   { historyPanel.hide(); syncTouchSuspension(); resumeAutoPlay(); return; }
+      if (sceneSelect.isVisible)    { sceneSelect.hide(); syncTouchSuspension(); resumeAutoPlay(); return; }
       if (currentEngine)            { returnToMenu(); return; }
     }
 

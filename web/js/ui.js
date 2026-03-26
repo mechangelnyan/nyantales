@@ -144,7 +144,7 @@ class VNUI {
         const url = this.portraits.getSprite(protag.name, protag.appearance);
         const hasAI = this.portraits.hasPortrait(protag.name);
         const cls = hasAI ? 'story-card-sprite ai-portrait' : 'story-card-sprite';
-        spriteHtml = `<img src="${url}" class="${cls}" alt="${protag.name}" />`;
+        spriteHtml = `<img src="${url}" class="${cls}" alt="${protag.name}" loading="lazy" decoding="async" />`;
       }
 
       card.innerHTML = `

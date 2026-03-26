@@ -22,6 +22,7 @@ class TouchHandler {
     this.minSwipeDist = 50;  // px
     this.maxSwipeTime = 400; // ms
     this.enabled = true;
+    this.suspended = false;
 
     this._onTouchStart = this._onTouchStart.bind(this);
     this._onTouchEnd = this._onTouchEnd.bind(this);
@@ -38,7 +39,7 @@ class TouchHandler {
   }
 
   _onTouchEnd(e) {
-    if (!this.enabled || !this._touchStart) return;
+    if (!this.enabled || this.suspended || !this._touchStart) return;
 
     const t = e.changedTouches[0];
     const dx = t.clientX - this._touchStart.x;
@@ -82,6 +83,14 @@ class TouchHandler {
   /** Temporarily disable (e.g., during overlays) */
   disable() { this.enabled = false; }
   enable()  { this.enabled = true; }
+
+  /**
+   * Suspend gestures while panels are open.
+   * Unlike disable(), suspend is checked alongside enabled so callers
+   * don't need to manage enable/disable ordering.
+   * @param {boolean} on
+   */
+  suspend(on) { this.suspended = !!on; }
 
   /** Remove listeners */
   destroy() {
