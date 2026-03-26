@@ -657,6 +657,22 @@ cd /tmp/nyantales && python3 -m http.server 9876
 - SW cache bumped to v25, production build regenerated (134KB bundle)
 - All 30 JS files pass `node --check` validation
 
+## Phase 41: Story Card Delegation, Cached DOM, Sprite Optimization ✅
+- **Story card event delegation** — card click + keydown events moved from per-card to grid-level
+  - `renderStoryList()` no longer takes `onSelect` callback (pure DOM builder now)
+  - Card click + Enter/Space handled by 2 delegated listeners on `#story-list`
+  - Shared `storyFromCard()` + `selectStoryCard()` helpers for DRY card→story resolution
+  - Eliminates 60 per-card listeners (2 × 30 cards) created every title screen render
+- **Cached DOM refs** — `textboxEl`, `titleBg`, `themeColorMeta` cached at init
+  - `returnToMenu()` no longer queries `.title-bg` on every menu return
+  - `applyColorTheme()` no longer queries `meta[name="theme-color"]` on every theme change
+  - Textbox click handler uses cached ref instead of `getElementById`
+- **Sprite `_updateSprites()` optimization** — `toLowerCase()` on speaker/text/sceneId called once per render instead of per-character (was 3× per char × up to 5 chars = 15 calls → 3)
+- **Fixed stale production SW version** — `build.sh` was generating `v23-prod` while dev SW was at `v25`; bumped to `v26-prod` / `v26` respectively
+- **addEventListener count in main.js: 13** (down from 28 in Phase 39, from ~80+ originally)
+- SW cache bumped to v26, production build regenerated (134KB bundle)
+- All 30 JS files pass `node --check` validation
+
 ## Still Possible Future Work
 - Generate remaining character portraits (GPU timeout issue — needs investigation, possibly during lower GPU load)
 - AI-generated scene background images
@@ -701,6 +717,7 @@ cd /tmp/nyantales && python3 -m http.server 9876
 - All 30 JS files pass `node --check` validation
 
 ## Log (continued)
+- 2026-03-26 (10:27 AM): Phase 41 — Story card delegation: moved 60 per-card click/keydown listeners to 2 grid-level delegated listeners. Cached textboxEl, titleBg, themeColorMeta DOM refs. Optimized _updateSprites toLowerCase calls (15→3 per render). Fixed stale prod SW version (v23→v26). addEventListener count: 13. SW v26. 134KB bundle. All 30 JS pass. Committed & pushed.
 - 2026-03-26 (9:27 AM): Phase 40 — Event delegation: HUD toolbar + title bar buttons now use 2 delegated listeners instead of 18 individual ones (addEventListener count 28→12, 57% fewer). Cached VNUI._escapeDiv (reuses 1 element instead of creating hundreds). Cached story card NodeList for filter/sort reuse. SW v25. 134KB bundle. All 30 JS pass. Committed & pushed.
 - 2026-03-26 (8:27 AM): Phase 39 — CRITICAL FIX: ensureAudio() was infinitely recursive (called itself instead of audio.init()), crashing app on any audio-triggering click. DRYed Escape key handler (10 if/return blocks → array find loop). Cached btnAutoEl + statsEl + reused storyGrid ref (eliminates 6 repeated getElementById calls). SW v24. 134KB bundle. All 30 JS pass. Committed & pushed.
 - 2026-03-26 (7:27 AM): Phase 38 — Code quality: story grid event delegation (60+ per-card listeners → 1 delegated), extracted decorateStoryCard() + getStoryMeta() from renderTitleScreen(), ensureAudio() helper (7 call sites), cached vnContainer + containerEl DOM refs (eliminates 6 querySelector calls), replaced inline style= on formatted text with CSS classes (.vn-inline-code, .vn-bold) for theme-reactivity. SW v23. 135KB bundle. All 30 JS pass. Committed & pushed.
