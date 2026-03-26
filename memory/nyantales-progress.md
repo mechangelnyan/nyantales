@@ -414,6 +414,27 @@ cd /tmp/nyantales && python3 -m http.server 9876
 - SW cache bumped to v12 with route-map.js
 - All 27 JS files pass `node --check` validation
 
+## Phase 27: Code Quality Refactor + Polish ✅
+- **Achievement Panel extraction** — moved inline achievement rendering from main.js into `AchievementPanel` class (`web/js/achievement-panel.js`)
+  - Focus trap via `FocusTrap` utility for keyboard accessibility
+  - `role="dialog"` + `aria-label` for screen readers
+  - Progress bar showing unlock % at top of panel
+  - Visual divider between unlocked and locked achievements
+  - Escape key closes panel (added to priority chain)
+- **Text Speed Preview** — live typewriter demo in settings panel
+  - Shows "The terminal cat blinked at the blinking cursor…" at current speed
+  - Reruns on speed slider change, clears on panel hide
+  - Runs on panel open for immediate feedback
+  - Styled with left border accent and monospace font
+- **Textbox auto-scroll** — typewriter, skip, and fast mode all auto-scroll textbox to bottom
+  - Keeps text visible during long passages (especially on mobile)
+  - `scroll-behavior: smooth` on `.vn-textbox`
+  - Custom scrollbar styling on textbox container
+- **Debug cleanup** — removed `console.log` from PortraitManager
+- **README** — updated feature list to cover all 28 features from Phases 1-27
+- SW cache bumped to v13 with achievement-panel.js
+- All 28 JS files pass `node --check` validation
+
 ## Still Possible Future Work
 - Generate remaining character portraits (GPU timeout issue — needs investigation, possibly during lower GPU load)
 - AI-generated scene background images
@@ -423,6 +444,7 @@ cd /tmp/nyantales && python3 -m http.server 9876
 - ~~Accessibility: screen reader support, high-contrast mode, reduced motion~~ ✅ Done in Phase 16
 
 ## Log (continued)
+- 2026-03-25 (8:27 PM): Phase 27 — Code quality refactor: extracted AchievementPanel class from main.js (with focus trap + progress bar + a11y), added text speed preview in settings panel, textbox auto-scroll during typewriter, removed debug console.log, updated README with all 28 features. SW cache v13. All 28 JS pass. 3 commits pushed.
 - 2026-03-25 (7:27 PM): Phase 26 — Story Route Map (canvas-based interactive branching graph with pan/zoom/tooltips), SW update notification banner, R keyboard shortcut. SW cache v12. All 27 JS pass. Committed & pushed.
 - 2026-03-25 (6:27 PM): Phase 25 — Fullscreen sync (F key + settings + browser UI), debounced search, filter count indicator, GPU will-change hints, touch-action/tap-highlight polish, code docs. SW cache v11. All 26 JS pass. Committed & pushed.
 - 2026-03-25 (5:27 PM): Phase 24 — Story favorites system (heart button + filter tab + sort option), history panel search bar for filtering dialogue, ending share card with Web Share API + clipboard fallback. CSS for new components. SW cache v10. All 26 JS files pass. Committed & pushed.
