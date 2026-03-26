@@ -786,7 +786,7 @@ class VNUI {
 
   toggleFastMode() {
     this.fastMode = !this.fastMode;
-    this.btnFast.style.opacity = this.fastMode ? '1' : '0.5';
+    this.btnFast.classList.toggle('hud-inactive', !this.fastMode);
     return this.fastMode;
   }
 

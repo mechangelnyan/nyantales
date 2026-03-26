@@ -3388,6 +3388,7 @@ body {
   border: 1px solid rgba(var(--accent-r), var(--accent-g), var(--accent-b), 0.08);
   border-radius: 6px;
   padding: 0.5rem 0.7rem;
+  cursor: pointer;
   transition: all 0.2s;
 }
 .stats-recent-item:hover {

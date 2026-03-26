@@ -55,6 +55,25 @@ class SceneSelect {
       });
     });
 
+    // Delegated click/keydown on scene list (replaces per-item listeners)
+    const listContainer = this.overlay.querySelector('.scene-select-list');
+    const jumpFromItem = (item) => {
+      const sceneId = item?.dataset?.sceneId;
+      if (sceneId && this.onJump) {
+        this.hide();
+        this.onJump(sceneId);
+      }
+    };
+    listContainer.addEventListener('click', (e) => {
+      const item = e.target.closest('.scene-select-item');
+      if (item) jumpFromItem(item);
+    });
+    listContainer.addEventListener('keydown', (e) => {
+      if (e.key !== 'Enter' && e.key !== ' ') return;
+      const item = e.target.closest('.scene-select-item');
+      if (item) { e.preventDefault(); jumpFromItem(item); }
+    });
+
     this._built = true;
   }
 
@@ -110,23 +129,7 @@ class SceneSelect {
         `;
       }).join('');
 
-      // Wire click handlers
-      listEl.querySelectorAll('.scene-select-item').forEach(item => {
-        const handler = () => {
-          const sceneId = item.dataset.sceneId;
-          if (sceneId && this.onJump) {
-            this.hide();
-            this.onJump(sceneId);
-          }
-        };
-        item.addEventListener('click', handler);
-        item.addEventListener('keydown', (e) => {
-          if (e.key === 'Enter' || e.key === ' ') {
-            e.preventDefault();
-            handler();
-          }
-        });
-      });
+      // Wire click/keydown via delegation (initialized once in _build)
     }
 
     // Reset search
@@ -153,10 +156,14 @@ class SceneSelect {
     return this.overlay?.classList.contains('visible') || false;
   }
 
-  /** @private */
+  /** @private Escape HTML — reuses shared off-screen element */
   _esc(text) {
-    const d = document.createElement('div');
-    d.textContent = text || '';
-    return d.innerHTML;
+    if (typeof VNUI !== 'undefined' && VNUI._escapeDiv) {
+      VNUI._escapeDiv.textContent = text || '';
+      return VNUI._escapeDiv.innerHTML;
+    }
+    if (!SceneSelect._escDiv) SceneSelect._escDiv = document.createElement('div');
+    SceneSelect._escDiv.textContent = text || '';
+    return SceneSelect._escDiv.innerHTML;
   }
 }

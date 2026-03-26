@@ -131,14 +131,15 @@ class CharacterGallery {
       this._applyFilters(grid, q, activeRole);
     });
 
-    // Role filter
-    filterBtns.forEach(btn => {
-      btn.addEventListener('click', () => {
-        filterBtns.forEach(b => b.classList.remove('active'));
-        btn.classList.add('active');
-        const q = search.value.toLowerCase().trim();
-        this._applyFilters(grid, q, btn.dataset.role);
-      });
+    // Role filter — single delegated listener on filter row
+    const filterRow = overlay.querySelector('.gallery-filter-row');
+    filterRow.addEventListener('click', (e) => {
+      const btn = e.target.closest('.gallery-filter-btn');
+      if (!btn) return;
+      filterBtns.forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      const q = search.value.toLowerCase().trim();
+      this._applyFilters(grid, q, btn.dataset.role);
     });
 
     // Story tag click → launch story
@@ -175,6 +176,10 @@ class CharacterGallery {
   show() {
     this._buildOverlay();
     requestAnimationFrame(() => this.overlay.classList.add('visible'));
+    if (typeof FocusTrap !== 'undefined') {
+      if (!this._focusTrap) this._focusTrap = new FocusTrap(this.overlay.querySelector('.gallery-panel'));
+      this._focusTrap.activate();
+    }
   }
 
   /** Hide the gallery */
@@ -182,6 +187,7 @@ class CharacterGallery {
     if (this.overlay) {
       this.overlay.classList.remove('visible');
     }
+    if (this._focusTrap) this._focusTrap.deactivate();
   }
 
   get isVisible() {

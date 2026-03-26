@@ -47,6 +47,7 @@ class StatsDashboard {
       this._overlay.addEventListener('click', (e) => {
         if (e.target === this._overlay) this.hide();
       });
+      this._initDelegation();
     }
 
     this._render();
@@ -250,20 +251,26 @@ class StatsDashboard {
       </div>
     `;
 
-    // Wire close button
-    this._overlay.querySelector('.stats-close').addEventListener('click', () => this.hide());
+    // Close + recent-item clicks handled by delegated listener (see _initDelegation)
+  }
 
-    // Wire recent items to play
-    this._overlay.querySelectorAll('.stats-recent-item').forEach(el => {
-      el.style.cursor = 'pointer';
-      el.addEventListener('click', () => {
-        const slug = el.dataset.slug;
+  /** Initialize delegated click handler once (avoids re-binding on every render) */
+  _initDelegation() {
+    if (this._delegated) return;
+    this._delegated = true;
+    this._overlay.addEventListener('click', (e) => {
+      // Close button
+      if (e.target.closest('.stats-close')) { this.hide(); return; }
+      // Recent items
+      const recentItem = e.target.closest('.stats-recent-item');
+      if (recentItem) {
+        const slug = recentItem.dataset.slug;
         const story = this._storyIndex.find(s => s.slug === slug);
         if (story && this.onPlay) {
           this.hide();
           this.onPlay(story);
         }
-      });
+      }
     });
   }
 
