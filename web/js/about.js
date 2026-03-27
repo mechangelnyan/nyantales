@@ -43,6 +43,7 @@ class AboutPanel {
             <div class="about-section-title">Features</div>
             <ul class="about-features">
               <li>🎮 30 branching interactive stories</li>
+              <li>📖 Connected campaign mode (26 chapters across 5 acts)</li>
               <li>🐱 45+ unique cat characters</li>
               <li>🎨 Procedural pixel sprite system</li>
               <li>🔊 Synthesized ambient soundscapes</li>

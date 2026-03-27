@@ -36,7 +36,8 @@
   const storyInfo     = new StoryInfoModal(tracker, saveManager, ui.portraits);
   const keyboardHelp  = new KeyboardHelp();
   const aboutPanel    = new AboutPanel();
-  const statsDashboard = new StatsDashboard(tracker, achievements, saveManager, ui.portraits);
+  const campaign    = new CampaignManager();
+  const statsDashboard = new StatsDashboard(tracker, achievements, saveManager, ui.portraits, campaign);
   const routeMap      = new RouteMap();
   const achPanel      = new AchievementPanel(achievements);
   const sceneSelect   = new SceneSelect((sceneId) => {
@@ -196,7 +197,6 @@
   let activeSort    = 'title-asc';
   let storyStartTime = null; // timestamp when current story session began
   let campaignMode  = false; // true when playing the connected campaign
-  const campaign    = new CampaignManager();
 
   // ── Auto-play State ──
 
@@ -490,8 +490,7 @@
         const endingEl = document.getElementById('vn-ending');
         if (endingEl) {
           const nextBtn = document.createElement('button');
-          nextBtn.className = 'campaign-btn';
-          nextBtn.style.marginTop = '1rem';
+          nextBtn.className = 'campaign-btn campaign-btn-ending';
           nextBtn.textContent = campaign.isComplete() ? '🏠 Return Home' : '▶ Next Chapter';
           nextBtn.addEventListener('click', () => onCampaignEnding());
           // Insert before the restart/menu buttons
@@ -608,7 +607,7 @@
     startStory(story);
   }
 
-  storyGrid.addEventListener('click', (e) => {
+  if (storyGrid) storyGrid.addEventListener('click', (e) => {
     const infoBtn = e.target.closest('.story-card-info-btn');
     if (infoBtn) {
       e.stopPropagation();
@@ -639,7 +638,7 @@
     if (card) selectStoryCard(card);
   });
 
-  storyGrid.addEventListener('keydown', (e) => {
+  if (storyGrid) storyGrid.addEventListener('keydown', (e) => {
     if (e.key !== 'Enter' && e.key !== ' ') return;
     const card = e.target.closest('.story-card');
     if (!card) return;
@@ -761,24 +760,8 @@
       ${tracker.getTotalReadingMs() > 0 ? `<div class="stat">⏱ <span class="stat-value">${totalTime}</span> reading</div>` : ''}
     `;
 
-    // renderStoryList clears the grid and creates fresh cards — no duplicate risk
-    // Card click/keydown events are handled by grid-level delegation (see below)
-    ui.renderStoryList(storyIndex);
-
-    // Invalidate and rebuild cached card list after grid re-render
-    _cachedCards = [...storyGrid.querySelectorAll('.story-card')];
-    const cards = _cachedCards;
-    storyIndex.forEach((story, idx) => {
-      const card = cards[idx];
-      if (card) decorateStoryCard(card, story);
-    });
-
-    // "Continue" button — shows if there's a recent save
-    updateContinueButton();
     updateCampaignButton();
-
-    applyFilter();
-    applySortToGrid();
+    renderChapterGrid();
   }
 
   // ── Continue Button ──
@@ -787,12 +770,12 @@
     const btn = document.getElementById('btn-continue');
     const recent = saveManager.getMostRecentSave();
 
-    if (recent) {
+    if (recent && btn) {
       const story = storyIndex.find(s => s.slug === recent.slug);
       const title = story ? story.title : recent.slug;
       btn.innerHTML = `▶ Continue<span class="continue-meta">${title} · ${recent.turns} turns</span>`;
       btn.classList.remove('hidden');
-    } else {
+    } else if (btn) {
       btn.classList.add('hidden');
     }
   }
@@ -807,13 +790,13 @@
 
   // Debounced search input for smoother performance with 30 cards
   let _filterTimer = null;
-  filterInput.addEventListener('input', () => {
+  filterInput?.addEventListener('input', () => {
     if (_filterTimer) clearTimeout(_filterTimer);
     _filterTimer = setTimeout(() => applyFilter(), 80);
   });
 
   // Single delegated listener on filter tags container (replaces 4 individual listeners)
-  filterTagsContainer.addEventListener('click', (e) => {
+  filterTagsContainer?.addEventListener('click', (e) => {
     const tag = e.target.closest('.filter-tag');
     if (!tag) return;
     filterTagsContainer.querySelectorAll('.filter-tag').forEach(t => {
@@ -826,7 +809,7 @@
     applyFilter();
   });
 
-  sortSelect.addEventListener('change', () => {
+  sortSelect?.addEventListener('change', () => {
     activeSort = sortSelect.value;
     applySortToGrid();
   });
@@ -985,7 +968,7 @@
   // ── Keyboard Shortcuts ──
 
   document.addEventListener('keydown', (e) => {
-    const isSearchFocused = filterInput.matches(':focus');
+    const isSearchFocused = filterInput?.matches(':focus') ?? false;
 
     if (e.key === 'Escape') {
       // Close the topmost open panel (priority: lightweight overlays first, then core panels)
@@ -1230,7 +1213,8 @@
     } catch (err) {
       console.error('Failed to boot NyanTales:', err);
       hideLoadingScreen();
-      storyGrid.innerHTML =
+      const errTarget = storyGrid || document.getElementById('story-list');
+      if (errTarget) errTarget.innerHTML =
         `<p class="boot-error" role="alert">
           Error loading stories. Make sure you're serving this from a web server.<br>
           <code>cd /tmp/nyantales && python3 -m http.server 8080</code><br>
@@ -1299,7 +1283,7 @@
       // Apply persistent state to the new engine after it starts
       startStory(story).then(() => {
         if (currentEngine) campaign.applyPersistentState(currentEngine);
-      });
+      }).catch(e => console.warn('Campaign: failed to start chapter', e));
       return;
     }
 
@@ -1326,14 +1310,174 @@
     const btn = document.getElementById('btn-campaign');
     if (!btn || !campaign.isLoaded) return;
     const label = campaign.getProgressLabel();
-    if (label) {
+    if (campaign.isComplete()) {
+      btn.innerHTML = '📖 Campaign <span class="campaign-meta">Complete! ✨</span>';
+    } else if (label) {
       btn.innerHTML = `📖 Continue Campaign<span class="campaign-meta">${label}</span>`;
     } else {
       btn.textContent = '📖 Campaign';
     }
-    if (campaign.isComplete()) {
-      btn.innerHTML = '📖 Campaign <span class="campaign-meta">Complete! ✨</span>';
+  }
+
+  // ── Chapter Grid ──
+
+  /** Determine if a chapter index is unlocked (reachable) */
+  function isChapterUnlocked(chapterIndex) {
+    if (!campaign.isLoaded || !campaign.progress.started) return chapterIndex === 0;
+    return chapterIndex <= campaign.progress.chapterIndex ||
+      campaign.progress.completedChapters.includes(chapterIndex);
+  }
+
+  /** Render the campaign chapter grid grouped by act. */
+  function renderChapterGrid() {
+    const grid = document.getElementById('chapter-grid');
+    if (!grid) return;
+    grid.innerHTML = '';
+
+    if (!campaign.isLoaded) {
+      grid.innerHTML = '<p class="chapter-grid-empty">Campaign data unavailable.</p>';
+      return;
     }
+
+    const chapters = campaign.chapters;
+    const acts = campaign.manifest?.acts || [];
+    const currentIdx = campaign.progress.chapterIndex;
+    const isStarted = campaign.progress.started;
+
+    // Build act → chapters mapping
+    const actMap = {};
+    acts.forEach(act => { actMap[act.id] = []; });
+
+    chapters.forEach((ch, idx) => {
+      if (!actMap[ch.act]) actMap[ch.act] = [];
+      actMap[ch.act].push({ ch, idx });
+    });
+
+    acts.forEach(act => {
+      const items = actMap[act.id] || [];
+      if (!items.length) return;
+
+      const section = document.createElement('div');
+      section.className = 'act-section';
+
+      const header = document.createElement('div');
+      header.className = 'act-header';
+      header.innerHTML = `<span class="act-title">${act.title}</span><span class="act-subtitle">${act.subtitle || ''}</span>`;
+      section.appendChild(header);
+
+      const cards = document.createElement('div');
+      cards.className = 'chapter-cards';
+
+      items.forEach(({ ch, idx }) => {
+        const unlocked = isChapterUnlocked(idx);
+        const completed = campaign.progress.completedChapters.includes(idx);
+        const isCurrent = isStarted && idx === currentIdx && campaign.progress.phase === 'chapter';
+
+        const card = document.createElement('div');
+        card.className = 'chapter-card' +
+          (unlocked ? ' unlocked' : ' locked') +
+          (completed ? ' completed' : '') +
+          (isCurrent ? ' current' : '');
+        card.dataset.chapterIndex = idx;
+        card.setAttribute('role', 'listitem');
+        card.setAttribute('tabindex', unlocked ? '0' : '-1');
+        card.setAttribute('aria-label', `Chapter ${ch.chapter}: ${ch.title}${unlocked ? '' : ' (locked)'}`);
+
+        const numEl = document.createElement('div');
+        numEl.className = 'chapter-num';
+        numEl.textContent = `CH ${ch.chapter}`;
+
+        const body = document.createElement('div');
+        body.className = 'chapter-body';
+
+        const titleEl = document.createElement('div');
+        titleEl.className = 'chapter-title';
+        titleEl.textContent = ch.title;
+
+        const descEl = document.createElement('div');
+        descEl.className = 'chapter-desc';
+        descEl.textContent = ch.description || '';
+
+        body.appendChild(titleEl);
+        body.appendChild(descEl);
+
+        const status = document.createElement('div');
+        status.className = 'chapter-status';
+        if (!unlocked) {
+          status.textContent = '🔒';
+          status.setAttribute('aria-hidden', 'true');
+        } else if (isCurrent) {
+          status.textContent = '▶';
+        } else if (completed) {
+          status.textContent = '✅';
+        } else {
+          status.textContent = '○';
+        }
+
+        card.appendChild(numEl);
+        card.appendChild(body);
+        card.appendChild(status);
+        cards.appendChild(card);
+      });
+
+      section.appendChild(cards);
+      grid.appendChild(section);
+    });
+  }
+
+  // ── Chapter Grid Click Delegation ──
+
+  const chapterGrid = document.getElementById('chapter-grid');
+  if (chapterGrid) {
+    chapterGrid.addEventListener('click', (e) => {
+      const card = e.target.closest('.chapter-card');
+      if (!card || card.classList.contains('locked')) return;
+      const idx = parseInt(card.dataset.chapterIndex, 10);
+      if (isNaN(idx)) return;
+      ensureAudio();
+      startCampaignChapter(idx);
+    });
+    chapterGrid.addEventListener('keydown', (e) => {
+      if (e.key !== 'Enter' && e.key !== ' ') return;
+      const card = e.target.closest('.chapter-card');
+      if (!card || card.classList.contains('locked')) return;
+      e.preventDefault();
+      const idx = parseInt(card.dataset.chapterIndex, 10);
+      if (isNaN(idx)) return;
+      ensureAudio();
+      startCampaignChapter(idx);
+    });
+  }
+
+  /**
+   * Start a specific campaign chapter by index.
+   * Used when player clicks a chapter card to replay or jump to current chapter.
+   */
+  async function startCampaignChapter(chapterIndex) {
+    if (!campaign.isLoaded) {
+      Toast.show('Campaign data not available', { icon: '⚠️' });
+      return;
+    }
+    const ch = campaign.chapters[chapterIndex];
+    if (!ch) return;
+    const story = storyIndex.find(s => s.slug === ch.story);
+    if (!story) {
+      Toast.show('Story not found: ' + ch.story, { icon: '⚠️' });
+      return;
+    }
+    // Set campaign to play this chapter
+    campaign.progress.chapterIndex = chapterIndex;
+    campaign.progress.phase = 'chapter';
+    if (!campaign.progress.started && chapterIndex === 0) {
+      // Starting fresh — go through intro first
+      campaign.progress.started = false;
+    } else if (chapterIndex > 0) {
+      campaign.progress.started = true;
+    }
+    campaign.saveProgress();
+    campaignMode = true;
+    await startStory(story);
+    if (currentEngine) campaign.applyPersistentState(currentEngine);
   }
 
   // ── Online/Offline Toasts ──

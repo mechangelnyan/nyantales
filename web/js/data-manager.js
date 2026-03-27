@@ -13,7 +13,8 @@ class DataManager {
       'nyantales-tracker',
       'nyantales-achievements',
       'nyantales-settings',
-      'nyantales-hints-shown'
+      'nyantales-hints-shown',
+      'nyantales-campaign'
     ];
     /** Prefix for per-story save slots */
     this.SAVE_PREFIX = 'nyantales-saves-';

@@ -11,11 +11,12 @@
  */
 
 class StatsDashboard {
-  constructor(tracker, achievements, saveManager, portraits) {
+  constructor(tracker, achievements, saveManager, portraits, campaign) {
     this.tracker = tracker;
     this.achievements = achievements;
     this.saveManager = saveManager;
     this.portraits = portraits;
+    this.campaign = campaign || null;
     this.isVisible = false;
     this._overlay = null;
     this._focusTrap = null;
@@ -128,6 +129,22 @@ class StatsDashboard {
     let saveCount = 0;
     storyRows.forEach(s => { if (s.hasSave) saveCount++; });
 
+    // Campaign progress
+    let campaignStats = null;
+    if (this.campaign && this.campaign.isLoaded) {
+      const p = this.campaign.progress;
+      const total = this.campaign.chapters.length;
+      const done = p.completedChapters ? p.completedChapters.length : 0;
+      campaignStats = {
+        started: p.started,
+        complete: this.campaign.isComplete(),
+        chaptersCompleted: done,
+        chaptersTotal: total,
+        pct: total > 0 ? Math.round((done / total) * 100) : 0,
+        label: this.campaign.getProgressLabel()
+      };
+    }
+
     return {
       global: globalStats,
       achievements: achStats,
@@ -137,7 +154,8 @@ class StatsDashboard {
       totalScenes,
       totalScenesVisited,
       totalEndingsPossible,
-      saveCount
+      saveCount,
+      campaignStats
     };
   }
 
@@ -203,6 +221,18 @@ class StatsDashboard {
             <div class="stats-card-label">Active Saves</div>
           </div>
         </div>
+
+        ${stats.campaignStats && stats.campaignStats.started ? `
+        <!-- Campaign progress -->
+        <div class="stats-section">
+          <div class="stats-section-title">📖 Campaign Progress</div>
+          <div class="stats-card" style="max-width:100%">
+            <div class="stats-card-value" style="color:#ffd700">${stats.campaignStats.complete ? '✨ Complete!' : `${stats.campaignStats.chaptersCompleted}/${stats.campaignStats.chaptersTotal} chapters`}</div>
+            <div class="stats-card-label">${stats.campaignStats.label || 'The Campaign'}</div>
+            <div class="stats-card-bar"><div class="stats-card-bar-fill" style="width:${stats.campaignStats.pct}%;background:#ffd700"></div></div>
+          </div>
+        </div>
+        ` : ''}
 
         ${stats.recentlyPlayed.length > 0 ? `
         <!-- Recently played -->

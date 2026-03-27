@@ -128,6 +128,12 @@ class SettingsPanel {
                 <input type="file" id="set-import-file" accept=".json" class="hidden" />
               </div>
             </div>
+            <div class="settings-row">
+              <label class="settings-label">Campaign</label>
+              <div class="settings-control settings-data-btns">
+                <button id="set-campaign-reset" class="settings-toggle settings-data-btn" style="color:#ffd700">📖 Reset Campaign</button>
+              </div>
+            </div>
             <div id="set-data-stats" class="settings-data-stats"></div>
           </div>
 
@@ -199,6 +205,8 @@ class SettingsPanel {
         this._handleExport();
       } else if (target === this._els.importBtn || target.closest('#set-import')) {
         this._els.importFile.click();
+      } else if (target.closest('#set-campaign-reset')) {
+        this._handleCampaignReset();
       } else if (target.closest('#set-reset')) {
         this._handleReset();
       }
@@ -242,6 +250,21 @@ class SettingsPanel {
       console.warn('Import failed:', err);
     }
     e.target.value = '';
+  }
+
+  async _handleCampaignReset() {
+    const confirmed = await ConfirmDialog.show({
+      title: 'Reset Campaign Progress?',
+      message: 'This will erase all campaign progress. Your individual story saves and achievements are not affected.',
+      confirmText: '📖 Reset Campaign',
+      cancelText: 'Cancel',
+      danger: true
+    });
+    if (confirmed) {
+      SafeStorage.setJSON('nyantales-campaign', null);
+      localStorage.removeItem('nyantales-campaign');
+      Toast.show('Campaign progress reset', { icon: '📖' });
+    }
   }
 
   async _handleReset() {
