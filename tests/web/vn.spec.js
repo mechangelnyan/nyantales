@@ -71,6 +71,38 @@ test.describe('Title Screen', () => {
     await expect(firstCard.locator('.story-card-fav-btn')).toBeVisible();
   });
 
+  test('title browser remembers search, filter, and sort after reload', async ({ page }) => {
+    await waitForTitleScreen(page);
+
+    await page.locator('#filter-input').fill('terminal');
+    await page.locator('.filter-tag[data-filter="new"]').click();
+    await page.locator('#sort-select').selectOption('title-desc');
+    await expect(page.locator('#filter-clear')).toBeVisible();
+
+    await page.reload();
+    await waitForTitleScreen(page);
+
+    await expect(page.locator('#filter-input')).toHaveValue('terminal');
+    await expect(page.locator('.filter-tag[data-filter="new"]')).toHaveClass(/active/);
+    await expect(page.locator('#sort-select')).toHaveValue('title-desc');
+    await expect(page.locator('#filter-clear')).toBeVisible();
+    await expect(page.locator('#filter-count')).toContainText('1 story');
+  });
+
+  test('title browser clear button resets search, filter, and sort', async ({ page }) => {
+    await waitForTitleScreen(page);
+
+    await page.locator('#filter-input').fill('terminal');
+    await page.locator('.filter-tag[data-filter="new"]').click();
+    await page.locator('#sort-select').selectOption('title-desc');
+    await page.locator('#filter-clear').click();
+
+    await expect(page.locator('#filter-input')).toHaveValue('');
+    await expect(page.locator('.filter-tag[data-filter="all"]')).toHaveClass(/active/);
+    await expect(page.locator('#sort-select')).toHaveValue('title-asc');
+    await expect(page.locator('#filter-clear')).toBeHidden();
+  });
+
   test('story info modal opens from a card', async ({ page }) => {
     await waitForTitleScreen(page);
 

@@ -90,7 +90,10 @@
           <div id="chapter-grid" class="chapter-grid" role="list" aria-label="Campaign chapters"></div>
           <div class="section-divider" aria-hidden="true"><span>── All Stories ──</span></div>
           <div id="story-filter" class="story-filter" role="search" aria-label="Filter stories">
-            <input type="text" id="filter-input" placeholder="🔍 Search stories..." autocomplete="off" aria-label="Search stories by title or description" />
+            <div class="story-search-wrap">
+              <input type="text" id="filter-input" placeholder="🔍 Search stories..." autocomplete="off" aria-label="Search stories by title or description" />
+              <button id="filter-clear" class="story-search-clear hidden" type="button" aria-label="Clear story search, filter, and sort">✕</button>
+            </div>
             <div class="filter-row">
               <div class="filter-tags" role="tablist" aria-label="Story filters">
                 <button class="filter-tag active" data-filter="all" role="tab" aria-selected="true">All</button>

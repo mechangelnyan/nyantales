@@ -986,6 +986,25 @@ cd /tmp/nyantales && python3 -m http.server 9876
 - Verified `npm test` (204/204), `npx playwright test` (45/45), and `node --check` on touched JS files
 - No new stories added
 
+## Phase 65: Remembered Title Browser State + Quick Reset ✅
+- **Persistent title-screen browser state** — story search, active filter tab, and sort mode now survive reloads and return visits
+  - Stored via `SafeStorage`/localStorage under `nyantales-title-browser`
+  - Re-applied on boot before the title screen renders, so the story grid comes back in the same browsing context
+- **Quick reset control** — new inline ✕ button inside the search field clears search + filter + sort back to defaults in one tap
+  - Only appears when the title browser is in a non-default state
+  - Useful on mobile where clearing multiple controls was fiddly
+- **UI polish**
+  - Search field now reserves room for inline controls/count text without overlap
+  - Filter state syncing centralized so tabs/sort/search stay visually consistent after restore/reset
+- **Regression coverage**
+  - Added Playwright tests for remembered title browser state across reloads
+  - Added Playwright test for the new clear/reset button behavior
+- **Docs / deployment freshness**
+  - README updated for remembered browser state
+  - Service worker cache bumped to `v48`, production build regenerated (`161KB` JS / `85KB` CSS)
+- Verified `node --check`, `npm test` (204/204), and `npx playwright test tests/web/vn.spec.js` (45/45)
+- No new stories added
+
 ## Still Possible Future Work
 - Generate remaining character portraits (GPU timeout issue — needs investigation, possibly during lower GPU load)
 - AI-generated scene background images

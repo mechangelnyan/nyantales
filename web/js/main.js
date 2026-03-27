@@ -241,11 +241,18 @@
     window.history[method](state, '', nextUrl);
   }
 
+  const TITLE_BROWSER_STATE_KEY = 'nyantales-title-browser';
+  const DEFAULT_TITLE_BROWSER_STATE = {
+    query: '',
+    filter: 'all',
+    sort: 'title-asc'
+  };
+
   let storyIndex   = [];
   let currentEngine = null;
   let currentSlug   = null;
-  let activeFilter  = 'all';
-  let activeSort    = 'title-asc';
+  let activeFilter  = DEFAULT_TITLE_BROWSER_STATE.filter;
+  let activeSort    = DEFAULT_TITLE_BROWSER_STATE.sort;
   let storyStartTime = null; // timestamp when current story session began
   let campaignMode  = false; // true when playing the connected campaign
   let pendingAchievementUnlocks = [];
@@ -933,31 +940,100 @@
   const filterInput = document.getElementById('filter-input');
   const filterTagsContainer = document.querySelector('.filter-tags');
   const sortSelect = document.getElementById('sort-select');
+  const filterClearBtn = document.getElementById('filter-clear');
+
+  function loadTitleBrowserState() {
+    let stored = null;
+    if (typeof SafeStorage !== 'undefined') {
+      stored = SafeStorage.getJSON(TITLE_BROWSER_STATE_KEY, null);
+    } else {
+      try { stored = JSON.parse(localStorage.getItem(TITLE_BROWSER_STATE_KEY) || 'null'); } catch { stored = null; }
+    }
+    const next = { ...DEFAULT_TITLE_BROWSER_STATE, ...(stored || {}) };
+    activeFilter = next.filter;
+    activeSort = next.sort;
+    if (filterInput) filterInput.value = next.query || '';
+    if (sortSelect) sortSelect.value = next.sort || DEFAULT_TITLE_BROWSER_STATE.sort;
+    syncTitleBrowserControls();
+  }
+
+  function persistTitleBrowserState() {
+    const state = {
+      query: filterInput?.value || '',
+      filter: activeFilter,
+      sort: activeSort
+    };
+    if (typeof SafeStorage !== 'undefined') {
+      SafeStorage.setJSON(TITLE_BROWSER_STATE_KEY, state);
+    } else {
+      try { localStorage.setItem(TITLE_BROWSER_STATE_KEY, JSON.stringify(state)); } catch { /* noop */ }
+    }
+    updateTitleBrowserClearButton();
+  }
+
+  function syncTitleBrowserControls() {
+    if (sortSelect) sortSelect.value = activeSort;
+    if (filterTagsContainer) {
+      filterTagsContainer.querySelectorAll('.filter-tag').forEach(tag => {
+        const isActive = tag.dataset.filter === activeFilter;
+        tag.classList.toggle('active', isActive);
+        tag.setAttribute('aria-selected', isActive ? 'true' : 'false');
+      });
+    }
+    updateTitleBrowserClearButton();
+  }
+
+  function resetTitleBrowserState() {
+    activeFilter = DEFAULT_TITLE_BROWSER_STATE.filter;
+    activeSort = DEFAULT_TITLE_BROWSER_STATE.sort;
+    if (filterInput) filterInput.value = DEFAULT_TITLE_BROWSER_STATE.query;
+    if (sortSelect) sortSelect.value = DEFAULT_TITLE_BROWSER_STATE.sort;
+    syncTitleBrowserControls();
+    persistTitleBrowserState();
+    applyFilter();
+    applySortToGrid();
+    filterInput?.focus();
+  }
+
+  function updateTitleBrowserClearButton() {
+    if (!filterClearBtn) return;
+    const isDirty = Boolean((filterInput?.value || '').trim())
+      || activeFilter !== DEFAULT_TITLE_BROWSER_STATE.filter
+      || activeSort !== DEFAULT_TITLE_BROWSER_STATE.sort;
+    filterClearBtn.classList.toggle('hidden', !isDirty);
+    filterClearBtn.title = isDirty ? 'Reset search, filter, and sort' : '';
+  }
+
+  loadTitleBrowserState();
 
   // Debounced search input for smoother performance with 30 cards
   let _filterTimer = null;
   filterInput?.addEventListener('input', () => {
+    updateTitleBrowserClearButton();
     if (_filterTimer) clearTimeout(_filterTimer);
-    _filterTimer = setTimeout(() => applyFilter(), 80);
+    _filterTimer = setTimeout(() => {
+      applyFilter();
+      persistTitleBrowserState();
+    }, 80);
   });
+
+  filterClearBtn?.addEventListener('click', () => resetTitleBrowserState());
 
   // Single delegated listener on filter tags container (replaces 4 individual listeners)
   filterTagsContainer?.addEventListener('click', (e) => {
     const tag = e.target.closest('.filter-tag');
     if (!tag) return;
-    filterTagsContainer.querySelectorAll('.filter-tag').forEach(t => {
-      t.classList.remove('active');
-      t.setAttribute('aria-selected', 'false');
-    });
-    tag.classList.add('active');
-    tag.setAttribute('aria-selected', 'true');
     activeFilter = tag.dataset.filter;
+    syncTitleBrowserControls();
     applyFilter();
+    persistTitleBrowserState();
   });
 
   sortSelect?.addEventListener('change', () => {
     activeSort = sortSelect.value;
+    updateTitleBrowserClearButton();
     applySortToGrid();
+    persistTitleBrowserState();
   });
 
   // Cached card list — refreshed in renderTitleScreen, reused by filter/sort

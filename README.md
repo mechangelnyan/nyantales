@@ -35,7 +35,7 @@ cd web && bash build.sh
 cd dist && python3 -m http.server 9877
 ```
 
-Build output: **160KB JS** (from 283KB), **84KB CSS** (from 113KB). GitHub Pages CI runs the build automatically.
+Build output: **161KB JS** (from 285KB), **85KB CSS** (from 113KB). GitHub Pages CI runs the build automatically.
 
 **Features:**
 - 🎮 30 interactive stories with branching narratives
@@ -43,7 +43,7 @@ Build output: **160KB JS** (from 283KB), **84KB CSS** (from 113KB). GitHub Pages
 - 🎵 Procedural ambient audio (9 themed soundscapes via Web Audio API)
 - 🏆 16 achievements to unlock
 - 📊 Statistics dashboard with per-story breakdowns, mobile-friendly stat cards, and remembered search/sort controls
-- 🔍 Search, filter & sort stories (A-Z, recent, progress, favorites, length)
+- 🔍 Search, filter & sort stories (A-Z, recent, progress, favorites, length) with remembered browser state + quick reset
 - ❤️ Favorites system with heart button and filter tab
 - 🐱 Character gallery — browse all 45+ characters
 - 💾 Multiple save slots (3 manual + auto-save per story) with Continue button

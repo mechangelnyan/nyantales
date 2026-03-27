@@ -169,9 +169,13 @@ body {
   width: 100%;
   max-width: 500px;
 }
+.story-search-wrap {
+  width: 100%;
+  position: relative;
+}
 #filter-input {
   width: 100%;
-  padding: 0.5rem 0.8rem;
+  padding: 0.5rem 2.7rem 0.5rem 0.8rem;
   background: rgba(20, 20, 40, 0.8);
   border: 1px solid rgba(var(--accent-r), var(--accent-g), var(--accent-b), 0.2);
   border-radius: 6px;
@@ -187,6 +191,29 @@ body {
 }
 #filter-input::placeholder {
   color: var(--text-dim);
+}
+.story-search-clear {
+  position: absolute;
+  right: 0.45rem;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 1.8rem;
+  height: 1.8rem;
+  border-radius: 50%;
+  border: 1px solid rgba(var(--accent-r), var(--accent-g), var(--accent-b), 0.18);
+  background: rgba(20, 20, 40, 0.9);
+  color: var(--text-dim);
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+  cursor: pointer;
+  transition: all 0.18s ease;
+}
+.story-search-clear:hover,
+.story-search-clear:focus-visible {
+  color: var(--accent-cyan);
+  border-color: rgba(var(--accent-r), var(--accent-g), var(--accent-b), 0.45);
+  background: rgba(var(--accent-r), var(--accent-g), var(--accent-b), 0.08);
+  outline: none;
 }
 .filter-tags {
   display: flex;
