@@ -30,10 +30,11 @@ const PORTRAIT_MAP = {
   'tls cat':             'tls_cat_v1_s804870981.png',
   'whisker':             'whisker_v1_s2327025987.png',
   'fork bomb cat':      'fork_bomb_cat_v2_s8162739.png',
-  'tabby':               'tabby_v1_s4182935.png',
+  'tabby':               'tabby_v2_s8371526.png',
   'the scheduler':       'the_scheduler_v2_s2738491.png',
   'zombie cat':          'zombie_cat_v2_s1847362.png',
-  // ── Still missing: Nyan (new version), Packet ──
+  'packet':              'packet_v2_s7294015.png',
+  // ── Still missing: Nyan (new version) ──
 };
 
 class PortraitManager {
