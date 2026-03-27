@@ -989,6 +989,21 @@ cd /tmp/nyantales && python3 -m http.server 9876
 - 2026-03-25 (1:27 PM): Fixed critical rewind bug — rewind now restores inventory/flags from state snapshots instead of just rewinding scene ID. Added font size setting (80%-140%) with live CSS scaling. Added Random Story button (prefers unplayed). Added in-game progress HUD showing scene exploration and turn count. Fixed _syncAll text speed formatter. SW cache v6. All JS files pass. Committed & pushed.
 - 2026-03-25 (2:27 PM): Story Info Modal — new StoryInfoModal class shows detailed per-story stats (exploration %, endings discovered, play count, best turns, last played, protagonist portrait) via ℹ button on story cards. Collapsible mobile HUD with overflow toggle for <600px screens. .gitignore cleanup for test artifacts. SW cache v7. All JS files pass. Committed & pushed.
 
+## Phase 56: Campaign Module Extraction + Build Wiring ✅
+- **Extracted `CampaignManager` into its own module** — moved campaign orchestration out of `web/js/engine.js` into new `web/js/campaign.js`
+  - `engine.js` now focuses only on `StoryEngine` responsibilities
+  - Cleaner separation of concerns: engine state/scene logic vs. campaign flow/persistence
+  - `engine.js` shrank from 483 lines → 250 lines
+- **App wiring updated**
+  - Added `web/js/campaign.js` to `web/index.html` script chain (after `engine.js`, before `main.js` consumers)
+  - Added `campaign.js` to `web/sw.js` pre-cache list for offline support
+  - Added `campaign.js` to `web/build.sh` bundle order so production builds include it
+- **Build metadata cleanup**
+  - Corrected build summary from `30 → 3` requests to `31 → 4` (`index.html + js-yaml + bundle + css`)
+  - Service worker cache bumped to `v43`
+- Production build regenerated (148KB minified bundle)
+- All 31 JS files pass `node --check` validation
+
 ## Phase 55: Title Screen Restoration + Campaign Cleanup ✅
 - **Restored full title screen** — campaign-first redesign (commits 61c1e0b, d87222e) had removed:
   - `#story-list` grid (storyGrid was null, all 30 story cards gone)
@@ -1011,4 +1026,5 @@ cd /tmp/nyantales && python3 -m http.server 9876
 - 3 commits pushed
 
 ## Log (continued)
+- 2026-03-27 (1:27 AM): Phase 56 — Extracted CampaignManager from engine.js into new web/js/campaign.js, wired it into index.html + build.sh + service worker, corrected production request-count summary, bumped SW to v43. engine.js now 250 lines (down from 483). Production build regenerated (148KB bundle). All 31 JS pass.
 - 2026-03-27 (12:27 AM): Phase 55 — Restored full title screen that was broken by campaign-first redesign. Story grid, search, filter, sort, continue, random all back. Campaign section shown above story grid with divider. Cached campaign DOM refs. Removed 45 lines dead CSS. SW v42. 147KB bundle. All 30 JS pass. 3 commits pushed.
