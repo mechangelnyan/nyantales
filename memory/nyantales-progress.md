@@ -850,6 +850,35 @@ cd /tmp/nyantales && python3 -m http.server 9876
 - All 30 JS files pass `node --check` validation
 - 2 commits pushed
 
+## Phase 53: Cached DOM, Delegated Listeners, Engine Optimization ✅
+- **SettingsPanel cached DOM refs** — `_els` object caches 17 frequently-accessed elements at construction
+  - `_updateDataStats()` no longer queries `getElementById('set-data-stats')` on every show
+  - `_runPreview()` uses `_els.preview` instead of `getElementById('set-text-preview')`
+  - `_syncAll()` uses cached slider/value elements instead of 8 `getElementById` calls per sync
+  - `_handleExport()` / `_handleImport()` use cached button refs for feedback text
+  - `_els.autoDelayRow` cached for toggle visibility
+  - `_els.themeContainer` cached for swatch queries
+- **SettingsPanel delegated data section clicks** — export/import/reset buttons consolidated into 1 delegated listener on `.settings-body` (replaces 3 individual `addEventListener` calls)
+- **SettingsPanel color theme delegation** — 5 per-swatch `addEventListener` calls → 1 delegated click on container
+- **SettingsPanel `_speedLabel()` static method** — shared between `_wireSlider` and `_syncAll` (DRY, was duplicated)
+- **SaveManager listener consolidation** — close button + backdrop + mode toggle merged into 1 delegated click on overlay (replaces 2 + 2 per-mode-btn listeners)
+- **SaveManager cached refs** — `_slotsEl`, `_modeBtns`, `_panelEl` cached at build time
+  - `_renderSlots()` no longer queries `.save-slots` on every re-render
+  - `show()` uses cached `_modeBtns` and `_panelEl` instead of querying
+- **Engine `interpolate()` optimization** — single pre-compiled regex with `switch` dispatch
+  - Previously: 8 chained `.replace()` calls, each scanning the full string
+  - Now: 1 `StoryEngine._INTERP_RE` static regex, single pass through the text
+  - Same output, fewer string scans (especially for long narration text)
+- **UI `_updateSprites` optimization** — eliminated object spread allocation
+  - Was creating `{ ...char, isSpeaker }` spread objects for every visible character per render
+  - Now uses parallel `speakerFlags` array alongside `visible` (zero object allocation)
+  - `classList.toggle('speaking', isSpeaker)` replaces if/else add/remove pattern
+- **UI character name cache** — `_charNameCache` Map avoids `.toLowerCase()` on character names every render
+  - Cleared on story change via `setStorySlug()`
+- addEventListener count: 65 → 61 (6% reduction)
+- SW cache bumped to v38, production build regenerated (136KB bundle)
+- All 30 JS files pass `node --check` validation
+
 ## Still Possible Future Work
 - Generate remaining character portraits (GPU timeout issue — needs investigation, possibly during lower GPU load)
 - AI-generated scene background images
@@ -894,6 +923,7 @@ cd /tmp/nyantales && python3 -m http.server 9876
 - All 30 JS files pass `node --check` validation
 
 ## Log (continued)
+- 2026-03-26 (10:27 PM): Phase 53 — Cached DOM + delegation + engine optimization: SettingsPanel caches 17 DOM refs, delegates data/theme clicks, shares _speedLabel(). SaveManager consolidates close+mode into 1 listener, caches _slotsEl/_modeBtns/_panelEl. Engine.interpolate() uses single pre-compiled regex (8 chained .replace→1 pass). UI._updateSprites eliminates object spread allocation (parallel speakerFlags array), adds _charNameCache. addEventListener count 65→61. SW v38. 136KB bundle. All 30 JS pass. Committed & pushed.
 - 2026-03-26 (9:27 PM): Phase 52 — SEO & discoverability: robots.txt, sitemap.xml, canonical URL, JSON-LD WebApplication structured data, dns-prefetch. README updated. SW v37. 136KB bundle. All 30 JS pass. 2 commits pushed.
 - 2026-03-26 (8:27 PM): Phase 51 — One-time callbacks: gallery.onStoryClick + statsDashboard.onPlay moved from per-click to init (eliminates closure re-creation). Pre-computed _totalCharCount for About panel. Synchronous new-ending badge (removed setTimeout). SceneSelect close consolidated (66→65 listeners). build.sh auto-versions prod SW (extracts version from dev sw.js, fixes recurring stale-cache bug). SW v36. 135KB bundle. All 30 JS pass. Committed & pushed.
 - 2026-03-26 (7:27 PM): Phase 50 — Accessibility: added aria-hidden to AchievementPanel/StatsDashboard/Gallery (last 3 panels missing it). Added role="dialog"+aria-label to Gallery. Consolidated close/backdrop listeners: KeyboardHelp (2→1), SettingsPanel (2→1), Gallery (2→1), HistoryPanel (3→1), ConfirmDialog (3→1). addEventListener count 73→66. Fixed stale prod SW (v32→v35). 135KB bundle. All 30 JS pass. Committed & pushed.

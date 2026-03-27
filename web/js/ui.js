@@ -128,6 +128,7 @@ class VNUI {
   setStorySlug(slug) {
     this.currentStorySlug = slug;
     this._speakerCache = new Map(); // reset speaker lookup cache per story
+    this._charNameCache = new Map(); // reset lowercase name cache per story
   }
 
   /**
@@ -214,22 +215,32 @@ class VNUI {
     const textLower = (scene.text || '').toLowerCase();
     const sceneIdLower = (engine.state.currentScene || '').toLowerCase();
 
+    // Build visible list without spreading (avoids object allocation per character per render)
+    // Cache lowercase names per story to avoid toLowerCase() on every render
+    if (!this._charNameCache) this._charNameCache = new Map();
     const visible = [];
+    const speakerFlags = []; // parallel array: true if the char at this index is speaking
     for (const char of chars) {
-      const nameLower = char.name.toLowerCase();
+      let nameLower = this._charNameCache.get(char.name);
+      if (nameLower === undefined) {
+        nameLower = char.name.toLowerCase();
+        this._charNameCache.set(char.name, nameLower);
+      }
       const isSpeaker = speakerLower === nameLower || speakerLower.includes(nameLower);
       const inText = textLower.includes(nameLower);
       const inScene = sceneIdLower.includes(nameLower.replace(/\s+/g, '-'));
 
       if (isSpeaker || inText || inScene) {
-        visible.push({ ...char, isSpeaker });
+        visible.push(char);
+        speakerFlags.push(isSpeaker);
       }
     }
 
     // If no one's visible, show protagonist
     if (visible.length === 0 && chars.length > 0) {
       const protag = chars.find(c => c.role === 'protagonist') || chars[0];
-      visible.push({ ...protag, isSpeaker: false });
+      visible.push(protag);
+      speakerFlags.push(false);
     }
 
     // Position sprites
@@ -247,6 +258,7 @@ class VNUI {
 
     // Add/update visible sprites
     visible.forEach((char, i) => {
+      const isSpeaker = speakerFlags[i];
       let spriteEl = this._activeSprites.get(char.name);
       const pos = positions[i];
 
@@ -282,11 +294,7 @@ class VNUI {
       }
 
       // Highlight speaker — use CSS classes instead of inline styles for theme reactivity
-      if (char.isSpeaker) {
-        spriteEl.classList.add('speaking');
-      } else {
-        spriteEl.classList.remove('speaking');
-      }
+      spriteEl.classList.toggle('speaking', isSpeaker);
       // Clear any ending-state classes from previous scene
       spriteEl.classList.remove('ending-good', 'ending-bad', 'ending-neutral');
     });

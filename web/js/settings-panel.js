@@ -144,17 +144,34 @@ class SettingsPanel {
       if (e.target === this.overlay || e.target.closest('.settings-close')) this.hide();
     });
 
-    // Wire up controls
+    // Cache DOM refs used repeatedly (avoids getElementById on every show/sync/action)
     this._previewTimer = null;
+    this._els = {
+      textSpeed:    document.getElementById('set-text-speed'),
+      textSpeedVal: document.getElementById('set-text-speed-val'),
+      preview:      document.getElementById('set-text-preview'),
+      autoDelay:    document.getElementById('set-auto-delay'),
+      autoDelayVal: document.getElementById('set-auto-delay-val'),
+      autoDelayRow: document.getElementById('row-auto-delay'),
+      fontSize:     document.getElementById('set-font-size'),
+      fontSizeVal:  document.getElementById('set-font-size-val'),
+      volume:       document.getElementById('set-volume'),
+      volumeVal:    document.getElementById('set-volume-val'),
+      exportBtn:    document.getElementById('set-export'),
+      importBtn:    document.getElementById('set-import'),
+      importFile:   document.getElementById('set-import-file'),
+      dataStats:    document.getElementById('set-data-stats'),
+      themeContainer: document.getElementById('set-color-theme')
+    };
+
+    // Wire up controls
     this._wireSlider('set-text-speed', 'textSpeed', v => {
-      const labels = { 2: 'Instant', 6: 'Very Fast', 12: 'Fast', 18: 'Normal', 26: 'Slow', 34: 'Very Slow', 40: 'Crawl' };
-      const closest = Object.keys(labels).reduce((a, b) => Math.abs(b - v) < Math.abs(a - v) ? b : a);
       this._runPreview(parseInt(v));
-      return labels[closest] || `${v}ms`;
+      return SettingsPanel._speedLabel(v);
     });
 
     this._wireToggle('set-auto-play', 'autoPlay', (val) => {
-      document.getElementById('row-auto-delay').classList.toggle('hidden', !val);
+      this._els.autoDelayRow.classList.toggle('hidden', !val);
     });
 
     this._wireSlider('set-auto-delay', 'autoPlayDelay', v => `${(v / 1000).toFixed(1)}s`);
@@ -171,63 +188,74 @@ class SettingsPanel {
       fromSetting: v => Math.round(v * 100)
     });
 
-    // Color theme swatches
+    // Color theme swatches — single delegated listener (replaces 5 per-swatch listeners)
     this._wireColorTheme();
 
-    // Data export/import
+    // Data section — single delegated listener on settings body for export/import/reset
     this._dataManager = new DataManager();
-    document.getElementById('set-export').addEventListener('click', () => {
-      this._dataManager.downloadExport();
-      const btn = document.getElementById('set-export');
-      btn.textContent = '✅ Done!';
-      setTimeout(() => { btn.textContent = '📤 Export'; }, 1500);
-    });
-    document.getElementById('set-import').addEventListener('click', () => {
-      document.getElementById('set-import-file').click();
-    });
-    document.getElementById('set-import-file').addEventListener('change', async (e) => {
-      const file = e.target.files[0];
-      if (!file) return;
-      const confirmed = await ConfirmDialog.show({
-        title: 'Import Data?',
-        message: `Import from "${file.name}"? This will merge with your existing data and may overwrite current saves.`,
-        confirmText: '📥 Import',
-        cancelText: 'Cancel',
-        danger: false
-      });
-      if (!confirmed) {
-        e.target.value = '';
-        return;
+    this.overlay.querySelector('.settings-body').addEventListener('click', (e) => {
+      const target = e.target;
+      if (target === this._els.exportBtn || target.closest('#set-export')) {
+        this._handleExport();
+      } else if (target === this._els.importBtn || target.closest('#set-import')) {
+        this._els.importFile.click();
+      } else if (target.closest('#set-reset')) {
+        this._handleReset();
       }
-      try {
-        const result = await this._dataManager.importFromFile(file);
-        const btn = document.getElementById('set-import');
-        btn.textContent = `✅ ${result.imported} items`;
-        setTimeout(() => { btn.textContent = '📥 Import'; }, 2000);
-        this._updateDataStats();
-      } catch (err) {
-        const btn = document.getElementById('set-import');
-        btn.textContent = '❌ Error';
-        setTimeout(() => { btn.textContent = '📥 Import'; }, 2000);
-        console.warn('Import failed:', err);
-      }
-      e.target.value = ''; // Reset file input
     });
 
-    // Reset button (with confirmation)
-    document.getElementById('set-reset').addEventListener('click', async () => {
-      const confirmed = await ConfirmDialog.show({
-        title: 'Reset All Settings?',
-        message: 'This will restore all settings to their default values.',
-        confirmText: '↺ Reset',
-        cancelText: 'Cancel',
-        danger: true
-      });
-      if (confirmed) {
-        this.settings.reset();
-        this._syncAll();
-      }
+    this._els.importFile.addEventListener('change', (e) => this._handleImport(e));
+  }
+
+  /** Map speed value to human-readable label. Shared by _wireSlider + _syncAll. */
+  static _speedLabel(v) {
+    const labels = { 2: 'Instant', 6: 'Very Fast', 12: 'Fast', 18: 'Normal', 26: 'Slow', 34: 'Very Slow', 40: 'Crawl' };
+    const closest = Object.keys(labels).reduce((a, b) => Math.abs(b - v) < Math.abs(a - v) ? b : a);
+    return labels[closest] || `${v}ms`;
+  }
+
+  async _handleExport() {
+    this._dataManager.downloadExport();
+    this._els.exportBtn.textContent = '✅ Done!';
+    setTimeout(() => { this._els.exportBtn.textContent = '📤 Export'; }, 1500);
+  }
+
+  async _handleImport(e) {
+    const file = e.target.files[0];
+    if (!file) return;
+    const confirmed = await ConfirmDialog.show({
+      title: 'Import Data?',
+      message: `Import from "${file.name}"? This will merge with your existing data and may overwrite current saves.`,
+      confirmText: '📥 Import',
+      cancelText: 'Cancel',
+      danger: false
     });
+    if (!confirmed) { e.target.value = ''; return; }
+    try {
+      const result = await this._dataManager.importFromFile(file);
+      this._els.importBtn.textContent = `✅ ${result.imported} items`;
+      setTimeout(() => { this._els.importBtn.textContent = '📥 Import'; }, 2000);
+      this._updateDataStats();
+    } catch (err) {
+      this._els.importBtn.textContent = '❌ Error';
+      setTimeout(() => { this._els.importBtn.textContent = '📥 Import'; }, 2000);
+      console.warn('Import failed:', err);
+    }
+    e.target.value = '';
+  }
+
+  async _handleReset() {
+    const confirmed = await ConfirmDialog.show({
+      title: 'Reset All Settings?',
+      message: 'This will restore all settings to their default values.',
+      confirmText: '↺ Reset',
+      cancelText: 'Cancel',
+      danger: true
+    });
+    if (confirmed) {
+      this.settings.reset();
+      this._syncAll();
+    }
   }
 
   _wireSlider(id, key, formatter, transform) {
@@ -260,78 +288,71 @@ class SettingsPanel {
     });
   }
 
-  /** Wire color theme swatch buttons */
+  /** Wire color theme swatch buttons — single delegated listener on container */
   _wireColorTheme() {
-    const container = document.getElementById('set-color-theme');
-    const swatches = container.querySelectorAll('.theme-swatch');
+    const container = this._els.themeContainer;
     const currentTheme = this.settings.get('colorTheme');
 
-    swatches.forEach(btn => {
+    container.querySelectorAll('.theme-swatch').forEach(btn => {
       btn.classList.toggle('active', btn.dataset.theme === currentTheme);
-      btn.addEventListener('click', () => {
-        swatches.forEach(s => s.classList.remove('active'));
-        btn.classList.add('active');
-        this.settings.set('colorTheme', btn.dataset.theme);
-      });
+    });
+
+    container.addEventListener('click', (e) => {
+      const swatch = e.target.closest('.theme-swatch');
+      if (!swatch) return;
+      container.querySelectorAll('.theme-swatch').forEach(s => s.classList.remove('active'));
+      swatch.classList.add('active');
+      this.settings.set('colorTheme', swatch.dataset.theme);
     });
   }
 
   _syncAll() {
-    // Re-sync all controls to current settings
-    const sync = (id, key, formatter, transform) => {
-      const el = document.getElementById(id);
-      const valEl = document.getElementById(id + '-val');
-      if (el && el.type === 'range') {
-        const fromSetting = transform?.fromSetting || (v => v);
-        el.value = fromSetting(this.settings.get(key));
-        if (valEl) valEl.textContent = formatter(parseInt(el.value));
-      }
+    // Re-sync all controls to current settings using cached refs
+    const syncSlider = (el, valEl, key, formatter, transform) => {
+      if (!el) return;
+      const fromSetting = transform?.fromSetting || (v => v);
+      el.value = fromSetting(this.settings.get(key));
+      if (valEl) valEl.textContent = formatter(parseInt(el.value));
     };
     const syncToggle = (id, key) => {
       const btn = document.getElementById(id);
-      if (btn) {
-        const val = this.settings.get(key);
-        btn.textContent = val ? 'ON' : 'OFF';
-        btn.classList.toggle('on', val);
-      }
+      if (!btn) return;
+      const val = this.settings.get(key);
+      btn.textContent = val ? 'ON' : 'OFF';
+      btn.classList.toggle('on', val);
     };
 
-    sync('set-text-speed', 'textSpeed', v => {
-      const labels = { 2: 'Instant', 6: 'Very Fast', 12: 'Fast', 18: 'Normal', 26: 'Slow', 34: 'Very Slow', 40: 'Crawl' };
-      const closest = Object.keys(labels).reduce((a, b) => Math.abs(b - v) < Math.abs(a - v) ? b : a);
-      return labels[closest] || `${v}ms`;
-    });
-    sync('set-auto-delay', 'autoPlayDelay', v => `${(v / 1000).toFixed(1)}s`);
-    sync('set-font-size', 'fontSize', v => `${v}%`);
-    sync('set-volume', 'audioVolume', v => `${v}%`, { fromSetting: v => Math.round(v * 100) });
+    syncSlider(this._els.textSpeed, this._els.textSpeedVal, 'textSpeed', SettingsPanel._speedLabel);
+    syncSlider(this._els.autoDelay, this._els.autoDelayVal, 'autoPlayDelay', v => `${(v / 1000).toFixed(1)}s`);
+    syncSlider(this._els.fontSize, this._els.fontSizeVal, 'fontSize', v => `${v}%`);
+    syncSlider(this._els.volume, this._els.volumeVal, 'audioVolume', v => `${v}%`, { fromSetting: v => Math.round(v * 100) });
     syncToggle('set-auto-play', 'autoPlay');
     syncToggle('set-skip-read', 'skipRead');
     syncToggle('set-screen-shake', 'screenShake');
     syncToggle('set-particles', 'particles');
     syncToggle('set-fullscreen', 'fullscreen');
 
-    document.getElementById('row-auto-delay').classList.toggle('hidden', !this.settings.get('autoPlay'));
+    this._els.autoDelayRow.classList.toggle('hidden', !this.settings.get('autoPlay'));
 
     // Sync color theme swatches
     const currentTheme = this.settings.get('colorTheme');
-    document.querySelectorAll('#set-color-theme .theme-swatch').forEach(btn => {
+    this._els.themeContainer.querySelectorAll('.theme-swatch').forEach(btn => {
       btn.classList.toggle('active', btn.dataset.theme === currentTheme);
     });
   }
 
   /** Update data usage stats display */
   _updateDataStats() {
-    const statsEl = document.getElementById('set-data-stats');
-    if (!statsEl || !this._dataManager) return;
+    if (!this._els.dataStats || !this._dataManager) return;
     const stats = this._dataManager.getStats();
     const sizeKB = (stats.estimatedBytes / 1024).toFixed(1);
-    statsEl.innerHTML = `${stats.stories} stories tracked · ${stats.saves} save files · ~${sizeKB} KB`;
+    this._els.dataStats.innerHTML = `${stats.stories} stories tracked · ${stats.saves} save files · ~${sizeKB} KB`;
   }
 
   /** Run a typewriter preview in the settings panel at the given speed (ms per 2-char chunk) */
   _runPreview(speedMs) {
     if (this._previewTimer) clearTimeout(this._previewTimer);
-    const el = document.getElementById('set-text-preview');
+    const el = this._els.preview;
     if (!el) return;
 
     const text = 'The terminal cat blinked at the blinking cursor…';

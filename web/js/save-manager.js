@@ -162,26 +162,27 @@ class SaveManager {
     `;
     document.body.appendChild(this.overlay);
 
-    // Close
+    // Close + mode toggle — single delegated listener on overlay
+    this._modeBtns = this.overlay.querySelectorAll('.save-mode-btn');
     this.overlay.addEventListener('click', (e) => {
-      if (e.target === this.overlay) this.hide();
-    });
-    this.overlay.querySelector('.save-panel-close').addEventListener('click', () => this.hide());
-
-    // Mode toggle
-    const modeBtns = this.overlay.querySelectorAll('.save-mode-btn');
-    modeBtns.forEach(btn => {
-      btn.addEventListener('click', () => {
-        modeBtns.forEach(b => b.classList.remove('active'));
-        btn.classList.add('active');
-        this._currentMode = btn.dataset.mode;
+      // Backdrop or close button
+      if (e.target === this.overlay || e.target.closest('.save-panel-close')) {
+        this.hide();
+        return;
+      }
+      // Mode toggle (save/load)
+      const modeBtn = e.target.closest('.save-mode-btn');
+      if (modeBtn) {
+        this._modeBtns.forEach(b => b.classList.remove('active'));
+        modeBtn.classList.add('active');
+        this._currentMode = modeBtn.dataset.mode;
         this._renderSlots();
-      });
+      }
     });
 
     // Event delegation on save-slots container (one listener handles all slot actions)
-    const slotsEl = this.overlay.querySelector('.save-slots');
-    slotsEl.addEventListener('click', async (e) => {
+    this._slotsEl = this.overlay.querySelector('.save-slots');
+    this._slotsEl.addEventListener('click', async (e) => {
       const btn = e.target.closest('[data-action]');
       if (!btn) return;
       const slotName = btn.dataset.slot;
@@ -223,7 +224,7 @@ class SaveManager {
   /** Render slot cards for current story + mode */
   _renderSlots() {
     if (!this.overlay || !this._currentSlug) return;
-    const slotsEl = this.overlay.querySelector('.save-slots');
+    const slotsEl = this._slotsEl;
     const slots = this.getSlots(this._currentSlug);
     const mode = this._currentMode || 'save';
 
@@ -294,15 +295,15 @@ class SaveManager {
     this._currentMode = mode;
 
     // Set active mode button
-    const modeBtns = this.overlay.querySelectorAll('.save-mode-btn');
-    modeBtns.forEach(b => {
+    this._modeBtns.forEach(b => {
       b.classList.toggle('active', b.dataset.mode === mode);
     });
 
     this._renderSlots();
     this.overlay.setAttribute('aria-hidden', 'false');
     requestAnimationFrame(() => this.overlay.classList.add('visible'));
-    if (!this._focusTrap) this._focusTrap = new FocusTrap(this.overlay.querySelector('.save-panel'));
+    if (!this._panelEl) this._panelEl = this.overlay.querySelector('.save-panel');
+    if (!this._focusTrap) this._focusTrap = new FocusTrap(this._panelEl);
     this._focusTrap.activate();
   }
 

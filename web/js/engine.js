@@ -128,18 +128,26 @@ class StoryEngine {
     return scene.conditional.filter(ct => this.evaluateCondition(ct.condition));
   }
 
-  /** Interpolate variables in text */
+  // Pre-compiled interpolation patterns (shared across all engine instances)
+  static _INTERP_RE = /\{\{(turns|scene|items|item_count|visited_count|title|flag:\w+|has:\w+)\}\}/g;
+
+  /** Interpolate variables in text using a single regex pass */
   interpolate(text) {
     if (!text) return '';
-    return text
-      .replace(/\{\{turns\}\}/g, this.state.turns)
-      .replace(/\{\{scene\}\}/g, this.state.currentScene)
-      .replace(/\{\{items\}\}/g, this.state.inventory.length ? this.state.inventory.join(', ') : 'nothing')
-      .replace(/\{\{item_count\}\}/g, this.state.inventory.length)
-      .replace(/\{\{visited_count\}\}/g, this.state.visited.size)
-      .replace(/\{\{title\}\}/g, this.story.title || '')
-      .replace(/\{\{flag:(\w+)\}\}/g, (_, name) => this.state.flags.has(name) ? 'true' : 'false')
-      .replace(/\{\{has:(\w+)\}\}/g, (_, name) => this.state.inventory.includes(name) ? 'true' : 'false');
+    return text.replace(StoryEngine._INTERP_RE, (match, key) => {
+      switch (key) {
+        case 'turns':         return this.state.turns;
+        case 'scene':         return this.state.currentScene;
+        case 'items':         return this.state.inventory.length ? this.state.inventory.join(', ') : 'nothing';
+        case 'item_count':    return this.state.inventory.length;
+        case 'visited_count': return this.state.visited.size;
+        case 'title':         return this.story.title || '';
+        default:
+          if (key.startsWith('flag:')) return this.state.flags.has(key.slice(5)) ? 'true' : 'false';
+          if (key.startsWith('has:'))  return this.state.inventory.includes(key.slice(4)) ? 'true' : 'false';
+          return match;
+      }
+    });
   }
 
   /** Inventory management */
