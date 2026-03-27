@@ -975,6 +975,8 @@
 
   // ── Search, Filter & Sort (delegated to TitleBrowser) ──
 
+  const titleBg = document.querySelector('.title-bg');
+
   const titleBrowser = new TitleBrowser(storyGrid, {
     filterInput:        document.getElementById('filter-input'),
     filterTagsContainer: document.querySelector('.filter-tags'),
@@ -1132,7 +1134,6 @@
   const btnRewind = document.getElementById('btn-rewind');
   const hudMoreBtn = document.getElementById('btn-hud-more');
   const hudToolbar = document.querySelector('.vn-hud');
-  const titleBg    = document.querySelector('.title-bg');
 
   // Mobile sticky filter sync is handled by TitleBrowser (scroll/resize/orientation listeners)
 
