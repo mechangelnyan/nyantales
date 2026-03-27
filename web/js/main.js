@@ -218,6 +218,7 @@
   let storyStartTime = null; // timestamp when current story session began
   let campaignMode  = false; // true when playing the connected campaign
   let pendingAchievementUnlocks = [];
+  let suppressNextAutoAdvance = false;
 
   // ── Auto-play State ──
 
@@ -256,6 +257,10 @@
     const scene = currentEngine.getCurrentScene();
     if (!scene || scene.ending) return;
     if (currentEngine.getAvailableChoices().length > 0) return;
+    if (suppressNextAutoAdvance) {
+      suppressNextAutoAdvance = false;
+      return;
+    }
 
     autoPlayTimer = setTimeout(() => {
       if (!currentEngine || isAnyPanelOpen()) return;
@@ -572,6 +577,7 @@
     // Show story intro splash (skip for loaded saves — player already knows the story)
     if (!savedState) {
       await StoryIntro.show(story, ui.portraits);
+      suppressNextAutoAdvance = true;
     }
 
     ui.showStoryScreen();
