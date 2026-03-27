@@ -1308,14 +1308,20 @@
   /** Update campaign button text on title screen. */
   function updateCampaignButton() {
     const btn = document.getElementById('btn-campaign');
-    if (!btn || !campaign.isLoaded) return;
-    const label = campaign.getProgressLabel();
+    if (!btn) return;
+    if (!campaign.isLoaded) {
+      btn.innerHTML = '&#9654; Start Campaign<span class="campaign-hero-tag">One cat. 26 chapters. One connected story.</span>';
+      return;
+    }
     if (campaign.isComplete()) {
-      btn.innerHTML = '📖 Campaign <span class="campaign-meta">Complete! ✨</span>';
-    } else if (label) {
-      btn.innerHTML = `📖 Continue Campaign<span class="campaign-meta">${label}</span>`;
+      btn.innerHTML = '&#127942; Campaign Complete<span class="campaign-hero-tag">Replay from any chapter below.</span>';
+      return;
+    }
+    const label = campaign.getProgressLabel();
+    if (label) {
+      btn.innerHTML = `&#9654; Continue Campaign<span class="campaign-hero-tag">${label}</span>`;
     } else {
-      btn.textContent = '📖 Campaign';
+      btn.innerHTML = '&#9654; Start Campaign<span class="campaign-hero-tag">One cat. 26 chapters. One connected story.</span>';
     }
   }
 
