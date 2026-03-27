@@ -10,6 +10,8 @@ class AmbientAudio {
     this.masterGain = null;
     this.currentTheme = null;
     this.nodes = [];
+    this._blipTimers = []; // track blip setTimeout IDs for cleanup
+    this._noiseBuffer = null; // shared noise buffer (reused across theme changes)
     this.enabled = false;
     this.volume = 0.15;
     this._fadeTime = 1.5; // seconds
@@ -54,6 +56,9 @@ class AmbientAudio {
     // Fade out old
     this.masterGain.gain.setTargetAtTime(0, this.ctx.currentTime, 0.4);
 
+    // Cancel blip timers before stopping nodes (prevents orphaned recursive setTimeout chains)
+    this._cancelBlipTimers();
+
     // Stop old nodes after fade
     const oldNodes = [...this.nodes];
     setTimeout(() => {
@@ -79,6 +84,7 @@ class AmbientAudio {
   /** Stop all audio */
   stop() {
     if (!this.ctx) return;
+    this._cancelBlipTimers();
     this.masterGain.gain.setTargetAtTime(0, this.ctx.currentTime, 0.3);
     setTimeout(() => {
       this.nodes.forEach(n => {
@@ -88,6 +94,12 @@ class AmbientAudio {
       this.nodes = [];
       this.currentTheme = null;
     }, 500);
+  }
+
+  /** Cancel all blip recursive setTimeout chains to prevent memory leaks. */
+  _cancelBlipTimers() {
+    for (const id of this._blipTimers) clearTimeout(id);
+    this._blipTimers.length = 0;
   }
 
   // ── Theme Classification ──
@@ -127,17 +139,25 @@ class AmbientAudio {
     (builders[theme] || builders.default)();
   }
 
-  /** Create a filtered noise source */
-  _noise(type = 'lowpass', freq = 800, q = 1, gain = 0.3) {
+  /** Get or create a shared white noise buffer (reused across all themes). */
+  _getNoiseBuffer() {
+    if (this._noiseBuffer && this._noiseBuffer.sampleRate === this.ctx.sampleRate) {
+      return this._noiseBuffer;
+    }
     const bufferSize = this.ctx.sampleRate * 4;
     const buffer = this.ctx.createBuffer(1, bufferSize, this.ctx.sampleRate);
     const data = buffer.getChannelData(0);
     for (let i = 0; i < bufferSize; i++) {
       data[i] = (Math.random() * 2 - 1);
     }
+    this._noiseBuffer = buffer;
+    return buffer;
+  }
 
+  /** Create a filtered noise source (reuses shared noise buffer). */
+  _noise(type = 'lowpass', freq = 800, q = 1, gain = 0.3) {
     const src = this.ctx.createBufferSource();
-    src.buffer = buffer;
+    src.buffer = this._getNoiseBuffer();
     src.loop = true;
 
     const filter = this.ctx.createBiquadFilter();
@@ -181,7 +201,7 @@ class AmbientAudio {
     return osc;
   }
 
-  /** Random blip/click pattern */
+  /** Random blip/click pattern (timers tracked for cleanup on theme change). */
   _blips(interval, freqMin, freqMax, duration = 0.05, gain = 0.04) {
     const g = this.ctx.createGain();
     g.gain.value = gain;
@@ -203,9 +223,9 @@ class AmbientAudio {
       osc.stop(this.ctx.currentTime + duration);
 
       const next = interval * (0.5 + Math.random());
-      setTimeout(doBlip, next * 1000);
+      this._blipTimers.push(setTimeout(doBlip, next * 1000));
     };
-    setTimeout(doBlip, Math.random() * interval * 1000);
+    this._blipTimers.push(setTimeout(doBlip, Math.random() * interval * 1000));
   }
 
   // ── Specific Themes ──

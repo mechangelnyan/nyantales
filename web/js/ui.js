@@ -512,8 +512,10 @@ class VNUI {
       this.isTyping = true;
       this.clickIndicator.classList.add('hidden');
 
+      const formattedHtml = this._formatText(text);
+
       if (this.fastMode) {
-        this.textEl.innerHTML = this._formatText(text);
+        this.textEl.innerHTML = formattedHtml;
         this.isTyping = false;
         this.clickIndicator.classList.remove('hidden');
         this.textboxEl.scrollTop = this.textboxEl.scrollHeight;
@@ -521,18 +523,57 @@ class VNUI {
         return;
       }
 
-      let index = 0;
+      // Progressive reveal: render the full formatted HTML into a hidden container,
+      // then reveal characters via a clipping wrapper. This avoids re-calling
+      // _formatText() on every 2-char chunk (was O(n²) for long text).
       this.textEl.innerHTML = '';
+      const wrapper = document.createElement('span');
+      wrapper.className = 'vn-typewriter-reveal';
+      wrapper.innerHTML = formattedHtml;
+      this.textEl.appendChild(wrapper);
+
+      // Measure total text length for progressive reveal
+      const fullLen = wrapper.textContent.length;
+      let revealedLen = 0;
+
+      // Use CSS clip-path or max-width to reveal progressively
+      // Simplest cross-browser approach: walk text nodes and toggle visibility
+      const textNodes = [];
+      const walker = document.createTreeWalker(wrapper, NodeFilter.SHOW_TEXT);
+      let node;
+      while ((node = walker.nextNode())) textNodes.push(node);
+
+      // Split each text node into individual spans for character-level reveal
+      const charSpans = [];
+      textNodes.forEach(tn => {
+        const parent = tn.parentNode;
+        const chars = tn.textContent;
+        const frag = document.createDocumentFragment();
+        for (let i = 0; i < chars.length; i++) {
+          const span = document.createElement('span');
+          span.textContent = chars[i];
+          span.style.visibility = 'hidden';
+          charSpans.push(span);
+          frag.appendChild(span);
+        }
+        parent.replaceChild(frag, tn);
+      });
 
       const type = () => {
-        if (index < text.length) {
-          const chunk = text.slice(index, index + 2);
-          index += 2;
-          this.textEl.innerHTML = this._formatText(text.slice(0, index));
-          // Auto-scroll textbox to keep new text visible
-          this.textboxEl.scrollTop = this.textboxEl.scrollHeight;
+        const end = Math.min(revealedLen + 2, charSpans.length);
+        for (let i = revealedLen; i < end; i++) {
+          charSpans[i].style.visibility = 'visible';
+        }
+        revealedLen = end;
+
+        // Auto-scroll textbox to keep new text visible
+        this.textboxEl.scrollTop = this.textboxEl.scrollHeight;
+
+        if (revealedLen < charSpans.length) {
           this._typewriterTimeout = setTimeout(type, this.typewriterSpeed);
         } else {
+          // Replace char spans with clean formatted HTML (removes per-char spans)
+          this.textEl.innerHTML = formattedHtml;
           this.isTyping = false;
           this.clickIndicator.classList.remove('hidden');
           this.textboxEl.scrollTop = this.textboxEl.scrollHeight;
@@ -546,6 +587,7 @@ class VNUI {
   skipTypewriter() {
     if (this.isTyping) {
       this._cancelTypewriter();
+      // Reveal all text immediately (replaces char spans with clean formatted HTML)
       this.textEl.innerHTML = this._formatText(this._fullText);
       this.isTyping = false;
       this.clickIndicator.classList.remove('hidden');
