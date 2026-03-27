@@ -34,7 +34,32 @@ const PORTRAIT_MAP = {
   'the scheduler':       'the_scheduler_v2_s2738491.png',
   'zombie cat':          'zombie_cat_v2_s1847362.png',
   'packet':              'packet_v2_s7294015.png',
-  // ── Still missing: Nyan (new version) ──
+  // ── NPC Portraits ──
+  'api-worker-7':        'api_worker_7_v2_s694661517.png',
+  'api worker 7':        'api_worker_7_v2_s694661517.png',
+  'aria':                'aria_v1_s1814942480.png',
+  'chairman whiskers':   'chairman_whiskers_v1_s2465180325.png',
+  'chroma':              'chroma_v2_s2577919234.png',
+  'closure':             'closure_v1_s565535246.png',
+  'coffeebot3000':       'coffeebot3000_v2_s2465713608.png',
+  'dangling':            'dangling_v2_s2843304532.png',
+  'dev-cat-3':           'dev_cat_3_v2_s2786296074.png',
+  'dev cat 3':           'dev_cat_3_v2_s2786296074.png',
+  'dev-cat-7':           'dev_cat_7_v2_s2571678067.png',
+  'dev cat 7':           'dev_cat_7_v2_s2571678067.png',
+  'epsilon':             'epsilon_v1_s85334882.png',
+  'nginx':               'nginx_v2_s1772417002.png',
+  'serif':               'serif_v1_s343058849.png',
+  'stack canary':        'stack_canary_v1_s1403342062.png',
+  'the waf':             'the_waf_v2_s3708042226.png',
+  'thread-a':            'thread_a_v1_s2967386881.png',
+  'thread a':            'thread_a_v1_s2967386881.png',
+  'thread-b':            'thread_b_v2_s1531292318.png',
+  'thread b':            'thread_b_v2_s1531292318.png',
+  'thread-c':            'thread_c_v2_s2517336017.png',
+  'thread c':            'thread_c_v2_s2517336017.png',
+  'thread-d':            'thread_d_v1_s3290992869.png',
+  'thread d':            'thread_d_v1_s3290992869.png',
 };
 
 class PortraitManager {
