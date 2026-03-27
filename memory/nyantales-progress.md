@@ -1005,6 +1005,23 @@ cd /tmp/nyantales && python3 -m http.server 9876
 - Verified `node --check`, `npm test` (204/204), and `npx playwright test tests/web/vn.spec.js` (45/45)
 - No new stories added
 
+## Phase 66: Mobile Title Browser UX Polish ✅
+- **Sticky mobile story browser controls** — the title-screen search/filter/sort block now stays pinned near the top on phones/tablets while browsing long story lists
+  - `#story-filter` becomes a frosted/glass sticky panel under 768px
+  - Keeps search, favorites/completed/new tabs, and sort menu reachable without scrolling back to the top
+- **Removed nested mobile story-grid scrolling** — the story list now uses the title screen's main scroll container on mobile
+  - `.story-grid` switches to `max-height: none` + `overflow: visible` under 768px
+  - Prevents the awkward “scroll inside a scroll” behavior on touch devices
+- **Small-screen filter row polish**
+  - Title stats now wrap more cleanly on narrow widths
+  - Filter pills become horizontally scrollable under 480px instead of crushing the sort control
+- **Regression coverage**
+  - Added Playwright test verifying sticky mobile filters + page-level story-list scrolling behavior
+- **Docs / deployment freshness**
+  - README feature list updated for sticky mobile browse controls
+  - Service worker cache bumped to `v49` (to refresh mobile CSS quickly)
+- No new stories added
+
 ## Still Possible Future Work
 - Generate remaining character portraits (GPU timeout issue — needs investigation, possibly during lower GPU load)
 - AI-generated scene background images
@@ -1160,6 +1177,7 @@ cd /tmp/nyantales && python3 -m http.server 9876
 - No new stories added
 
 ## Log (continued)
+- 2026-03-27 (11:27 AM): Phase 66 — Polished the mobile title browser: the story search/filter/sort block is now a sticky frosted panel on small screens, the story list no longer traps touch scrolling inside a nested inner scroller, narrow-width filter pills can scroll horizontally, and title stats wrap more cleanly. Added a Playwright regression covering sticky mobile filters/page-level scrolling, updated the README feature list, bumped the service worker to v49, and regenerated dist. No new stories added.
 - 2026-03-27 (9:27 AM): Phase 64 — Added a `🔗 Share` button to the Story Info modal so title-screen story cards can copy/share clean deep links (`/?story=slug`) before starting a run. Introduced `web/js/share.js` to centralize canonical story URL generation plus native share→clipboard fallback, reused it for ending-share code, wrapped Story Info action buttons better on mobile, added a Playwright regression for Story Info share, updated README build sizes/features, bumped SW to v47, and regenerated dist (160KB JS / 84KB CSS). Verified `node --check`, `npm test` (204/204), and `npx playwright test` (45/45). No new stories added.
 - 2026-03-27 (8:27 AM): Phase 63 — Stats dashboard mobile polish: converted the cramped phone-size breakdown table into labeled stat cards, persisted stats search/sort state in localStorage, added a Playwright regression for close→reopen state persistence, updated README, bumped SW to v46, and regenerated the production build. No new stories added.
 - 2026-03-27 (7:32 AM): Phase 62 — Stats dashboard polish: added live search + sort controls to the per-story breakdown, clickable/keyboard-activatable story rows for quick launch, focus-visible states, an empty search state, and a new Playwright regression covering search→launch flow. Rebuilt dist (159KB JS / 83KB CSS), verified `npm test` (204/204), `npx playwright test` (43/43), and `node --check`. No new stories added.

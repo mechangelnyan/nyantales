@@ -90,28 +90,30 @@
           <div id="chapter-grid" class="chapter-grid" role="list" aria-label="Campaign chapters"></div>
           <div class="section-divider" aria-hidden="true"><span>── All Stories ──</span></div>
           <div id="story-filter" class="story-filter" role="search" aria-label="Filter stories">
-            <div class="story-search-wrap">
-              <input type="text" id="filter-input" placeholder="🔍 Search stories..." autocomplete="off" aria-label="Search stories by title or description" />
-              <button id="filter-clear" class="story-search-clear hidden" type="button" aria-label="Clear story search, filter, and sort">✕</button>
-            </div>
-            <div class="filter-row">
-              <div class="filter-tags" role="tablist" aria-label="Story filters">
-                <button class="filter-tag active" data-filter="all" role="tab" aria-selected="true">All</button>
-                <button class="filter-tag" data-filter="favorites" role="tab" aria-selected="false">❤️ Favorites</button>
-                <button class="filter-tag" data-filter="completed" role="tab" aria-selected="false">✅ Completed</button>
-                <button class="filter-tag" data-filter="new" role="tab" aria-selected="false">🆕 New</button>
+            <div class="story-filter-inner">
+              <div class="story-search-wrap">
+                <input type="text" id="filter-input" placeholder="🔍 Search stories..." autocomplete="off" aria-label="Search stories by title or description" />
+                <button id="filter-clear" class="story-search-clear hidden" type="button" aria-label="Clear story search, filter, and sort">✕</button>
               </div>
-              <div class="sort-control" aria-label="Sort stories">
-                <label class="sort-label" for="sort-select">Sort:</label>
-                <select id="sort-select" class="sort-select" aria-label="Sort order">
-                  <option value="title-asc">A → Z</option>
-                  <option value="title-desc">Z → A</option>
-                  <option value="favorites">Favorites First</option>
-                  <option value="recent">Recently Played</option>
-                  <option value="progress">Most Progress</option>
-                  <option value="time-short">Shortest First</option>
-                  <option value="time-long">Longest First</option>
-                </select>
+              <div class="filter-row">
+                <div class="filter-tags" role="tablist" aria-label="Story filters">
+                  <button class="filter-tag active" data-filter="all" role="tab" aria-selected="true">All</button>
+                  <button class="filter-tag" data-filter="favorites" role="tab" aria-selected="false">❤️ Favorites</button>
+                  <button class="filter-tag" data-filter="completed" role="tab" aria-selected="false">✅ Completed</button>
+                  <button class="filter-tag" data-filter="new" role="tab" aria-selected="false">🆕 New</button>
+                </div>
+                <div class="sort-control" aria-label="Sort stories">
+                  <label class="sort-label" for="sort-select">Sort:</label>
+                  <select id="sort-select" class="sort-select" aria-label="Sort order">
+                    <option value="title-asc">A → Z</option>
+                    <option value="title-desc">Z → A</option>
+                    <option value="favorites">Favorites First</option>
+                    <option value="recent">Recently Played</option>
+                    <option value="progress">Most Progress</option>
+                    <option value="time-short">Shortest First</option>
+                    <option value="time-long">Longest First</option>
+                  </select>
+                </div>
               </div>
             </div>
           </div>

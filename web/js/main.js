@@ -869,6 +869,7 @@
 
     applyFilter();
     applySortToGrid();
+    syncMobileTitleFilterSticky();
   }
 
   // ── Continue Button ──
@@ -941,6 +942,7 @@
   const filterTagsContainer = document.querySelector('.filter-tags');
   const sortSelect = document.getElementById('sort-select');
   const filterClearBtn = document.getElementById('filter-clear');
+  const storyFilter = document.getElementById('story-filter');
 
   function loadTitleBrowserState() {
     let stored = null;
@@ -1292,6 +1294,34 @@
   const hudMoreBtn = document.getElementById('btn-hud-more');
   const hudToolbar = document.querySelector('.vn-hud');
   const titleBg    = document.querySelector('.title-bg');
+
+  function syncMobileTitleFilterSticky() {
+    if (!storyFilter || !titleBg) return;
+
+    const mobile = window.matchMedia('(max-width: 768px)').matches;
+    const titleVisible = !titleBg.classList.contains('hidden');
+    if (!mobile || !titleVisible) {
+      storyFilter.classList.remove('mobile-stuck');
+      storyFilter.style.removeProperty('--filter-sticky-top');
+      storyFilter.style.removeProperty('--filter-sticky-left');
+      storyFilter.style.removeProperty('--filter-sticky-width');
+      return;
+    }
+
+    const rect = storyFilter.getBoundingClientRect();
+    const titleRect = titleBg.getBoundingClientRect();
+    const stickyTop = Math.round(titleRect.top + 8);
+    const shouldStick = titleBg.scrollTop > Math.max(0, storyFilter.offsetTop - stickyTop);
+
+    storyFilter.style.setProperty('--filter-sticky-top', `${stickyTop}px`);
+    storyFilter.style.setProperty('--filter-sticky-left', `${Math.round(rect.left)}px`);
+    storyFilter.style.setProperty('--filter-sticky-width', `${Math.round(rect.width)}px`);
+    storyFilter.classList.toggle('mobile-stuck', shouldStick);
+  }
+
+  titleBg?.addEventListener('scroll', syncMobileTitleFilterSticky, { passive: true });
+  window.addEventListener('resize', syncMobileTitleFilterSticky);
+  window.addEventListener('orientationchange', syncMobileTitleFilterSticky);
 
   function updateRewindButton() {
     const canRewind = currentEngine && currentEngine.state.snapshots.length > 0;

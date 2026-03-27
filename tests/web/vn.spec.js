@@ -103,6 +103,38 @@ test.describe('Title Screen', () => {
     await expect(page.locator('#filter-clear')).toBeHidden();
   });
 
+  test('mobile title browser keeps filters sticky while the story list scrolls', async ({ page }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await waitForTitleScreen(page);
+
+    const layout = await page.evaluate(() => {
+      const grid = getComputedStyle(document.getElementById('story-list'));
+      return {
+        gridOverflowY: grid.overflowY,
+        gridMaxHeight: grid.maxHeight
+      };
+    });
+
+    expect(layout.gridOverflowY).toBe('visible');
+    expect(layout.gridMaxHeight).toBe('none');
+
+    const filter = page.locator('#story-filter');
+    const stickyInner = page.locator('.story-filter-inner');
+    const before = await stickyInner.boundingBox();
+    await page.locator('.title-bg').evaluate((el) => {
+      const filterEl = document.getElementById('story-filter');
+      el.scrollTo({ top: filterEl.offsetTop + 120, behavior: 'instant' });
+    });
+    await page.waitForTimeout(150);
+    const after = await stickyInner.boundingBox();
+
+    await expect(filter).toHaveClass(/mobile-stuck/);
+    expect(before).not.toBeNull();
+    expect(after).not.toBeNull();
+    expect(after.y).toBeLessThan(before.y);
+    expect(after.y).toBeLessThan(24);
+  });
+
   test('story info modal opens from a card', async ({ page }) => {
     await waitForTitleScreen(page);
 
