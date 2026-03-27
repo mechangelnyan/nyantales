@@ -53,6 +53,9 @@ class VNUI {
     this._transOverlay = document.createElement('div');
     this._transOverlay.className = 'scene-transition-overlay';
 
+    // Track active effect timers so they can be cancelled on scene change
+    this._effectTimers = [];
+
     // Init ending event delegation (one-time, prevents listener leak)
     this._initEndingDelegation();
 
@@ -165,7 +168,7 @@ class VNUI {
     stories.forEach((story, idx) => {
       const card = document.createElement('div');
       card.className = 'story-card fade-in';
-      card.style.animationDelay = `${Math.min(idx * 0.04, 1.2)}s`;
+      card.style.setProperty('--card-delay', `${Math.min(idx * 0.04, 1.2)}s`);
       card.setAttribute('role', 'listitem');
       card.setAttribute('tabindex', '0');
       card.setAttribute('aria-label', `${story.title}: ${story.description || 'Interactive story'}`);
@@ -197,6 +200,7 @@ class VNUI {
   // ── Character Sprites ──
 
   _clearSprites() {
+    this._clearEffectTimers(); // Cancel any pending sprite fade-out / effect timers
     this.spritesEl.innerHTML = '';
     this._activeSprites.clear();
   }
@@ -252,7 +256,7 @@ class VNUI {
       if (!visibleNames.has(name)) {
         el.classList.remove('visible');
         el.classList.add('sprite-exit');
-        setTimeout(() => el.remove(), 500);
+        this._trackTimer(setTimeout(() => el.remove(), 500));
         this._activeSprites.delete(name);
       }
     }
@@ -301,6 +305,18 @@ class VNUI {
     });
   }
 
+  /** Track a setTimeout so it can be cancelled on scene teardown. */
+  _trackTimer(id) { this._effectTimers.push(id); return id; }
+
+  /** Cancel all pending effect timers and clean up stale CSS classes. */
+  _clearEffectTimers() {
+    for (const id of this._effectTimers) clearTimeout(id);
+    this._effectTimers.length = 0;
+    // Remove any lingering effect classes that a cancelled timer would have cleaned up
+    this.textEl.classList.remove('glitch-text');
+    this.containerEl.classList.remove('shake');
+  }
+
   _getSpritePositions(count) {
     if (count === 0) return [];
     if (count === 1) return [{ x: '50%', scale: 1 }];
@@ -330,6 +346,9 @@ class VNUI {
     this.hideEnding();
     this.hideConditional();
     this.clickIndicator.classList.add('hidden');
+
+    // Cancel any lingering effect timers from the previous scene
+    this._clearEffectTimers();
 
     // Scene transition effect
     await this._sceneTransition(scene, engine);
@@ -393,14 +412,14 @@ class VNUI {
     const text = engine.interpolate(scene.text || '');
     await this.typewriterText(text);
 
-    // Effects
+    // Effects (tracked so they can be cancelled on scene change)
     if (scene.effect === 'glitch') {
       this.textEl.classList.add('glitch-text');
-      setTimeout(() => this.textEl.classList.remove('glitch-text'), 1000);
+      this._trackTimer(setTimeout(() => this.textEl.classList.remove('glitch-text'), 1000));
     }
     if (scene.effect === 'shake') {
       this.containerEl.classList.add('shake');
-      setTimeout(() => this.containerEl.classList.remove('shake'), 500);
+      this._trackTimer(setTimeout(() => this.containerEl.classList.remove('shake'), 500));
     }
 
     // Check for ending — show a "Continue" prompt first, then the ending overlay
@@ -598,7 +617,7 @@ class VNUI {
     choices.forEach((choice, i) => {
       const btn = document.createElement('button');
       btn.className = 'choice-btn fade-in';
-      btn.style.animationDelay = `${i * 0.08}s`;
+      btn.style.setProperty('--choice-delay', `${i * 0.08}s`);
       btn.dataset.choiceIdx = i;
 
       let label = engine.interpolate(choice.label || choice.text || `Choice ${i + 1}`);
