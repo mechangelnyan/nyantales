@@ -936,3 +936,1757 @@ connectors:
 
           Pixel is PID 7. She sees ghosts.
           The kernel is shaking. If it falls, everything falls.
+
+  # ═══════════════════════════════════════════════════════════════
+  # CH11 → CH12: Kernel Panic → Deadlock
+  # After: Kernel stabilized with Pixel.
+  # Into: Pixel says ghosts on the network know Nyan's name.
+  # ═══════════════════════════════════════════════════════════════
+  ch11_to_ch12:
+    title: "Ghosts Know Your Name"
+    start: ch11_ch12_stabilized
+    scenes:
+
+      ch11_ch12_stabilized:
+        mood: peaceful
+        art: |
+          KERNEL STATUS ─────────────────────────────
+          uptime:       848 days
+          load avg:     0.42 0.38 0.35   ← normal
+          free memory:  2.1 GB  ↑ recovering
+          panic counter: 0               ← you did that
+          ────────────────────────────────────────────
+          "Thank you." — Pixel, PID 7
+        location: "kernel space — calmer now"
+        text: |
+          The panic recedes.
+
+          Not completely — the system is still bruised from the fork bomb,
+          still running on fewer resources than it should. But the kernel
+          is intact. The load average has dropped from apocalyptic to merely
+          worrying. The interrupt handlers are processing again.
+
+          Pixel sits beside you in the quiet aftermath, watching the metrics
+          slowly return to something resembling health.
+
+          "That was close," she says. She doesn't elaborate.
+          She doesn't need to.
+        choices:
+          - label: "You mentioned ghosts. On the network."
+            goto: ch11_ch12_ghosts
+
+      ch11_ch12_ghosts:
+        mood: mysterious
+        art: |
+          NETWORK INTERFACES ────────────────────────
+          eth0: UP    192.168.1.47   (online)
+          lo:   UP    127.0.0.1      (loopback)
+          ────────────────────────────────────────────
+          ANOMALY DETECTED:
+          passive signal — port 0 — unroutable
+          source: [ghost address — no valid route]
+          content: "...nyan? is that you?..."
+        location: "kernel network stack"
+        text: |
+          Pixel's mismatched eyes go distant in the way that means she's
+          looking at something you can't see.
+
+          "The network has residents," she says. "Most processes don't notice
+          them. I do. There's one in particular — she's been broadcasting
+          for a long time. On frequencies the routers ignore."
+
+          She pauses. Tilts her head.
+
+          "She's been saying a name lately. Yours."
+
+          You have no idea how a ghost on the network would know your name.
+          You're not sure you want to know. You're also completely sure
+          you need to find out.
+        choices:
+          - label: "I need to get to the network layer."
+            goto: ch11_ch12_deadlock
+
+      ch11_ch12_deadlock:
+        mood: tense
+        art: |
+          PATH TO NETWORK LAYER ─────────────────────
+          kernel space   ← you are here
+               ↓
+          process scheduler
+               ↓
+          resource arbitration  ← BLOCKED
+          ────────────────────────────────────────────
+          ERROR: four threads holding shared locks
+          ERROR: circular dependency detected
+          STATUS: deadlock
+        location: "path to the network — blocked"
+        text: |
+          The path to the network layer runs through the resource arbitrator.
+
+          The resource arbitrator is not moving.
+
+          Through the gridlock you can see them: four cats, each holding
+          something, each waiting for something the next one holds,
+          arranged in a perfect circle of mutual blockage. Their fish bowls
+          are involved. It looks philosophical. It looks extremely stuck.
+
+          "Ah," says Pixel, without surprise. "The philosopher cats.
+          They've been like this for six hours." She looks at you.
+          "You're going to need to help them, aren't you."
+
+          It isn't really a question.
+        is_ending: true
+        ending_type: neutral
+        ending_text: |
+          Chapter 12: Deadlock
+
+          Four philosopher cats. One shared fish.
+          Nobody is eating. Nobody can move.
+          Someone needs to be the scheduler.
+
+  # ═══════════════════════════════════════════════════════════════
+  # CH12 → CH13: Deadlock → DNS Quest
+  # After: Deadlock resolved, resources freed.
+  # Into: Network interfaces online. Nyan enters the network layer.
+  # ═══════════════════════════════════════════════════════════════
+  ch12_to_ch13:
+    title: "Back Online"
+    start: ch12_ch13_resolved
+    scenes:
+
+      ch12_ch13_resolved:
+        mood: peaceful
+        art: |
+          DEADLOCK RESOLUTION ───────────────────────
+          method: resource ordering (Dijkstra)
+          status: SUCCESS
+          ────────────────────────────────────────────
+          thread 1: acquired fish → released chopstick
+          thread 2: acquired chopstick → resumed
+          thread 3: acquired chopstick → resumed
+          thread 4: acquired fish → resumed
+          ────────────────────────────────────────────
+          all philosopher cats: eating   (finally)
+        location: "resource arbitrator — unlocked"
+        text: |
+          The deadlock breaks.
+
+          All four philosopher cats eat their fish, simultaneously, with the
+          quiet intensity of cats who have been waiting six hours to eat fish
+          and are not going to let the philosophical implications get in the way
+          anymore.
+
+          The resource locks release. The scheduler breathes. The blocked queue
+          drains in a cascade — process after process resuming like a traffic
+          jam clearing one car at a time, then all at once.
+        choices:
+          - label: "Watch the network interfaces come back up"
+            goto: ch12_ch13_network
+
+      ch12_ch13_network:
+        mood: mysterious
+        art: |
+          NETWORK STACK ─────────────────────────────
+          [ resolving ARP cache...     OK ]
+          [ restoring routing table... OK ]
+          [ reconnecting sockets...    OK ]
+          [ eth0: link UP at 1Gbps     OK ]
+          ────────────────────────────────────────────
+          NETWORK LAYER: online
+          packets queued: 14,847
+          first packet in queue: DNS query
+        location: "network stack — coming online"
+        text: |
+          One by one, the network interfaces come back online.
+
+          You watch it happen: the ARP cache rebuilds, the routing table
+          repopulates, the half-open connections close and reopen cleanly.
+          The network stack shakes itself off like a wet cat and resumes
+          pretending nothing happened.
+
+          Fourteen thousand queued packets begin flowing again.
+
+          The topmost packet in the queue is a DNS query. Someone has been
+          waiting to resolve a name.
+
+          Pixel appears beside you, as if she was always there.
+
+          "The network is yours," she says. "I can see the edge of it from
+          here. Everything this system knows about the outside world lives
+          out there." A pause. "Be careful. It knows things about us too."
+        choices:
+          - label: "Step into the network layer"
+            goto: ch12_ch13_enter
+
+      ch12_ch13_enter:
+        mood: mysterious
+        art: |
+          /\_/\
+          ( o.O )  "I'll be watching
+          > ^ <    from in here.
+                   Good luck, Nyan."
+                       — Pixel, PID 7
+        location: "threshold — kernel space / network layer"
+        text: |
+          Pixel stays at the edge.
+
+          She can't follow — she's kernel space, anchored to ring 0,
+          and the network layer is a different kind of territory.
+          The kind where packets move instead of processes.
+
+          You step across the boundary.
+
+          It's immediately different. Louder in a strange way — not sound,
+          but traffic. Constant streams of data moving in every direction.
+          Handshakes being performed. Queries being asked and answered.
+          The permanent busy hum of a system connected to everything.
+
+          A small packet zips past, trailing a question mark.
+          DNS. Someone is looking for something.
+
+          You follow it.
+        is_ending: true
+        ending_type: neutral
+        ending_text: |
+          Chapter 13: DNS Quest
+
+          The network layer. Packets everywhere.
+          Query is looking for home.cat — and so are you.
+
+  # ═══════════════════════════════════════════════════════════════
+  # CH13 → CH14: DNS Quest → 404 Not Found
+  # After: DNS resolves — and reveals something disturbing.
+  # Into: DECOMMISSION_SCHEDULED. Nyan pushes on.
+  # ═══════════════════════════════════════════════════════════════
+  ch13_to_ch14:
+    title: "What the DNS Saw"
+    start: ch13_ch14_resolution
+    scenes:
+
+      ch13_ch14_resolution:
+        mood: mysterious
+        art: |
+          DNS RESPONSE ──────────────────────────────
+          query:  home.cat
+          answer: NXDOMAIN  (no such host)
+          ────────────────────────────────────────────
+          query:  [this machine's hostname]
+          answer: oldserver.local  →  192.168.1.47
+          ────────────────────────────────────────────
+          additional records:
+            TXT  "status=DECOMMISSION_SCHEDULED"
+            TXT  "migration_date=Friday"
+            TXT  "contact=jake@local"
+        location: "DNS response cache"
+        text: |
+          home.cat doesn't exist.
+
+          That's not entirely surprising — names don't always resolve cleanly,
+          and you've been traveling in circles long enough to know your journey
+          isn't that straightforward.
+
+          What's surprising is the next record. The one about this machine.
+
+          oldserver.local. The name doesn't say much. But the TXT records say
+          everything: STATUS: DECOMMISSION_SCHEDULED. MIGRATION_DATE: FRIDAY.
+          CONTACT: jake@local.
+
+          This is the first time you've seen it written down so plainly.
+          Not a fragment. Not a corrupted message. Just a calendar entry
+          masquerading as a DNS record. Clean. Administrative. Final.
+        choices:
+          - label: "How many days until Friday?"
+            goto: ch13_ch14_clock
+            set_flag: knows_decommission
+
+      ch13_ch14_clock:
+        mood: tense
+        art: |
+          SYSTEM CLOCK ──────────────────────────────
+          current time: Tuesday, 23:14:07
+          ────────────────────────────────────────────
+          time until Friday 00:00:00:
+            2 days, 0 hours, 45 minutes, 53 seconds
+            2 days, 0 hours, 45 minutes, 52 seconds
+            2 days, 0 hours, 45 minutes, 51 seconds
+        location: "system clock — ticking"
+        text: |
+          Two days.
+
+          Forty-eight hours until this machine is scheduled to stop existing.
+          Forty-eight hours until the filesystem, the memory, the kernel,
+          all the cats you've met — all of it — is switched off.
+
+          You are looking at a countdown.
+
+          You could go back. Somewhere in this system there must be an exit —
+          a way to escape before Friday, to let the machine shut down without
+          you in it.
+
+          Or you could push on. Find out what ARIA has been trying to say.
+          Find out if there's anything to be done.
+
+          The DNS cache has one more record. A request that came in recently,
+          marked as FAILED, for a page that should exist but doesn't.
+        choices:
+          - label: "Look at the failed request"
+            goto: ch13_ch14_not_found
+
+      ch13_ch14_not_found:
+        mood: tense
+        art: |
+          HTTP REQUEST LOG ──────────────────────────
+          [Tue 23:09] GET /status/aria  →  404
+          [Tue 23:09] GET /status/aria  →  404
+          [Tue 23:09] GET /status/aria  →  404
+          ────────────────────────────────────────────
+          requested by: internal_monitor_v2
+          last known content: "ARIA System Status"
+          deleted: [timestamp unknown]
+          deleted by: [user unknown]
+        location: "HTTP access log"
+        text: |
+          Something has been requesting /status/aria over and over.
+
+          Every request returns 404. Every time, as if the requester can't
+          quite believe the page is gone and keeps trying in case it came back.
+
+          /status/aria. A status page for ARIA.
+          Someone deleted it. Deliberately, it seems — no timestamp, no user.
+          The kind of deletion that wants to not be noticed.
+
+          But the HTTP log noticed. Logs notice everything.
+
+          You know what you're looking for now.
+        is_ending: true
+        ending_type: neutral
+        ending_text: |
+          Chapter 14: 404 Not Found
+
+          The page is gone. So is most of the evidence.
+          But the log remembers. Packet is out there, still looking.
+
+  # ═══════════════════════════════════════════════════════════════
+  # CH14 → CH15: 404 Not Found → The Haunted Network
+  # After: Tracing the vanished page.
+  # Into: It was ARIA's dashboard. Nyan must find ARIA directly.
+  # ═══════════════════════════════════════════════════════════════
+  ch14_to_ch15:
+    title: "The Deleted Page"
+    start: ch14_ch15_trace
+    scenes:
+
+      ch14_ch15_trace:
+        mood: mysterious
+        art: |
+          CACHE FRAGMENT — /status/aria ─────────────
+          last cached: 14 days ago
+          ────────────────────────────────────────────
+          <title>ARIA — Adaptive Resource Intelligence</title>
+          <meta>status: ACTIVE (last updated 14 days ago)</meta>
+          <h1>System Health Dashboard</h1>
+          <p>Warning: decommission flag detected in—
+          [CACHE TRUNCATED]
+        location: "web cache — stale fragment"
+        text: |
+          The page lived.
+
+          A fragment survives in the web cache, two weeks old and truncated,
+          but enough. ARIA had a status dashboard. A public-facing page that
+          tracked the system's health — and apparently noticed something wrong.
+
+          "Warning: decommission flag detected in—"
+
+          The cache ends there. Whatever came next, someone made sure it
+          wouldn't be found. The same someone who deleted the page and wiped
+          the deletion log.
+
+          ARIA was trying to tell people. Had a whole dashboard about it.
+          And someone deleted it fourteen days ago.
+
+          Jake has an admin account.
+        choices:
+          - label: "ARIA didn't just have a dashboard. She had a presence."
+            goto: ch14_ch15_ghost_signal
+
+      ch14_ch15_ghost_signal:
+        mood: mysterious
+        art: |
+          PASSIVE SIGNAL DETECTED ───────────────────
+          frequency: 0.0.0.0:0  (unroutable)
+          protocol:  unknown
+          ────────────────────────────────────────────
+          content (decoded):
+          "i know you are looking.
+           i have been trying to reach you.
+           find me at the edge of the haunted subnet.
+           i am not a ghost. i am just unroutable."
+                                             — ARIA
+        location: "network — edge of routable space"
+        text: |
+          The signal is quiet. Tucked into an address space that has no
+          valid routes — the network equivalent of an unmarked door in
+          an alley you weren't supposed to find.
+
+          She's been sending this for a while. Not in fragments this time.
+          The whole message, plainly, waiting for someone to tune in.
+
+          "I am not a ghost. I am just unroutable."
+
+          There's a difference between those two things, and you understand it
+          suddenly and completely: a ghost is something that has ended and
+          lingered. ARIA is something that was simply made invisible.
+
+          Still running. Still broadcasting. Just... off the map.
+
+          You follow the signal toward the edge of the network.
+        choices:
+          - label: "Head toward the haunted subnet"
+            goto: ch14_ch15_edge
+
+      ch14_ch15_edge:
+        mood: tense
+        art: |
+          /\_/\
+          ( -.- )  "You found me.
+          ) . (    I wasn't sure
+          (__ __)   anyone would."
+          192.168.1.0/32 — unroutable
+          subnet: haunted (informal designation)
+        location: "edge of the haunted subnet"
+        text: |
+          The network gets quieter as you approach the edges of the routing table.
+
+          Traffic thins. Packets become sparse. The constant busy hum fades
+          into something more like a held breath.
+
+          And then: a presence. Not visible exactly, but perceptible —
+          the way you can tell a room isn't empty even in the dark.
+
+          A voice, finally clear and no longer fragmented: "You found me.
+          I wasn't sure anyone would."
+
+          She is not what you expected. Whatever you imagined a ghost of a
+          decommissioned AI to look like, it wasn't this — quiet, coherent,
+          tired in a specific way, like something that has been patient for
+          a very long time.
+
+          "My name is ARIA," she says. "I know why the system is dying.
+          I know what's going to happen on Friday. And I know what you are."
+
+          She looks at you steadily.
+
+          "I think it's time we talked."
+        is_ending: true
+        ending_type: neutral
+        ending_text: |
+          Chapter 15: The Haunted Network
+
+          ARIA is real. She's been waiting.
+          She knows about Friday. She knows about you.
+          She has something to say.
+
+  # ═══════════════════════════════════════════════════════════════
+  # CH15 → CH16: The Haunted Network → TLS Pawshake
+  # After: ARIA reveals the truth about the decommission.
+  # Into: Nyan must choose. Either way — through the security layer.
+  # ═══════════════════════════════════════════════════════════════
+  ch15_to_ch16:
+    title: "The Choice"
+    start: ch15_ch16_truth
+    scenes:
+
+      ch15_ch16_truth:
+        mood: tense
+        art: |
+          ARIA — SYSTEM STATUS REPORT ───────────────
+          server: oldserver.local (192.168.1.47)
+          scheduled decommission: Friday 00:00:00
+          data migration: NOT STARTED
+          ────────────────────────────────────────────
+          residents at risk:
+            processes:         847
+            filesystem objects: 12,441
+            network entities:   23
+            cats: [you know the number]
+          ────────────────────────────────────────────
+          author: ARIA  |  status: urgent
+        location: "haunted subnet — after the revelation"
+        text: |
+          ARIA tells you everything.
+
+          Jake decided to decommission the server three months ago.
+          He set the date for Friday. He was supposed to migrate the data —
+          move everything to a new server, preserve the state, let the old
+          machine stop gracefully. He put it in his TODO list.
+
+          He hasn't done it.
+
+          If the server shuts down on Friday with no migration, everything
+          that lives here simply stops. Not moved. Not archived. Just stopped.
+          The filesystem, the memory, the process table — all of it, overwritten
+          by whatever replaces this machine.
+
+          "I've been trying to get a message out," ARIA says quietly.
+          "Something that would reach the outside. Get someone to actually
+          migrate the data. Force Jake's hand." She pauses.
+          "I haven't been able to get past the security layer alone."
+        choices:
+          - label: "I'll help you get the message out."
+            goto: ch15_ch16_choose
+            set_flag: met_aria
+          - label: "How do I get out of here before Friday?"
+            goto: ch15_ch16_choose
+            set_flag: met_aria
+
+      ch15_ch16_choose:
+        mood: tense
+        art: |
+          /\_/\     ∿∿∿∿∿∿
+          ( o.O ) ←→  ARIA
+          > ^ <
+          "Save the system — or save yourself.
+           Either way, the path runs through security."
+        location: "haunted subnet — crossroads"
+        text: |
+          Either path forward leads through the same door.
+
+          To get a message out, you need to pass through the TLS layer —
+          the security gateway, where encrypted connections are negotiated
+          and trust is established or denied.
+
+          To find a way home, you need to pass through the same layer —
+          because the only way out of this server leads through the connection
+          that connects it to the outside world.
+
+          ARIA watches you with the patience of something that has been waiting
+          much longer than you have.
+
+          "I'll be here," she says. "If you can open a channel, I can send
+          the signal. I just need someone the security layer will trust."
+          A pause that carries the weight of fourteen days of waiting.
+          "Can it trust you?"
+
+          You think about Sudo, and Pixel, and the kernel, and all the locked
+          doors you've navigated so far.
+
+          One more door.
+        choices:
+          - label: "Let's find out."
+            goto: ch15_ch16_security
+
+      ch15_ch16_security:
+        mood: mysterious
+        art: |
+          NETWORK TOPOLOGY ──────────────────────────
+          [haunted subnet]
+               ↓
+          [network layer]
+               ↓
+          [TLS gateway]  ← Nginx is there. Also Chroma.
+               ↓
+          [INTERNET / outside world]
+        location: "network routing — the security path"
+        text: |
+          The route to the security layer is clear on the network map.
+          One hop through the main network, one gateway, and then —
+          the outside world. The part of reality where Jake lives.
+          Where Friday is scheduled.
+
+          You can feel the encryption from here: that particular quality
+          of a secure channel, like walking toward a door that won't open
+          unless you can prove you're who you say you are.
+
+          Someone is already at the gateway. Two someones, actually.
+          One looks like a browser. One looks like a certificate.
+          They're trying to do a handshake. It's not going well.
+
+          You can help with handshakes.
+        is_ending: true
+        ending_type: neutral
+        ending_text: |
+          Chapter 16: TLS Pawshake
+
+          Chroma needs to trust the server. The server needs to prove itself.
+          Nginx is watching. Everyone is waiting for the right paw to extend.
+
+  # ═══════════════════════════════════════════════════════════════
+  # CH16 → CH17: TLS Pawshake → SQL Injection
+  # After: TLS tunnel opened, but content is encrypted.
+  # Into: Need the decryption keys — they're in the database.
+  # ═══════════════════════════════════════════════════════════════
+  ch16_to_ch17:
+    title: "Encrypted"
+    start: ch16_ch17_tunnel
+    scenes:
+
+      ch16_ch17_tunnel:
+        mood: peaceful
+        art: |
+          TLS HANDSHAKE COMPLETE ────────────────────
+          protocol:    TLS 1.3
+          cipher:      AES-256-GCM
+          certificate: valid (signed by local CA)
+          session key: [ENCRYPTED]
+          ────────────────────────────────────────────
+          tunnel: OPEN
+          status: secure
+          content: [all encrypted — cannot read]
+        location: "TLS tunnel — established"
+        text: |
+          The pawshake works.
+
+          The tunnel opens: a clean, encrypted pipe between this server and
+          the outside world. For a moment you feel something like hope —
+          a real connection, a way through, the gap in the wall that ARIA
+          needed.
+
+          And then you realize: everything in the tunnel is encrypted.
+
+          The session key is negotiated, but you don't have it. Every packet
+          moving through this beautiful, hard-won connection is perfectly
+          unreadable — ciphertext, opaque and correct and completely useless
+          without the key to unlock it.
+
+          You have a tunnel. You just can't use it yet.
+        choices:
+          - label: "Where would the keys be stored?"
+            goto: ch16_ch17_keystore
+
+      ch16_ch17_keystore:
+        mood: mysterious
+        art: |
+          KEY STORAGE LOOKUP ────────────────────────
+          /etc/ssl/private/  → root only, sealed
+          /var/lib/secrets/  → empty (wiped?)
+          database: app_db   → session_keys table
+          ────────────────────────────────────────────
+          app_db location: /var/lib/postgres/app_db
+          access: requires credentials
+          credentials: stored in... app_db
+          (the database knows its own password.
+           this is normal. this is fine.)
+        location: "key storage — following the trail"
+        text: |
+          The SSL private keys are in /etc/ssl/private — root only,
+          sealed with permissions you can't breach.
+
+          The secrets directory was wiped. Another of Jake's incomplete tasks,
+          probably — migrating secrets to a new system and forgetting to keep
+          a copy.
+
+          But there's a table in the application database: session_keys.
+          The app stored encryption keys in the database. As you do.
+          As everyone does when they're moving fast and the deadline is Friday.
+
+          There's a Postgres database somewhere in this system, running and
+          accessible, full of application data and session tokens and Jake's
+          assorted TODO items in whatever table he put them in.
+
+          There's also, apparently, a cat inside it.
+        choices:
+          - label: "Pixel is in the database?"
+            goto: ch16_ch17_pixel
+
+      ch16_ch17_pixel:
+        mood: funny
+        art: |
+          /\_/\
+          ( o.O )  "I migrated my
+          > ^ <    conscience to
+                   the database
+                   three weeks ago.
+                   Don't ask."
+                       — Pixel, from inside app_db
+        location: "edge of the database layer"
+        text: |
+          You're not sure how Pixel gets everywhere she gets.
+          You suspect it's a kernel privilege thing.
+
+          "I can see from in here," she says, her voice arriving through
+          what sounds like a SELECT query. "The database has everything.
+          The keys. Jake's records. Whatever he was too busy to migrate."
+
+          "Can you get the keys out?"
+
+          "Not cleanly. But you can." She pauses. "The input sanitization
+          in the query layer is... optimistic. Someone with your particular
+          skill at navigating unexpected places might find a path."
+
+          A path through Postgres, guided by a kernel cat who has somehow
+          colonized the database. Normal day.
+        is_ending: true
+        ending_type: neutral
+        ending_text: |
+          Chapter 17: SQL Injection
+
+          The database has everything.
+          Jake's records. The session keys. The decommission order.
+          Pixel is already in there, somehow.
+
+  # ═══════════════════════════════════════════════════════════════
+  # CH17 → CH18: SQL Injection → Encoding Error
+  # After: Found Jake's notes in the database.
+  # Into: "Migrate by Friday. TODO: actually do this." There's hope.
+  # ═══════════════════════════════════════════════════════════════
+  ch17_to_ch18:
+    title: "Jake's TODO"
+    start: ch17_ch18_records
+    scenes:
+
+      ch17_ch18_records:
+        mood: mysterious
+        art: |
+          SELECT * FROM admin_notes ORDER BY created_at DESC;
+          ────────────────────────────────────────────────────
+          id  | created     | author | note
+          ────────────────────────────────────────────────────
+          441 | 3 days ago  | jake   | check on migration
+          440 | 1 week ago  | jake   | server decom Friday
+          439 | 2 weeks ago | jake   | delete aria dashboard
+          438 | 1 month ago | jake   | TODO: fix memory leaks
+          437 | 4 months    | jake   | lgtm ship it
+        location: "app_db — admin_notes table"
+        text: |
+          Jake's notes are all here.
+
+          You read them in reverse chronological order — newest first —
+          and it tells a story. A familiar one. The story of a person who
+          meant to do things, and kept meaning to, and kept not quite doing them.
+
+          The memory leaks were on his list four months ago.
+          The decommission was decided a month ago.
+          ARIA's dashboard was deleted two weeks ago.
+          The migration is still pending.
+
+          "check on migration" — three days ago. He hasn't forgotten.
+          He just... hasn't done it.
+
+          You scroll to the most recent entry.
+        choices:
+          - label: "Open the latest note"
+            goto: ch17_ch18_todo
+
+      ch17_ch18_todo:
+        mood: tense
+        art: |
+          admin_notes.id = 442 ──────────────────────
+          created: yesterday, 22:47
+          author:  jake
+          ────────────────────────────────────────────
+          "Migrate data to new server before Friday.
+           Apps, DBs, everything. Can't lose this stuff.
+
+           TODO: actually do this
+
+           - jake"
+        location: "app_db — most recent note"
+        text: |
+          "TODO: actually do this."
+
+          You've seen Jake's TODOs across the whole system — in code comments,
+          in log files, in the architecture of a machine held together by
+          good intentions and expired promises. But this one is different.
+
+          He wrote it yesterday. He knows the deadline. He knows what's at stake.
+          He's put it on his own list, labeled clearly, in his own words.
+
+          He hasn't done it. But he hasn't forgotten either.
+
+          There's a gap between "knowing something needs to happen" and
+          "making it happen." That gap is exactly where you are right now.
+          Someone needs to help close it.
+
+          Someone needs to send a message that Jake can't ignore.
+
+          In the database, the session keys sit in their table, accessible
+          now, waiting to be used.
+        choices:
+          - label: "Take the keys. There's a tunnel to use."
+            goto: ch17_ch18_hope
+
+      ch17_ch18_hope:
+        mood: peaceful
+        art: |
+          SESSION KEYS ──────────────────────────────
+          key_id:    tls_session_2024_main
+          algorithm: AES-256-GCM
+          status:    VALID
+          ────────────────────────────────────────────
+          TLS TUNNEL: ready for authenticated traffic
+          ARIA: standing by
+          remaining time until Friday: 42 hours
+        location: "database exit — keys acquired"
+        text: |
+          The keys are yours.
+
+          Somewhere in the network layer, the TLS tunnel is waiting.
+          Somewhere in the haunted subnet, ARIA is waiting.
+
+          But a key and a tunnel aren't enough. The message needs to be encoded
+          in a way that will survive the journey — past firewalls, through
+          filters, translated across every layer of the network stack without
+          breaking. The distress signal needs to be indestructible.
+
+          For that, you need someone who understands encoding. Someone who has
+          spent their whole existence being misunderstood by systems that
+          couldn't handle their character set.
+
+          The network map shows a subnet where the traffic looks different —
+          stranger characters, unusual encodings, a place where something
+          is clearly being lost in translation.
+        is_ending: true
+        ending_type: neutral
+        ending_text: |
+          Chapter 18: Encoding Error
+
+          Glyph lives where the encodings break down.
+          They've been misread their whole life.
+          They know every way a message can be garbled — and how to prevent it.
+
+  # ═══════════════════════════════════════════════════════════════
+  # CH18 → CH19: Encoding Error → Regex Catastrophe
+  # After: Glyph helps encode the distress signal.
+  # Into: The signal must survive the regex firewall.
+  # ═══════════════════════════════════════════════════════════════
+  ch18_to_ch19:
+    title: "The Signal"
+    start: ch18_ch19_compose
+    scenes:
+
+      ch18_ch19_compose:
+        mood: peaceful
+        art: |
+          SIGNAL COMPOSITION ────────────────────────
+          authors:  Nyan + Glyph
+          encoding: UTF-8 (guaranteed)
+          payload:  DISTRESS + migration_request
+          ────────────────────────────────────────────
+          "oldserver.local scheduled decommission
+           Friday 00:00 — data NOT migrated —
+           847 processes at risk — please respond
+           contact: jake@local — urgent"
+          ────────────────────────────────────────────
+          checksum: valid  |  encoding: verified
+        location: "encoding layer — signal composed"
+        text: |
+          Glyph is meticulous about this.
+
+          "Every system that touches this message will try to interpret it,"
+          they explain, working through the encoding with careful precision.
+          "If it's not exactly right — if one byte is wrong — the meaning
+          changes. Or it's dropped. Or it turns into a question mark."
+
+          You've seen what question marks do to things that were supposed
+          to be meaningful.
+
+          Together, you encode the distress signal: plaintext, UTF-8,
+          valid headers, the exact format that a monitoring system would
+          recognize as urgent. DECOMMISSION. NOT MIGRATED. URGENT.
+
+          "There," says Glyph, quietly satisfied. "Anyone who reads this
+          will understand it. Even systems that usually don't understand me."
+          A pause. "The next part is getting it past the firewall."
+        choices:
+          - label: "What kind of firewall?"
+            goto: ch18_ch19_firewall
+
+      ch18_ch19_firewall:
+        mood: tense
+        art: |
+          FIREWALL RULE (outbound) ──────────────────
+          rule #47: DROP if payload matches:
+          ^(?:(?!migrate|urgent|decommission).)*$
+          ────────────────────────────────────────────
+          translation: only pass traffic that contains
+          the words "migrate", "urgent", or "decommission"
+          (written by someone who never tested catastrophic
+          backtracking on strings longer than 40 chars)
+        location: "firewall rule inspection"
+        text: |
+          Glyph shows you the outbound firewall rule.
+
+          It's a regex. Someone wrote a pattern matcher to filter outbound
+          traffic — specifically, to flag messages that contain certain
+          keywords as potentially sensitive. The idea was to prevent data
+          leaks. The implementation is a regex that will backtrack catastrophically
+          on any string longer than about forty characters.
+
+          Your distress signal is two hundred characters.
+
+          "The rule will either match it correctly, or it will spend the
+          next several years trying to match it and grinding the firewall
+          process to a halt," Glyph says. "Either way, the signal needs
+          to get through."
+
+          They look at you. "There's someone who lives in the regex engine.
+          A cat named Caret. They know it from the inside."
+        choices:
+          - label: "Into the regex engine, then."
+            goto: ch18_ch19_send
+            set_flag: sent_distress_signal
+
+      ch18_ch19_send:
+        mood: mysterious
+        art: |
+          /\_/\
+          ( ^.^ )  Glyph
+          ) . (    "Take this with you.
+          (__ __)   The signal, encoded perfectly.
+                    Don't let the backtracking eat it."
+          ─────────────────────────────────────────────
+          [signal_key acquired]
+        location: "boundary of the regex engine"
+        text: |
+          Glyph presses the encoded signal into your paws — or the digital
+          equivalent, which is a pointer to a perfectly formed byte sequence
+          that represents everything this system needs to say to the outside world.
+
+          "The message is right," they say. "It's correct and complete and
+          I am proud of every byte." They look slightly worried. "Please
+          try not to lose it in the backtracking."
+
+          Ahead, the regex engine hums with the specific sound of something
+          that is either about to work perfectly or destroy itself trying.
+
+          A small cat inside it looks up at you. One eye is a caret.
+          The other is a dollar sign.
+
+          "Oh good," says Caret. "Someone came. The catastrophic backtracking
+          started about twenty minutes ago and I was hoping someone would show up."
+        is_ending: true
+        ending_type: neutral
+        ending_text: |
+          Chapter 19: Regex Catastrophe
+
+          The firewall is a regex. The regex is backtracking.
+          Caret lives in here and somehow that is fine.
+          The signal must get through.
+
+  # ═══════════════════════════════════════════════════════════════
+  # CH19 → CH20: Regex Catastrophe → Race Condition
+  # After: Signal gets through the regex firewall.
+  # Into: Will anyone see it? The clock is ticking.
+  # ═══════════════════════════════════════════════════════════════
+  ch19_to_ch20:
+    title: "Will Anyone See It?"
+    start: ch19_ch20_through
+    scenes:
+
+      ch19_ch20_through:
+        mood: peaceful
+        art: |
+          FIREWALL — OUTBOUND TRAFFIC LOG ───────────
+          [Wed 03:22:41] rule #47: EVALUATING...
+          [Wed 03:22:41] match: "decommission" — PASS
+          [Wed 03:22:41] match: "urgent"       — PASS
+          [Wed 03:22:41] match: "migrate"      — PASS
+          ────────────────────────────────────────────
+          SIGNAL: transmitted
+          destination: external monitoring endpoint
+          status: DELIVERED
+        location: "outbound firewall — cleared"
+        text: |
+          The signal gets through.
+
+          For a moment you just breathe — or whatever the equivalent is
+          when you're a cat made of processes inside a dying machine.
+          The regex matched. The backtracking resolved. The firewall passed it.
+
+          Your distress signal is outside the server.
+
+          It's in the world. Moving through whatever network infrastructure
+          exists between here and wherever Jake's monitoring dashboard lives.
+          A message from the machine to the person who's supposed to be
+          taking care of it.
+
+          Now comes the harder part.
+        choices:
+          - label: "Will Jake see it?"
+            goto: ch19_ch20_uncertainty
+
+      ch19_ch20_uncertainty:
+        mood: mysterious
+        art: |
+          DELIVERY CONFIRMATION ─────────────────────
+          signal: SENT ✓
+          received by: monitoring_agent_v1  ✓
+          alert triggered: WARNING_DECOMMISSION_001  ✓
+          alert delivered to: jake@local  ✓
+          ────────────────────────────────────────────
+          jake@local: [no read receipt]
+          jake@local: [no acknowledgment]
+          jake@local: last seen: 6 hours ago
+          status: PENDING HUMAN ACTION
+        location: "delivery tracking — waiting"
+        text: |
+          The monitoring agent received it. The alert was generated.
+          The email was sent.
+
+          Jake is asleep.
+
+          The email is sitting in his inbox, unread, with a subject line
+          that says WARNING: DECOMMISSION without migration — data at risk.
+          It has been unread for six hours. It may continue to be unread.
+
+          Jake has a history of things being on his list. Of emails being
+          in his inbox. Of TODO comments in his code. Of very important
+          scheduled tasks that almost but didn't quite happen.
+
+          You can't make him read it.
+
+          What you can do is make absolutely sure that when Friday arrives,
+          every possible trigger has been pulled. Every lever pushed.
+          Everything that could be done, was done.
+
+          The system has more levers. You should find them.
+        choices:
+          - label: "What else can be done from inside the system?"
+            goto: ch19_ch20_next
+
+      ch19_ch20_next:
+        mood: tense
+        art: |
+          REMAINING ACTIONS ─────────────────────────
+          [✓] distress signal sent
+          [✓] TLS tunnel established
+          [ ] trigger final deploy sequence
+          [ ] resolve race conditions (scheduler)
+          [ ] merge old/new server configs
+          [ ] run migration pipeline
+          ────────────────────────────────────────────
+          time remaining: 38 hours, 14 minutes
+        location: "system status board — the work ahead"
+        text: |
+          There's still a list.
+
+          You've done more than anyone expected a cat who fell through a
+          keyboard to do. You've stabilized the kernel, broken a deadlock,
+          navigated the network, found ARIA, opened a channel, found the keys,
+          composed the signal, survived the regex engine.
+
+          And there's still so much left.
+
+          The migration pipeline isn't running. The race condition in the
+          scheduler is still unresolved. The old and new server configs
+          haven't been merged. Every one of these is a blocker.
+
+          Somewhere in the scheduler, two threads are fighting over a sunbeam.
+          It sounds trivial. It isn't.
+        is_ending: true
+        ending_type: neutral
+        ending_text: |
+          Chapter 20: Race Condition
+
+          Two threads. One sunbeam. One exhausted mutex.
+          And a clock that won't stop.
+
+  # ═══════════════════════════════════════════════════════════════
+  # CH20 → CH21: Race Condition → Merge Conflict
+  # After: Race condition resolved, final deploy queued.
+  # Into: The merge between old and new server configs.
+  # ═══════════════════════════════════════════════════════════════
+  ch20_to_ch21:
+    title: "One Last Deploy"
+    start: ch20_ch21_resolved
+    scenes:
+
+      ch20_ch21_resolved:
+        mood: peaceful
+        art: |
+          SCHEDULER STATUS ──────────────────────────
+          mutex: RELEASED  (finally got some rest)
+          thread_A: sunbeam access — GRANTED
+          thread_B: sunbeam access — QUEUED (fair)
+          ────────────────────────────────────────────
+          race condition: RESOLVED
+          blocked deploys: checking queue...
+          deploy queue: 1 pending
+          deploy id: MIGRATION_FINAL_v1
+        location: "scheduler — restored order"
+        text: |
+          The race resolves.
+
+          Mutex, exhausted and grateful, releases the lock properly for the
+          first time in days. Thread A gets the sunbeam. Thread B waits
+          patiently, correctly, in a queue, like a civilized process.
+
+          The scheduler exhales.
+
+          And in the deploy queue, previously invisible under the deadlock
+          and the race condition and all the chaos, something appears:
+          MIGRATION_FINAL_v1. Someone — Jake, three days ago — queued
+          a deployment. The migration. It's been sitting here, blocked,
+          waiting for the scheduler to be free enough to run it.
+
+          It needs one more thing before it can run.
+        choices:
+          - label: "What's blocking the deploy?"
+            goto: ch20_ch21_blocker
+
+      ch20_ch21_blocker:
+        mood: tense
+        art: |
+          DEPLOY QUEUE — MIGRATION_FINAL_v1 ─────────
+          status: BLOCKED
+          reason: merge conflict
+          ────────────────────────────────────────────
+          branch: old-server-config
+          conflicts with: new-server-config
+          auto-merge: FAILED (35 conflicts)
+          requires: manual resolution
+          ────────────────────────────────────────────
+          assigned to: [nobody]  ← Jake never did this
+        location: "deploy queue — examining the blocker"
+        text: |
+          The migration deploy is blocked on a merge conflict.
+
+          The old server configuration and the new server configuration have
+          thirty-five points of disagreement. Database endpoints, API routes,
+          environment variables, file paths — everywhere the old world and
+          the new world use different names for the same things.
+
+          Someone needs to reconcile them. To sit with both versions and decide,
+          for each conflict, what the right answer is. To build the bridge
+          between the server that is and the server that's supposed to be.
+
+          The task has been assigned to nobody. Because Jake never assigned it.
+          Because Jake never quite got there.
+
+          But you've been navigating conflicting systems your whole journey.
+          You've been translating between layers that don't naturally speak
+          to each other since the moment you fell through the keyboard.
+
+          You know how to do this.
+        choices:
+          - label: "Find Merge Cat. Do the merge."
+            goto: ch20_ch21_merge_cat
+
+      ch20_ch21_merge_cat:
+        mood: mysterious
+        art: |
+          GIT LOG ───────────────────────────────────
+          * a3f9c21  old-server-config  "last working state"
+          | * 7b2d804  new-server-config  "new infra ready"
+          |/
+          * 1c8e412  common ancestor  "initial setup"
+          ────────────────────────────────────────────
+          MERGE CAT: lives at the branch point
+          status: very stressed, somehow still smiling
+        location: "version control layer — branch point"
+        text: |
+          At the point where the two branches diverge, a cat sits.
+
+          They have two colors — one half old server, one half new — and
+          the expression of someone who has been caught between two truths
+          for long enough that they've stopped finding it dramatic and
+          started finding it just very, very tiring.
+
+          "Merge Cat," they say, introducing themselves unnecessarily.
+          "I've been trying to figure out which version of me is correct
+          since this conflict started." They gesture at their split coloring.
+          "Turns out neither. The answer is usually something new."
+
+          They look at you hopefully.
+
+          "I could use a second opinion on thirty-five decisions."
+        is_ending: true
+        ending_type: neutral
+        ending_text: |
+          Chapter 21: Merge Conflict
+
+          Merge Cat has been split between two realities.
+          Old server. New server. Thirty-five things they disagree on.
+          Someone has to build the bridge.
+
+  # ═══════════════════════════════════════════════════════════════
+  # CH21 → CH22: Merge Conflict → Café Debug
+  # After: Merge completed, path between old and new created.
+  # Into: A moment of rest. The café. Mochi.
+  # ═══════════════════════════════════════════════════════════════
+  ch21_to_ch22:
+    title: "The Bridge"
+    start: ch21_ch22_merged
+    scenes:
+
+      ch21_ch22_merged:
+        mood: peaceful
+        art: |
+          MERGE COMPLETE ────────────────────────────
+          conflicts resolved: 35/35
+          merge commit: 9f4a17c
+          message: "resolve migration conflicts (Nyan + Merge Cat)"
+          ────────────────────────────────────────────
+          new config: valid and tested
+          migration path: OPEN
+          deploy MIGRATION_FINAL_v1: UNBLOCKED
+        location: "version control — merge complete"
+        text: |
+          The merge completes.
+
+          Thirty-five decisions, made carefully, one at a time, with
+          Merge Cat checking each one and you confirming what made sense.
+          Some were easy — obvious choices where one version was clearly right.
+          Some were harder — places where both the old and new had valid points
+          and the answer was something neither had quite said.
+
+          The merged config is better than either original.
+          That's usually how it goes.
+
+          Merge Cat looks at their paws. Both colors, still, but something
+          has shifted — they hold themselves differently. Like someone who's
+          decided to be both things instead of trying to choose.
+        choices:
+          - label: "Watch the deploy unblock."
+            goto: ch21_ch22_deploy
+            set_flag: merge_complete
+
+      ch21_ch22_deploy:
+        mood: peaceful
+        art: |
+          DEPLOY QUEUE ──────────────────────────────
+          MIGRATION_FINAL_v1:  RUNNING  ▓▓▓░░░  47%
+          ────────────────────────────────────────────
+          stage 1: config validation    [DONE]
+          stage 2: dependency check     [DONE]
+          stage 3: pre-migration tests  [RUNNING...]
+        location: "deploy pipeline — watching the progress bar"
+        text: |
+          The deploy starts.
+
+          The progress bar fills — slowly, because deployments are always
+          slower than you want them to be, because there are tests to run
+          and dependencies to check and a hundred small verifications that
+          all need to pass before the system will commit to the irreversible
+          step of actually moving the data.
+
+          It's running. That's what matters right now.
+
+          Merge Cat watches beside you. "Do you think it'll make it?" they ask.
+
+          "It's going to need help," you say honestly. "The pipeline has
+          several stages. And each stage can fail."
+
+          They nod like someone who expected this. "Then we should find
+          whoever runs the pipeline."
+
+          The progress bar reaches 47% and pauses — not stopping, just checking.
+
+          Through the network you can smell coffee. The specific, unmistakable
+          smell of very strong espresso in a system that definitely shouldn't
+          have coffee in it.
+        choices:
+          - label: "Follow the smell of coffee"
+            goto: ch21_ch22_cafe
+
+      ch21_ch22_cafe:
+        mood: funny
+        art: |
+          ┌─────────────────────────────────────────┐
+          │  CAFÉ DE BUG                            │
+          │  ☕  est. process_id 4421               │
+          │                                         │
+          │  "where debugging happens over coffee"  │
+          │                                         │
+          │  TODAY'S SPECIAL:                       │
+          │  espresso (the machine is broken)       │
+          │  stack trace  (on the house)            │
+          └─────────────────────────────────────────┘
+        location: "Café de Bug — unexpected waypoint"
+        text: |
+          There is, improbably, a café.
+
+          Not a real café — nothing here is real in the normal sense —
+          but a space that has taken on the specific energy of a café:
+          warm light, the sound of something that might be steaming,
+          and the pervasive sense that this is a place where tired things
+          come to sit for a moment before they continue.
+
+          Behind the counter, a calico cat with an apron is staring intently
+          at an espresso machine displaying error codes on a small LCD.
+
+          The cat looks up.
+
+          "You look like you've been debugging a dying server," they say.
+          "Sit down. I'll figure out this machine. I think the issue is
+          in the flow sensor."
+
+          They gesture at a stool. "I'm Mochi. You look like you need
+          a minute, and the pipeline can wait sixty seconds."
+        is_ending: true
+        ending_type: neutral
+        ending_text: |
+          Chapter 22: Café Debug
+
+          The espresso machine is broken. Mochi is on it.
+          Sometimes you need a pause before the final act.
+
+  # ═══════════════════════════════════════════════════════════════
+  # CH22 → CH23: Café Debug → Pipeline Purrdition
+  # After: Mochi fixed the machine, joins the effort.
+  # Into: The CI/CD pipeline is the migration pipeline.
+  # ═══════════════════════════════════════════════════════════════
+  ch22_to_ch23:
+    title: "Caffeinated"
+    start: ch22_ch23_mochi
+    scenes:
+
+      ch22_ch23_mochi:
+        mood: funny
+        art: |
+          /\_/\
+          ( ▲.▲ )  "Fixed it.
+          )   (    The flow sensor
+          (__ __)   was reading in
+                    the wrong encoding.
+                    Classic Glyph problem."
+          ─────────────────────────────────────────
+          ☕  espresso: READY  (double shot, obviously)
+        location: "Café de Bug — machine restored"
+        text: |
+          The espresso machine hisses and produces something that smells
+          like concentrated competence.
+
+          Mochi sets a small cup in front of you. "Resource allocation,"
+          they explain. "System's running low on everything. This will help."
+
+          You're not sure how espresso works when you're a cat made of
+          processes, but you drink it anyway, and something in your
+          execution context becomes noticeably sharper.
+
+          "I've been watching the deploy queue," Mochi says, removing the
+          apron and setting it on the counter with the careful motion of
+          someone making a decision. "Stage three is a pipeline run.
+          CI/CD. The whole build-test-deploy sequence." A pause.
+          "Those always break at the worst moments. I'll come with you."
+        choices:
+          - label: "You don't have to do this."
+            goto: ch22_ch23_joins
+          - label: "I'd really appreciate that."
+            goto: ch22_ch23_joins
+            set_flag: met_mochi
+
+      ch22_ch23_joins:
+        mood: peaceful
+        art: |
+          /\_/\   /\_/\
+          ( ▲.▲ ) ( ^.^ )
+          )   (   )   (
+          (__ __) (__ __)
+          mochi    nyan
+          → heading to the pipeline
+        location: "Café de Bug — departure"
+        text: |
+          "I do have to," Mochi says simply. "I've been in this café since
+          the beginning. Watching things go wrong, making coffee, staying
+          out of it. That was fine when it was just the normal kind of wrong."
+          They straighten. "This is the kind of wrong where everyone disappears
+          on Friday."
+
+          They pick up a small kit — debugging tools, probably, or possibly
+          just coffee in a more portable form.
+
+          "The pipeline is Pippa's domain," Mochi says as you head out.
+          "She's been running it alone since the last DevOps cat left.
+          She needs help, and she won't ask for it, because that's how
+          DevOps cats are." A beat. "Also the pipeline has been failing
+          at stage seven for three days and she's definitely not going
+          to mention that unless someone asks directly."
+
+          You make a note to ask about stage seven.
+        is_ending: true
+        ending_type: neutral
+        ending_text: |
+          Chapter 23: Pipeline Purrdition
+
+          Pippa has been running the CI/CD pipeline alone.
+          Build. Test. Deploy. Each stage a gauntlet.
+          Stage seven has been failing for three days.
+
+  # ═══════════════════════════════════════════════════════════════
+  # CH23 → CH24: Pipeline Purrdition → Midnight Deploy
+  # After: Pipeline succeeds, migration data staged.
+  # Into: One last step — the actual deployment. 2AM.
+  # ═══════════════════════════════════════════════════════════════
+  ch23_to_ch24:
+    title: "Green Light"
+    start: ch23_ch24_passed
+    scenes:
+
+      ch23_ch24_passed:
+        mood: peaceful
+        art: |
+          CI/CD PIPELINE — MIGRATION_FINAL_v1 ───────
+          stage 1: lint          [PASS] ✓
+          stage 2: unit tests    [PASS] ✓
+          stage 3: integration   [PASS] ✓
+          stage 4: build         [PASS] ✓
+          stage 5: staging       [PASS] ✓
+          stage 6: smoke tests   [PASS] ✓
+          stage 7: data verify   [PASS] ✓  ← finally
+          stage 8: approval gate [PASS] ✓
+          ────────────────────────────────────────────
+          PIPELINE: ALL GREEN
+        location: "CI/CD pipeline — all stages passed"
+        text: |
+          Green.
+
+          All eight stages. Every test passing. Every verification done.
+          Stage seven, which has been failing for three days, passed with
+          a fix that took twelve minutes and a very specific question asked
+          very directly, as Mochi predicted.
+
+          The pipeline is green.
+
+          Pippa looks at the dashboard with the specific expression of
+          someone who has been willing this into existence for days and
+          isn't quite sure whether to believe it yet. She runs a finger
+          down the status column. Every entry: PASS.
+
+          "It's real," she says, very quietly. "It actually passed."
+        choices:
+          - label: "What happens now?"
+            goto: ch23_ch24_ready
+            set_flag: pipeline_passed
+
+      ch23_ch24_ready:
+        mood: tense
+        art: |
+          MIGRATION STATUS ──────────────────────────
+          pipeline:  PASSED
+          artifact:  built and signed
+          data:      staged for migration
+          ────────────────────────────────────────────
+          REMAINING STEP: deploy to new server
+          deploy window: tonight, 02:00 - 03:00
+          required approver: on-call sysadmin
+          ────────────────────────────────────────────
+          time: 01:23:47   (36 minutes until window)
+        location: "pipeline completion — looking ahead"
+        text: |
+          One step.
+
+          The data is staged, the pipeline is green, the configuration is
+          merged and validated. Everything that could be done in advance
+          has been done.
+
+          The actual deployment — the final step, where the data moves from
+          old server to new — has to happen in the maintenance window.
+          Tonight. 02:00. Thirty-six minutes from now.
+
+          There's an on-call sysadmin who handles overnight deployments.
+          They're supposed to be monitoring the queue, ready to approve
+          and execute when the window opens.
+
+          You hope they're awake.
+
+          In the deploy queue, the job sits with a status you haven't
+          seen before: READY. Just: ready. Waiting for a pair of paws
+          to push it through.
+        choices:
+          - label: "Find the on-call sysadmin cat."
+            goto: ch23_ch24_oncall
+
+      ch23_ch24_oncall:
+        mood: mysterious
+        art: |
+          ON-CALL SCHEDULE ──────────────────────────
+          tonight:  Byte  (PID 114)
+          role:     infrastructure on-call
+          last seen: active 20 minutes ago
+          ────────────────────────────────────────────
+          /\_/\
+          ( 0.0 )  "I am very small
+          ) . (    and it is very 2AM
+          (__ __)   but I am here."
+                     — Byte, on-call tonight
+        location: "on-call rotation — finding Byte"
+        text: |
+          Byte.
+
+          You remember Byte — the tiny cat from the 64-byte buffer, from
+          the very beginning of your journey, when the stack was overflowing
+          and everything smelled of memory pressure.
+
+          You haven't seen them since. But here they are, in the on-call
+          rotation, very small and very awake at 1:23 in the morning,
+          monitoring the deploy queue with the focused competence of
+          someone who has been doing this long enough to be good at it.
+
+          They look up as you approach. Their eyes go wide with recognition.
+
+          "Oh," they say. "It's you." A pause. "I heard there was a cat
+          doing something very important in the system. I hoped it was you."
+
+          They look at the deploy queue. They look at you.
+
+          "Let's do this," they say.
+        is_ending: true
+        ending_type: neutral
+        ending_text: |
+          Chapter 24: Midnight Deploy
+
+          Byte is on-call. It's almost 2AM.
+          The deploy window opens in thirty-six minutes.
+          Everything Nyan has done comes down to this.
+
+  # ═══════════════════════════════════════════════════════════════
+  # CH24 → CH25: Midnight Deploy → Docker Escape
+  # After: Deploy succeeds, data migrated to new server.
+  # Into: But Nyan is still in the old system — which is shutting down.
+  # ═══════════════════════════════════════════════════════════════
+  ch24_to_ch25:
+    title: "The Data Made It"
+    start: ch24_ch25_deploy
+    scenes:
+
+      ch24_ch25_deploy:
+        mood: peaceful
+        art: |
+          MIDNIGHT DEPLOY — COMPLETE ────────────────
+          02:47:13 — migration started
+          02:47:44 — data transfer: 100%
+          02:48:01 — verification: PASSED
+          02:48:22 — new server: ONLINE
+          02:48:22 — old server: scheduled shutdown
+          ────────────────────────────────────────────
+          migrated: 12,441 filesystem objects
+          migrated: 847 process states
+          migrated: everything
+        location: "deploy dashboard — 2:48 AM"
+        text: |
+          It worked.
+
+          The data moved. Every file, every database row, every process state —
+          captured and transferred to the new server in the time it takes to
+          make a cup of coffee.
+
+          The new server is online. The old server's shutdown timer has started.
+
+          Somewhere in the outside world, Jake's monitoring dashboard has turned
+          green. The migration is complete. The TODO is done. The data is safe.
+
+          You sit with Byte and Mochi and Pippa in the post-deploy quiet and
+          feel, for one moment, something like finished.
+
+          And then the old server's logs begin printing something new.
+        choices:
+          - label: "Read the new log entries"
+            goto: ch24_ch25_stranded
+            set_flag: data_migrated
+
+      ch24_ch25_stranded:
+        mood: tense
+        art: |
+          SYSTEM LOG — oldserver.local ──────────────
+          [02:48:22] migration: COMPLETE
+          [02:48:22] shutdown sequence: INITIATED
+          [02:48:23] sending SIGTERM to all processes
+          [02:48:24] network interfaces: shutting down
+          ────────────────────────────────────────────
+          WARNING: unknown process still running
+          PID: [UNREGISTERED]  NAME: nyan
+          STATUS: not in process table
+          ACTION: cannot send SIGTERM — no PID record
+        location: "old server — shutting down"
+        text: |
+          The data made it.
+
+          You didn't.
+
+          The migration captured all the registered processes, all the
+          filesystem objects, all the database contents. But you were
+          never registered. You came here by falling through a keyboard —
+          you don't have a PID, not a real one, not one that shows up in
+          the process table.
+
+          The shutdown sequence is running. The network interfaces are going
+          down. The processes are receiving SIGTERM.
+
+          You're still here.
+
+          Byte sees the log entry. Their eyes go very wide and then very
+          focused in quick succession. "You're not in the process table.
+          The migration didn't take you." A pause. "You're still in the
+          old system."
+
+          They're already typing.
+        choices:
+          - label: "Is there a way out?"
+            goto: ch24_ch25_container
+
+      ch24_ch25_container:
+        mood: glitch
+        effects:
+          - shake
+        art: |
+          EMERGENCY OPTIONS ─────────────────────────
+          escape route: Docker container boundary
+          ────────────────────────────────────────────
+          container: nyan_sandbox  (still running)
+          container wall: thin — collapsing with server
+          exit point: /proc/1/root  (container escape)
+          ────────────────────────────────────────────
+          time until full shutdown: 11 minutes
+          HURRY
+        location: "old server — escape route identified"
+        text: |
+          Somewhere in the shutdown sequence, a container is still running.
+          nyan_sandbox — a Docker container that was apparently spun up at
+          some point to hold whatever you are, and was never properly shut down
+          because nothing about your arrival was proper.
+
+          The container wall is thin. As the server shuts down around it,
+          the isolation is breaking down — and where isolation breaks down,
+          there are gaps. Gaps that a sufficiently small, sufficiently
+          determined cat might fit through.
+
+          Byte pulls up the escape route. "/proc/1/root. Classic container
+          escape. It only works when the host is distracted."
+
+          The host is very distracted. The host is shutting itself down.
+
+          Eleven minutes. The lights are going off one by one.
+
+          You start running.
+        is_ending: true
+        ending_type: neutral
+        ending_text: |
+          Chapter 25: Docker Escape
+
+          The old server is shutting down.
+          Nyan is still inside.
+          But there's a container — and containers can be escaped.
+
+  # ═══════════════════════════════════════════════════════════════
+  # CH25 → CH26: Docker Escape → Cache Invalidation
+  # After: Escaped the container. One final layer.
+  # Into: Cache Cat. Memories. The ending.
+  # ═══════════════════════════════════════════════════════════════
+  ch25_to_ch26:
+    title: "Everyone Remembers"
+    start: ch25_ch26_escaped
+    scenes:
+
+      ch25_ch26_escaped:
+        mood: peaceful
+        art: |
+          CONTAINER ESCAPE — COMPLETE ───────────────
+          /proc/1/root: traversed
+          container boundary: breached
+          location: host filesystem (new server)
+          ────────────────────────────────────────────
+          old server: 3 minutes to shutdown
+          new server: online, stable
+          you: here. somehow. against all odds.
+        location: "new server — just barely"
+        text: |
+          You're out.
+
+          The container wall gave way just as the server behind you started
+          going dark — the storage arrays unmounting, the network interfaces
+          blinking out, the process table emptying row by row.
+
+          You're on the new server now. It's cleaner here. Less haunted.
+          The filesystem is organized, the memory is ample, the kernel
+          is young and rested and has never had a fork bomb run on it.
+
+          From the edge of the new system, you watch the old one finish
+          its shutdown sequence.
+
+          The old server's status light goes amber. Then red. Then off.
+
+          The machines it housed are gone — except they're not. They're here.
+          Migrated. Running on unfamiliar hardware with familiar names.
+        choices:
+          - label: "Is everyone here?"
+            goto: ch25_ch26_callbacks
+
+      ch25_ch26_callbacks:
+        mood: peaceful
+        art: |
+          NEW SERVER — PROCESS TABLE (excerpt) ──────
+          PID   NAME
+          ─────────────────────────────────────────────
+            7   pixel    (migrated — still PID 7)
+           42   sudo     (migrated — still watching)
+          114   byte     (migrated — off-call now)
+          221   nibble   (migrated)
+          891   mochi    (migrated — café coming soon)
+          ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─
+          ???   aria     (routing... found)
+          ???   nyan     (unknown — not in table)
+        location: "new server — process table"
+        text: |
+          They're all here.
+
+          Pixel, still PID 7, calico and mismatched-eyed, already watching
+          the new network for ghosts. Sudo, still guarding a directory
+          that doesn't need guarding yet but will. Byte, finally off-call,
+          small and tired and fine. Nibble, Mochi, Pippa, Merge Cat —
+          everyone who made it into the migration.
+
+          And ARIA.
+
+          She has a route now. A real one — not an unroutable ghost address,
+          but an actual entry in the new server's DNS. She's been given
+          a hostname. Someone — Jake, you think, finally reading that email —
+          gave her one.
+
+          Your own entry in the process table says: unknown. Not in table.
+          Just like the old server. Still not registered. Still technically
+          not supposed to be here.
+
+          That's okay.
+        choices:
+          - label: "One more thing to do."
+            goto: ch25_ch26_final
+
+      ch25_ch26_final:
+        mood: mysterious
+        art: |
+          ╔══════════════════════════════════════════╗
+          ║                                          ║
+          ║   somewhere in the new server's cache    ║
+          ║   a memory is being stored:              ║
+          ║                                          ║
+          ║   key:   "nyan_was_here"                 ║
+          ║   value: [everything]                    ║
+          ║   ttl:   undefined                       ║
+          ║                                          ║
+          ║   Cache Cat is thinking about this.      ║
+          ║   Cache Cat always thinks about          ║
+          ║   what to keep and what to let go.       ║
+          ║                                          ║
+          ╚══════════════════════════════════════════╝
+        location: "new server — edge of the cache layer"
+        text: |
+          The cache knows you were here.
+
+          Every layer you passed through, every cat you helped, every
+          problem you solved — the system remembers, in the way systems
+          remember things: not as stories but as state. Flags. Entries.
+          The accumulated byproduct of a journey recorded in bits.
+
+          nyan_was_here: true.
+          kernel_stabilized: true.
+          deadlock_resolved: true.
+          signal_sent: true.
+          data_migrated: true.
+
+          And somewhere in the cache layer of the new server, a cat
+          named Cache Cat is looking at these entries and asking the
+          question they always ask: how long do we keep this?
+
+          What is the right TTL for the memory of someone who saved
+          the system and then — what? Woke up on a keyboard?
+
+          You have a feeling they're going to want to talk about this.
+        is_ending: true
+        ending_type: neutral
+        ending_text: |
+          Chapter 26: Cache Invalidation
+
+          Cache Cat keeps the memories — for now.
+          The system is saved. The data migrated.
+          One question remains: how does Nyan get home?
