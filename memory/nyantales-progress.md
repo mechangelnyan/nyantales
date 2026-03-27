@@ -933,6 +933,23 @@ cd /tmp/nyantales && python3 -m http.server 9876
   - Service worker cache bumped to `v45`, production build regenerated (`152KB` JS / `81KB` CSS)
 - All touched JS files pass `node --check` validation
 
+## Phase 60: PWA Install UX + Mobile Discoverability ✅
+- **In-app install button** — new `📲 Install App` action on the title screen
+  - Hidden by default, shown only when the browser exposes `beforeinstallprompt`
+  - Uses the real install prompt instead of making users dig through browser menus
+- **iPhone/iPad install guidance** — graceful fallback when Safari has no install prompt
+  - Detects iOS Safari when not already in standalone mode
+  - `📲 Install` button shows a clear toast: Share → Add to Home Screen
+- **Install lifecycle wiring**
+  - `beforeinstallprompt` captured and deferred until the user taps the button
+  - `appinstalled` shows confirmation toast and hides install CTA once installed
+  - `display-mode: standalone` changes also refresh button visibility
+- **UI polish**
+  - Added dedicated `.install-btn` styling to match the title screen action row
+  - About panel and README updated to mention the new install flow
+- Production build regenerated (`154KB` JS / `81KB` CSS)
+- `npm test` still passes (`204/204`)
+
 ## Still Possible Future Work
 - Generate remaining character portraits (GPU timeout issue — needs investigation, possibly during lower GPU load)
 - AI-generated scene background images
@@ -1064,6 +1081,7 @@ cd /tmp/nyantales && python3 -m http.server 9876
 - 3 commits pushed
 
 ## Log (continued)
+- 2026-03-27 (5:27 AM): Phase 60 — Added real PWA install UX to the web VN: new title-screen `📲 Install App` button appears when `beforeinstallprompt` is available, defers and launches the browser install prompt on tap, and hides itself after `appinstalled` / standalone mode. Added iPhone/iPad fallback guidance (Share → Add to Home Screen) when Safari has no install prompt. Styled new `.install-btn`, updated About panel + README, regenerated dist (154KB JS / 81KB CSS), and verified `npm test` (204/204 passing). No new stories added.
 - 2026-03-27 (4:27 AM): Phase 59 — Refreshed the Playwright browser regression suite (`tests/web/vn.spec.js`) so it matches the current VN UI instead of the old pre-polish interface. Added coverage for story cards + info modal, intro flow, choice playback, numeric shortcuts, settings panel controls, history log, auto-play toggle, mobile HUD overflow, all 30 story YAML assets, and runtime page-error checks. Verified `npx playwright test` (42/42 passing), `npm test` (204/204 passing), and `cd web && bash build.sh` (dist regenerated: 152KB JS / 81KB CSS). No new stories added.
 - 2026-03-27 (3:27 AM): Phase 58 — Added proper browser Back/Forward support for `?story=slug` deep links using pushState/replaceState + popstate handling. Added routeChangeSerial guard to prevent intro/routing races. Scene Select now caches DOM refs, shows live matching counts, and displays a no-results search state. Settings panel removed remaining inline style usage for theme swatches/campaign reset and theme buttons now expose aria-pressed. README updated, SW v45, production build regenerated (152KB JS / 81KB CSS). All touched JS pass `node --check`.
 - 2026-03-27 (2:27 AM): Phase 57 — Added shareable `?story=slug` deep links: boot auto-opens requested story, browser URL syncs during play via replaceState, ending share cards include per-story play URLs, and root index redirect now preserves query/hash into `web/dist/`. README updated, SW v44, production build regenerated (150KB JS / 80KB CSS). All 31 JS pass. Committed & pushed.

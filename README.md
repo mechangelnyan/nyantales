@@ -61,7 +61,7 @@ Build output: **152KB JS** (from 272KB), **81KB CSS** (from 108KB). GitHub Pages
 - ⌨️ Full keyboard shortcuts (1-9, Space, Enter, A, H, S, M, B, R, G, Q, F, ?)
 - 📱 Mobile: responsive design, touch gestures, collapsible HUD, landscape mode
 - ♿ Accessible: ARIA roles, focus traps, reduced motion support, high contrast mode
-- 📲 PWA: installable, offline-capable with service worker
+- 📲 PWA: installable, offline-capable with service worker + in-app install prompt / iPhone home-screen help
 - 🛡️ Error boundary with SafeStorage — graceful quota handling, no lost saves
 - 🔗 Open Graph, Twitter Card meta tags, and JSON-LD structured data for rich link previews
 - 🔍 SEO: robots.txt, sitemap.xml, canonical URLs

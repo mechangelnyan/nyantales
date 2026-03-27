@@ -190,6 +190,19 @@
 
   const APP_TITLE = 'NyanTales — Visual Novel';
 
+  let deferredInstallPrompt = null;
+
+  function isStandaloneMode() {
+    return window.matchMedia?.('(display-mode: standalone)').matches || window.navigator.standalone === true;
+  }
+
+  function isIOSInstallable() {
+    const ua = window.navigator.userAgent || '';
+    const isIOS = /iphone|ipad|ipod/i.test(ua);
+    const isSafari = /safari/i.test(ua) && !/crios|fxios|edgios/i.test(ua);
+    return isIOS && isSafari && !isStandaloneMode();
+  }
+
   function getRouteParams() {
     return new URLSearchParams(window.location.search);
   }
@@ -296,6 +309,7 @@
 
   const vnContainer    = document.querySelector('.vn-container');
   const btnAutoEl      = document.getElementById('btn-auto');
+  const btnInstallEl   = document.getElementById('btn-install');
   const statsEl        = document.getElementById('title-stats');
   const textboxEl      = document.getElementById('vn-textbox');
   const chapterGridEl  = document.getElementById('chapter-grid');
@@ -849,6 +863,52 @@
     }
   }
 
+  function updateInstallButton() {
+    if (!btnInstallEl) return;
+
+    const showButton = !isStandaloneMode() && (Boolean(deferredInstallPrompt) || isIOSInstallable());
+    btnInstallEl.classList.toggle('hidden', !showButton);
+
+    if (!showButton) return;
+
+    if (deferredInstallPrompt) {
+      btnInstallEl.textContent = '📲 Install App';
+      btnInstallEl.title = 'Install NyanTales for offline play';
+      btnInstallEl.setAttribute('aria-label', 'Install NyanTales as an app');
+    } else {
+      btnInstallEl.textContent = '📲 Install';
+      btnInstallEl.title = 'Show iPhone/iPad install instructions';
+      btnInstallEl.setAttribute('aria-label', 'Show install instructions for iPhone or iPad');
+    }
+  }
+
+  async function handleInstallAction() {
+    if (deferredInstallPrompt) {
+      const promptEvent = deferredInstallPrompt;
+      deferredInstallPrompt = null;
+      updateInstallButton();
+
+      try {
+        await promptEvent.prompt();
+        const result = await promptEvent.userChoice;
+        if (result?.outcome === 'accepted') {
+          Toast.show('NyanTales is installing… offline cat adventures unlocked.', { icon: '📲', duration: 3500 });
+        }
+      } catch (err) {
+        console.warn('Install prompt failed:', err);
+        Toast.show('Could not open the install prompt right now.', { icon: '⚠️', duration: 3000 });
+      }
+      return;
+    }
+
+    if (isIOSInstallable()) {
+      Toast.show('On iPhone/iPad: tap Share, then choose “Add to Home Screen”.', { icon: '📲', duration: 5000 });
+      return;
+    }
+
+    Toast.show('Install is not available in this browser right now.', { icon: 'ℹ️', duration: 3000 });
+  }
+
   // btn-continue click is handled by title-actions event delegation above
 
   // ── Search, Filter & Sort ──
@@ -1225,6 +1285,10 @@
         startStory(pick);
         break;
       }
+      case 'btn-install': {
+        void handleInstallAction();
+        break;
+      }
       case 'btn-gallery': gallery.show(); break;
       case 'btn-achievements': togglePanel(achPanel); break;
       case 'btn-stats': statsDashboard.setStories(storyIndex); statsDashboard.show(); break;
@@ -1243,6 +1307,26 @@
   // ── Boot ──
 
   achievements.checkAll();
+
+  // Surface app install when the browser says the PWA is installable.
+  window.addEventListener('beforeinstallprompt', (e) => {
+    e.preventDefault();
+    deferredInstallPrompt = e;
+    updateInstallButton();
+  });
+
+  window.addEventListener('appinstalled', () => {
+    deferredInstallPrompt = null;
+    updateInstallButton();
+    Toast.show('NyanTales installed — the cat terminal now lives on your home screen.', { icon: '✨', duration: 4000 });
+  });
+
+  const standaloneMedia = window.matchMedia?.('(display-mode: standalone)');
+  if (standaloneMedia?.addEventListener) {
+    standaloneMedia.addEventListener('change', () => updateInstallButton());
+  } else if (standaloneMedia?.addListener) {
+    standaloneMedia.addListener(() => updateInstallButton());
+  }
 
   // Respect browser Back/Forward for ?story=slug deep links.
   window.addEventListener('popstate', () => {
@@ -1328,6 +1412,7 @@
       }
       updateLoadingProgress(80, 'Rendering...');
       renderTitleScreen();
+      updateInstallButton();
       updateLoadingProgress(100, 'Ready!');
 
       // Brief pause for visual satisfaction

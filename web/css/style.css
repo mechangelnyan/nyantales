@@ -2111,6 +2111,24 @@ body {
   box-shadow: 0 0 18px rgba(0, 255, 136, 0.25);
   transform: scale(1.03);
 }
+.install-btn {
+  background: rgba(var(--accent-r), var(--accent-g), var(--accent-b), 0.1);
+  border: 1px solid rgba(var(--accent-r), var(--accent-g), var(--accent-b), 0.35);
+  border-radius: 6px;
+  padding: 0.4rem 1.2rem;
+  color: var(--accent-cyan);
+  font-family: var(--font-mono);
+  font-size: 0.85rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.25s ease;
+}
+.install-btn:hover {
+  background: rgba(var(--accent-r), var(--accent-g), var(--accent-b), 0.18);
+  border-color: var(--accent-cyan);
+  box-shadow: 0 0 18px rgba(var(--accent-r), var(--accent-g), var(--accent-b), 0.2);
+  transform: scale(1.03);
+}
 @keyframes continuePulse {
   0%, 100% { box-shadow: 0 0 8px rgba(0, 255, 136, 0.1); }
   50% { box-shadow: 0 0 16px rgba(0, 255, 136, 0.2); }
@@ -3999,6 +4017,7 @@ body {
 .campaign-btn,
 .chapter-card,
 .continue-btn,
+.install-btn,
 .filter-tag {
   -webkit-tap-highlight-color: transparent;
   touch-action: manipulation;

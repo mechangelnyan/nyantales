@@ -49,7 +49,8 @@ class AboutPanel {
               <li>🔊 Synthesized ambient soundscapes</li>
               <li>💾 Multiple save slots with auto-save</li>
               <li>🏆 16 unlockable achievements</li>
-              <li>📱 Mobile touch gestures + PWA</li>
+              <li>📱 Mobile touch gestures + installable PWA</li>
+              <li>📲 One-tap install prompt + iPhone home-screen help</li>
               <li>♿ Full keyboard + screen reader support</li>
             </ul>
           </div>
