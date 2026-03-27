@@ -1074,6 +1074,25 @@ cd /tmp/nyantales && python3 -m http.server 9876
 - All 33 JS files pass `node --check`, 204/204 unit tests, 50/50 Playwright tests
 - 2 commits pushed
 
+## Phase 73: Audio Leak Fix, Shared Noise Buffer, Typewriter O(n) ✅
+- **Audio blip timer leak fix** — `_blips()` recursive `setTimeout` chains were never tracked or cancelled
+  - Previously: changing themes or stopping audio left orphaned blip timers running indefinitely, each creating new OscillatorNodes connected to a disconnected gain node
+  - Now: `_blipTimers` array tracks all blip setTimeout IDs
+  - `_cancelBlipTimers()` called in `setTheme()` (before stopping old nodes) and `stop()`
+  - Prevents unbounded timer/oscillator accumulation during long play sessions with many scene transitions
+- **Shared noise buffer** — `_getNoiseBuffer()` creates a single 4-second white noise AudioBuffer, reused across all theme changes
+  - Previously: `_noise()` allocated a new `Float32Array(sampleRate × 4)` every time (176KB per call at 44.1kHz)
+  - Each theme uses 1-2 noise sources → was ~350KB of throwaway buffers per theme switch
+  - Buffer only regenerated if sample rate changes (essentially never)
+- **Typewriter O(n²) → O(n)** — `_formatText()` now called once per text instead of per 2-char chunk
+  - Previously: typewriter called `_formatText(text.slice(0, index))` every tick, reformatting the entire growing substring with regex each time → O(n²) total work for n characters
+  - Now: full formatted HTML rendered once into a hidden wrapper, then characters revealed progressively via `visibility` toggle on pre-split text nodes
+  - Clean HTML restored when typewriter completes or is skipped (removes per-char spans)
+  - TreeWalker used to find text nodes within formatted HTML (preserves `<code>`, `<strong>`, `<em>`, `<br>` structure)
+- SW cache bumped to v55, production build regenerated (169KB bundle)
+- All 33 JS files pass `node --check`, 204/204 unit tests, 50/50 Playwright tests
+- Committed & pushed
+
 ## Still Possible Future Work
 - Generate remaining character portraits (GPU timeout issue — needs investigation, possibly during lower GPU load)
 - AI-generated scene background images
@@ -1118,6 +1137,7 @@ cd /tmp/nyantales && python3 -m http.server 9876
 - All 30 JS files pass `node --check` validation
 
 ## Log (continued)
+- 2026-03-27 (6:27 PM): Phase 73 — Audio blip timer leak fix (recursive setTimeout chains tracked in _blipTimers, cancelled on theme change/stop — prevents unbounded oscillator accumulation). Shared noise buffer (single 4s AudioBuffer reused across themes, was allocating ~350KB throwaway per switch). Typewriter O(n²)→O(n) (formatText called once, characters revealed via visibility toggle on pre-split text nodes instead of re-formatting entire growing substring per 2-char tick). SW v55, 169KB bundle. All 33 JS + 204/204 unit + 50/50 Playwright pass. Committed & pushed.
 - 2026-03-26 (11:27 PM): Phase 54 — Campaign integration polish: reverted broken title screen redesign (story list/filter/search was removed), fixed title-actions CSS, fixed updateCampaignButton to match actual HTML, removed duplicate CampaignManager, added campaign to DataManager export/import, campaign reset in Settings, campaign progress in Stats Dashboard, .campaign-btn-ending CSS class, .catch() on campaign startStory. SW v39. 145KB bundle. All 30 JS pass. Committed & pushed.
 - 2026-03-26 (10:27 PM): Phase 53 — Cached DOM + delegation + engine optimization: SettingsPanel caches 17 DOM refs, delegates data/theme clicks, shares _speedLabel(). SaveManager consolidates close+mode into 1 listener, caches _slotsEl/_modeBtns/_panelEl. Engine.interpolate() uses single pre-compiled regex (8 chained .replace→1 pass). UI._updateSprites eliminates object spread allocation (parallel speakerFlags array), adds _charNameCache. addEventListener count 65→61. SW v38. 136KB bundle. All 30 JS pass. Committed & pushed.
 - 2026-03-26 (9:27 PM): Phase 52 — SEO & discoverability: robots.txt, sitemap.xml, canonical URL, JSON-LD WebApplication structured data, dns-prefetch. README updated. SW v37. 136KB bundle. All 30 JS pass. 2 commits pushed.
