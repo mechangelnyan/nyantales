@@ -254,8 +254,6 @@
   // ── Auto-play State ──
 
   let autoPlayTimer     = null;
-  let autoPlayIndicator = null;
-  let skipIndicator     = null;
 
   function clearAutoPlayTimer() {
     if (autoPlayTimer) { clearTimeout(autoPlayTimer); autoPlayTimer = null; }
@@ -307,18 +305,7 @@
     btnAutoEl.classList.toggle('hud-inactive', !on);
     btnAutoEl.title = on ? 'Auto-Play ON (A)' : 'Auto-Play OFF (A)';
     btnAutoEl.setAttribute('aria-pressed', on ? 'true' : 'false');
-
-    if (on) {
-      if (!autoPlayIndicator) {
-        autoPlayIndicator = document.createElement('div');
-        autoPlayIndicator.className = 'auto-play-indicator';
-        autoPlayIndicator.innerHTML = '<div class="auto-play-dot"></div> AUTO';
-        vnContainer.appendChild(autoPlayIndicator);
-      }
-      autoPlayIndicator.classList.remove('hidden');
-    } else if (autoPlayIndicator) {
-      autoPlayIndicator.classList.add('hidden');
-    }
+    autoPlayIndicator.classList.toggle('hidden', !on);
   }
 
   // ── Cached DOM refs ──
@@ -332,10 +319,39 @@
   const sectionDivider = document.querySelector('.section-divider');
   const campaignBtnEl  = document.getElementById('btn-campaign');
 
-  // ── In-Game Progress HUD ──
+  // ── Pre-created overlay indicators ──
+  // Built once at init, toggled via .hidden class. Avoids createElement in hot paths.
 
-  let progressHUD = null;
-  let progressBar = null;
+  const autoPlayIndicator = (() => {
+    const el = document.createElement('div');
+    el.className = 'auto-play-indicator hidden';
+    el.innerHTML = '<div class="auto-play-dot"></div> AUTO';
+    vnContainer.appendChild(el);
+    return el;
+  })();
+
+  const skipIndicator = (() => {
+    const el = document.createElement('div');
+    el.className = 'skip-indicator hidden';
+    el.innerHTML = '⏭ SKIP';
+    vnContainer.appendChild(el);
+    return el;
+  })();
+
+  const progressHUD = (() => {
+    const el = document.createElement('div');
+    el.className = 'progress-hud hidden';
+    el.setAttribute('aria-live', 'off');
+    vnContainer.appendChild(el);
+    return el;
+  })();
+
+  const progressBar = (() => {
+    const el = document.createElement('div');
+    el.className = 'story-progress-bar hidden';
+    vnContainer.appendChild(el);
+    return el;
+  })();
 
   // Throttle progress HUD updates: only re-render if values actually changed
   let _lastProgressPct = -1;
@@ -343,19 +359,6 @@
 
   function updateProgressHUD() {
     if (!currentEngine) return;
-
-    if (!progressHUD) {
-      progressHUD = document.createElement('div');
-      progressHUD.className = 'progress-hud';
-      progressHUD.setAttribute('aria-live', 'off');
-      vnContainer.appendChild(progressHUD);
-    }
-
-    if (!progressBar) {
-      progressBar = document.createElement('div');
-      progressBar.className = 'story-progress-bar';
-      vnContainer.appendChild(progressBar);
-    }
 
     const totalScenes = Object.keys(currentEngine.scenes).length;
     const visited = currentEngine.state.visited.size;
@@ -387,18 +390,11 @@
   }
 
   function updateSkipIndicator(active) {
+    skipIndicator.classList.toggle('hidden', !active);
     if (active) {
-      if (!skipIndicator) {
-        skipIndicator = document.createElement('div');
-        skipIndicator.className = 'skip-indicator';
-        skipIndicator.innerHTML = '⏭ SKIP';
-        vnContainer.appendChild(skipIndicator);
-      }
-      skipIndicator.classList.remove('hidden');
-      if (autoPlayIndicator) autoPlayIndicator.classList.add('hidden');
-    } else if (skipIndicator) {
-      skipIndicator.classList.add('hidden');
-      if (settings.get('autoPlay') && autoPlayIndicator) autoPlayIndicator.classList.remove('hidden');
+      autoPlayIndicator.classList.add('hidden');
+    } else if (settings.get('autoPlay')) {
+      autoPlayIndicator.classList.remove('hidden');
     }
   }
 
@@ -498,106 +494,94 @@
 
   // ── Start / Restart Story ──
 
+  // ── Engine Callbacks (wired once, reference currentEngine dynamically) ──
+
+  /** @type {Object|null} The most recently parsed story data (for restart). */
+  let _currentParsed = null;
+
+  ui.onChoice(choice => {
+    if (!currentEngine) return;
+    clearAutoPlayTimer();
+    const nextScene = currentEngine.goToScene(choice.goto, choice);
+    playScene(nextScene);
+  });
+
+  ui._onEndingHook = (scene, engine) => {
+    clearAutoPlayTimer();
+    updateSkipIndicator(false);
+
+    // Record reading time to tracker for persistent stats
+    const sessionElapsed = storyStartTime ? Date.now() - storyStartTime : 0;
+    if (currentSlug && sessionElapsed > 0) {
+      tracker.recordReadingTime(currentSlug, sessionElapsed);
+      storyStartTime = null; // prevent double-counting on menu return
+    }
+
+    // Inject reading time into ending stats grid (use cached ui.endingEl)
+    if (sessionElapsed > 0) {
+      const timeStr = StoryTracker.formatDuration(sessionElapsed);
+      const statsGrid = document.getElementById('ending-stats-grid');
+      if (statsGrid) {
+        const timeBox = document.createElement('div');
+        timeBox.className = 'ending-stat-box';
+        timeBox.innerHTML = `<span class="ending-stat-value">⏱ ${timeStr}</span><span class="ending-stat-label">Reading Time</span>`;
+        statsGrid.insertBefore(timeBox, statsGrid.firstChild);
+      }
+    }
+
+    const result = tracker.recordEnding(currentSlug, scene.ending, engine.state.turns);
+
+    if (result.isNewEnding && ui.endingEl) {
+      const badge = document.createElement('div');
+      badge.className = 'new-ending-badge';
+      badge.textContent = '✨ New Ending Discovered!';
+      ui.endingEl.appendChild(badge);
+    }
+
+    const newAch = achievements.checkAll();
+    if (newAch.length > 0) {
+      if (campaignMode) {
+        pendingAchievementUnlocks.push(...newAch);
+      } else {
+        setTimeout(() => achievements.showNewUnlocks(newAch), 2000);
+      }
+    }
+
+    // In campaign mode, add a "Next Chapter" button to the ending overlay
+    if (campaignMode && ui.endingEl) {
+      const nextBtn = document.createElement('button');
+      nextBtn.className = 'campaign-btn campaign-btn-ending';
+      nextBtn.textContent = campaign.isComplete() ? '🏠 Return Home' : '▶ Next Chapter';
+      nextBtn.addEventListener('click', () => onCampaignEnding());
+      const actionsRow = ui.endingEl.querySelector('.ending-actions');
+      if (actionsRow) {
+        actionsRow.insertBefore(nextBtn, actionsRow.firstChild);
+      } else {
+        ui.endingEl.appendChild(nextBtn);
+      }
+      requestAnimationFrame(() => nextBtn.focus());
+    }
+  };
+
+  ui.onRestart(() => {
+    if (!_currentParsed) return;
+    initEngine(_currentParsed);
+    if (campaignMode && currentEngine) campaign.applyPersistentState(currentEngine);
+    ui.showStoryScreen();
+    updateAutoPlayHUD(settings.get('autoPlay'));
+    playScene(currentEngine.getCurrentScene());
+  });
+
+  ui.onMenu(() => {
+    if (campaignMode) campaignMode = false;
+    returnToMenu();
+  });
+
   function initEngine(parsed) {
+    _currentParsed = parsed;
     currentEngine = new StoryEngine(parsed);
     textHistory.clear();
     ui.typewriterSpeed = settings.get('textSpeed');
-
-    // Wire choice handler
-    ui.onChoice(choice => {
-      clearAutoPlayTimer();
-      const nextScene = currentEngine.goToScene(choice.goto, choice);
-      playScene(nextScene);
-    });
-
-    // Wire ending detection (track + show)
-    ui._onEndingHook = (scene, engine) => {
-      clearAutoPlayTimer();
-      updateSkipIndicator(false);
-
-      // Record reading time to tracker for persistent stats
-      const sessionElapsed = storyStartTime ? Date.now() - storyStartTime : 0;
-      if (currentSlug && sessionElapsed > 0) {
-        tracker.recordReadingTime(currentSlug, sessionElapsed);
-        storyStartTime = null; // prevent double-counting on menu return
-      }
-
-      // Inject reading time into ending stats grid
-      if (sessionElapsed > 0) {
-        const timeStr = StoryTracker.formatDuration(sessionElapsed);
-        const statsGrid = document.getElementById('ending-stats-grid');
-        if (statsGrid) {
-          const timeBox = document.createElement('div');
-          timeBox.className = 'ending-stat-box';
-          timeBox.innerHTML = `<span class="ending-stat-value">⏱ ${timeStr}</span><span class="ending-stat-label">Reading Time</span>`;
-          statsGrid.insertBefore(timeBox, statsGrid.firstChild);
-        }
-      }
-
-      const result = tracker.recordEnding(currentSlug, scene.ending, engine.state.turns);
-
-      if (result.isNewEnding) {
-        // Insert "new ending" badge directly into the ending overlay (already rendered at this point)
-        const endingEl = document.getElementById('vn-ending');
-        if (endingEl) {
-          const badge = document.createElement('div');
-          badge.className = 'new-ending-badge';
-          badge.textContent = '✨ New Ending Discovered!';
-          endingEl.appendChild(badge);
-        }
-      }
-
-      const newAch = achievements.checkAll();
-      if (newAch.length > 0) {
-        if (campaignMode) {
-          pendingAchievementUnlocks.push(...newAch);
-        } else {
-          setTimeout(() => achievements.showNewUnlocks(newAch), 2000);
-        }
-      }
-
-      // In campaign mode, add a "Next Chapter" button to the ending overlay
-      if (campaignMode) {
-        const endingEl = document.getElementById('vn-ending');
-        if (endingEl) {
-          const nextBtn = document.createElement('button');
-          nextBtn.className = 'campaign-btn campaign-btn-ending';
-          nextBtn.textContent = campaign.isComplete() ? '🏠 Return Home' : '▶ Next Chapter';
-          nextBtn.addEventListener('click', () => onCampaignEnding());
-          // Insert before the restart/menu buttons
-          const actionsRow = endingEl.querySelector('.ending-actions');
-          if (actionsRow) {
-            actionsRow.insertBefore(nextBtn, actionsRow.firstChild);
-          } else {
-            endingEl.appendChild(nextBtn);
-          }
-          // Focus the campaign button instead of restart
-          requestAnimationFrame(() => nextBtn.focus());
-        }
-      }
-    };
-
-    // Wire restart + menu
-    ui.onRestart(() => {
-      if (campaignMode) {
-        // In campaign mode, restart replays current chapter
-        initEngine(parsed);
-        if (currentEngine) campaign.applyPersistentState(currentEngine);
-        ui.showStoryScreen();
-        updateAutoPlayHUD(settings.get('autoPlay'));
-        playScene(currentEngine.getCurrentScene());
-        return;
-      }
-      initEngine(parsed);
-      ui.showStoryScreen();
-      updateAutoPlayHUD(settings.get('autoPlay'));
-      playScene(currentEngine.getCurrentScene());
-    });
-
-    ui.onMenu(() => {
-      if (campaignMode) campaignMode = false;
-      returnToMenu();
-    });
   }
 
   async function startStory(story, savedState, options = {}) {
@@ -669,9 +653,9 @@
     textHistory.clear();
     updateSkipIndicator(false);
     if (sceneSelect.isVisible) sceneSelect.hide();
-    if (autoPlayIndicator) autoPlayIndicator.classList.add('hidden');
-    if (progressHUD) progressHUD.classList.add('hidden');
-    if (progressBar) progressBar.classList.add('hidden');
+    autoPlayIndicator.classList.add('hidden');
+    progressHUD.classList.add('hidden');
+    progressBar.classList.add('hidden');
     ui.showTitleScreen();
     renderTitleScreen();
 
