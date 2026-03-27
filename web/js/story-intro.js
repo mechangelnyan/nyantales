@@ -10,7 +10,7 @@
 class StoryIntro {
   /**
    * Show a story intro splash, returning a Promise that resolves when
-   * the player clicks/taps to continue or after a timeout.
+   * the player explicitly presses Continue.
    *
    * @param {Object} story - Story data (title, description, slug)
    * @param {PortraitManager} portraits - For protagonist art
@@ -34,7 +34,7 @@ class StoryIntro {
           />` : ''}
           <h2 class="story-intro-title">${StoryIntro._esc(story.title)}</h2>
           ${story.description ? `<p class="story-intro-desc">${StoryIntro._esc(story.description)}</p>` : ''}
-          <div class="story-intro-prompt">Click or press any key to begin...</div>
+          <button class="story-intro-prompt" type="button">Continue ▶</button>
         </div>
       `;
 
@@ -46,7 +46,12 @@ class StoryIntro {
       });
 
       let dismissed = false;
-      const keyHandler = (e) => dismiss();
+      const keyHandler = (e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          dismiss();
+        }
+      };
       const dismiss = () => {
         if (dismissed) return;
         dismissed = true;
@@ -59,11 +64,10 @@ class StoryIntro {
         }, 500);
       };
 
-      overlay.addEventListener('click', dismiss);
+      const continueBtn = overlay.querySelector('.story-intro-prompt');
+      continueBtn?.addEventListener('click', dismiss);
+      continueBtn?.focus();
       document.addEventListener('keydown', keyHandler);
-
-      // Auto-dismiss after 8 seconds
-      setTimeout(dismiss, 8000);
     });
   }
 

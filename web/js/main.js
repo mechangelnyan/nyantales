@@ -956,8 +956,19 @@
 
   // ── Click/Tap to Advance ──
 
-  textboxEl.addEventListener('click', () => {
+  textboxEl.addEventListener('click', (e) => {
+    if (e.target === ui.clickIndicator) return;
     if (ui.isTyping) ui.skipTypewriter();
+  });
+
+  ui.clickIndicator?.addEventListener('click', () => {
+    if (ui.isTyping || !currentEngine) return;
+    const scene = currentEngine.getCurrentScene();
+    if (scene && scene.next && currentEngine.getAvailableChoices().length === 0 && !scene.ending) {
+      clearAutoPlayTimer();
+      const next = currentEngine.goToScene(scene.next);
+      playScene(next);
+    }
   });
 
   // ── Touch Gestures (mobile) ──
