@@ -63,29 +63,29 @@ class VNUI {
       excited: '✨', spooky: '👻'
     };
 
-    // Background keyword map
-    this.bgKeywords = {
-      'terminal': 'bg-terminal', 'shell': 'bg-terminal',
-      'filesystem': 'bg-filesystem', 'directory': 'bg-filesystem',
-      '/home': 'bg-filesystem', '/root': 'bg-filesystem', '/bin': 'bg-filesystem',
-      '/tmp': 'bg-filesystem', '/etc': 'bg-filesystem', '/proc': 'bg-danger', '/var': 'bg-filesystem',
-      'server': 'bg-server-room', 'rack': 'bg-server-room', 'datacenter': 'bg-server-room',
-      'network': 'bg-network', 'http': 'bg-network', 'dns': 'bg-network',
-      'tcp': 'bg-network', 'packet': 'bg-network',
-      'memory': 'bg-memory', 'heap': 'bg-memory', 'stack': 'bg-memory', 'buffer': 'bg-memory',
-      'database': 'bg-database', 'sql': 'bg-database', 'table': 'bg-database',
-      'café': 'bg-cafe', 'cafe': 'bg-cafe', 'coffee': 'bg-cafe',
-      'warm': 'bg-warm', 'home': 'bg-warm', 'cozy': 'bg-warm',
-      'danger': 'bg-danger', 'kernel': 'bg-danger', 'panic': 'bg-danger', 'crash': 'bg-danger',
-      'void': 'bg-void', 'null': 'bg-void', 'empty': 'bg-void',
-      'docker': 'bg-server-room', 'container': 'bg-server-room',
-      'git': 'bg-terminal', 'branch': 'bg-terminal',
-      'regex': 'bg-danger', 'loop': 'bg-memory',
-      'process': 'bg-server-room', 'pipe': 'bg-terminal',
-      'deploy': 'bg-server-room', 'production': 'bg-danger',
-      'cache': 'bg-memory', 'tls': 'bg-network', 'ssl': 'bg-network',
-      'cipher': 'bg-network', 'handshake': 'bg-network'
-    };
+    // Background keyword → class entries (pre-computed array avoids Object.entries() per render)
+    this._bgEntries = [
+      ['terminal', 'bg-terminal'], ['shell', 'bg-terminal'],
+      ['filesystem', 'bg-filesystem'], ['directory', 'bg-filesystem'],
+      ['/home', 'bg-filesystem'], ['/root', 'bg-filesystem'], ['/bin', 'bg-filesystem'],
+      ['/tmp', 'bg-filesystem'], ['/etc', 'bg-filesystem'], ['/proc', 'bg-danger'], ['/var', 'bg-filesystem'],
+      ['server', 'bg-server-room'], ['rack', 'bg-server-room'], ['datacenter', 'bg-server-room'],
+      ['network', 'bg-network'], ['http', 'bg-network'], ['dns', 'bg-network'],
+      ['tcp', 'bg-network'], ['packet', 'bg-network'],
+      ['memory', 'bg-memory'], ['heap', 'bg-memory'], ['stack', 'bg-memory'], ['buffer', 'bg-memory'],
+      ['database', 'bg-database'], ['sql', 'bg-database'], ['table', 'bg-database'],
+      ['café', 'bg-cafe'], ['cafe', 'bg-cafe'], ['coffee', 'bg-cafe'],
+      ['warm', 'bg-warm'], ['home', 'bg-warm'], ['cozy', 'bg-warm'],
+      ['danger', 'bg-danger'], ['kernel', 'bg-danger'], ['panic', 'bg-danger'], ['crash', 'bg-danger'],
+      ['void', 'bg-void'], ['null', 'bg-void'], ['empty', 'bg-void'],
+      ['docker', 'bg-server-room'], ['container', 'bg-server-room'],
+      ['git', 'bg-terminal'], ['branch', 'bg-terminal'],
+      ['regex', 'bg-danger'], ['loop', 'bg-memory'],
+      ['process', 'bg-server-room'], ['pipe', 'bg-terminal'],
+      ['deploy', 'bg-server-room'], ['production', 'bg-danger'],
+      ['cache', 'bg-memory'], ['tls', 'bg-network'], ['ssl', 'bg-network'],
+      ['cipher', 'bg-network'], ['handshake', 'bg-network']
+    ];
   }
 
   // ── Screen Transitions ──
@@ -246,9 +246,10 @@ class VNUI {
     // Position sprites
     const positions = this._getSpritePositions(visible.length);
 
-    // Fade out removed sprites
+    // Fade out removed sprites (Set avoids O(n) find per active sprite)
+    const visibleNames = new Set(visible.map(v => v.name));
     for (const [name, el] of this._activeSprites) {
-      if (!visible.find(v => v.name === name)) {
+      if (!visibleNames.has(name)) {
         el.classList.remove('visible');
         el.classList.add('sprite-exit');
         setTimeout(() => el.remove(), 500);
@@ -466,7 +467,7 @@ class VNUI {
       scene.text || ''
     ].join(' ').toLowerCase();
 
-    for (const [keyword, bgClass] of Object.entries(this.bgKeywords)) {
+    for (const [keyword, bgClass] of this._bgEntries) {
       if (haystack.includes(keyword)) return bgClass;
     }
     return '';
@@ -775,6 +776,8 @@ class VNUI {
         this._onMenu();
       } else if (action === 'share') {
         await this._shareEnding();
+      } else if (action === 'campaign-next' && this._onCampaignEnding) {
+        this._onCampaignEnding();
       }
     });
   }
@@ -813,15 +816,21 @@ class VNUI {
 
   // ── Text Formatting ──
 
+  /**
+   * Format VN text: escape HTML, then apply markdown (code, bold, italic, newlines).
+   * Uses a single pre-compiled regex for markdown transforms (replaces 4 sequential passes).
+   */
   _formatText(text) {
-    return text
-      .replace(/&/g, '&amp;')
-      .replace(/</g, '&lt;')
-      .replace(/>/g, '&gt;')
-      .replace(/`([^`]+)`/g, '<code class="vn-inline-code">$1</code>')
-      .replace(/\*\*([^*]+)\*\*/g, '<strong class="vn-bold">$1</strong>')
-      .replace(/\*([^*]+)\*/g, '<em>$1</em>')
-      .replace(/\n/g, '<br>');
+    // First pass: HTML escape (3 sequential replaces — unavoidable for correctness)
+    const escaped = text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    // Second pass: markdown + newlines in one regex
+    return escaped.replace(VNUI._FORMAT_RE, (m, code, bold, italic) => {
+      if (code !== undefined) return `<code class="vn-inline-code">${code}</code>`;
+      if (bold !== undefined) return `<strong class="vn-bold">${bold}</strong>`;
+      if (italic !== undefined) return `<em>${italic}</em>`;
+      if (m === '\n') return '<br>';
+      return m;
+    });
   }
 
   _escapeHtml(text) {
@@ -842,3 +851,6 @@ class VNUI {
   // Note: _accentRGBA removed — sprite highlighting now uses pure CSS classes
   // with var(--accent-r/g/b). RouteMap has its own copy for canvas rendering.
 }
+
+/** Pre-compiled regex for _formatText: matches backtick code, **bold**, *italic*, or newline in one pass. */
+VNUI._FORMAT_RE = /`([^`]+)`|\*\*([^*]+)\*\*|\*([^*]+)\*|\n/g;

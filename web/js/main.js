@@ -496,6 +496,9 @@
 
   // ── Engine Callbacks (wired once, reference currentEngine dynamically) ──
 
+  // Campaign ending callback — wired once on ui, invoked via ending delegation (data-action="campaign-next")
+  ui._onCampaignEnding = () => onCampaignEnding();
+
   /** @type {Object|null} The most recently parsed story data (for restart). */
   let _currentParsed = null;
 
@@ -517,10 +520,10 @@
       storyStartTime = null; // prevent double-counting on menu return
     }
 
-    // Inject reading time into ending stats grid (use cached ui.endingEl)
+    // Inject reading time into ending stats grid (query from endingEl, not document — avoids stale ID match)
     if (sessionElapsed > 0) {
       const timeStr = StoryTracker.formatDuration(sessionElapsed);
-      const statsGrid = document.getElementById('ending-stats-grid');
+      const statsGrid = ui.endingEl.querySelector('#ending-stats-grid');
       if (statsGrid) {
         const timeBox = document.createElement('div');
         timeBox.className = 'ending-stat-box';
@@ -552,7 +555,7 @@
       const nextBtn = document.createElement('button');
       nextBtn.className = 'campaign-btn campaign-btn-ending';
       nextBtn.textContent = campaign.isComplete() ? '🏠 Return Home' : '▶ Next Chapter';
-      nextBtn.addEventListener('click', () => onCampaignEnding());
+      nextBtn.dataset.action = 'campaign-next'; // handled by ending delegation
       const actionsRow = ui.endingEl.querySelector('.ending-actions');
       if (actionsRow) {
         actionsRow.insertBefore(nextBtn, actionsRow.firstChild);
