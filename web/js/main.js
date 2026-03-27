@@ -204,10 +204,11 @@
   }
 
   /** Keep the browser URL synced to the currently open story without navigating. */
-  function syncStoryUrl(slug) {
+  function syncStoryUrl(slug, mode = 'replace') {
     const nextUrl = slug ? buildStoryUrl(slug) : `${window.location.pathname}${window.location.hash || ''}`;
     const state = slug ? { view: 'story', slug } : { view: 'menu' };
-    window.history.replaceState(state, '', nextUrl);
+    const method = mode === 'push' ? 'pushState' : 'replaceState';
+    window.history[method](state, '', nextUrl);
   }
 
   let storyIndex   = [];
@@ -219,6 +220,7 @@
   let campaignMode  = false; // true when playing the connected campaign
   let pendingAchievementUnlocks = [];
   let suppressNextAutoAdvance = false;
+  let routeChangeSerial = 0;
 
   // ── Auto-play State ──
 
@@ -560,12 +562,20 @@
     });
   }
 
-  async function startStory(story, savedState) {
+  async function startStory(story, savedState, options = {}) {
+    const {
+      historyMode = 'push',
+      syncRoute = true,
+      showIntro = !savedState
+    } = options;
+
+    const navId = ++routeChangeSerial;
+
     currentSlug = story.slug;
     storyStartTime = Date.now();
     document.title = `${story.title} — NyanTales`;
     ui.setStorySlug(story.slug);
-    if (story.slug) syncStoryUrl(story.slug);
+    if (story.slug && syncRoute) syncStoryUrl(story.slug, historyMode);
 
     initEngine(story._parsed);
 
@@ -574,9 +584,10 @@
       try { currentEngine.loadState(savedState); } catch (e) { console.warn('Failed to load save:', e); }
     }
 
-    // Show story intro splash (skip for loaded saves — player already knows the story)
-    if (!savedState) {
+    // Show story intro splash (skip for loaded saves / history-driven route changes)
+    if (showIntro) {
       await StoryIntro.show(story, ui.portraits);
+      if (navId !== routeChangeSerial) return;
       suppressNextAutoAdvance = true;
     }
 
@@ -586,6 +597,7 @@
 
     const firstScene = currentEngine.getCurrentScene();
     await playScene(firstScene);
+    if (navId !== routeChangeSerial) return;
 
     // Check achievements on story start
     const startAch = achievements.checkAll();
@@ -594,7 +606,9 @@
     }
   }
 
-  function returnToMenu() {
+  function returnToMenu(options = {}) {
+    const { syncRoute = true, historyMode = 'replace' } = options;
+    routeChangeSerial++;
     // Record reading time before clearing state
     if (currentSlug && storyStartTime) {
       tracker.recordReadingTime(currentSlug, Date.now() - storyStartTime);
@@ -608,7 +622,7 @@
     _lastProgressTurns = -1;
     document.title = APP_TITLE;
     ui.setStorySlug(null);
-    syncStoryUrl(null);
+    if (syncRoute) syncStoryUrl(null, historyMode);
     audio.stop();
     textHistory.clear();
     updateSkipIndicator(false);
@@ -1230,6 +1244,13 @@
 
   achievements.checkAll();
 
+  // Respect browser Back/Forward for ?story=slug deep links.
+  window.addEventListener('popstate', () => {
+    handleRouteChange({ fromHistory: true }).catch(err => {
+      console.warn('Failed to handle history navigation:', err);
+    });
+  });
+
   /** Show or hide the loading screen with progress */
   function updateLoadingProgress(pct, text) {
     const fill = document.querySelector('.loading-bar-fill');
@@ -1256,21 +1277,41 @@
     Toast.show('Press ? for keyboard shortcuts', { icon: '⌨️', duration: 4000 });
   }
 
-  async function handleInitialRoute() {
+  async function handleRouteChange(options = {}) {
+    const {
+      fromHistory = false,
+      defaultHistoryMode = 'replace',
+      showIntro = !fromHistory
+    } = options;
+
     const requestedSlug = getRouteParams().get('story');
     if (!requestedSlug) {
-      syncStoryUrl(null);
+      if (currentSlug) {
+        returnToMenu({ syncRoute: !fromHistory, historyMode: defaultHistoryMode });
+      } else if (!fromHistory) {
+        syncStoryUrl(null, defaultHistoryMode);
+      }
       return;
     }
 
     const story = storyIndex.find(s => s.slug === requestedSlug);
     if (!story) {
-      syncStoryUrl(null);
       Toast.show(`Story not found: ${requestedSlug}`, { icon: '⚠️', duration: 3500 });
+      if (currentSlug) {
+        returnToMenu({ syncRoute: !fromHistory, historyMode: 'replace' });
+      } else {
+        syncStoryUrl(null, 'replace');
+      }
       return;
     }
 
-    await startStory(story);
+    if (currentSlug === requestedSlug && currentEngine) return;
+
+    await startStory(story, null, {
+      historyMode: defaultHistoryMode,
+      syncRoute: !fromHistory,
+      showIntro
+    });
   }
 
   async function boot() {
@@ -1293,7 +1334,7 @@
       await new Promise(r => setTimeout(r, 300));
       hideLoadingScreen();
       ui.showTitleScreen();
-      await handleInitialRoute();
+      await handleRouteChange({ defaultHistoryMode: 'replace' });
     } catch (err) {
       console.error('Failed to boot NyanTales:', err);
       hideLoadingScreen();

@@ -914,6 +914,25 @@ cd /tmp/nyantales && python3 -m http.server 9876
   - Service worker cache bumped to `v44`, production build regenerated (`150KB` JS, `80KB` CSS)
 - All 31 JS files pass `node --check` validation
 
+## Phase 58: Browser History Navigation + Scene Select Polish ✅
+- **Browser back/forward support for deep links** — `?story=slug` routing now respects native history navigation
+  - `syncStoryUrl(slug, mode)` now supports `pushState` and `replaceState`
+  - Starting a story from the menu pushes a history entry, so browser Back returns to the menu cleanly
+  - `popstate` handler now opens/closes stories when navigating browser history
+  - `routeChangeSerial` guard prevents async intro/routing races when the URL changes mid-transition
+  - History-driven route loads skip the splash intro for faster, less-jarring back/forward navigation
+- **Scene Select panel polish** (`web/js/scene-select.js`)
+  - Cached `_searchEl`, `_listEl`, `_countEl`, `_panelEl` refs instead of re-querying on every show/filter
+  - Search now updates a live count label: `X / Y matching · Y / Z scenes visited`
+  - Added empty-search state message when no visited scenes match the filter
+- **Settings panel code quality / a11y** (`web/js/settings-panel.js`)
+  - Removed remaining inline styles from theme swatches + campaign reset button
+  - Theme swatches now use semantic CSS classes and set `aria-pressed` for the active theme
+- **Docs / deployment freshness**
+  - README updated for browser back/forward deep-link support + current build sizes
+  - Service worker cache bumped to `v45`, production build regenerated (`152KB` JS / `81KB` CSS)
+- All touched JS files pass `node --check` validation
+
 ## Still Possible Future Work
 - Generate remaining character portraits (GPU timeout issue — needs investigation, possibly during lower GPU load)
 - AI-generated scene background images
@@ -1045,6 +1064,7 @@ cd /tmp/nyantales && python3 -m http.server 9876
 - 3 commits pushed
 
 ## Log (continued)
+- 2026-03-27 (3:27 AM): Phase 58 — Added proper browser Back/Forward support for `?story=slug` deep links using pushState/replaceState + popstate handling. Added routeChangeSerial guard to prevent intro/routing races. Scene Select now caches DOM refs, shows live matching counts, and displays a no-results search state. Settings panel removed remaining inline style usage for theme swatches/campaign reset and theme buttons now expose aria-pressed. README updated, SW v45, production build regenerated (152KB JS / 81KB CSS). All touched JS pass `node --check`.
 - 2026-03-27 (2:27 AM): Phase 57 — Added shareable `?story=slug` deep links: boot auto-opens requested story, browser URL syncs during play via replaceState, ending share cards include per-story play URLs, and root index redirect now preserves query/hash into `web/dist/`. README updated, SW v44, production build regenerated (150KB JS / 80KB CSS). All 31 JS pass. Committed & pushed.
 - 2026-03-27 (1:27 AM): Phase 56 — Extracted CampaignManager from engine.js into new web/js/campaign.js, wired it into index.html + build.sh + service worker, corrected production request-count summary, bumped SW to v43. engine.js now 250 lines (down from 483). Production build regenerated (148KB bundle). All 31 JS pass.
 - 2026-03-27 (12:27 AM): Phase 55 — Restored full title screen that was broken by campaign-first redesign. Story grid, search, filter, sort, continue, random all back. Campaign section shown above story grid with divider. Cached campaign DOM refs. Removed 45 lines dead CSS. SW v42. 147KB bundle. All 30 JS pass. 3 commits pushed.

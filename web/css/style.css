@@ -1850,6 +1850,9 @@ body {
 .settings-data-btn {
   font-size: 0.68rem;
 }
+.settings-data-btn-warn {
+  color: var(--accent-yellow);
+}
 .settings-data-stats {
   font-family: var(--font-mono);
   font-size: 0.65rem;
@@ -2539,12 +2542,17 @@ body {
   height: 22px;
   border-radius: 50%;
   border: 2px solid rgba(255, 255, 255, 0.15);
-  background: var(--swatch-color);
+  background: var(--swatch-color, var(--accent-cyan));
   cursor: pointer;
   transition: all 0.2s ease;
   padding: 0;
   position: relative;
 }
+.theme-swatch-cyan { --swatch-color: #00d4ff; }
+.theme-swatch-magenta { --swatch-color: #ff36ab; }
+.theme-swatch-green { --swatch-color: #00ff88; }
+.theme-swatch-amber { --swatch-color: #ffd700; }
+.theme-swatch-violet { --swatch-color: #cc66ff; }
 .theme-swatch:hover {
   border-color: rgba(255, 255, 255, 0.5);
   transform: scale(1.15);
@@ -2825,6 +2833,11 @@ body {
   color: var(--text-dim);
   font-style: italic;
   font-size: 0.9rem;
+}
+.scene-select-empty-search {
+  border: 1px dashed rgba(var(--accent-r), var(--accent-g), var(--accent-b), 0.18);
+  border-radius: 8px;
+  background: rgba(var(--accent-r), var(--accent-g), var(--accent-b), 0.04);
 }
 
 @media (max-width: 480px) {

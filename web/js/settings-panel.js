@@ -96,12 +96,12 @@ class SettingsPanel {
 
             <div class="settings-row">
               <label class="settings-label">Color Theme</label>
-              <div class="settings-control theme-swatches" id="set-color-theme">
-                <button class="theme-swatch" data-theme="cyan" title="Cyan (default)" style="--swatch-color:#00d4ff"></button>
-                <button class="theme-swatch" data-theme="magenta" title="Magenta" style="--swatch-color:#ff36ab"></button>
-                <button class="theme-swatch" data-theme="green" title="Green" style="--swatch-color:#00ff88"></button>
-                <button class="theme-swatch" data-theme="amber" title="Amber" style="--swatch-color:#ffd700"></button>
-                <button class="theme-swatch" data-theme="violet" title="Violet" style="--swatch-color:#cc66ff"></button>
+              <div class="settings-control theme-swatches" id="set-color-theme" role="group" aria-label="Color theme">
+                <button class="theme-swatch theme-swatch-cyan" data-theme="cyan" title="Cyan (default)" aria-label="Use cyan color theme"></button>
+                <button class="theme-swatch theme-swatch-magenta" data-theme="magenta" title="Magenta" aria-label="Use magenta color theme"></button>
+                <button class="theme-swatch theme-swatch-green" data-theme="green" title="Green" aria-label="Use green color theme"></button>
+                <button class="theme-swatch theme-swatch-amber" data-theme="amber" title="Amber" aria-label="Use amber color theme"></button>
+                <button class="theme-swatch theme-swatch-violet" data-theme="violet" title="Violet" aria-label="Use violet color theme"></button>
               </div>
             </div>
           </div>
@@ -131,7 +131,7 @@ class SettingsPanel {
             <div class="settings-row">
               <label class="settings-label">Campaign</label>
               <div class="settings-control settings-data-btns">
-                <button id="set-campaign-reset" class="settings-toggle settings-data-btn" style="color:#ffd700">📖 Reset Campaign</button>
+                <button id="set-campaign-reset" class="settings-toggle settings-data-btn settings-data-btn-warn">📖 Reset Campaign</button>
               </div>
             </div>
             <div id="set-data-stats" class="settings-data-stats"></div>
@@ -317,14 +317,20 @@ class SettingsPanel {
     const currentTheme = this.settings.get('colorTheme');
 
     container.querySelectorAll('.theme-swatch').forEach(btn => {
-      btn.classList.toggle('active', btn.dataset.theme === currentTheme);
+      const isActive = btn.dataset.theme === currentTheme;
+      btn.classList.toggle('active', isActive);
+      btn.setAttribute('aria-pressed', isActive ? 'true' : 'false');
     });
 
     container.addEventListener('click', (e) => {
       const swatch = e.target.closest('.theme-swatch');
       if (!swatch) return;
-      container.querySelectorAll('.theme-swatch').forEach(s => s.classList.remove('active'));
+      container.querySelectorAll('.theme-swatch').forEach(s => {
+        s.classList.remove('active');
+        s.setAttribute('aria-pressed', 'false');
+      });
       swatch.classList.add('active');
+      swatch.setAttribute('aria-pressed', 'true');
       this.settings.set('colorTheme', swatch.dataset.theme);
     });
   }
@@ -360,7 +366,9 @@ class SettingsPanel {
     // Sync color theme swatches
     const currentTheme = this.settings.get('colorTheme');
     this._els.themeContainer.querySelectorAll('.theme-swatch').forEach(btn => {
-      btn.classList.toggle('active', btn.dataset.theme === currentTheme);
+      const isActive = btn.dataset.theme === currentTheme;
+      btn.classList.toggle('active', isActive);
+      btn.setAttribute('aria-pressed', isActive ? 'true' : 'false');
     });
   }
 

@@ -12,6 +12,13 @@ class SceneSelect {
     this.overlay = null;
     this._focusTrap = null;
     this._built = false;
+    this._searchEl = null;
+    this._listEl = null;
+    this._countEl = null;
+    this._panelEl = null;
+    this._visibleCount = 0;
+    this._visitedCount = 0;
+    this._sceneCount = 0;
   }
 
   /** Lazily build the overlay DOM */
@@ -45,17 +52,18 @@ class SceneSelect {
       if (e.target === this.overlay || e.target.closest('.scene-select-close')) this.hide();
     });
 
+    this._searchEl = this.overlay.querySelector('.scene-select-search');
+    this._listEl = this.overlay.querySelector('.scene-select-list');
+    this._countEl = this.overlay.querySelector('.scene-select-count');
+    this._panelEl = this.overlay.querySelector('.scene-select-panel');
+
     // Search filter
-    this.overlay.querySelector('.scene-select-search').addEventListener('input', (e) => {
-      const q = e.target.value.toLowerCase().trim();
-      this.overlay.querySelectorAll('.scene-select-item').forEach(item => {
-        const text = (item.dataset.searchText || '').toLowerCase();
-        item.classList.toggle('hidden-by-filter', q && !text.includes(q));
-      });
+    this._searchEl.addEventListener('input', (e) => {
+      this._applyFilter(e.target.value);
     });
 
     // Delegated click/keydown on scene list (replaces per-item listeners)
-    const listContainer = this.overlay.querySelector('.scene-select-list');
+    const listContainer = this._listEl;
     const jumpFromItem = (item) => {
       const sceneId = item?.dataset?.sceneId;
       if (sceneId && this.onJump) {
@@ -88,15 +96,16 @@ class SceneSelect {
     const scenes = engine.scenes;
 
     // Build scene list (visited only)
-    const listEl = this.overlay.querySelector('.scene-select-list');
-    const countEl = this.overlay.querySelector('.scene-select-count');
-
+    const listEl = this._listEl;
     const visitedArr = [...visited].filter(id => scenes[id]);
 
-    countEl.textContent = `${visitedArr.length} / ${Object.keys(scenes).length} scenes visited`;
+    this._visitedCount = visitedArr.length;
+    this._sceneCount = Object.keys(scenes).length;
+    this._visibleCount = visitedArr.length;
 
     if (visitedArr.length === 0) {
       listEl.innerHTML = '<div class="scene-select-empty">No visited scenes yet.</div>';
+      this._syncCount();
     } else {
       listEl.innerHTML = visitedArr.map(id => {
         const scene = scenes[id];
@@ -127,20 +136,61 @@ class SceneSelect {
           </div>
         `;
       }).join('');
-
-      // Wire click/keydown via delegation (initialized once in _build)
+      this._syncCount();
     }
 
-    // Reset search
-    this.overlay.querySelector('.scene-select-search').value = '';
+    // Reset search + visible state
+    if (this._searchEl) this._searchEl.value = '';
+    this._applyFilter('');
 
     this.overlay.setAttribute('aria-hidden', 'false');
     requestAnimationFrame(() => this.overlay.classList.add('visible'));
 
     if (!this._focusTrap) {
-      this._focusTrap = new FocusTrap(this.overlay.querySelector('.scene-select-panel'));
+      this._focusTrap = new FocusTrap(this._panelEl);
     }
     this._focusTrap.activate();
+  }
+
+  _syncCount() {
+    if (!this._countEl) return;
+    if (this._visitedCount === 0) {
+      this._countEl.textContent = `0 / ${this._sceneCount} scenes visited`;
+      return;
+    }
+    const visitedSummary = `${this._visitedCount} / ${this._sceneCount} scenes visited`;
+    this._countEl.textContent = this._visibleCount === this._visitedCount
+      ? visitedSummary
+      : `${this._visibleCount} / ${this._visitedCount} matching · ${visitedSummary}`;
+  }
+
+  _applyFilter(query) {
+    if (!this._listEl) return;
+    const q = (query || '').toLowerCase().trim();
+    const items = this._listEl.querySelectorAll('.scene-select-item');
+    let visible = 0;
+
+    items.forEach(item => {
+      const text = (item.dataset.searchText || '').toLowerCase();
+      const isVisible = !q || text.includes(q);
+      item.classList.toggle('hidden-by-filter', !isVisible);
+      if (isVisible) visible++;
+    });
+
+    this._visibleCount = visible;
+    this._syncCount();
+
+    const emptyEl = this._listEl.querySelector('.scene-select-empty');
+    if (emptyEl) {
+      emptyEl.textContent = q && this._visitedCount > 0
+        ? 'No scenes match that search yet.'
+        : 'No visited scenes yet.';
+      emptyEl.classList.toggle('hidden', visible > 0);
+    } else if (q && this._visitedCount > 0 && visible === 0) {
+      this._listEl.insertAdjacentHTML('beforeend', '<div class="scene-select-empty scene-select-empty-search">No scenes match that search yet.</div>');
+    } else {
+      this._listEl.querySelector('.scene-select-empty-search')?.remove();
+    }
   }
 
   hide() {
