@@ -413,7 +413,12 @@ class VNUI {
     // Show choices
     const choices = engine.getAvailableChoices();
     if (choices.length > 0) {
+      this.clickIndicator.classList.add('hidden');
       this.showChoices(choices, engine);
+    } else if (scene.next) {
+      this.clickIndicator.classList.remove('hidden');
+    } else {
+      this.clickIndicator.classList.add('hidden');
     }
   }
 

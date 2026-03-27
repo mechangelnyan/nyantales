@@ -197,6 +197,7 @@
   let activeSort    = 'title-asc';
   let storyStartTime = null; // timestamp when current story session began
   let campaignMode  = false; // true when playing the connected campaign
+  let pendingAchievementUnlocks = [];
 
   // ── Auto-play State ──
 
@@ -485,7 +486,11 @@
 
       const newAch = achievements.checkAll();
       if (newAch.length > 0) {
-        setTimeout(() => achievements.showNewUnlocks(newAch), 2000);
+        if (campaignMode) {
+          pendingAchievementUnlocks.push(...newAch);
+        } else {
+          setTimeout(() => achievements.showNewUnlocks(newAch), 2000);
+        }
       }
 
       // In campaign mode, add a "Next Chapter" button to the ending overlay
@@ -1334,8 +1339,14 @@
    */
   function onCampaignEnding() {
     campaign.advance(currentEngine);
+    const queuedUnlocks = pendingAchievementUnlocks.splice(0, pendingAchievementUnlocks.length);
     // Small delay before advancing to next phase for pacing
-    setTimeout(() => playCampaignPhase(), 500);
+    setTimeout(() => {
+      playCampaignPhase();
+      if (queuedUnlocks.length > 0) {
+        setTimeout(() => achievements.showNewUnlocks(queuedUnlocks), 1200);
+      }
+    }, 500);
   }
 
   /** Update campaign button text on title screen. */
