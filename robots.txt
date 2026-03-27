@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://mechangelnyan.github.io/nyantales/sitemap.xml
