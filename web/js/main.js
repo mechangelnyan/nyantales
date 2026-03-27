@@ -478,7 +478,12 @@
 
     // Auto-save after each scene and record visited scenes for progress tracking
     if (currentSlug) {
-      saveManager.autoSave(currentSlug, currentEngine, scene);
+      // Don't autosave campaign intro/connectors — they're transient and shouldn't
+      // appear in "Continue" or be restored from save
+      const isCampaignTransient = campaignMode && (currentSlug === 'campaign-intro' || currentSlug.startsWith('campaign-connector-'));
+      if (!isCampaignTransient) {
+        saveManager.autoSave(currentSlug, currentEngine, scene);
+      }
       tracker.recordVisitedScenes(currentSlug, currentEngine.state.visited);
     }
 
@@ -887,7 +892,12 @@
 
   function updateContinueButton() {
     const btn = btnContinueEl;
-    const recent = saveManager.getMostRecentSave();
+    let recent = saveManager.getMostRecentSave();
+
+    // Skip campaign transient saves — they shouldn't drive the Continue button
+    if (recent && (recent.slug === 'campaign-intro' || recent.slug?.startsWith('campaign-connector-'))) {
+      recent = null;
+    }
 
     if (recent && btn) {
       const story = storySlugMap.get(recent.slug);
@@ -1413,6 +1423,13 @@
       case 'btn-continue': {
         const recent = saveManager.getMostRecentSave();
         if (!recent) return;
+        // If most recent save is a campaign transient (intro/connector), start campaign instead
+        if (recent.slug === 'campaign-intro' || recent.slug?.startsWith('campaign-connector-')) {
+          saveManager.deleteSlot(recent.slug, 'auto');
+          ensureAudio();
+          startCampaign();
+          return;
+        }
         const story = storySlugMap.get(recent.slug);
         if (!story) return;
         ensureAudio();
@@ -1584,6 +1601,8 @@
       Toast.show('Campaign data not available', { icon: '⚠️' });
       return;
     }
+    // Clean up stale transient saves from previous campaign runs
+    saveManager.deleteSlot('campaign-intro', 'auto');
     campaignMode = true;
     playCampaignPhase();
   }
@@ -1653,6 +1672,10 @@
    * Advances campaign state and plays the next phase.
    */
   function onCampaignEnding() {
+    // Clean up transient campaign saves (intro/connectors shouldn't linger)
+    if (currentSlug === 'campaign-intro' || currentSlug?.startsWith('campaign-connector-')) {
+      saveManager.deleteSlot(currentSlug, 'auto');
+    }
     campaign.advance(currentEngine);
     const queuedUnlocks = pendingAchievementUnlocks.splice(0, pendingAchievementUnlocks.length);
     // Small delay before advancing to next phase for pacing
