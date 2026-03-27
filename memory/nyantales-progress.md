@@ -988,3 +988,27 @@ cd /tmp/nyantales && python3 -m http.server 9876
 - 2026-03-25 (12:27 PM): Added a reusable `Toast` notification system (`web/js/toast.js`) to centralize lightweight UX messaging and migrated network online/offline notices to it. Added a cinematic `StoryIntro` splash (`web/js/story-intro.js`) with protagonist portrait, title, and description when starting a fresh story. Upgraded ending overlays with a cleaner stats grid (turns, scene exploration %, collected items). Updated `index.html`, `style.css`, and `sw.js` (cache v5) to wire in the new modules and offline support. All touched JS files + service worker pass `node --check`. Committed & pushed.
 - 2026-03-25 (1:27 PM): Fixed critical rewind bug — rewind now restores inventory/flags from state snapshots instead of just rewinding scene ID. Added font size setting (80%-140%) with live CSS scaling. Added Random Story button (prefers unplayed). Added in-game progress HUD showing scene exploration and turn count. Fixed _syncAll text speed formatter. SW cache v6. All JS files pass. Committed & pushed.
 - 2026-03-25 (2:27 PM): Story Info Modal — new StoryInfoModal class shows detailed per-story stats (exploration %, endings discovered, play count, best turns, last played, protagonist portrait) via ℹ button on story cards. Collapsible mobile HUD with overflow toggle for <600px screens. .gitignore cleanup for test artifacts. SW cache v7. All JS files pass. Committed & pushed.
+
+## Phase 55: Title Screen Restoration + Campaign Cleanup ✅
+- **Restored full title screen** — campaign-first redesign (commits 61c1e0b, d87222e) had removed:
+  - `#story-list` grid (storyGrid was null, all 30 story cards gone)
+  - Search bar, filter tabs (All/Favorites/Completed/New), sort dropdown
+  - Continue and Random buttons
+  - `renderTitleScreen()` stripped of story card rendering
+  - These were NOT properly reverted in Phase 54
+- **Combined layout** — campaign section (button + chapter grid) sits above full story grid
+  - "── All Stories ──" section divider between campaign and story sections
+  - Campaign section hides entirely when campaign data unavailable
+- **Cached campaign DOM refs** — `chapterGridEl`, `sectionDivider`, `campaignBtnEl` at init
+  - `renderChapterGrid()`, `updateCampaignButton()`, chapter grid delegation all use cached refs
+  - Eliminates `getElementById`/`querySelector` calls on every title screen render
+- **Dead CSS removed** — `.campaign-hero-btn`, `.campaign-hero-tag`, `.title-secondary-actions`
+  - ~45 lines of orphan CSS from the reverted campaign-first redesign
+- **Chapter grid CSS** — removed `max-height`/`overflow-y` (no longer needs own scroll container)
+- **Campaign button uses `.campaign-btn`** style (not hero style)
+- SW cache bumped to v42, production build regenerated (147KB bundle)
+- All 30 JS files pass `node --check` validation
+- 3 commits pushed
+
+## Log (continued)
+- 2026-03-27 (12:27 AM): Phase 55 — Restored full title screen that was broken by campaign-first redesign. Story grid, search, filter, sort, continue, random all back. Campaign section shown above story grid with divider. Cached campaign DOM refs. Removed 45 lines dead CSS. SW v42. 147KB bundle. All 30 JS pass. 3 commits pushed.
