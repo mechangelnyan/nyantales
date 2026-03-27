@@ -804,6 +804,23 @@ cd /tmp/nyantales && python3 -m http.server 9876
 - SW cache bumped to v34, production build regenerated (136KB bundle)
 - All 30 JS files pass `node --check` validation
 
+## Phase 50: Accessibility & Listener Consolidation ✅
+- **`aria-hidden` added to all remaining panels** — 3 overlays were missing toggle:
+  - `AchievementPanel` — now sets `aria-hidden` on show/hide
+  - `StatsDashboard` — now sets `aria-hidden` on show/hide
+  - `CharacterGallery` — now sets `aria-hidden` on show/hide, plus added `role="dialog"` + `aria-label`
+  - All 10 modal overlays now have consistent `aria-hidden` management for screen readers
+- **Close/backdrop listener consolidation** — merged separate `addEventListener` calls into single delegated listeners:
+  - `KeyboardHelp`: 2 listeners (close btn + backdrop) → 1 delegated
+  - `SettingsPanel`: 2 listeners (close btn + backdrop) → 1 delegated
+  - `CharacterGallery`: 2 listeners (close btn + backdrop) → 1 delegated
+  - `HistoryPanel`: 3 listeners (close btn + backdrop + export btn) → 1 delegated
+  - `ConfirmDialog`: 3 per-show listeners (cancel + ok + backdrop) → 1 delegated
+- **addEventListener count**: 73 → 66 across all JS files (10% reduction)
+- **Production SW version synced** — build.sh was generating `v32-prod` while dev was at `v35`; now `v35-prod`
+- SW cache bumped to v35, production build regenerated (135KB bundle)
+- All 30 JS files pass `node --check` validation
+
 ## Still Possible Future Work
 - Generate remaining character portraits (GPU timeout issue — needs investigation, possibly during lower GPU load)
 - AI-generated scene background images
@@ -848,6 +865,7 @@ cd /tmp/nyantales && python3 -m http.server 9876
 - All 30 JS files pass `node --check` validation
 
 ## Log (continued)
+- 2026-03-26 (7:27 PM): Phase 50 — Accessibility: added aria-hidden to AchievementPanel/StatsDashboard/Gallery (last 3 panels missing it). Added role="dialog"+aria-label to Gallery. Consolidated close/backdrop listeners: KeyboardHelp (2→1), SettingsPanel (2→1), Gallery (2→1), HistoryPanel (3→1), ConfirmDialog (3→1). addEventListener count 73→66. Fixed stale prod SW (v32→v35). 135KB bundle. All 30 JS pass. Committed & pushed.
 - 2026-03-26 (6:27 PM): Phase 49 — RouteMap overlay reuse (built once via _ensureOverlay instead of destroy/recreate per show; close+zoom delegated to single listener; FocusTrap created once). Tooltip uses .hidden class. AboutPanel delegation (2 listeners→1). AboutPanel cached _statsEl. SW v34. 136KB bundle. All 30 JS pass. Committed & pushed.
 - 2026-03-26 (5:27 PM): Phase 48 — AchievementPanel close listener leak fix (per-show addEventListener → delegated on _overlay). HistoryPanel cached DOM refs (_listEl, _countEl, _panelEl — eliminates 6+ querySelector calls per show/filter/keydown). Gallery cached refs (_grid, _panelEl, _cachedCards — eliminates querySelectorAll per filter). SW v33. 136KB bundle. All 30 JS pass. Committed & pushed.
 - 2026-03-26 (4:27 PM): Phase 47 — StoryInfoModal delegation (3-4 per-show listeners → single delegated click on overlay, fixes listener leak on repeated opens). HistoryPanel filter uses .hidden class. SettingsPanel inline styles→CSS classes (data-btns gap, btn font-size, file input hidden, auto-delay row toggle). History header inline style→.history-header-actions CSS. Prod SW synced to v32. 135KB bundle. All 30 JS pass. Committed & pushed.
