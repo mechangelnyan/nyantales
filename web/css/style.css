@@ -512,6 +512,7 @@ body {
   height: 180px;
   border-radius: 12px;
   object-fit: cover;
+  object-position: top;
   border: 2px solid rgba(var(--accent-r), var(--accent-g), var(--accent-b), 0.15);
   filter: drop-shadow(0 0 10px rgba(var(--accent-r), var(--accent-g), var(--accent-b), 0.3)) brightness(0.85);
 }
