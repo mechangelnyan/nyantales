@@ -4,7 +4,7 @@
  * Strategy: cache-first for static assets, network-first for stories.
  */
 
-const CACHE_NAME = 'nyantales-v46';
+const CACHE_NAME = 'nyantales-v47';
 
 // Core shell files to pre-cache on install
 const SHELL_FILES = [
@@ -12,6 +12,7 @@ const SHELL_FILES = [
   './index.html',
   './css/style.css',
   './js/toast.js',
+  './js/share.js',
   './js/safe-storage.js',
   './js/story-intro.js',
   './js/data-manager.js',

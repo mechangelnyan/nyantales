@@ -964,6 +964,28 @@ cd /tmp/nyantales && python3 -m http.server 9876
   - Service worker cache bumped to `v46`, production build regenerated
 - No new stories added
 
+## Phase 64: Story Share UX + Share Helper Refactor ✅
+- **Story Info share button** — added `🔗 Share` action to `StoryInfoModal`
+  - Shares/copies a clean per-story deep link directly from the title screen info modal
+  - Uses native Web Share API when available, clipboard fallback on desktop
+  - Share text includes story title, description, and canonical `/?story=<slug>` URL
+- **`ShareHelper` module** (`web/js/share.js`) — centralized share behavior + clean story URL generation
+  - `ShareHelper.storyUrl(slug)` builds canonical root-level story links from `/`, `/web/`, or `/web/dist/`
+  - `ShareHelper.share()` consolidates native-share → clipboard fallback logic with toast feedback
+- **Code quality cleanup**
+  - Ending share flow in `ui.js` now reuses `ShareHelper` instead of duplicating URL/share logic
+  - Added `share.js` to `web/index.html`, `web/sw.js`, and `web/build.sh`
+- **Responsive polish**
+  - Story info action row now wraps cleanly on small screens
+  - Share button gets dedicated styling consistent with play/continue actions
+- **Regression coverage**
+  - New Playwright test verifies Story Info → Share copies the expected `/?story=the-terminal-cat` deep link
+- **Docs / deployment freshness**
+  - README updated for story-link sharing + current build output sizes
+  - Service worker cache bumped to `v47`, production build regenerated (`160KB` JS / `84KB` CSS)
+- Verified `npm test` (204/204), `npx playwright test` (45/45), and `node --check` on touched JS files
+- No new stories added
+
 ## Still Possible Future Work
 - Generate remaining character portraits (GPU timeout issue — needs investigation, possibly during lower GPU load)
 - AI-generated scene background images
@@ -1119,6 +1141,7 @@ cd /tmp/nyantales && python3 -m http.server 9876
 - No new stories added
 
 ## Log (continued)
+- 2026-03-27 (9:27 AM): Phase 64 — Added a `🔗 Share` button to the Story Info modal so title-screen story cards can copy/share clean deep links (`/?story=slug`) before starting a run. Introduced `web/js/share.js` to centralize canonical story URL generation plus native share→clipboard fallback, reused it for ending-share code, wrapped Story Info action buttons better on mobile, added a Playwright regression for Story Info share, updated README build sizes/features, bumped SW to v47, and regenerated dist (160KB JS / 84KB CSS). Verified `node --check`, `npm test` (204/204), and `npx playwright test` (45/45). No new stories added.
 - 2026-03-27 (8:27 AM): Phase 63 — Stats dashboard mobile polish: converted the cramped phone-size breakdown table into labeled stat cards, persisted stats search/sort state in localStorage, added a Playwright regression for close→reopen state persistence, updated README, bumped SW to v46, and regenerated the production build. No new stories added.
 - 2026-03-27 (7:32 AM): Phase 62 — Stats dashboard polish: added live search + sort controls to the per-story breakdown, clickable/keyboard-activatable story rows for quick launch, focus-visible states, an empty search state, and a new Playwright regression covering search→launch flow. Rebuilt dist (159KB JS / 83KB CSS), verified `npm test` (204/204), `npx playwright test` (43/43), and `node --check`. No new stories added.
 - 2026-03-27 (5:27 AM): Phase 60 — Added real PWA install UX to the web VN: new title-screen `📲 Install App` button appears when `beforeinstallprompt` is available, defers and launches the browser install prompt on tap, and hides itself after `appinstalled` / standalone mode. Added iPhone/iPad fallback guidance (Share → Add to Home Screen) when Safari has no install prompt. Styled new `.install-btn`, updated About panel + README, regenerated dist (154KB JS / 81KB CSS), and verified `npm test` (204/204 passing). No new stories added.

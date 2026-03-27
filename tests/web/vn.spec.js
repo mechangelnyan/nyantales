@@ -82,6 +82,31 @@ test.describe('Title Screen', () => {
     await expect(modal).toContainText(/Terminal Cat/i);
     await expect(modal.getByRole('button', { name: /play/i })).toBeVisible();
   });
+
+  test('story info modal share button copies a deep link', async ({ page }) => {
+    await page.addInitScript(() => {
+      window.__copiedStoryLink = '';
+      Object.defineProperty(navigator, 'clipboard', {
+        configurable: true,
+        value: {
+          writeText: async (text) => { window.__copiedStoryLink = text; }
+        }
+      });
+      navigator.share = undefined;
+    });
+
+    await waitForTitleScreen(page);
+    const card = page.locator('.story-card').filter({ hasText: /Terminal Cat/i }).first();
+    await card.locator('.story-card-info-btn').click();
+
+    const modal = page.locator('.story-info-overlay');
+    await expect(modal).toBeVisible();
+    await modal.getByRole('button', { name: /share/i }).click();
+
+    const copiedText = await page.evaluate(() => window.__copiedStoryLink);
+    expect(copiedText).toContain('NyanTales — The Terminal Cat');
+    expect(copiedText).toContain('/?story=the-terminal-cat');
+  });
 });
 
 test.describe('Story Playback', () => {

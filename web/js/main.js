@@ -66,6 +66,23 @@
       startStory(story, stateJson);
     }
   };
+  storyInfo.onShare = (story) => {
+    const shareUrl = ShareHelper.storyUrl(story.slug);
+    const shareText = [
+      `🐱 NyanTales — ${story.title}`,
+      story.description || '',
+      '',
+      `🎮 Play this story: ${shareUrl}`
+    ].filter(Boolean).join('\n');
+    ShareHelper.share({
+      title: `NyanTales — ${story.title}`,
+      text: shareText,
+      url: shareUrl,
+      successMessage: 'Story link copied!',
+      successIcon: '🔗',
+      errorMessage: 'Failed to share story'
+    });
+  };
 
   // Pre-compute total character count (used by About panel)
   const _totalCharCount = (() => {

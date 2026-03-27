@@ -19,6 +19,7 @@ echo "━━━━━━━━━━━━━━━━━━━━━━━━�
 # Order matters: dependencies first, main.js last
 JS_FILES=(
   "js/toast.js"
+  "js/share.js"
   "js/safe-storage.js"
   "js/error-boundary.js"
   "js/focus-trap.js"

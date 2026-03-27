@@ -25,6 +25,7 @@ class StoryInfoModal {
     // External callbacks (set by main.js)
     this.onPlay = null;   // (story) => void
     this.onLoad = null;   // (slug, stateJson) => void
+    this.onShare = null;  // (story) => void
   }
 
   /** Lazy-build the overlay DOM with event delegation (called once) */
@@ -62,6 +63,9 @@ class StoryInfoModal {
           this.onLoad(this._currentStory.slug, best.state);
         }
         return;
+      }
+      if (btn.classList.contains('story-info-share-btn')) {
+        if (this.onShare && this._currentStory) this.onShare(this._currentStory);
       }
     });
 
@@ -177,6 +181,7 @@ class StoryInfoModal {
       <div class="story-info-actions">
         <button class="story-info-play-btn">▶ Play</button>
         ${hasSave ? '<button class="story-info-continue-btn">📂 Continue</button>' : ''}
+        <button class="story-info-share-btn">🔗 Share</button>
       </div>
     `;
 

@@ -664,18 +664,7 @@ class VNUI {
     const visitPct = totalScenes > 0 ? Math.round((engine.state.visited.size / totalScenes) * 100) : 0;
 
     // Store share data for delegation handler
-    const shareUrl = (() => {
-      const url = new URL(window.location.href);
-      url.hash = '';
-      url.search = '';
-      url.pathname = url.pathname
-        .replace(/\/index\.html$/, '')
-        .replace(/\/web\/dist\/?$/, '/')
-        .replace(/\/web\/?$/, '/');
-      if (!url.pathname.endsWith('/')) url.pathname += '/';
-      if (engine.story?.slug) url.searchParams.set('story', engine.story.slug);
-      return url.toString();
-    })();
+    const shareUrl = ShareHelper.storyUrl(engine.story?.slug);
 
     this._endingShareData = {
       icon,
@@ -763,23 +752,14 @@ class VNUI {
       `🎮 Play this story: ${d.shareUrl}`
     ].filter(Boolean).join('\n');
 
-    if (navigator.share) {
-      try {
-        await navigator.share({ title: `NyanTales — ${d.storyTitle}`, text: shareText, url: d.shareUrl });
-        return;
-      } catch { /* User cancelled — fall through to clipboard */ }
-    }
-
-    if (navigator.clipboard) {
-      try {
-        await navigator.clipboard.writeText(shareText);
-        if (typeof Toast !== 'undefined') Toast.show('Copied to clipboard!', { icon: '📋', duration: 2000 });
-      } catch {
-        if (typeof Toast !== 'undefined') Toast.error('Failed to copy');
-      }
-    } else if (typeof Toast !== 'undefined') {
-      Toast.error('Clipboard not available');
-    }
+    await ShareHelper.share({
+      title: `NyanTales — ${d.storyTitle}`,
+      text: shareText,
+      url: d.shareUrl,
+      successMessage: 'Copied to clipboard!',
+      successIcon: '📋',
+      errorMessage: 'Failed to copy'
+    });
   }
 
   hideEnding() {
