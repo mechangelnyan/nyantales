@@ -3819,9 +3819,56 @@ body {
   .stats-story-count {
     text-align: left;
   }
-  .stats-table-header,
-  .stats-table-row { grid-template-columns: 2fr 1.2fr 0.8fr 0.6fr 0.6fr; font-size: 0.6rem; }
   .stats-panel { padding: 1rem; }
+  .stats-table-header {
+    display: none;
+  }
+  .stats-story-table {
+    display: flex;
+    flex-direction: column;
+    gap: 0.55rem;
+    border: none;
+    background: transparent;
+    overflow: visible;
+  }
+  .stats-table-row {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.45rem;
+    padding: 0.65rem;
+    border: 1px solid rgba(var(--accent-r), var(--accent-g), var(--accent-b), 0.12);
+    border-radius: 10px;
+    background: rgba(12, 12, 24, 0.82);
+  }
+  .stats-table-row:last-child {
+    border-bottom: 1px solid rgba(var(--accent-r), var(--accent-g), var(--accent-b), 0.12);
+  }
+  .stats-td-title {
+    grid-column: 1 / -1;
+    white-space: normal;
+    line-height: 1.4;
+    margin-bottom: 0.1rem;
+  }
+  .stats-td:not(.stats-td-title) {
+    justify-content: space-between;
+    padding: 0.42rem 0.5rem;
+    border-radius: 8px;
+    border: 1px solid rgba(var(--accent-r), var(--accent-g), var(--accent-b), 0.08);
+    background: rgba(255, 255, 255, 0.02);
+    min-width: 0;
+  }
+  .stats-td:not(.stats-td-title)::before {
+    content: attr(data-label);
+    color: var(--text-dim);
+    font-size: 0.58rem;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+  }
+  .stats-td-progress {
+    grid-column: 1 / -1;
+  }
+  .stats-td-progress .stats-mini-bar {
+    min-width: 0;
+  }
 }
 @media (max-width: 400px) {
   .stats-summary { grid-template-columns: 1fr 1fr; }

@@ -42,7 +42,7 @@ Build output: **152KB JS** (from 272KB), **81KB CSS** (from 108KB). GitHub Pages
 - 🐱 Character sprites (procedural pixel art + AI-generated portraits)
 - 🎵 Procedural ambient audio (9 themed soundscapes via Web Audio API)
 - 🏆 16 achievements to unlock
-- 📊 Statistics dashboard with per-story breakdowns
+- 📊 Statistics dashboard with per-story breakdowns, mobile-friendly stat cards, and remembered search/sort controls
 - 🔍 Search, filter & sort stories (A-Z, recent, progress, favorites, length)
 - ❤️ Favorites system with heart button and filter tab
 - 🐱 Character gallery — browse all 45+ characters

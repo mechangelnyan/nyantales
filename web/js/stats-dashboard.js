@@ -21,8 +21,10 @@ class StatsDashboard {
     this._overlay = null;
     this._focusTrap = null;
     this._storyIndex = [];
+    this._prefsKey = 'nyantales-stats-dashboard';
     this._storySearch = '';
     this._storySort = 'progress-desc';
+    this._loadPrefs();
 
     /** @type {Function|null} Callback when user clicks "Play" on a story row */
     this.onPlay = null;
@@ -337,13 +339,13 @@ class StatsDashboard {
                 <span class="stats-td stats-td-title" title="${this._escapeHtml(s.title)}">
                   ${s.completed ? '✅' : (s.plays > 0 ? '📖' : '🆕')} ${this._escapeHtml(s.title)}
                 </span>
-                <span class="stats-td">
+                <span class="stats-td stats-td-progress" data-label="Progress">
                   <span class="stats-mini-bar"><span class="stats-mini-bar-fill" style="width:${s.progress}%"></span></span>
                   <span class="stats-td-pct">${s.progress}%</span>
                 </span>
-                <span class="stats-td">${s.endings}/${s.totalEndings}</span>
-                <span class="stats-td">${s.plays || '—'}</span>
-                <span class="stats-td">${s.bestTurns || '—'}</span>
+                <span class="stats-td" data-label="Endings">${s.endings}/${s.totalEndings}</span>
+                <span class="stats-td" data-label="Plays">${s.plays || '—'}</span>
+                <span class="stats-td" data-label="Best">${s.bestTurns || '—'}</span>
               </div>
             `).join('') : `
               <div class="stats-empty-state">No stories match that search yet.</div>
@@ -393,14 +395,43 @@ class StatsDashboard {
     this._overlay.addEventListener('input', (e) => {
       if (!e.target.classList.contains('stats-search')) return;
       this._storySearch = e.target.value || '';
+      this._savePrefs();
       this._render();
     });
 
     this._overlay.addEventListener('change', (e) => {
       if (!e.target.classList.contains('stats-sort')) return;
       this._storySort = e.target.value || 'progress-desc';
+      this._savePrefs();
       this._render();
     });
+  }
+
+  /** Persist lightweight dashboard UI prefs between opens/reloads. */
+  _savePrefs() {
+    try {
+      localStorage.setItem(this._prefsKey, JSON.stringify({
+        storySearch: this._storySearch,
+        storySort: this._storySort
+      }));
+    } catch (err) {
+      console.warn('Failed to persist stats dashboard prefs:', err);
+    }
+  }
+
+  /** Restore persisted dashboard UI prefs, if available. */
+  _loadPrefs() {
+    try {
+      const raw = localStorage.getItem(this._prefsKey);
+      if (!raw) return;
+      const saved = JSON.parse(raw);
+      this._storySearch = typeof saved.storySearch === 'string' ? saved.storySearch : '';
+      this._storySort = typeof saved.storySort === 'string' ? saved.storySort : 'progress-desc';
+    } catch (err) {
+      console.warn('Failed to load stats dashboard prefs:', err);
+      this._storySearch = '';
+      this._storySort = 'progress-desc';
+    }
   }
 
   /** Format a timestamp to relative time */

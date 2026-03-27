@@ -185,6 +185,25 @@ test.describe('Statistics Dashboard', () => {
     await expect(intro).toBeVisible({ timeout: 10000 });
     await expect(intro).toContainText(/Terminal Cat/i);
   });
+
+  test('search and sort choices persist when reopening statistics', async ({ page }) => {
+    await waitForTitleScreen(page);
+
+    await page.locator('#btn-stats').click();
+    const overlay = page.locator('.stats-overlay');
+    await expect(overlay).toBeVisible();
+
+    await overlay.locator('.stats-search').fill('terminal');
+    await overlay.locator('.stats-sort').selectOption('title-asc');
+    await overlay.locator('.stats-close').click();
+    await expect(overlay).not.toHaveClass(/visible/);
+
+    await page.locator('#btn-stats').click();
+    await expect(overlay).toBeVisible();
+    await expect(overlay.locator('.stats-search')).toHaveValue('terminal');
+    await expect(overlay.locator('.stats-sort')).toHaveValue('title-asc');
+    await expect(overlay.locator('.stats-story-count')).toContainText('1/30 shown');
+  });
 });
 
 test.describe('Story Assets', () => {
