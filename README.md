@@ -62,7 +62,8 @@ Build output: **132KB JS** (from 225KB), **68KB CSS** (from 93KB). GitHub Pages 
 - ♿ Accessible: ARIA roles, focus traps, reduced motion support, high contrast mode
 - 📲 PWA: installable, offline-capable with service worker
 - 🛡️ Error boundary with SafeStorage — graceful quota handling, no lost saves
-- 🔗 Open Graph & Twitter Card meta tags for rich link previews
+- 🔗 Open Graph, Twitter Card meta tags, and JSON-LD structured data for rich link previews
+- 🔍 SEO: robots.txt, sitemap.xml, canonical URLs
 - 🌙 Cyberpunk dark terminal theme with animated backgrounds and particles
 
 ---
