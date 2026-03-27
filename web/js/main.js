@@ -575,6 +575,8 @@
           } else {
             endingEl.appendChild(nextBtn);
           }
+          // Focus the campaign button instead of restart
+          requestAnimationFrame(() => nextBtn.focus());
         }
       }
     };

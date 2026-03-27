@@ -700,9 +700,11 @@ class VNUI {
         </div>
         ` : ''}
       </div>
-      <button class="ending-btn" data-action="restart">↻ Play Again</button>
-      <button class="ending-btn ending-btn-secondary" data-action="menu">⏎ Story List</button>
-      <button class="ending-btn ending-btn-secondary ending-btn-share" data-action="share" title="Copy ending summary to clipboard">📋 Share</button>
+      <div class="ending-actions">
+        <button class="ending-btn" data-action="restart">↻ Play Again</button>
+        <button class="ending-btn ending-btn-secondary" data-action="menu">⏎ Story List</button>
+        <button class="ending-btn ending-btn-secondary ending-btn-share" data-action="share" title="Copy ending summary to clipboard">📋 Share</button>
+      </div>
     `;
     this.endingEl.setAttribute('role', 'dialog');
     this.endingEl.setAttribute('aria-label', `Ending: ${ending.title || type}`);

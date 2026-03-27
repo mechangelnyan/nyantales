@@ -244,6 +244,7 @@ scenes:
       You step forward.
     is_ending: true
     ending_type: neutral
+    ending_title: "The Journey Begins"
     ending_text: |
       The journey into the machine begins.
 
