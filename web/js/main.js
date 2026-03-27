@@ -378,8 +378,8 @@
     progressHUD.title = `${pct}% explored · Turn ${turns}`;
     progressHUD.classList.remove('hidden');
 
-    // Update thin top progress bar
-    progressBar.style.width = `${pct}%`;
+    // Update thin top progress bar via CSS custom property
+    progressBar.style.setProperty('--bar-pct', `${pct}%`);
     progressBar.classList.remove('hidden');
   }
 
@@ -730,18 +730,24 @@
   });
 
   /**
-   * Compute reading-time estimate and scene count for a story.
+   * Compute reading-time estimate and scene count for a story (cached per slug).
    * @param {Object} story - Story index entry with _parsed data
    * @returns {{ sceneCount: number, readMins: number, wordCount: number }}
    */
+  const _storyMetaCache = new Map();
   function getStoryMeta(story) {
+    const cached = _storyMetaCache.get(story.slug);
+    if (cached) return cached;
+
     const scenes = story._parsed?.scenes;
     const sceneCount = scenes ? Object.keys(scenes).length : 0;
     const wordCount = scenes
       ? Object.values(scenes).reduce((sum, s) => sum + ((s.text || '').split(/\s+/).length), 0)
       : 0;
     const readMins = Math.max(1, Math.ceil(wordCount / 200));
-    return { sceneCount, readMins, wordCount };
+    const meta = { sceneCount, readMins, wordCount };
+    _storyMetaCache.set(story.slug, meta);
+    return meta;
   }
 
   /**

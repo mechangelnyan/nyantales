@@ -335,7 +335,7 @@ class RouteMap {
       this._dragging = true;
       this._dragStart = { x: e.clientX, y: e.clientY };
       this._panStart = { ...this._pan };
-      canvas.style.cursor = 'grabbing';
+      canvas.classList.add('route-map-grabbing');
     };
     this._boundHandlers.mousemove = (e) => {
       if (this._dragging) {
@@ -350,7 +350,7 @@ class RouteMap {
     };
     this._boundHandlers.mouseup = () => {
       this._dragging = false;
-      canvas.style.cursor = 'grab';
+      canvas.classList.remove('route-map-grabbing');
     };
     this._boundHandlers.wheel = (e) => {
       e.preventDefault();

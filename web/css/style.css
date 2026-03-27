@@ -2145,6 +2145,7 @@ body {
   position: absolute;
   top: 0;
   left: 0;
+  width: var(--bar-pct, 0%);
   height: 2px;
   z-index: 30;
   background: var(--accent-cyan);
@@ -4417,7 +4418,8 @@ body {
   height: 100%;
   cursor: grab;
 }
-.route-map-canvas:active { cursor: grabbing; }
+.route-map-canvas:active,
+.route-map-canvas.route-map-grabbing { cursor: grabbing; }
 
 .route-map-tooltip {
   position: absolute;
