@@ -838,6 +838,18 @@ cd /tmp/nyantales && python3 -m http.server 9876
 - SW cache bumped to v36, production build regenerated (135KB bundle)
 - All 30 JS files pass `node --check` validation
 
+## Phase 52: SEO & Discoverability ✅
+- **robots.txt** — allows all crawlers, points to sitemap
+- **sitemap.xml** — lists root URL and `/web/` for search engine indexing
+- **Canonical URL** — `<link rel="canonical">` on web/index.html prevents duplicate indexing of `/web/` vs `/web/dist/`
+- **JSON-LD structured data** — WebApplication schema with name, description, category, price, author, genre, item count
+  - Enables rich search result cards in Google/Bing
+- **dns-prefetch** — `<link rel="dns-prefetch" href="https://fonts.googleapis.com">` (complements existing preconnect)
+- **README** updated with SEO features in feature list
+- SW cache bumped to v37, production build regenerated (136KB bundle)
+- All 30 JS files pass `node --check` validation
+- 2 commits pushed
+
 ## Still Possible Future Work
 - Generate remaining character portraits (GPU timeout issue — needs investigation, possibly during lower GPU load)
 - AI-generated scene background images
@@ -882,6 +894,7 @@ cd /tmp/nyantales && python3 -m http.server 9876
 - All 30 JS files pass `node --check` validation
 
 ## Log (continued)
+- 2026-03-26 (9:27 PM): Phase 52 — SEO & discoverability: robots.txt, sitemap.xml, canonical URL, JSON-LD WebApplication structured data, dns-prefetch. README updated. SW v37. 136KB bundle. All 30 JS pass. 2 commits pushed.
 - 2026-03-26 (8:27 PM): Phase 51 — One-time callbacks: gallery.onStoryClick + statsDashboard.onPlay moved from per-click to init (eliminates closure re-creation). Pre-computed _totalCharCount for About panel. Synchronous new-ending badge (removed setTimeout). SceneSelect close consolidated (66→65 listeners). build.sh auto-versions prod SW (extracts version from dev sw.js, fixes recurring stale-cache bug). SW v36. 135KB bundle. All 30 JS pass. Committed & pushed.
 - 2026-03-26 (7:27 PM): Phase 50 — Accessibility: added aria-hidden to AchievementPanel/StatsDashboard/Gallery (last 3 panels missing it). Added role="dialog"+aria-label to Gallery. Consolidated close/backdrop listeners: KeyboardHelp (2→1), SettingsPanel (2→1), Gallery (2→1), HistoryPanel (3→1), ConfirmDialog (3→1). addEventListener count 73→66. Fixed stale prod SW (v32→v35). 135KB bundle. All 30 JS pass. Committed & pushed.
 - 2026-03-26 (6:27 PM): Phase 49 — RouteMap overlay reuse (built once via _ensureOverlay instead of destroy/recreate per show; close+zoom delegated to single listener; FocusTrap created once). Tooltip uses .hidden class. AboutPanel delegation (2 listeners→1). AboutPanel cached _statsEl. SW v34. 136KB bundle. All 30 JS pass. Committed & pushed.
