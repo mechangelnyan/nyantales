@@ -6,12 +6,30 @@
 
 const PORTRAIT_MAP = {
   // Character name (lowercase) → image filename in assets/characters/
+  // ── Original 6 (updated to new versions where available) ──
   'nyan':                'nyan_v5.png',
-  'byte':                'byte.png',
-  'mochi':               'mochi_v3.png',
-  'pixel':               'pixel_v2.png',
+  'byte':                'byte_v2_s3640488068.png',
+  'mochi':               'mochi_v1_s1589397577.png',
+  'pixel':               'pixel_v2_s2997965872.png',
   'query':               'query.png',
-  'inspector whiskers':  'inspector_whiskers.png',
+  'inspector whiskers':  'inspector_whiskers_v1_s3700622707.png',
+  // ── New portraits (19 from use/ folder) ──
+  'cache cat':           'cache_cat_v1_s2137356658.png',
+  'caret':               'caret_v2_s1238923086.png',
+  'glyph':               'glyph_v2_s782893174.png',
+  'loop':                'loop_v1_s3690775859.png',
+  'mantissa':            'mantissa_v2_s1338624289.png',
+  'merge cat':           'merge_cat_v1_s1821845315.png',
+  'mutex':               'mutex_v1_s1937636553.png',
+  'nibble':              'nibble_v2_s2628395722.png',
+  'pippa':               'pippa_v1_s3020603209.png',
+  'pointer':             'pointer_v1_s3391978122.png',
+  'recurse':             'recurse_v1_s2918635092.png',
+  'server room cat':     'server_room_cat_v1_s2656082059.png',
+  'sudo':                'sudo_v1_s2698937433.png',
+  'tls cat':             'tls_cat_v1_s804870981.png',
+  'whisker':             'whisker_v1_s2327025987.png',
+  // ── Still missing: Packet, Tabby, Zombie Cat, Fork Bomb Cat, The Scheduler ──
 };
 
 class PortraitManager {
