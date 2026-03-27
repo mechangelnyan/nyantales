@@ -487,12 +487,11 @@ body {
   inset: 0;
   z-index: 1;
   pointer-events: none;
-  padding-bottom: 200px;
 }
 
 .vn-sprite-wrap {
   position: absolute;
-  bottom: 0;
+  top: 1rem;
   transition: left 0.5s ease, transform 0.5s ease;
   display: flex;
   flex-direction: column;
