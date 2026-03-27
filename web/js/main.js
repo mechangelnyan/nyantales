@@ -240,20 +240,11 @@
     window.history[method](state, '', nextUrl);
   }
 
-  const TITLE_BROWSER_STATE_KEY = 'nyantales-title-browser';
-  const DEFAULT_TITLE_BROWSER_STATE = {
-    query: '',
-    filter: 'all',
-    sort: 'title-asc'
-  };
-
   let storyIndex   = [];
   /** @type {Map<string, Object>} slug → story for O(1) lookups */
   let storySlugMap  = new Map();
   let currentEngine = null;
   let currentSlug   = null;
-  let activeFilter  = DEFAULT_TITLE_BROWSER_STATE.filter;
-  let activeSort    = DEFAULT_TITLE_BROWSER_STATE.sort;
   let storyStartTime = null; // timestamp when current story session began
   let campaignMode  = false; // true when playing the connected campaign
   let pendingAchievementUnlocks = [];
@@ -871,8 +862,7 @@
     ui.renderStoryList(storyIndex);
 
     // Invalidate and rebuild cached card list after grid re-render
-    _cachedCards = [...storyGrid.querySelectorAll('.story-card')];
-    const cards = _cachedCards;
+    const cards = titleBrowser.refreshCards();
     storyIndex.forEach((story, idx) => {
       const card = cards[idx];
       if (card) decorateStoryCard(card, story);
@@ -881,9 +871,7 @@
     // "Continue" button — shows if there's a recent save
     updateContinueButton();
 
-    applyFilter();
-    applySortToGrid();
-    syncMobileTitleFilterSticky();
+    titleBrowser.apply();
   }
 
   // ── Continue Button ──
@@ -957,131 +945,16 @@
 
   // btn-continue click is handled by title-actions event delegation above
 
-  // ── Search, Filter & Sort ──
+  // ── Search, Filter & Sort (delegated to TitleBrowser) ──
 
-  const filterInput = document.getElementById('filter-input');
-  const filterTagsContainer = document.querySelector('.filter-tags');
-  const filterTags = filterTagsContainer ? [...filterTagsContainer.querySelectorAll('.filter-tag')] : [];
-  const sortSelect = document.getElementById('sort-select');
-  const filterClearBtn = document.getElementById('filter-clear');
-  const storyFilter = document.getElementById('story-filter');
-
-  // Pre-create filter count + empty state elements (avoids DOM creation in hot filter path)
-  const _filterCountEl = (() => {
-    const el = document.createElement('span');
-    el.id = 'filter-count';
-    el.className = 'filter-count hidden';
-    filterInput?.parentElement?.appendChild(el);
-    return el;
-  })();
-  const _filterEmptyEl = (() => {
-    const el = document.createElement('div');
-    el.id = 'filter-empty';
-    el.className = 'filter-empty hidden';
-    storyGrid?.parentElement?.appendChild(el);
-    return el;
-  })();
-
-  function loadTitleBrowserState() {
-    let stored = null;
-    if (typeof SafeStorage !== 'undefined') {
-      stored = SafeStorage.getJSON(TITLE_BROWSER_STATE_KEY, null);
-    } else {
-      try { stored = JSON.parse(localStorage.getItem(TITLE_BROWSER_STATE_KEY) || 'null'); } catch { stored = null; }
-    }
-    const next = { ...DEFAULT_TITLE_BROWSER_STATE, ...(stored || {}) };
-    activeFilter = next.filter;
-    activeSort = next.sort;
-    if (filterInput) filterInput.value = next.query || '';
-    if (sortSelect) sortSelect.value = next.sort || DEFAULT_TITLE_BROWSER_STATE.sort;
-    syncTitleBrowserControls();
-  }
-
-  function persistTitleBrowserState() {
-    const state = {
-      query: filterInput?.value || '',
-      filter: activeFilter,
-      sort: activeSort
-    };
-    if (typeof SafeStorage !== 'undefined') {
-      SafeStorage.setJSON(TITLE_BROWSER_STATE_KEY, state);
-    } else {
-      try { localStorage.setItem(TITLE_BROWSER_STATE_KEY, JSON.stringify(state)); } catch { /* noop */ }
-    }
-    updateTitleBrowserClearButton();
-  }
-
-  function syncTitleBrowserControls() {
-    if (sortSelect) sortSelect.value = activeSort;
-    filterTags.forEach(tag => {
-      const isActive = tag.dataset.filter === activeFilter;
-      tag.classList.toggle('active', isActive);
-      tag.setAttribute('aria-selected', isActive ? 'true' : 'false');
-    });
-    updateTitleBrowserClearButton();
-  }
-
-  function resetTitleBrowserState() {
-    activeFilter = DEFAULT_TITLE_BROWSER_STATE.filter;
-    activeSort = DEFAULT_TITLE_BROWSER_STATE.sort;
-    if (filterInput) filterInput.value = DEFAULT_TITLE_BROWSER_STATE.query;
-    if (sortSelect) sortSelect.value = DEFAULT_TITLE_BROWSER_STATE.sort;
-    syncTitleBrowserControls();
-    persistTitleBrowserState();
-    applyFilter();
-    applySortToGrid();
-    filterInput?.focus();
-  }
-
-  function updateTitleBrowserClearButton() {
-    if (!filterClearBtn) return;
-    const isDirty = Boolean((filterInput?.value || '').trim())
-      || activeFilter !== DEFAULT_TITLE_BROWSER_STATE.filter
-      || activeSort !== DEFAULT_TITLE_BROWSER_STATE.sort;
-    filterClearBtn.classList.toggle('hidden', !isDirty);
-    filterClearBtn.title = isDirty ? 'Reset search, filter, and sort' : '';
-  }
-
-  loadTitleBrowserState();
-
-  // Debounced search input for smoother performance with 30 cards
-  let _filterTimer = null;
-  filterInput?.addEventListener('input', () => {
-    updateTitleBrowserClearButton();
-    if (_filterTimer) clearTimeout(_filterTimer);
-    _filterTimer = setTimeout(() => {
-      applyFilter();
-      persistTitleBrowserState();
-    }, 80);
+  const titleBrowser = new TitleBrowser(storyGrid, {
+    filterInput:        document.getElementById('filter-input'),
+    filterTagsContainer: document.querySelector('.filter-tags'),
+    sortSelect:         document.getElementById('sort-select'),
+    filterClearBtn:     document.getElementById('filter-clear'),
+    storyFilter:        document.getElementById('story-filter'),
+    titleBg
   });
-
-  filterClearBtn?.addEventListener('click', () => resetTitleBrowserState());
-
-  // Single delegated listener on filter tags container (replaces 4 individual listeners)
-  filterTagsContainer?.addEventListener('click', (e) => {
-    const tag = e.target.closest('.filter-tag');
-    if (!tag) return;
-    activeFilter = tag.dataset.filter;
-    syncTitleBrowserControls();
-    applyFilter();
-    persistTitleBrowserState();
-  });
-
-  sortSelect?.addEventListener('change', () => {
-    activeSort = sortSelect.value;
-    updateTitleBrowserClearButton();
-    applySortToGrid();
-    persistTitleBrowserState();
-  });
-
-  // Cached card list — refreshed in renderTitleScreen, reused by filter/sort
-  let _cachedCards = null;
-  function getStoryCards() {
-    if (!_cachedCards || _cachedCards.length === 0) {
-      _cachedCards = [...storyGrid.querySelectorAll('.story-card')];
-    }
-    return _cachedCards;
-  }
 
   function buildStorySearchBlob(story) {
     const chars = (typeof CHARACTER_DATA !== 'undefined' && CHARACTER_DATA[story.slug]) || [];
@@ -1092,98 +965,6 @@
       parts.push(char.role || '');
     });
     return parts.join(' ').toLowerCase();
-  }
-
-  function applyFilter() {
-    const query = (filterInput.value || '').toLowerCase().trim();
-    const cards = getStoryCards();
-
-    let visibleCount = 0;
-    cards.forEach(card => {
-      let show = true;
-
-      if (query && !card.dataset.search?.includes(query)) {
-        show = false;
-      }
-
-      if (show && activeFilter === 'completed') {
-        if (card.dataset.completed !== '1') show = false;
-      } else if (show && activeFilter === 'new') {
-        if (card.dataset.completed === '1') show = false;
-      } else if (show && activeFilter === 'favorites') {
-        if (card.dataset.favorite !== '1') show = false;
-      }
-
-      card.classList.toggle('hidden-by-filter', !show);
-      if (show) visibleCount++;
-    });
-
-    // Update result count indicator
-    if (query || activeFilter !== 'all') {
-      _filterCountEl.textContent = `${visibleCount} stor${visibleCount === 1 ? 'y' : 'ies'}`;
-      _filterCountEl.classList.remove('hidden');
-    } else {
-      _filterCountEl.classList.add('hidden');
-    }
-
-    // Show/hide empty state message
-    if (visibleCount === 0 && (query || activeFilter !== 'all')) {
-      const hint = activeFilter === 'favorites' ? 'Tap 🤍 on a story card to favorite it!'
-        : activeFilter === 'completed' ? 'No stories completed yet — start playing!'
-        : 'No matches found. Try a different search.';
-      _filterEmptyEl.innerHTML = `<span class="filter-empty-icon">🐱</span><span>${hint}</span>`;
-      _filterEmptyEl.classList.remove('hidden');
-    } else {
-      _filterEmptyEl.classList.add('hidden');
-    }
-  }
-
-  /**
-   * Sort story cards in the DOM by reordering elements.
-   * Uses CSS order property for smooth re-sorting without re-rendering.
-   */
-  function applySortToGrid() {
-    const cards = [...getStoryCards()];
-
-    cards.sort((a, b) => {
-      switch (activeSort) {
-        case 'title-asc':
-          return (a.dataset.title || '').localeCompare(b.dataset.title || '');
-        case 'title-desc':
-          return (b.dataset.title || '').localeCompare(a.dataset.title || '');
-        case 'recent': {
-          const aTime = parseFloat(a.dataset.lastPlayed || '0');
-          const bTime = parseFloat(b.dataset.lastPlayed || '0');
-          return bTime - aTime; // most recent first
-        }
-        case 'progress': {
-          const aPct = parseFloat(a.dataset.progress || '0');
-          const bPct = parseFloat(b.dataset.progress || '0');
-          return bPct - aPct; // most progress first
-        }
-        case 'time-short': {
-          const aMin = parseInt(a.dataset.readMins || '0');
-          const bMin = parseInt(b.dataset.readMins || '0');
-          return aMin - bMin;
-        }
-        case 'time-long': {
-          const aMin = parseInt(a.dataset.readMins || '0');
-          const bMin = parseInt(b.dataset.readMins || '0');
-          return bMin - aMin;
-        }
-        case 'favorites': {
-          const aFav = a.dataset.favorite === '1' ? 1 : 0;
-          const bFav = b.dataset.favorite === '1' ? 1 : 0;
-          if (bFav !== aFav) return bFav - aFav;
-          return (a.dataset.title || '').localeCompare(b.dataset.title || '');
-        }
-        default:
-          return 0;
-      }
-    });
-
-    // Reorder DOM elements
-    cards.forEach(card => storyGrid.appendChild(card));
   }
 
   // ── Click/Tap to Advance ──
@@ -1233,7 +1014,7 @@
   // ── Keyboard Shortcuts ──
 
   document.addEventListener('keydown', (e) => {
-    const isSearchFocused = filterInput?.matches(':focus') ?? false;
+    const isSearchFocused = titleBrowser.isSearchFocused;
 
     if (e.key === 'Escape') {
       // Close the topmost open panel (priority: lightweight overlays first, then core panels)
@@ -1325,33 +1106,7 @@
   const hudToolbar = document.querySelector('.vn-hud');
   const titleBg    = document.querySelector('.title-bg');
 
-  function syncMobileTitleFilterSticky() {
-    if (!storyFilter || !titleBg) return;
-
-    const mobile = window.matchMedia('(max-width: 768px)').matches;
-    const titleVisible = !titleBg.classList.contains('hidden');
-    if (!mobile || !titleVisible) {
-      storyFilter.classList.remove('mobile-stuck');
-      storyFilter.style.removeProperty('--filter-sticky-top');
-      storyFilter.style.removeProperty('--filter-sticky-left');
-      storyFilter.style.removeProperty('--filter-sticky-width');
-      return;
-    }
-
-    const rect = storyFilter.getBoundingClientRect();
-    const titleRect = titleBg.getBoundingClientRect();
-    const stickyTop = Math.round(titleRect.top + 8);
-    const shouldStick = titleBg.scrollTop > Math.max(0, storyFilter.offsetTop - stickyTop);
-
-    storyFilter.style.setProperty('--filter-sticky-top', `${stickyTop}px`);
-    storyFilter.style.setProperty('--filter-sticky-left', `${Math.round(rect.left)}px`);
-    storyFilter.style.setProperty('--filter-sticky-width', `${Math.round(rect.width)}px`);
-    storyFilter.classList.toggle('mobile-stuck', shouldStick);
-  }
-
-  titleBg?.addEventListener('scroll', syncMobileTitleFilterSticky, { passive: true });
-  window.addEventListener('resize', syncMobileTitleFilterSticky);
-  window.addEventListener('orientationchange', syncMobileTitleFilterSticky);
+  // Mobile sticky filter sync is handled by TitleBrowser (scroll/resize/orientation listeners)
 
   function updateRewindButton() {
     const canRewind = currentEngine && currentEngine.state.snapshots.length > 0;
