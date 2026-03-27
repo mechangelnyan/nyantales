@@ -1041,6 +1041,23 @@ cd /tmp/nyantales && python3 -m http.server 9876
 - All 32 JS files pass `node --check`, 204/204 unit tests, 50/50 Playwright tests
 - Committed & pushed
 
+## Phase 71: Campaign Delegation, Pre-Computed BG, Sprite Set, Format Regex ✅
+- **Campaign ending button delegation** — `nextBtn.addEventListener('click')` was creating a new listener per ending (leaked on multi-ending sessions)
+  - Now uses `data-action="campaign-next"` attribute, handled by existing ending overlay delegation in `VNUI._initEndingDelegation()`
+  - `ui._onCampaignEnding` callback wired once at init in main.js
+- **Pre-computed background keyword entries** — `this.bgKeywords` (Object) replaced with `this._bgEntries` (pre-built Array of [keyword, class] tuples)
+  - `_inferBackground()` was calling `Object.entries(this.bgKeywords)` on every scene render, allocating a new array each time
+  - Now iterates the pre-computed `_bgEntries` array directly (zero allocation per render)
+- **Sprite fade-out Set lookup** — `_updateSprites()` was using `visible.find(v => v.name === name)` per active sprite (O(n²) for n characters)
+  - Now builds `visibleNames` Set once, uses `.has()` for O(1) per-sprite lookup
+- **Combined `_formatText` regex** — 4 sequential `.replace()` passes (code, bold, italic, newline) merged into single `VNUI._FORMAT_RE` pre-compiled regex
+  - Single pass with switch dispatch: code → `<code>`, bold → `<strong>`, italic → `<em>`, newline → `<br>`
+  - HTML escape (3 passes) remains separate for correctness
+- **Scoped ending stats query** — `document.getElementById('ending-stats-grid')` → `ui.endingEl.querySelector('#ending-stats-grid')` (narrower search scope)
+- SW cache bumped to v53, production build regenerated (167KB bundle)
+- All 32 JS files pass `node --check`, 204/204 unit tests, 50/50 Playwright tests
+- Committed & pushed
+
 ## Still Possible Future Work
 - Generate remaining character portraits (GPU timeout issue — needs investigation, possibly during lower GPU load)
 - AI-generated scene background images
@@ -1237,6 +1254,7 @@ cd /tmp/nyantales && python3 -m http.server 9876
 - Committed & pushed
 
 ## Log (continued)
+- 2026-03-27 (4:27 PM): Phase 71 — Campaign ending delegation (per-ending addEventListener → data-action handled by existing ending delegation, fixes listener leak). Pre-computed bg keyword entries (Object.entries() allocation per render → pre-built array). Sprite fade-out Set lookup (O(n²) find → O(1) Set.has). Combined _formatText regex (4 sequential .replace → single VNUI._FORMAT_RE pass). Scoped ending stats query. SW v53, 167KB bundle. All 32 JS + 204/204 unit + 50/50 Playwright pass. Committed & pushed.
 - 2026-03-27 (3:27 PM): Phase 70 — Pre-created overlay indicators (autoPlayIndicator/skipIndicator/progressHUD/progressBar built once at init instead of lazy createElement), engine callbacks wired once (onChoice/onRestart/onMenu/_onEndingHook no longer re-assigned every initEngine call), fixed 3 Playwright test regressions from Phase 69 campaign locking (tests now target unlocked cards). main.js 1704→1688 lines. SW v52, 167KB bundle. All 32 JS + 204/204 unit + 50/50 Playwright pass. Committed & pushed.
 - 2026-03-27 (2:27 PM): Phase 69 — Extracted TitleBrowser class from main.js (250+ lines → own module), O(1) campaign lock lookups via pre-built slug map (replaces 780 iterations per render), campaign story locking, ending Continue button, achievement deferral during campaign, left-aligned text. main.js 1883→1703 lines. SW v51, 167KB bundle. All 32 JS + 204/204 unit tests pass. Committed & pushed.
 - 2026-03-27 (1:27 PM): Phase 68 — Performance: replaced 9 `storyIndex.find()` O(n) linear scans with `storySlugMap` Map for O(1) lookups. Parallelized boot loading (story index + campaign + portrait preload via Promise.all). Pre-created filter count/empty state DOM elements at init instead of lazy createElement in hot filter path. Cached btnContinueEl, filterTags, loading screen refs. SW v50, 162KB bundle. All 32 JS + 50/50 Playwright pass. No new stories added.
