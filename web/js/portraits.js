@@ -11,7 +11,7 @@ const PORTRAIT_MAP = {
   'byte':                'byte_v2_s3640488068.png',
   'mochi':               'mochi_v1_s1589397577.png',
   'pixel':               'pixel_v2_s2997965872.png',
-  'query':               'query.png',
+  'query':               'query_v5_s1070319388.png',
   'inspector whiskers':  'inspector_whiskers_v1_s3700622707.png',
   // ── New portraits (19 from use/ folder) ──
   'cache cat':           'cache_cat_v1_s2137356658.png',
