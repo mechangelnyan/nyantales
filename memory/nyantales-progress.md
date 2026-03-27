@@ -1022,6 +1022,25 @@ cd /tmp/nyantales && python3 -m http.server 9876
   - Service worker cache bumped to `v49` (to refresh mobile CSS quickly)
 - No new stories added
 
+## Phase 70: Pre-Created Overlays, One-Time Callbacks, Test Fixes ✅
+- **Pre-created overlay indicators** — `autoPlayIndicator`, `skipIndicator`, `progressHUD`, `progressBar` built once at init
+  - Previously: lazy `document.createElement()` in hot-path functions (`updateAutoPlayHUD`, `updateSkipIndicator`, `updateProgressHUD`)
+  - Now: IIFE-created at init time, toggled via `.hidden` class (zero null checks per call)
+  - Eliminates 4 conditional createElement blocks that ran on every scene transition
+- **Engine callbacks wired once** — `ui.onChoice`, `ui.onRestart`, `ui.onMenu`, `ui._onEndingHook` set at init
+  - Previously: re-assigned inside `initEngine()` on every story start and restart (created new closures each time)
+  - Now: wired once at init, reference `currentEngine` / `_currentParsed` dynamically
+  - `_currentParsed` stores the last parsed story data for restart without closure capture
+  - Campaign restart logic uses `_currentParsed` naturally (no `parsed` closure variable)
+- **Fixed 3 Playwright test regressions** from Phase 69 campaign locking
+  - `story cards show title text and info controls` — was checking `.story-card.first()` which is locked; now targets `.story-card:not(.story-locked).first()`
+  - `title search matches character names` — was searching "stack canary" (Buffer Overflow, locked); now searches "nyan" (The Terminal Cat, always unlocked)
+  - `story info modal shows cast chips` — was opening info for Buffer Overflow (locked, no info btn); now uses The Terminal Cat
+- main.js: 1704 → 1688 lines (16 lines removed)
+- SW cache bumped to v52, production build regenerated (167KB bundle)
+- All 32 JS files pass `node --check`, 204/204 unit tests, 50/50 Playwright tests
+- Committed & pushed
+
 ## Still Possible Future Work
 - Generate remaining character portraits (GPU timeout issue — needs investigation, possibly during lower GPU load)
 - AI-generated scene background images
@@ -1218,6 +1237,7 @@ cd /tmp/nyantales && python3 -m http.server 9876
 - Committed & pushed
 
 ## Log (continued)
+- 2026-03-27 (3:27 PM): Phase 70 — Pre-created overlay indicators (autoPlayIndicator/skipIndicator/progressHUD/progressBar built once at init instead of lazy createElement), engine callbacks wired once (onChoice/onRestart/onMenu/_onEndingHook no longer re-assigned every initEngine call), fixed 3 Playwright test regressions from Phase 69 campaign locking (tests now target unlocked cards). main.js 1704→1688 lines. SW v52, 167KB bundle. All 32 JS + 204/204 unit + 50/50 Playwright pass. Committed & pushed.
 - 2026-03-27 (2:27 PM): Phase 69 — Extracted TitleBrowser class from main.js (250+ lines → own module), O(1) campaign lock lookups via pre-built slug map (replaces 780 iterations per render), campaign story locking, ending Continue button, achievement deferral during campaign, left-aligned text. main.js 1883→1703 lines. SW v51, 167KB bundle. All 32 JS + 204/204 unit tests pass. Committed & pushed.
 - 2026-03-27 (1:27 PM): Phase 68 — Performance: replaced 9 `storyIndex.find()` O(n) linear scans with `storySlugMap` Map for O(1) lookups. Parallelized boot loading (story index + campaign + portrait preload via Promise.all). Pre-created filter count/empty state DOM elements at init instead of lazy createElement in hot filter path. Cached btnContinueEl, filterTags, loading screen refs. SW v50, 162KB bundle. All 32 JS + 50/50 Playwright pass. No new stories added.
 - 2026-03-27 (11:27 AM): Phase 66 — Polished the mobile title browser: the story search/filter/sort block is now a sticky frosted panel on small screens, the story list no longer traps touch scrolling inside a nested inner scroller, narrow-width filter pills can scroll horizontally, and title stats wrap more cleanly. Added a Playwright regression covering sticky mobile filters/page-level scrolling, updated the README feature list, bumped the service worker to v49, and regenerated dist. No new stories added.
