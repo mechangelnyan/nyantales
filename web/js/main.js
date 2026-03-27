@@ -642,7 +642,11 @@
     // Check achievements on story start
     const startAch = achievements.checkAll();
     if (startAch.length > 0) {
-      setTimeout(() => achievements.showNewUnlocks(startAch), 1500);
+      if (campaignMode) {
+        pendingAchievementUnlocks.push(...startAch);
+      } else {
+        setTimeout(() => achievements.showNewUnlocks(startAch), 1500);
+      }
     }
   }
 
