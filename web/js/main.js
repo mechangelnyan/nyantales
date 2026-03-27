@@ -693,6 +693,10 @@
 
   /** Start a story from a card click (shared by click + keydown delegation) */
   function selectStoryCard(card) {
+    if (card.dataset.locked === '1') {
+      Toast.show('🔒 Progress through the campaign to unlock this story', { icon: '🐱', duration: 2500 });
+      return;
+    }
     const story = storyFromCard(card);
     if (!story) return;
     ensureAudio();
@@ -760,6 +764,30 @@
    * @param {Object} story - Story index entry
    */
   function decorateStoryCard(card, story) {
+    const locked = !isStoryUnlocked(story.slug);
+    if (locked) {
+      card.classList.add('story-locked');
+      card.setAttribute('tabindex', '-1');
+      card.setAttribute('aria-label', `${story.title}: Locked — progress through the campaign to unlock`);
+      // Replace card content with locked placeholder
+      const inner = card.querySelector('.story-card-inner');
+      if (inner) {
+        const textDiv = inner.querySelector('.story-card-text');
+        if (textDiv) {
+          textDiv.querySelector('h3').textContent = '🔒 ' + story.title;
+          const desc = textDiv.querySelector('p');
+          if (desc) desc.textContent = 'Progress through the campaign to unlock';
+        }
+        // Dim the sprite
+        const sprite = inner.querySelector('.story-card-sprite');
+        if (sprite) sprite.classList.add('locked-sprite');
+      }
+      card.dataset.slug = story.slug;
+      card.dataset.locked = '1';
+      return; // Don't add badges/progress/buttons for locked stories
+    }
+
+    card.dataset.locked = '0';
     const completed = tracker.isCompleted(story.slug);
     const endings = tracker.endingCount(story.slug);
     const { sceneCount, readMins } = getStoryMeta(story);
@@ -1462,6 +1490,28 @@
     if (!campaign.isLoaded || !campaign.progress.started) return chapterIndex === 0;
     return chapterIndex <= campaign.progress.chapterIndex ||
       campaign.progress.completedChapters.includes(chapterIndex);
+  }
+
+  /**
+   * Determine if a story slug is unlocked for standalone play.
+   * Campaign chapter stories are locked until the player reaches them.
+   * Non-campaign stories are always unlocked.
+   */
+  function isStoryUnlocked(slug) {
+    if (!campaign.isLoaded) return true; // No campaign data — everything open
+    const chapters = campaign.chapters;
+    for (let i = 0; i < chapters.length; i++) {
+      if (chapters[i].story === slug) return isChapterUnlocked(i);
+    }
+    // Bonus chapters — check unlock flags
+    const bonus = campaign.manifest?.bonus_chapters || [];
+    for (const b of bonus) {
+      if (b.story === slug) {
+        if (!b.unlock_flag) return true;
+        return campaign.progress.persistentFlags?.includes(b.unlock_flag) || false;
+      }
+    }
+    return true; // Not part of campaign — always available
   }
 
   /** Render the campaign chapter grid grouped by act. */

@@ -48,6 +48,7 @@ JS_FILES=(
   "js/keyboard-help.js"
   "js/about.js"
   "js/ui.js"
+  "js/title-browser.js"
   "js/main.js"
 )
 

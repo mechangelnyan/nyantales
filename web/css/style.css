@@ -387,6 +387,19 @@ body {
 .story-card {
   position: relative;
 }
+.story-card.story-locked {
+  opacity: 0.4;
+  cursor: not-allowed;
+  filter: grayscale(0.6);
+}
+.story-card.story-locked:hover {
+  transform: none;
+  box-shadow: none;
+  border-color: rgba(var(--accent-r), var(--accent-g), var(--accent-b), 0.15);
+}
+.story-card.story-locked .locked-sprite {
+  filter: grayscale(1) brightness(0.5);
+}
 .story-card-meta {
   display: flex;
   gap: 0.5rem;
