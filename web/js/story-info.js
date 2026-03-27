@@ -83,6 +83,9 @@ class StoryInfoModal {
     const totalScenes = scenes.length;
     const visitedCount = (data.visitedScenes || []).length;
     const pct = totalScenes > 0 ? Math.round((visitedCount / totalScenes) * 100) : 0;
+    const totalEndings = story._parsed?.scenes
+      ? Object.values(story._parsed.scenes).filter(scene => scene.ending).length
+      : 0;
 
     // Word count / reading time
     const wordCount = story._parsed?.scenes
@@ -106,6 +109,7 @@ class StoryInfoModal {
     const endingsHtml = endings.length > 0
       ? endings.map(e => `<span class="story-info-ending-tag">${this._esc(e)}</span>`).join('')
       : '<span class="story-info-none">None yet</span>';
+    const totalReadingMs = data.totalReadingMs || 0;
 
     // Last played
     const lastPlayedStr = data.lastPlayed
@@ -151,8 +155,12 @@ class StoryInfoModal {
           <div class="story-info-stat-label">Best Turns</div>
         </div>
         <div class="story-info-stat-card">
-          <div class="story-info-stat-value">${endings.length}</div>
+          <div class="story-info-stat-value">${endings.length}${totalEndings ? `<span class="story-info-stat-total">/${totalEndings}</span>` : ''}</div>
           <div class="story-info-stat-label">Endings Found</div>
+        </div>
+        <div class="story-info-stat-card">
+          <div class="story-info-stat-value">${StoryTracker.formatDuration(totalReadingMs)}</div>
+          <div class="story-info-stat-label">Reading Time</div>
         </div>
       </div>
 

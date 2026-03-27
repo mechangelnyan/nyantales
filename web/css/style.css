@@ -3103,7 +3103,7 @@ body {
 
 .story-info-stats {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
   gap: 0.5rem;
   margin-bottom: 1.2rem;
 }
@@ -3119,6 +3119,12 @@ body {
   font-size: 1.2rem;
   font-weight: 700;
   color: var(--accent-cyan);
+}
+.story-info-stat-total {
+  font-size: 0.7rem;
+  font-weight: 400;
+  color: var(--text-dim);
+  margin-left: 0.1rem;
 }
 .story-info-stat-label {
   font-family: var(--font-mono);

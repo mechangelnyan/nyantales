@@ -44,6 +44,7 @@ class StatsDashboard {
       this._overlay.className = 'stats-overlay';
       this._overlay.setAttribute('role', 'dialog');
       this._overlay.setAttribute('aria-label', 'Statistics Dashboard');
+      this._overlay.setAttribute('aria-hidden', 'true');
       document.body.appendChild(this._overlay);
       this._overlay.addEventListener('click', (e) => {
         if (e.target === this._overlay) this.hide();
@@ -83,12 +84,14 @@ class StatsDashboard {
     const storyRows = stories.map(story => {
       const data = this.tracker.getStory(story.slug);
       const sceneCount = story._parsed?.scenes ? Object.keys(story._parsed.scenes).length : 0;
+      const visitedCount = this.tracker.visitedSceneCount(story.slug);
       const progress = sceneCount > 0 ? this.tracker.getProgress(story.slug, sceneCount) : 0;
       const endings = this.tracker.endingCount(story.slug);
       const completed = this.tracker.isCompleted(story.slug);
-      const plays = data.plays || 0;
+      const plays = data.totalPlays || 0;
       const bestTurns = data.bestTurns || null;
       const lastPlayed = data.lastPlayed || 0;
+      const readingMs = data.totalReadingMs || 0;
       const hasSave = this.saveManager.hasSave(story.slug);
 
       // Count total possible endings from story data
@@ -103,6 +106,7 @@ class StatsDashboard {
         slug: story.slug,
         title: story.title,
         sceneCount,
+        visitedCount,
         progress,
         endings,
         totalEndings,
@@ -110,6 +114,7 @@ class StatsDashboard {
         plays,
         bestTurns,
         lastPlayed,
+        readingMs,
         hasSave
       };
     });
@@ -120,7 +125,7 @@ class StatsDashboard {
 
     // Total scenes across all stories
     const totalScenes = storyRows.reduce((sum, s) => sum + s.sceneCount, 0);
-    const totalScenesVisited = storyRows.reduce((sum, s) => sum + Math.round(s.sceneCount * s.progress / 100), 0);
+    const totalScenesVisited = storyRows.reduce((sum, s) => sum + s.visitedCount, 0);
 
     // Total endings possible vs found
     const totalEndingsPossible = storyRows.reduce((sum, s) => sum + s.totalEndings, 0);
@@ -155,6 +160,7 @@ class StatsDashboard {
       totalScenesVisited,
       totalEndingsPossible,
       saveCount,
+      totalReadingMs: this.tracker.getTotalReadingMs(),
       campaignStats
     };
   }
@@ -212,6 +218,10 @@ class StatsDashboard {
             <div class="stats-card-label">Total Plays</div>
           </div>
           <div class="stats-card">
+            <div class="stats-card-value">${StoryTracker.formatDuration(stats.totalReadingMs)}</div>
+            <div class="stats-card-label">Reading Time</div>
+          </div>
+          <div class="stats-card">
             <div class="stats-card-value">${a.unlocked}<span class="stats-card-total">/${a.total}</span></div>
             <div class="stats-card-label">Achievements</div>
             <div class="stats-card-bar"><div class="stats-card-bar-fill" style="width:${Math.round(a.unlocked/a.total*100)}%;background:var(--accent-yellow)"></div></div>
@@ -244,7 +254,8 @@ class StatsDashboard {
                 <div class="stats-recent-title">${this._escapeHtml(s.title)}</div>
                 <div class="stats-recent-meta">
                   <span>${s.progress}% explored</span>
-                  <span>${s.endings} ending${s.endings !== 1 ? 's' : ''}</span>
+                  <span>${s.endings}/${s.totalEndings} endings</span>
+                  <span>${s.plays} play${s.plays !== 1 ? 's' : ''}</span>
                   <span>${this._timeAgo(s.lastPlayed)}</span>
                 </div>
               </div>
