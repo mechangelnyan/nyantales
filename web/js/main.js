@@ -1348,7 +1348,10 @@
       // Parallelize story index, campaign, and portrait preloads
       const [,] = await Promise.all([
         loadStoryIndex(),
-        campaign.load(storyBasePath()).then(() => campaign.loadProgress()).catch(e => {
+        campaign.load(storyBasePath()).then(() => {
+          campaign.loadProgress();
+          rebuildCampaignSlugMap();
+        }).catch(e => {
           console.warn('Campaign data not available:', e);
         }),
         ui.portraits.preloadAll()
@@ -1460,6 +1463,7 @@
       saveManager.deleteSlot(currentSlug, 'auto');
     }
     campaign.advance(currentEngine);
+    rebuildCampaignSlugMap(); // Refresh unlock state after advancing
     const queuedUnlocks = pendingAchievementUnlocks.splice(0, pendingAchievementUnlocks.length);
     // Small delay before advancing to next phase for pacing
     setTimeout(() => {
@@ -1493,25 +1497,36 @@
   }
 
   /**
+   * Pre-built slug → chapter-index / bonus-entry map for O(1) campaign lock lookups.
+   * Rebuilt when campaign data loads or changes.
+   * @type {Map<string, {type: 'chapter', index: number} | {type: 'bonus', flag: string|null}>}
+   */
+  let _campaignSlugMap = new Map();
+
+  function rebuildCampaignSlugMap() {
+    _campaignSlugMap.clear();
+    if (!campaign.isLoaded) return;
+    campaign.chapters.forEach((ch, i) => {
+      _campaignSlugMap.set(ch.story, { type: 'chapter', index: i });
+    });
+    (campaign.manifest?.bonus_chapters || []).forEach(b => {
+      _campaignSlugMap.set(b.story, { type: 'bonus', flag: b.unlock_flag || null });
+    });
+  }
+
+  /**
    * Determine if a story slug is unlocked for standalone play.
    * Campaign chapter stories are locked until the player reaches them.
    * Non-campaign stories are always unlocked.
    */
   function isStoryUnlocked(slug) {
-    if (!campaign.isLoaded) return true; // No campaign data — everything open
-    const chapters = campaign.chapters;
-    for (let i = 0; i < chapters.length; i++) {
-      if (chapters[i].story === slug) return isChapterUnlocked(i);
-    }
-    // Bonus chapters — check unlock flags
-    const bonus = campaign.manifest?.bonus_chapters || [];
-    for (const b of bonus) {
-      if (b.story === slug) {
-        if (!b.unlock_flag) return true;
-        return campaign.progress.persistentFlags?.includes(b.unlock_flag) || false;
-      }
-    }
-    return true; // Not part of campaign — always available
+    if (!campaign.isLoaded) return true;
+    const entry = _campaignSlugMap.get(slug);
+    if (!entry) return true; // Not part of campaign
+    if (entry.type === 'chapter') return isChapterUnlocked(entry.index);
+    // Bonus chapter
+    if (!entry.flag) return true;
+    return campaign.progress.persistentFlags?.includes(entry.flag) || false;
   }
 
   /** Render the campaign chapter grid grouped by act. */
