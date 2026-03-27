@@ -7,7 +7,7 @@
 const PORTRAIT_MAP = {
   // Character name (lowercase) → image filename in assets/characters/
   // ── Original 6 (updated to new versions where available) ──
-  'nyan':                'nyan_v5.png',
+  'nyan':                'nyan_v10_s289986600.png',
   'byte':                'byte_v2_s3640488068.png',
   'mochi':               'mochi_v1_s1589397577.png',
   'pixel':               'pixel_v2_s2997965872.png',
