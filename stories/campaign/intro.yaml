@@ -1,0 +1,250 @@
+# NyanTales Campaign — Opening Scene
+# "The Fall"
+# Before Chapter 1. Nyan chases the red dot, hits the keyboard, falls into the machine.
+# Sets the tone for the whole journey.
+
+title: "The Fall"
+description: "A red dot. A keyboard. A fall. The machine wakes up."
+author: "mechangelnyan"
+version: "1.0.0"
+start: the_dot
+
+scenes:
+
+  # ──────────────────────────────────────────────────────────────
+  # SCENE 1 — THE DOT
+  # ──────────────────────────────────────────────────────────────
+  the_dot:
+    mood: peaceful
+    art: |
+      · · · · · · · · · · · · · · · · · · · · ·
+      ·                                       ·
+      ·                                       ·
+      ·         ●                             ·
+      ·                                       ·
+      ·                                       ·
+      ·  /\_/\                                ·
+      · ( o.o )  < this dot will be mine      ·
+      ·  > ^ <                                ·
+      · · · · · · · · · · · · · · · · · · · · ·
+    location: "somewhere warm — a living room, probably"
+    text: |
+      You are Nyan.
+
+      You are extraordinarily fluffy. You have seventeen opinions about tuna.
+      You have never once regretted knocking something off a shelf.
+
+      Right now, you are doing the most important thing a cat can do.
+
+      You are watching a red dot.
+
+      It appeared on the carpet approximately four seconds ago and your entire
+      being has collapsed into a single, crystalline purpose: CATCH THE DOT.
+
+      The dot does not know this yet. The dot is about to find out.
+    choices:
+      - label: "Stalk it. Slowly. You are a professional."
+        goto: the_stalk
+      - label: "LAUNCH IMMEDIATELY"
+        goto: the_launch
+
+  # ──────────────────────────────────────────────────────────────
+  # SCENE 2a — THE STALK
+  # ──────────────────────────────────────────────────────────────
+  the_stalk:
+    mood: tense
+    art: |
+      · · · · · · · · · · · · · · · · · · · · ·
+      ·                     ●                 ·
+      ·                                       ·
+      ·   /\_/\                               ·
+      ·  ( >.< )  <-- intense focus           ·
+      ·   > ^ <                               ·
+      ·     →→→                               ·
+      · · · · · · · · · · · · · · · · · · · · ·
+    text: |
+      You lower your center of gravity. Your tail flicks once. Twice. Thrice.
+      The dot moves toward the desk. You follow, paws silent on the carpet.
+
+      You are a hunter. You are apex. You are—
+
+      The dot goes FAST.
+
+      All professionalism evaporates immediately.
+    choices:
+      - label: "SPRINT"
+        goto: the_keyboard
+
+  # ──────────────────────────────────────────────────────────────
+  # SCENE 2b — THE LAUNCH
+  # ──────────────────────────────────────────────────────────────
+  the_launch:
+    mood: funny
+    art: |
+       /\_/\
+      ( >ω< )  ← MAXIMUM VELOCITY
+       )   (
+      (__  __)
+         →→→→→→ ●
+    text: |
+      You launch.
+
+      All four paws leave the carpet simultaneously. You are briefly airborne.
+      You are beautiful. You are terrible. You are a small fluffy missile.
+
+      The dot is on the desk now. The desk has a keyboard on it.
+
+      You are committed. There is no universe in which you do not follow this dot.
+    choices:
+      - label: "Land on the keyboard"
+        goto: the_keyboard
+
+  # ──────────────────────────────────────────────────────────────
+  # SCENE 3 — THE KEYBOARD
+  # ──────────────────────────────────────────────────────────────
+  the_keyboard:
+    mood: tense
+    effects:
+      - shake
+    art: |
+      ┌──────────────────────────────────────────────────────┐
+      │  Esc  F1  F2  F3  F4  F5  F6  F7  F8  F9 F10 F11 F12 │
+      │  `  1  2  3  4  5  6  7  8  9  0  -  =  [BACKSPACE]  │
+      │  Tab  q  w  e  r  t  y  u  i  o  p  [  ]  \          │
+      │  Caps  a  s  d  f  g  h  j  k  l  ;  '  [  ENTER  ]  │
+      │  Shift  z  x  c  v  b  n  m  ,  .  /    [  Shift  ]  │
+      │  Ctrl  Fn  Alt  [    S P A C E    ]  Alt  Ctrl       │
+      └──────────────────────────────────────────────────────┘
+               /\_/\
+              ( ×_× )  ← paws on: 47 keys simultaneously
+               )   (
+              (__  __)
+    location: "the keyboard — bad idea"
+    text: |
+      Your paws make contact with the keyboard.
+
+      ALL of the keyboard.
+
+      The satisfying clatter of forty-seven mechanical switches firing at once.
+      Your human is going to be upset about whatever just got typed into their
+      terminal. This is not your problem. The dot is your problem.
+
+      The dot vanishes into the keyboard itself.
+
+      You stare at the gap between the 'G' and 'H' keys. Impossible. And yet.
+
+      Something underneath pulses, very faintly, with red light.
+
+      Your paw moves without thinking.
+
+      Your paw finds the key.
+
+      The key gives.
+    choices:
+      - label: "Follow the dot"
+        goto: the_fall
+        set_flag: chased_the_dot
+
+  # ──────────────────────────────────────────────────────────────
+  # SCENE 4 — THE FALL
+  # ──────────────────────────────────────────────────────────────
+  the_fall:
+    mood: glitch
+    effects:
+      - bell
+      - pause
+    art: |
+      ▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓
+      ▓                                     ▓
+      ▓  /\_/\                              ▓
+      ▓ ( o.o )  ↓↓↓                       ▓
+      ▓  > ^ <                              ▓
+      ▓         ↓↓↓↓                        ▓
+      ▓              ↓↓↓                    ▓
+      ▓  0xDEADBEEF     ↓↓                  ▓
+      ▓    0xFF00FF       ↓                 ▓
+      ▓      ^C  ^Z  ^[     ↓               ▓
+      ▓        segfault?       ↓            ▓
+      ▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓
+    location: "somewhere between circuits"
+    text: |
+      You fall.
+
+      Not down — sideways. Through the key. Through the circuit board.
+      Through something that smells faintly of solder and years-old coffee
+      and the particular anxiety of 2AM deployments.
+
+      Colors become addresses. Sound becomes interrupt signals. The world
+      rearranges itself into something grid-shaped and blinking and patient.
+
+      Somewhere above you, your physical body presumably still exists,
+      splayed on a keyboard, confusing a screensaver.
+
+      Down here — in here — you are something else.
+
+      A process. A small, extremely fluffy process.
+
+      The dot is gone. But there is a cursor.
+
+      The cursor blinks.
+
+      It's waiting for you.
+    choices:
+      - label: "[ Wake up ]"
+        goto: the_waking
+
+  # ──────────────────────────────────────────────────────────────
+  # SCENE 5 — THE WAKING
+  # ──────────────────────────────────────────────────────────────
+  the_waking:
+    mood: mysterious
+    art: |
+      ╔══════════════════════════════════════════════════╗
+      ║                                                  ║
+      ║   N Y A N T A L E S                              ║
+      ║                                                  ║
+      ║   A Connected Campaign                           ║
+      ║                                                  ║
+      ║              /\_/\                               ║
+      ║             ( -.- )  < you are here              ║
+      ║              > ^ <                               ║
+      ║                                                  ║
+      ║   The machine is alive.                          ║
+      ║   The machine is dying.                          ║
+      ║   Only you can see both.                         ║
+      ║                                                  ║
+      ╚══════════════════════════════════════════════════╝
+    location: "nyan@kernel:/ — PID unknown"
+    text: |
+      You open your eyes.
+
+      You are inside a computer.
+
+      This is not a metaphor. This is not a dream. You are literally, physically,
+      impossibly inside the machine that your paw touched. You can feel the hum
+      of the CPU like a distant purr. The filesystem stretches in every direction.
+      Processes drift past you like slow, purposeful fish.
+
+      Somewhere, a terminal blinks.
+
+      You do not know how you got here. You do not know how to get back.
+      You do not know what any of this is, or what it wants from you, or why
+      the cursor is pointing at you specifically.
+
+      But you are Nyan. You have survived:
+        — every closed door in your house
+        — a vet visit involving a thermometer
+        — the incident with the vacuum cleaner
+
+      You have survived everything, because you are curious and you are stubborn
+      and because going back was never really in your nature anyway.
+
+      The cursor blinks.
+
+      You step forward.
+    is_ending: true
+    ending_type: neutral
+    ending_text: |
+      The journey into the machine begins.
+
+      26 chapters. One cat. One way home.

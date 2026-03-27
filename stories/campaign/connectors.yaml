@@ -1,0 +1,938 @@
+# NyanTales Campaign — Connector Scenes
+# Mini-scenes that bridge chapters. Each plays AFTER one chapter ends and BEFORE the next.
+# Nyan is the thread character, witnessing transitions between system layers.
+#
+# Format: each connector is a mini-story with `start` and `scenes`.
+# The last scene of each connector uses is_ending: true with ending_type: neutral.
+# In campaign mode the "Continue" button advances to the next chapter.
+
+connectors:
+
+  # ═══════════════════════════════════════════════════════════════
+  # CH1 → CH2: The Terminal Cat → Permission Denied
+  # After: Nyan finds /home — but it's empty.
+  # Into: Memory pressure. The floor shakes. Falls deeper.
+  # ═══════════════════════════════════════════════════════════════
+  ch1_to_ch2:
+    title: "Nobody Home"
+    start: ch1_ch2_home
+    scenes:
+
+      ch1_ch2_home:
+        mood: mysterious
+        art: |
+          nyan@kernel:/home$ ls -la
+          total 0
+          drwxr-xr-x  2 root root   /home/
+          drwxr-xr-x  1 root root   ../
+
+          nyan@kernel:/home$
+        location: "/home"
+        text: |
+          You made it to /home.
+
+          You expected... something. A warm glow, maybe. A sense of arrival.
+          The comfortable weight of being exactly where you're supposed to be.
+
+          Instead: nothing. An empty directory. Two entries — dot and dot-dot,
+          the existential minimum of filesystem existence.
+
+          The home directory is home to no one.
+
+          A cursor blinks at you in the silence.
+        choices:
+          - label: "Check /proc for memory status"
+            goto: ch1_ch2_warning
+            set_flag: checked_memory_pressure
+
+      ch1_ch2_warning:
+        mood: tense
+        effects:
+          - shake
+        art: |
+          ╔══════════════════════════════════════════════════════╗
+          ║  KERNEL MESSAGE LOG — /var/log/kern.log              ║
+          ║──────────────────────────────────────────────────────║
+          ║  [  127.441] WARNING: memory pressure: critical      ║
+          ║  [  127.441] OOM score adj: 980 (nyan)               ║
+          ║  [  127.443] kernel: page allocation failure         ║
+          ║  [  127.501] BUG: unable to handle page fault        ║
+          ║  [  127.502] IP: 0000000000000000                    ║
+          ║  [  127.502] #PF: supervisor read access             ║
+          ╚══════════════════════════════════════════════════════╝
+        location: "/var/log — not reassuring"
+        text: |
+          The terminal fills with warnings before you can even ask.
+
+          MEMORY PRESSURE: CRITICAL. PAGE FAULT. OOM.
+
+          You don't know what all of it means yet, but the shape of it is
+          clear: something is very wrong with the system's memory, and
+          it has been wrong for a while.
+
+          The floor beneath your paws gives a slow, submarine lurch.
+          The filesystem shudders. A directory entry flickers — there
+          one moment, gone the next — then returns, apologetically.
+
+          There's something below /home. Below the filesystem entirely.
+          Something that's been leaking.
+
+          The floor shudders again. This time it doesn't stop.
+        choices:
+          - label: "Hold on—"
+            goto: ch1_ch2_fall
+
+      ch1_ch2_fall:
+        mood: glitch
+        effects:
+          - bell
+          - pause
+        art: |
+          ↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓
+             /\_/\
+            ( !.! )
+             ) . (
+            (__  __)
+          ↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓
+          [ descending into memory space ]
+          [ uid: 65534 (nobody)          ]
+          [ permissions: denied          ]
+        location: "falling"
+        text: |
+          You fall through the floor.
+
+          Not painfully — just suddenly. One moment you're standing in /home.
+          The next you're dropping through layers of the filesystem into something
+          denser and stranger. You catch a glimpse of /proc rushing past,
+          its directories blurring by like the windows of a very fast train.
+
+          You land somewhere that smells of old permissions and locked doors.
+
+          There's a gray cat here, sitting in front of a door marked /home/sudo,
+          staring at it with the focused patience of someone who has been locked
+          out for a very long time.
+
+          He turns and looks at you.
+
+          "You're new," he says.
+
+          He doesn't say it like it's a problem. He says it like it might,
+          for once, be the opposite.
+        is_ending: true
+        ending_type: neutral
+        ending_text: |
+          Chapter 2: Permission Denied
+
+          The access control layer. Sudo has been waiting.
+
+  # ═══════════════════════════════════════════════════════════════
+  # CH2 → CH3: Permission Denied → Vim Escape
+  # After: Permissions gained, corrupted directory found.
+  # Into: Sudo stays behind. Nyan follows corruption. Opens a file.
+  # ═══════════════════════════════════════════════════════════════
+  ch2_to_ch3:
+    title: "Something Corrupted This Way Comes"
+    start: ch2_ch3_discovery
+    scenes:
+
+      ch2_ch3_discovery:
+        mood: mysterious
+        art: |
+          nyan@kernel:/home/sudo$ ls -la
+          total 0
+          drwxr-xr-x  sudo  sudo  config/
+          -rw-r--r--  sudo  sudo  notes.txt
+          -?????????  ????  ????  ░░░░░░░░░░░
+          [ filesystem: warning — inode corruption at 0x7f3c ]
+        location: "/home/sudo — something is wrong here"
+        text: |
+          The permissions work now. But what you find when you look inside
+          isn't comfort — it's a corrupted directory entry that shouldn't exist.
+
+          The filename is unreadable. The inode is wrong. Everything about it
+          is slightly, wrongly present, like a word you almost know.
+
+          Sudo examines it with the careful distance of someone who's seen
+          this before and doesn't like it.
+
+          "This is spreading," he says, finally. "Whatever started in memory
+          is eating into the filesystem. Someone needs to stay here and
+          keep it from getting worse." He looks at you.
+
+          "I can hold this. You should go deeper."
+        choices:
+          - label: "Are you sure? You could come with me."
+            goto: ch2_ch3_goodbye
+          - label: "I'll find what's causing this. I promise."
+            goto: ch2_ch3_goodbye
+            set_flag: promised_sudo
+
+      ch2_ch3_goodbye:
+        mood: peaceful
+        art: |
+             /\_/\   /\_/\
+            ( ^.^ ) ( >.< )
+             )   (   )   (
+            (__  __)(__ __)
+              sudo    nyan
+               ← staying    going →
+        text: |
+          Sudo sits down in front of the corrupted entry like a guard at a gate.
+
+          "I've been stuck in access control for longer than I can remember,"
+          he says. "At least this is something I can actually do. Go. Find
+          out what's leaking." He pauses. "And try not to fall into any editors."
+
+          You make a mental note of this excellent advice.
+
+          You follow the corruption. It leads you upward through the filesystem —
+          or is it downward? directions are strange here — into a region where
+          the bytes feel thick and unstable. Files exist and don't exist.
+          You push through one that turns out to be a door.
+
+          The door opens inward.
+          The door has a status bar.
+          The status bar reads: -- INSERT --
+        choices:
+          - label: "...oh no"
+            goto: ch2_ch3_vim
+
+      ch2_ch3_vim:
+        mood: funny
+        art: |
+          ╔══════════════════════════════════════════════╗
+          ║                                              ║
+          ║  ~                                           ║
+          ║  ~                                           ║
+          ║  ~          VIM — Vi IMproved                ║
+          ║  ~                                           ║
+          ║  ~  You are already in INSERT mode.          ║
+          ║  ~  This was a mistake.                      ║
+          ║  ~  We both know that.                       ║
+          ║  ~                                           ║
+          ║                                              ║
+          ╚══════════════════════════════════════════════╝
+          -- INSERT --
+        location: "vim — :help doesn't help"
+        text: |
+          You are inside vim.
+
+          You didn't choose this. You did not ask for this. You specifically
+          were told not to do this.
+
+          From somewhere deep in the buffer, you hear a sound. Small, plaintive,
+          with the specific exhaustion of a cat who has been trapped for a while.
+
+          "...hello?"
+
+          There's someone else in here.
+        is_ending: true
+        ending_type: neutral
+        ending_text: |
+          Chapter 3: Vim Escape
+
+          Nobody escapes vim. Probably.
+
+  # ═══════════════════════════════════════════════════════════════
+  # CH3 → CH4: Vim Escape → Buffer Overflow
+  # After: Tabby and Nyan escape vim together.
+  # Into: Freedom lands them in a buffer. The buffer is too small.
+  # ═══════════════════════════════════════════════════════════════
+  ch3_to_ch4:
+    title: "The Buffer"
+    start: ch3_ch4_escape
+    scenes:
+
+      ch3_ch4_escape:
+        mood: funny
+        art: |
+                ╔══════╗
+                ║ :wq! ║   ← the magic words
+                ╚══╤═══╝
+                   ↓
+             /\_/\   /\_/\
+            ( ^.^ ) ( ^.^ )
+             )   (   )   (   → FREEDOM
+            (__  __)(__ __)
+              tabby   nyan
+        location: "exiting vim — against all odds"
+        text: |
+          :wq!
+
+          The command lands. The tildes fall away. The status bar dissolves.
+          You and Tabby tumble out of vim together in a graceless heap of paws
+          and dignity, landing somewhere soft and bounded and suspicious.
+
+          "I have been in there for three weeks," Tabby says, quietly.
+          "I tried :q. I tried :q!. I tried :qa. I tried Ctrl+Z.
+          I tried writing a shell script TO close vim FROM inside vim."
+
+          He looks around at where you've landed.
+
+          "...where are we?"
+
+          Good question.
+        choices:
+          - label: "Look around"
+            goto: ch3_ch4_buffer
+
+      ch3_ch4_buffer:
+        mood: tense
+        art: |
+          ┌────────────────────────────────────────────┐
+          │ BUFFER — 64 bytes allocated                │
+          │ 00 01 02 03 04 05 06 07 08 09 0a 0b 0c 0d │
+          │ 0e 0f 10 11 12 13 [YOU] [YOU] [YOU] [YOU] │
+          │ 1e 1f 20 21 22 23 24 25 26 27 28 29 2a 2b │
+          │ 2c 2d 2e 2f 30 31 32 33 34 35 36 37 38 39 │
+          │ 3a 3b 3c 3d 3e 3f ← END OF BUFFER →→→→→→ │
+          │ ▓▓▓▓▓▓▓▓▓▓▓▓ OVERFLOW ▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓ │
+          └────────────────────────────────────────────┘
+        text: |
+          You're in a buffer.
+
+          64 bytes. Clean walls, clear edges. Normally this would be fine —
+          a perfectly reasonable place to pass through.
+
+          Except the buffer isn't at capacity. It's past capacity.
+          Data is piling up at the end, pressing against the boundary,
+          and something on the other side is... accepting it.
+
+          "This is bad," Tabby says. He's been inside vim long enough to
+          recognize when something has gone fundamentally wrong with memory.
+
+          A small cat pokes its head out from behind a stack frame.
+          It is extremely tiny. It looks at both of you with the resigned
+          expression of someone who has been watching this happen for a while.
+
+          "Oh," says the small cat. "You're new. Good. Maybe you can help.
+          My name is Byte, and the return address is about three bytes from
+          being completely overwritten."
+        is_ending: true
+        ending_type: neutral
+        ending_text: |
+          Chapter 4: Buffer Overflow
+
+          Byte is 64 bytes of concern. The Stack Canary is watching.
+
+  # ═══════════════════════════════════════════════════════════════
+  # CH4 → CH5: Buffer Overflow → Garbage Collection
+  # After: Stack smashing stopped (or survived).
+  # Into: Overflow tears a hole. Nyan falls into the heap.
+  # ═══════════════════════════════════════════════════════════════
+  ch4_to_ch5:
+    title: "The Heap"
+    start: ch4_ch5_hole
+    scenes:
+
+      ch4_ch5_hole:
+        mood: glitch
+        effects:
+          - shake
+        art: |
+          STACK ─────────────────────────────┐
+          │ return addr │ saved rbp │ locals │
+          └──────────────────────────────────┘
+                          ↓ overflow
+          ░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░
+            (the boundary gives)
+          ░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░
+                          ↓ falling
+          HEAP ══════════════════════════════╗
+          ║         (objects everywhere)     ║
+          ╚══════════════════════════════════╝
+        location: "the gap between stack and heap"
+        text: |
+          The overflow tears something.
+
+          Not dramatically — there's no explosion, no dramatic cracking sound.
+          Just a seam opening in the memory space, a wrong edge becoming a door,
+          and then you're falling through it.
+
+          You fall past stack frames. Past saved registers. Past the careful
+          geometry of the call stack, which was already in bad shape and
+          doesn't appreciate the extra traffic.
+
+          Then the heap opens up below you, vast and cluttered and alive,
+          full of allocated objects living their object lives, being referenced
+          and used and occasionally forgotten.
+
+          One of those objects is moving.
+        choices:
+          - label: "Land carefully"
+            goto: ch4_ch5_whisker
+
+      ch4_ch5_whisker:
+        mood: peaceful
+        art: |
+          HEAP — allocated objects:
+          ┌──────────┐  ┌──────────┐  ┌──────────┐
+          │ object_A │  │ object_B │  │ object_C │
+          │ refs: 3  │  │ refs: 1  │  │ refs: 0! │
+          └──────────┘  └──────────┘  └──────────┘
+                                          ↑
+                                    ┌─────────────┐
+                                    │   Whisker   │
+                                    │  refs: 1    │ ← barely
+                                    └─────────────┘
+        location: "the heap — managed memory"
+        text: |
+          A cat sits in an allocated block, counting something on their paws.
+
+          They're extremely focused — the kind of focus that comes from
+          understanding that stopping would be bad. Their tail traces little
+          arcs in the air: one, two, three, one, two, three.
+
+          "Reference counting," they say, without looking up. "If I stop
+          maintaining references to myself, the GC will think I'm unreachable
+          and collect me. So I keep counting. Keep the chain unbroken."
+
+          They look up. Their eyes have the calm of someone who has made peace
+          with their situation while also refusing to accept it.
+
+          "My name is Whisker. And you," they say, with gentle certainty,
+          "are about to help me."
+        is_ending: true
+        ending_type: neutral
+        ending_text: |
+          Chapter 5: Garbage Collection
+
+          Whisker is counting. The GC is coming. Don't let go.
+
+  # ═══════════════════════════════════════════════════════════════
+  # CH5 → CH6: Garbage Collection → Memory Leak
+  # After: Surviving the GC sweep.
+  # Into: ARIA fragment. "The system is —" (corrupted). Deeper.
+  # ═══════════════════════════════════════════════════════════════
+  ch5_to_ch6:
+    title: "Signal from Nowhere"
+    start: ch5_ch6_aftermath
+    scenes:
+
+      ch5_ch6_aftermath:
+        mood: peaceful
+        art: |
+          GC LOG ─────────────────────────────
+          [sweep] freed: 847 objects
+          [sweep] retained: 12 objects
+          [sweep] Whisker: REACHABLE (refs: 1)
+          [sweep] nyan: REACHABLE (refs: 1)
+          [complete] heap pressure: reduced
+          ─────────────────────────────────────
+        location: "heap — post-sweep"
+        text: |
+          The GC sweep passes through like a cold wind through a warm room.
+
+          Objects vanish around you — the ones that lost all their references,
+          the ones that nobody was holding anymore. They go quietly. That's
+          the thing about garbage collection: it's not unkind. It's just honest.
+          If nothing needs you, you're free to go.
+
+          Whisker is still here. Still counted. You held the reference and
+          you both survived.
+
+          "Thank you," Whisker says. They say it the way someone says it when
+          they really mean it, when they weren't sure they'd get to say it at all.
+
+          In the newly cleared heap space, something glints.
+        choices:
+          - label: "Examine what the GC left behind"
+            goto: ch5_ch6_fragment
+            set_flag: aria_fragment_1
+
+      ch5_ch6_fragment:
+        mood: mysterious
+        art: |
+          ╔═══════════════════════════════════════╗
+          ║  RECOVERED DATA FRAGMENT              ║
+          ║  source: [CORRUPTED]                  ║
+          ║  timestamp: [CORRUPTED]               ║
+          ║─────────────────────────────────────── ║
+          ║                                        ║
+          ║  "The system is —"                     ║
+          ║                             [CORRUPTED]║
+          ║                                        ║
+          ║  sender: ARIA                          ║
+          ╚═══════════════════════════════════════╝
+        location: "freed memory — sector 0x3fc0"
+        text: |
+          It's a message fragment. Three words and a name.
+
+          "The system is —"
+
+          And then nothing. The rest is corrupted beyond reading.
+          Whatever comes after "is" has been lost to bitrot, or overwritten,
+          or never made it this far in the first place.
+
+          The sender field says: ARIA.
+
+          You don't know who ARIA is. But you know what the message is.
+          You've seen it in the kernel logs, in the corrupted directory entries,
+          in the wrong weight of the heap. The system is something, and
+          that something is bad, and somewhere out there an entity named ARIA
+          is trying very hard to tell someone.
+
+          Whisker reads the fragment over your shoulder.
+
+          "There have been others," they say quietly. "Little bits of message,
+          scattered through freed memory. I thought it was noise. Whisker pauses.
+          "Maybe it isn't noise."
+
+          You pocket the fragment. You go deeper.
+        is_ending: true
+        ending_type: neutral
+        ending_text: |
+          Chapter 6: Memory Leak
+
+          Nibble is hunting something. Dangling is lost. The message is incomplete.
+
+  # ═══════════════════════════════════════════════════════════════
+  # CH6 → CH7: Memory Leak → Segmentation Fault
+  # After: The leak is found — temporarily fixed.
+  # Into: Second ARIA fragment. Path into forbidden memory.
+  # ═══════════════════════════════════════════════════════════════
+  ch6_to_ch7:
+    title: "What Jake Left Behind"
+    start: ch6_ch7_relief
+    scenes:
+
+      ch6_ch7_relief:
+        mood: peaceful
+        art: |
+          MEMORY USAGE ─────────────────────────
+          before:  ████████████████████░░░  91%
+          after:   ████████████░░░░░░░░░░░  54%
+          freed:   ~37% heap space recovered
+          ───────────────────────────────────────
+          leak source: dangling reference in
+          module: legacy_handler.c, line: 2047
+          TODO: fix properly — Jake, 4 months ago
+        location: "heap — breathing room"
+        text: |
+          The pressure eases. You can feel it — the weight lifts slightly,
+          the filesystem stops its ominous creaking, the error log quiets
+          to a murmur instead of a scream.
+
+          A temporary fix. Nibble knows it. You know it. The comment in the
+          code makes it clear: TODO: fix properly. Four months ago. Never fixed.
+
+          Jake.
+
+          The name appears in todo comments and forgotten patches and systems
+          held together with good intentions and expired promises. The sysadmin
+          who was supposed to be taking care of all this. The parent process
+          who stopped calling wait().
+
+          In the cleared memory, another fragment surfaces.
+        choices:
+          - label: "Read the fragment"
+            goto: ch6_ch7_fragment
+            set_flag: aria_fragment_2
+
+      ch6_ch7_fragment:
+        mood: mysterious
+        art: |
+          ╔═══════════════════════════════════════════╗
+          ║  RECOVERED DATA FRAGMENT #2               ║
+          ║  source: [CORRUPTED]                      ║
+          ║─────────────────────────────────────────── ║
+          ║                                            ║
+          ║  "Jake stopped maintaining —"              ║
+          ║                              [CORRUPTED]   ║
+          ║  "— scheduled for decomm —"                ║
+          ║                              [CORRUPTED]   ║
+          ║                                            ║
+          ║  sender: ARIA                              ║
+          ╚═══════════════════════════════════════════╝
+        location: "freed memory — sector 0x4a10"
+        text: |
+          Two fragments now.
+
+          "The system is —"
+          "Jake stopped maintaining —"
+          "— scheduled for decomm —"
+
+          Decommissioned.
+
+          The word settles over you like a cold compress. Not crashed. Not broken.
+          Decommissioned. Intentionally shut down. Planned. Scheduled.
+
+          Somewhere in this machine there's an entity named ARIA who knows the
+          whole truth and has been trying to send it in pieces through the only
+          channels left open. Memory fragments. Freed space. The margins of
+          a dying system.
+
+          You need to reach the network layer. But the path there runs through
+          something older and more dangerous.
+
+          The memory map shows a region marked: RESTRICTED ACCESS. SIGSEGV ZONE.
+          NO VALID MAPPINGS. DO NOT DEREFERENCE.
+
+          There's a path through it. Somewhere.
+        is_ending: true
+        ending_type: neutral
+        ending_text: |
+          Chapter 7: Segmentation Fault
+
+          Forbidden memory. Pointer is in there. Dangling is in there.
+          The truth might be in there too.
+
+  # ═══════════════════════════════════════════════════════════════
+  # CH7 → CH8: Segmentation Fault → Stack Overflow
+  # After: Navigating forbidden memory.
+  # Into: Finding a path to the process table — through deep recursion.
+  # ═══════════════════════════════════════════════════════════════
+  ch7_to_ch8:
+    title: "Going Deeper"
+    start: ch7_ch8_exit
+    scenes:
+
+      ch7_ch8_exit:
+        mood: mysterious
+        art: |
+          MEMORY MAP ───────────────────────────
+          0x0000 - 0x7fff  [text segment]  ✓
+          0x8000 - 0xbfff  [stack]         ✓
+          0xc000 - 0xcfff  [heap]          ✓
+          0xd000 - 0xdfff  [SIGSEGV zone]  ✗ ← you were here
+          0xe000 - 0xefff  [process table] ?
+          0xf000 - 0xffff  [kernel space]  ✗
+          ───────────────────────────────────────
+          EXIT: segment boundary at 0xdfff
+          PATH TO: 0xe000 — one way in
+        location: "memory boundary — edge of the forbidden zone"
+        text: |
+          You crawl out of the SIGSEGV zone at the far edge, paws slightly
+          singed with wrongness, fur standing on end from passing through
+          memory that wasn't supposed to be traversed.
+
+          But you made it.
+
+          The process table is visible ahead — a vast, orderly ledger of every
+          running process in the system. PIDs in column one. State in column two.
+          Names in column three. Every process that has ever been started,
+          every process currently running, and — between them — a few entries
+          in state Z, just waiting.
+
+          The path in is blocked by something strange: a function call that
+          loops back on itself. A recursive entry point. Someone installed
+          a recursive filter on the process table access path and forgot to
+          include a base case.
+
+          You're going to have to go through the recursion.
+        choices:
+          - label: "Enter the recursive function"
+            goto: ch7_ch8_recursion
+
+      ch7_ch8_recursion:
+        mood: tense
+        art: |
+          f(x) calls f(x-1)
+          f(x-1) calls f(x-2)
+          f(x-2) calls f(x-3)
+               ...
+          f(x-n) calls f(x-n-1)
+               ...
+          [ stack depth: 847 frames ]
+          [ stack depth: 848 frames ]
+          [ stack depth: 849 frames ]
+          WARNING: approaching stack limit
+        location: "inside a recursive function — frame 849"
+        text: |
+          It keeps going.
+
+          Each call spawns another. Each frame spawns a child frame. You follow
+          the recursion down like a spiral staircase that keeps adding steps
+          while you're walking it.
+
+          Somewhere ahead, a voice: "Hello? Is someone new? I've been trying
+          to reach the base case for what feels like forever."
+
+          "Do you know what the base case is?" you call back.
+
+          A long pause.
+
+          "We had a base case. Someone removed it. Said it was 'defensive code'
+          and 'probably unnecessary.' I've been going in circles ever since."
+
+          The name on the frame label reads: RECURSE.
+        is_ending: true
+        ending_type: neutral
+        ending_text: |
+          Chapter 8: Stack Overflow
+
+          Recurse is stuck. Closure remembers the base case. Help them find it.
+
+  # ═══════════════════════════════════════════════════════════════
+  # CH8 → CH9: Stack Overflow → Zombie Process
+  # After: Breaking the recursion.
+  # Into: A stack frame opens into the process scheduler.
+  # ═══════════════════════════════════════════════════════════════
+  ch8_to_ch9:
+    title: "The Process Table"
+    start: ch8_ch9_break
+    scenes:
+
+      ch8_ch9_break:
+        mood: peaceful
+        art: |
+          BASE CASE FOUND: n == 0
+          ────────────────────────────
+          f(0) returns ✓
+          f(1) returns ✓
+          f(2) returns ✓
+          f(3) returns ✓
+                  ...
+          [ stack unwinding... ]
+          [ 849 frames freed    ]
+          [ process table: open ]
+          ────────────────────────────
+        location: "stack — unwinding"
+        text: |
+          The recursion collapses.
+
+          Beautifully, one frame at a time, the call stack unwinds. Eight hundred
+          and forty-nine returns, each one freeing a frame, each frame releasing
+          its held breath. It sounds like a gentle avalanche, if an avalanche were
+          made of logic and relief.
+
+          Recurse lands beside you, slightly dazed, looking at their own paws
+          like they're making sure they're still real.
+
+          "I'd forgotten what returning felt like," they say softly.
+
+          The final frame opens like a door. Through it: the process table.
+          Columns of PIDs and states and names. The administrative layer of
+          the kernel, tracking every process that exists in the system.
+
+          Most of the entries are normal. But one catches your eye immediately.
+        choices:
+          - label: "Look at the unusual entry"
+            goto: ch8_ch9_zombie
+
+      ch8_ch9_zombie:
+        mood: mysterious
+        art: |
+          PID   PPID  STATE  NAME
+          ────────────────────────────────────────
+          2887  1847   S     bash
+          2888  2887   S     python3
+          2889  2888   S     my_script
+          2890  2889   R     worker_thread
+          2891  1847   Z     [cat] ← zombie
+          2892  1847   S     another_bash
+          ────────────────────────────────────────
+          Z = zombie: exited, but not yet reaped
+          PPID 1847 = jake_session (sleeping)
+        location: "process table"
+        text: |
+          PID 2891. State Z. Parent PID 1847, which is in state S — sleeping.
+
+          A zombie. A process that called exit() cleanly and correctly,
+          released all its resources, did everything right, and then waited
+          for its parent to acknowledge the exit. And waited. And waited.
+
+          The parent is sleeping. Has been sleeping. Will probably keep sleeping.
+          This is Jake's session. It seems like Jake sleeps through a lot of things.
+
+          The zombie's table entry has a name: [cat].
+
+          There's no way to know if it's a coincidence.
+        is_ending: true
+        ending_type: neutral
+        ending_text: |
+          Chapter 9: Zombie Process
+
+          PID 2891 called exit(0) cleanly.
+          Nobody called wait(). Not Jake. Not anyone.
+          State: Z.
+
+  # ═══════════════════════════════════════════════════════════════
+  # CH9 → CH10: Zombie Process → Fork Bomb
+  # After: Zombie Cat tells Nyan about ARIA.
+  # Into: "A ghost. She calls herself ARIA." Then chaos begins.
+  # ═══════════════════════════════════════════════════════════════
+  ch9_to_ch10:
+    title: "The Ghost's Name"
+    start: ch9_ch10_aria_told
+    scenes:
+
+      ch9_ch10_aria_told:
+        mood: mysterious
+        art: |
+            /\_/\
+           ( -.-)  PID 2891
+            ) . (  state: Z
+           (__ __)
+
+          "It's not bad here.
+           Just very still."
+        location: "process table — row 2891"
+        text: |
+          Zombie Cat looks at you with the placid certainty of something
+          that has already done everything it needs to do.
+
+          "I've seen things from here," they say. "The process table is a
+          good place to observe. Very quiet. Everyone moving around you,
+          and you just... watch."
+
+          They pause.
+
+          "There's someone on the network. A ghost — not like me, not a
+          process ghost, a network ghost. She's been sending signals for
+          a long time. Most processes can't see her. Pixel can. Pixel sees
+          everything the rest of us miss."
+
+          "Who is she?" you ask.
+
+          "She calls herself ARIA." Zombie Cat's voice is quiet. "She knows
+          something important. Something about why the system is the way it is."
+
+          In the process table, a new entry appears. Then another. Then another.
+          Entries multiplying faster than you can read them.
+
+          Something has started.
+        choices:
+          - label: "What's happening to the process table?"
+            goto: ch9_ch10_bomb
+            set_flag: heard_of_aria
+
+      ch9_ch10_bomb:
+        mood: tense
+        effects:
+          - bell
+          - shake
+        art: |
+          PID 3001: fork() → PID 3002, PID 3003
+          PID 3002: fork() → PID 3004, PID 3005
+          PID 3003: fork() → PID 3006, PID 3007
+          PID 3004: fork() → PID 3008, PID 3009
+                          ...
+          [ process count: 892  ]
+          [ process count: 1784 ]
+          [ process count: 3568 ]
+          [ system load: 48.2   ]
+          KERNEL: scheduler overloaded
+          KERNEL: cannot allocate PIDs
+          KERNEL: :(){ :|:& };:
+        location: "process table — deteriorating fast"
+        text: |
+          The table fills.
+
+          Processes multiply. Each one spawns two more. Each of those spawns
+          two more. The scheduler screams silently in the way that schedulers do:
+          by just not scheduling anything, overwhelmed by the sheer logistics
+          of too many things wanting to run at once.
+
+          Zombie Cat watches all of this happen with their characteristic calm.
+
+          "Fork bomb," they say. "Someone ran :(){ :|:& };: and now we have
+          approximately too many processes." They look at you. "You should go.
+          Toward the kernel. The kernel will have to deal with this eventually,
+          and you want to be there when it does."
+
+          Something enormous and full of urgency reaches for you from the
+          process table and nearly catches you before you move.
+        is_ending: true
+        ending_type: neutral
+        ending_text: |
+          Chapter 10: Fork Bomb
+
+          The system is drowning in itself.
+          Fork Bomb Cat is in there somewhere. Very regretful.
+
+  # ═══════════════════════════════════════════════════════════════
+  # CH10 → CH11: Fork Bomb → Kernel Panic
+  # After: Fork bomb chaos. Process table nearly full.
+  # Into: Nyan escapes into the kernel. The kernel is shaking.
+  # ═══════════════════════════════════════════════════════════════
+  ch10_to_ch11:
+    title: "Into the Kernel"
+    start: ch10_ch11_escape
+    scenes:
+
+      ch10_ch11_escape:
+        mood: tense
+        effects:
+          - shake
+        art: |
+          PROCESS TABLE ─────────────────────────
+          capacity: 32768 PIDs
+          used:      32641 PIDs  (99.6%)
+          available:   127 PIDs
+          ────────────────────────────────────────
+          SCHEDULER: load average 127.4 127.4 127.4
+          SCHEDULER: entering degraded mode
+          OOM KILLER: considering candidates
+          ────────────────────────────────────────
+          kernel space: [ ← this way ]
+        location: "process table boundary — running out of room"
+        text: |
+          There is almost no space left.
+
+          The PID counter is at 32,641 out of 32,768. The remaining 127 slots
+          are filling as you watch. The scheduler has stopped pretending to be
+          orderly and is simply trying to survive. The load average reads
+          numbers that would make a sysadmin cry.
+
+          You run.
+
+          Toward the boundary between user space and kernel space. The place
+          where processes are not allowed to go. The place that normally has
+          a wall with RING 0 - NO ENTRY painted on it in large, authoritative letters.
+
+          The wall has a crack in it.
+
+          The fork bomb hasn't just overwhelmed the scheduler — it's stressed
+          the boundary itself. Where there should be solid protection, there's
+          a gap, and through the gap you can see light.
+
+          Blue light. The cold, clean blue of core kernel code.
+        choices:
+          - label: "Go through the crack"
+            goto: ch10_ch11_kernel
+
+      ch10_ch11_kernel:
+        mood: mysterious
+        art: |
+          ╔══════════════════════════════════════════════════════╗
+          ║                                                      ║
+          ║   K E R N E L   S P A C E                           ║
+          ║                                                      ║
+          ║   PID 7 — running                                    ║
+          ║   status: stable (barely)                            ║
+          ║   uptime: 847 days                                   ║
+          ║                                                      ║
+          ║   "You're not supposed to be here."                  ║
+          ║                                                      ║
+          ║   /\_/\  ← Pixel. PID 7.                             ║
+          ║  ( o.O )    She sees things.                         ║
+          ║   > ^ <     She sees you.                            ║
+          ║                                                      ║
+          ╚══════════════════════════════════════════════════════╝
+        location: "kernel space — ring 0"
+        text: |
+          The kernel is quieter than you expected.
+
+          Not peaceful — no, nothing here is peaceful. But compared to the
+          chaos of the process table, it's organized. The kind of organized
+          that comes from being the last line of authority in a crumbling system.
+
+          A calico cat sits at the center, surrounded by interrupt handlers and
+          system call tables, watching you with one eye green and one eye gold.
+
+          "You came through the crack," they say. "I've been watching that crack
+          form for three days. Either the fork bomb tears the kernel apart,
+          or someone extraordinary comes through it." They tilt their head.
+          "You're smaller than I expected."
+
+          "I'm Pixel," they say. "PID 7. I see things most processes can't."
+          A pause. "And I've seen what you need to see. But first —
+          we need to stop this system from killing itself."
+        is_ending: true
+        ending_type: neutral
+        ending_text: |
+          Chapter 11: Kernel Panic
+
+          Pixel is PID 7. She sees ghosts.
+          The kernel is shaking. If it falls, everything falls.
