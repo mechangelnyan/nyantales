@@ -1194,7 +1194,31 @@ cd /tmp/nyantales && python3 -m http.server 9876
 - All 32 JS files pass `node --check` validation
 - 50/50 Playwright tests pass
 
+## Phase 69: TitleBrowser Extraction, Campaign Lock Optimization, QoL ✅
+- **TitleBrowser module extraction** (`web/js/title-browser.js`) — 250+ lines of search/filter/sort/persist logic extracted from main.js
+  - `TitleBrowser` class encapsulates: search input (debounced), filter tabs, sort dropdown, state persistence, clear/reset, count/empty indicators, mobile sticky sync
+  - main.js reduced from 1883 → 1703 lines (180 lines removed, some added for campaign lock map)
+  - All event wiring (input, click, change, scroll, resize, orientationchange) handled internally
+  - Public API: `refreshCards()`, `apply()`, `reset()`, `syncMobileSticky()`, `isSearchFocused`
+  - Drop-in replacement: main.js now creates a `TitleBrowser` instance and calls `titleBrowser.apply()` / `titleBrowser.refreshCards()`
+- **O(1) campaign lock lookups** — `isStoryUnlocked()` refactored from O(n) linear scan to Map lookup
+  - `_campaignSlugMap` (Map) maps story slugs to `{type: 'chapter', index}` or `{type: 'bonus', flag}`
+  - Built once when campaign loads via `rebuildCampaignSlugMap()`, rebuilt after `campaign.advance()`
+  - Eliminates 30×26 = 780 iterations per title screen render (30 cards × up to 26 chapters scanned)
+- **Campaign ending + achievements deferred** — achievement popups now queued during campaign mode intro to prevent premature overlay clutter
+- **Ending Continue button** — ending overlay requires explicit "Continue ▶" click before showing the ending splash
+  - `_waitForEndingContinue()` in VNUI shows gold-accented button, waits for click/Enter/Space
+  - Gives players time to read the final scene text
+- **Campaign story locking** — stories tied to campaign chapters are hidden/locked until the player reaches them
+  - Locked cards show dimmed with 🔒 icon and "Progress through the campaign to unlock"
+  - Non-campaign stories always available
+- **Left-aligned story text** — story text and ASCII art content now left-aligned for readability
+- SW cache bumped to v51, production build regenerated (167KB minified bundle)
+- All 32 JS files pass `node --check` validation, 204/204 unit tests pass, Playwright passes
+- Committed & pushed
+
 ## Log (continued)
+- 2026-03-27 (2:27 PM): Phase 69 — Extracted TitleBrowser class from main.js (250+ lines → own module), O(1) campaign lock lookups via pre-built slug map (replaces 780 iterations per render), campaign story locking, ending Continue button, achievement deferral during campaign, left-aligned text. main.js 1883→1703 lines. SW v51, 167KB bundle. All 32 JS + 204/204 unit tests pass. Committed & pushed.
 - 2026-03-27 (1:27 PM): Phase 68 — Performance: replaced 9 `storyIndex.find()` O(n) linear scans with `storySlugMap` Map for O(1) lookups. Parallelized boot loading (story index + campaign + portrait preload via Promise.all). Pre-created filter count/empty state DOM elements at init instead of lazy createElement in hot filter path. Cached btnContinueEl, filterTags, loading screen refs. SW v50, 162KB bundle. All 32 JS + 50/50 Playwright pass. No new stories added.
 - 2026-03-27 (11:27 AM): Phase 66 — Polished the mobile title browser: the story search/filter/sort block is now a sticky frosted panel on small screens, the story list no longer traps touch scrolling inside a nested inner scroller, narrow-width filter pills can scroll horizontally, and title stats wrap more cleanly. Added a Playwright regression covering sticky mobile filters/page-level scrolling, updated the README feature list, bumped the service worker to v49, and regenerated dist. No new stories added.
 - 2026-03-27 (9:27 AM): Phase 64 — Added a `🔗 Share` button to the Story Info modal so title-screen story cards can copy/share clean deep links (`/?story=slug`) before starting a run. Introduced `web/js/share.js` to centralize canonical story URL generation plus native share→clipboard fallback, reused it for ending-share code, wrapped Story Info action buttons better on mobile, added a Playwright regression for Story Info share, updated README build sizes/features, bumped SW to v47, and regenerated dist (160KB JS / 84KB CSS). Verified `node --check`, `npm test` (204/204), and `npx playwright test` (45/45). No new stories added.
