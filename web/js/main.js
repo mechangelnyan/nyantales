@@ -60,7 +60,7 @@
     startStory(story);
   };
   storyInfo.onLoad = (slug, stateJson) => {
-    const story = storyIndex.find(s => s.slug === slug);
+    const story = storySlugMap.get(slug);
     if (story) {
       ensureAudio();
       startStory(story, stateJson);
@@ -95,7 +95,7 @@
 
   // Wire gallery story click (one-time, not per-show)
   gallery.onStoryClick((slug) => {
-    const story = storyIndex.find(s => s.slug === slug);
+    const story = storySlugMap.get(slug);
     if (story) { ensureAudio(); startStory(story); }
   });
 
@@ -105,8 +105,7 @@
   // Migrate legacy save format to new slot system
   saveManager.migrateLegacy();
 
-  // Preload AI portraits (non-blocking visual improvement)
-  await ui.portraits.preloadAll();
+  // AI portraits preloaded in parallel with story/campaign loading during boot (see boot())
 
   // ── Color Themes (must be before initial settings) ──
 
@@ -249,6 +248,8 @@
   };
 
   let storyIndex   = [];
+  /** @type {Map<string, Object>} slug → story for O(1) lookups */
+  let storySlugMap  = new Map();
   let currentEngine = null;
   let currentSlug   = null;
   let activeFilter  = DEFAULT_TITLE_BROWSER_STATE.filter;
@@ -433,6 +434,7 @@
       })
     );
     storyIndex = results.filter(r => r.status === 'fulfilled' && r.value).map(r => r.value);
+    storySlugMap = new Map(storyIndex.map(s => [s.slug, s]));
     return storyIndex;
   }
 
@@ -684,7 +686,7 @@
   /** Resolve a story from a card element via data-slug */
   function storyFromCard(card) {
     const slug = card?.dataset.slug;
-    return slug ? storyIndex.find(s => s.slug === slug) : null;
+    return slug ? storySlugMap.get(slug) : null;
   }
 
   /** Start a story from a card click (shared by click + keydown delegation) */
@@ -875,12 +877,14 @@
 
   // ── Continue Button ──
 
+  const btnContinueEl = document.getElementById('btn-continue');
+
   function updateContinueButton() {
-    const btn = document.getElementById('btn-continue');
+    const btn = btnContinueEl;
     const recent = saveManager.getMostRecentSave();
 
     if (recent && btn) {
-      const story = storyIndex.find(s => s.slug === recent.slug);
+      const story = storySlugMap.get(recent.slug);
       const title = story ? story.title : recent.slug;
       btn.innerHTML = `▶ Continue<span class="continue-meta">${title} · ${recent.turns} turns</span>`;
       btn.classList.remove('hidden');
@@ -941,9 +945,26 @@
 
   const filterInput = document.getElementById('filter-input');
   const filterTagsContainer = document.querySelector('.filter-tags');
+  const filterTags = filterTagsContainer ? [...filterTagsContainer.querySelectorAll('.filter-tag')] : [];
   const sortSelect = document.getElementById('sort-select');
   const filterClearBtn = document.getElementById('filter-clear');
   const storyFilter = document.getElementById('story-filter');
+
+  // Pre-create filter count + empty state elements (avoids DOM creation in hot filter path)
+  const _filterCountEl = (() => {
+    const el = document.createElement('span');
+    el.id = 'filter-count';
+    el.className = 'filter-count hidden';
+    filterInput?.parentElement?.appendChild(el);
+    return el;
+  })();
+  const _filterEmptyEl = (() => {
+    const el = document.createElement('div');
+    el.id = 'filter-empty';
+    el.className = 'filter-empty hidden';
+    storyGrid?.parentElement?.appendChild(el);
+    return el;
+  })();
 
   function loadTitleBrowserState() {
     let stored = null;
@@ -976,13 +997,11 @@
 
   function syncTitleBrowserControls() {
     if (sortSelect) sortSelect.value = activeSort;
-    if (filterTagsContainer) {
-      filterTagsContainer.querySelectorAll('.filter-tag').forEach(tag => {
-        const isActive = tag.dataset.filter === activeFilter;
-        tag.classList.toggle('active', isActive);
-        tag.setAttribute('aria-selected', isActive ? 'true' : 'false');
-      });
-    }
+    filterTags.forEach(tag => {
+      const isActive = tag.dataset.filter === activeFilter;
+      tag.classList.toggle('active', isActive);
+      tag.setAttribute('aria-selected', isActive ? 'true' : 'false');
+    });
     updateTitleBrowserClearButton();
   }
 
@@ -1084,36 +1103,22 @@
     });
 
     // Update result count indicator
-    let countEl = document.getElementById('filter-count');
-    if (!countEl) {
-      countEl = document.createElement('span');
-      countEl.id = 'filter-count';
-      countEl.className = 'filter-count';
-      filterInput.parentElement.appendChild(countEl);
-    }
     if (query || activeFilter !== 'all') {
-      countEl.textContent = `${visibleCount} stor${visibleCount === 1 ? 'y' : 'ies'}`;
-      countEl.classList.remove('hidden');
+      _filterCountEl.textContent = `${visibleCount} stor${visibleCount === 1 ? 'y' : 'ies'}`;
+      _filterCountEl.classList.remove('hidden');
     } else {
-      countEl.classList.add('hidden');
+      _filterCountEl.classList.add('hidden');
     }
 
     // Show/hide empty state message
-    let emptyEl = document.getElementById('filter-empty');
     if (visibleCount === 0 && (query || activeFilter !== 'all')) {
-      if (!emptyEl) {
-        emptyEl = document.createElement('div');
-        emptyEl.id = 'filter-empty';
-        emptyEl.className = 'filter-empty';
-        storyGrid.parentElement.appendChild(emptyEl);
-      }
       const hint = activeFilter === 'favorites' ? 'Tap 🤍 on a story card to favorite it!'
         : activeFilter === 'completed' ? 'No stories completed yet — start playing!'
         : 'No matches found. Try a different search.';
-      emptyEl.innerHTML = `<span class="filter-empty-icon">🐱</span><span>${hint}</span>`;
-      emptyEl.classList.remove('hidden');
-    } else if (emptyEl) {
-      emptyEl.classList.add('hidden');
+      _filterEmptyEl.innerHTML = `<span class="filter-empty-icon">🐱</span><span>${hint}</span>`;
+      _filterEmptyEl.classList.remove('hidden');
+    } else {
+      _filterEmptyEl.classList.add('hidden');
     }
   }
 
@@ -1349,7 +1354,7 @@
 
   // Wire save manager's load callback
   saveManager.onLoad = (slug, stateJson) => {
-    const story = storyIndex.find(s => s.slug === slug);
+    const story = storySlugMap.get(slug);
     if (story) startStory(story, stateJson);
   };
 
@@ -1402,7 +1407,7 @@
       case 'btn-continue': {
         const recent = saveManager.getMostRecentSave();
         if (!recent) return;
-        const story = storyIndex.find(s => s.slug === recent.slug);
+        const story = storySlugMap.get(recent.slug);
         if (!story) return;
         ensureAudio();
         startStory(story, recent.state);
@@ -1468,11 +1473,11 @@
   });
 
   /** Show or hide the loading screen with progress */
+  const _loadingFill  = document.querySelector('.loading-bar-fill');
+  const _loadingLabel = document.querySelector('.loading-text');
   function updateLoadingProgress(pct, text) {
-    const fill = document.querySelector('.loading-bar-fill');
-    const label = document.querySelector('.loading-text');
-    if (fill) fill.style.width = `${pct}%`;
-    if (label && text) label.textContent = text;
+    if (_loadingFill) _loadingFill.style.width = `${pct}%`;
+    if (_loadingLabel && text) _loadingLabel.textContent = text;
   }
 
   function hideLoadingScreen() {
@@ -1510,7 +1515,7 @@
       return;
     }
 
-    const story = storyIndex.find(s => s.slug === requestedSlug);
+    const story = storySlugMap.get(requestedSlug);
     if (!story) {
       Toast.show(`Story not found: ${requestedSlug}`, { icon: '⚠️', duration: 3500 });
       if (currentSlug) {
@@ -1534,14 +1539,14 @@
     try {
       updateLoadingProgress(10, 'Initializing...');
       updateLoadingProgress(30, 'Loading stories...');
-      await loadStoryIndex();
-      updateLoadingProgress(60, 'Loading campaign...');
-      try {
-        await campaign.load(storyBasePath());
-        campaign.loadProgress();
-      } catch (e) {
-        console.warn('Campaign data not available:', e);
-      }
+      // Parallelize story index, campaign, and portrait preloads
+      const [,] = await Promise.all([
+        loadStoryIndex(),
+        campaign.load(storyBasePath()).then(() => campaign.loadProgress()).catch(e => {
+          console.warn('Campaign data not available:', e);
+        }),
+        ui.portraits.preloadAll()
+      ]);
       updateLoadingProgress(80, 'Rendering...');
       renderTitleScreen();
       updateInstallButton();
@@ -1615,7 +1620,7 @@
         playCampaignPhase();
         return;
       }
-      const story = storyIndex.find(s => s.slug === ch.story);
+      const story = storySlugMap.get(ch.story);
       if (!story) {
         console.warn(`Campaign: story "${ch.story}" not found, skipping`);
         campaign.advance();
@@ -1811,7 +1816,7 @@
     }
     const ch = campaign.chapters[chapterIndex];
     if (!ch) return;
-    const story = storyIndex.find(s => s.slug === ch.story);
+    const story = storySlugMap.get(ch.story);
     if (!story) {
       Toast.show('Story not found: ' + ch.story, { icon: '⚠️' });
       return;
