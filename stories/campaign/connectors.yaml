@@ -171,9 +171,9 @@ connectors:
         mood: peaceful
         art: |
              /\_/\   /\_/\
-            ( ^.^ ) ( >.< )
+             ( ^.^ ) ( >.< )
              )   (   )   (
-            (__  __)(__ __)
+             (__  __)(__ __)
               sudo    nyan
                ← staying    going →
         text: |
@@ -250,11 +250,11 @@ connectors:
                 ║ :wq! ║   ← the magic words
                 ╚══╤═══╝
                    ↓
-             /\_/\   /\_/\
-            ( ^.^ ) ( ^.^ )
-             )   (   )   (   → FREEDOM
-            (__  __)(__ __)
-              tabby   nyan
+                /\_/\   /\_/\
+                ( ^.^ ) ( ^.^ )
+                )   (   )   (   → FREEDOM
+                (__  __)(__ __)
+                tabby   nyan
         location: "exiting vim — against all odds"
         text: |
           :wq!
@@ -761,12 +761,12 @@ connectors:
         mood: mysterious
         art: |
             /\_/\
-           ( -.-)  PID 2891
+            ( -.-)  PID 2891
             ) . (  state: Z
-           (__ __)
+            (__ __)
 
-          "It's not bad here.
-           Just very still."
+            "It's not bad here.
+            Just very still."
         location: "process table — row 2891"
         text: |
           Zombie Cat looks at you with the placid certainty of something

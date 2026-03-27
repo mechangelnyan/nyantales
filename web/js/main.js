@@ -195,6 +195,8 @@
   let activeFilter  = 'all';
   let activeSort    = 'title-asc';
   let storyStartTime = null; // timestamp when current story session began
+  let campaignMode  = false; // true when playing the connected campaign
+  const campaign    = new CampaignManager();
 
   // ── Auto-play State ──
 
@@ -482,17 +484,48 @@
       if (newAch.length > 0) {
         setTimeout(() => achievements.showNewUnlocks(newAch), 2000);
       }
+
+      // In campaign mode, add a "Next Chapter" button to the ending overlay
+      if (campaignMode) {
+        const endingEl = document.getElementById('vn-ending');
+        if (endingEl) {
+          const nextBtn = document.createElement('button');
+          nextBtn.className = 'campaign-btn';
+          nextBtn.style.marginTop = '1rem';
+          nextBtn.textContent = campaign.isComplete() ? '🏠 Return Home' : '▶ Next Chapter';
+          nextBtn.addEventListener('click', () => onCampaignEnding());
+          // Insert before the restart/menu buttons
+          const actionsRow = endingEl.querySelector('.ending-actions');
+          if (actionsRow) {
+            actionsRow.insertBefore(nextBtn, actionsRow.firstChild);
+          } else {
+            endingEl.appendChild(nextBtn);
+          }
+        }
+      }
     };
 
     // Wire restart + menu
     ui.onRestart(() => {
+      if (campaignMode) {
+        // In campaign mode, restart replays current chapter
+        initEngine(parsed);
+        if (currentEngine) campaign.applyPersistentState(currentEngine);
+        ui.showStoryScreen();
+        updateAutoPlayHUD(settings.get('autoPlay'));
+        playScene(currentEngine.getCurrentScene());
+        return;
+      }
       initEngine(parsed);
       ui.showStoryScreen();
       updateAutoPlayHUD(settings.get('autoPlay'));
       playScene(currentEngine.getCurrentScene());
     });
 
-    ui.onMenu(() => returnToMenu());
+    ui.onMenu(() => {
+      if (campaignMode) campaignMode = false;
+      returnToMenu();
+    });
   }
 
   async function startStory(story, savedState) {
@@ -742,6 +775,7 @@
 
     // "Continue" button — shows if there's a recent save
     updateContinueButton();
+    updateCampaignButton();
 
     applyFilter();
     applySortToGrid();
@@ -1105,6 +1139,11 @@
     const id = btn.id;
 
     switch (id) {
+      case 'btn-campaign': {
+        ensureAudio();
+        startCampaign();
+        break;
+      }
       case 'btn-continue': {
         const recent = saveManager.getMostRecentSave();
         if (!recent) return;
@@ -1173,6 +1212,13 @@
       updateLoadingProgress(10, 'Initializing...');
       updateLoadingProgress(30, 'Loading stories...');
       await loadStoryIndex();
+      updateLoadingProgress(60, 'Loading campaign...');
+      try {
+        await campaign.load(storyBasePath());
+        campaign.loadProgress();
+      } catch (e) {
+        console.warn('Campaign data not available:', e);
+      }
       updateLoadingProgress(80, 'Rendering...');
       renderTitleScreen();
       updateLoadingProgress(100, 'Ready!');
@@ -1190,6 +1236,103 @@
           <code>cd /tmp/nyantales && python3 -m http.server 8080</code><br>
           Then open <a href="http://localhost:8080/web/">http://localhost:8080/web/</a>
         </p>`;
+    }
+  }
+
+  // ── Campaign Mode ──
+
+  /** Start or continue the campaign. */
+  async function startCampaign() {
+    if (!campaign.isLoaded) {
+      Toast.show('Campaign data not available', { icon: '⚠️' });
+      return;
+    }
+    campaignMode = true;
+    playCampaignPhase();
+  }
+
+  /** Play the current campaign phase (intro, connector, chapter, or complete). */
+  async function playCampaignPhase() {
+    const phase = campaign.progress.phase;
+
+    if (phase === 'intro' && !campaign.progress.started) {
+      // Play the intro
+      const introStory = campaign.getIntroAsStory();
+      if (introStory) {
+        startStory(introStory);
+        return;
+      }
+      // If no intro, advance to first chapter
+      campaign.advance();
+      playCampaignPhase();
+      return;
+    }
+
+    if (phase === 'connector') {
+      const key = campaign.progress.connectorKey;
+      const connStory = campaign.getConnectorAsStory(key);
+      if (connStory) {
+        startStory(connStory);
+        return;
+      }
+      // If connector missing, skip to chapter
+      campaign.advance();
+      playCampaignPhase();
+      return;
+    }
+
+    if (phase === 'chapter') {
+      const ch = campaign.getCurrentChapter();
+      if (!ch) {
+        campaign.progress.phase = 'complete';
+        campaign.saveProgress();
+        playCampaignPhase();
+        return;
+      }
+      const story = storyIndex.find(s => s.slug === ch.story);
+      if (!story) {
+        console.warn(`Campaign: story "${ch.story}" not found, skipping`);
+        campaign.advance();
+        playCampaignPhase();
+        return;
+      }
+      // Apply persistent state to the new engine after it starts
+      startStory(story).then(() => {
+        if (currentEngine) campaign.applyPersistentState(currentEngine);
+      });
+      return;
+    }
+
+    if (phase === 'complete') {
+      campaignMode = false;
+      Toast.show('Campaign complete! 🎉 Thanks for playing.', { icon: '🐱', duration: 5000 });
+      returnToMenu();
+      return;
+    }
+  }
+
+  /**
+   * Called when a story/connector ends during campaign mode.
+   * Advances campaign state and plays the next phase.
+   */
+  function onCampaignEnding() {
+    campaign.advance(currentEngine);
+    // Small delay before advancing to next phase for pacing
+    setTimeout(() => playCampaignPhase(), 500);
+  }
+
+  /** Update campaign button text on title screen. */
+  function updateCampaignButton() {
+    const btn = document.getElementById('btn-campaign');
+    if (!btn || !campaign.isLoaded) return;
+    const label = campaign.getProgressLabel();
+    if (label) {
+      btn.innerHTML = `📖 Continue Campaign<span class="campaign-meta">${label}</span>`;
+    } else {
+      btn.textContent = '📖 Campaign';
+    }
+    if (campaign.isComplete()) {
+      btn.innerHTML = '📖 Campaign <span class="campaign-meta">Complete! ✨</span>';
     }
   }
 
