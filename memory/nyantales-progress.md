@@ -879,6 +879,22 @@ cd /tmp/nyantales && python3 -m http.server 9876
 - SW cache bumped to v38, production build regenerated (136KB bundle)
 - All 30 JS files pass `node --check` validation
 
+## Phase 54: Campaign Integration Polish ✅
+- **Reverted broken title screen layout** — previous session redesigned index.html for campaign-centric layout, removing story list/filter/search/sort/continue/random buttons entirely. Reverted to working layout with all original UI intact + campaign button.
+- **Fixed title-actions CSS regression** — was changed to `flex-direction: column` breaking the horizontal button row
+- **Fixed boot error fallback** — was targeting nonexistent `#chapter-grid`, now uses `#story-list`
+- **Fixed updateCampaignButton()** — was generating `campaign-hero-btn` class and `campaign-hero-tag` spans that don't exist in the actual HTML
+- **Removed duplicate CampaignManager instantiation** — was declared at both init block and game state section
+- **Campaign data in export/import** — `nyantales-campaign` added to `DataManager.DATA_KEYS`
+- **Campaign reset in Settings** — new "📖 Reset Campaign" button in Settings → Data section with confirmation dialog
+- **Campaign progress in Stats Dashboard** — `StatsDashboard` now accepts `campaign` param, shows chapters completed/total with progress bar when campaign is started
+- **About panel** — added campaign feature mention (26 chapters across 5 acts)
+- **CSS class** `.campaign-btn-ending` replaces inline `style.marginTop` on ending overlay campaign button
+- **Error handling** — `.catch()` added to `startStory().then()` in campaign chapter play
+- SW cache bumped to v39, production build regenerated (145KB bundle)
+- All 30 JS files pass `node --check` validation
+- Committed & pushed
+
 ## Still Possible Future Work
 - Generate remaining character portraits (GPU timeout issue — needs investigation, possibly during lower GPU load)
 - AI-generated scene background images
@@ -923,6 +939,7 @@ cd /tmp/nyantales && python3 -m http.server 9876
 - All 30 JS files pass `node --check` validation
 
 ## Log (continued)
+- 2026-03-26 (11:27 PM): Phase 54 — Campaign integration polish: reverted broken title screen redesign (story list/filter/search was removed), fixed title-actions CSS, fixed updateCampaignButton to match actual HTML, removed duplicate CampaignManager, added campaign to DataManager export/import, campaign reset in Settings, campaign progress in Stats Dashboard, .campaign-btn-ending CSS class, .catch() on campaign startStory. SW v39. 145KB bundle. All 30 JS pass. Committed & pushed.
 - 2026-03-26 (10:27 PM): Phase 53 — Cached DOM + delegation + engine optimization: SettingsPanel caches 17 DOM refs, delegates data/theme clicks, shares _speedLabel(). SaveManager consolidates close+mode into 1 listener, caches _slotsEl/_modeBtns/_panelEl. Engine.interpolate() uses single pre-compiled regex (8 chained .replace→1 pass). UI._updateSprites eliminates object spread allocation (parallel speakerFlags array), adds _charNameCache. addEventListener count 65→61. SW v38. 136KB bundle. All 30 JS pass. Committed & pushed.
 - 2026-03-26 (9:27 PM): Phase 52 — SEO & discoverability: robots.txt, sitemap.xml, canonical URL, JSON-LD WebApplication structured data, dns-prefetch. README updated. SW v37. 136KB bundle. All 30 JS pass. 2 commits pushed.
 - 2026-03-26 (8:27 PM): Phase 51 — One-time callbacks: gallery.onStoryClick + statsDashboard.onPlay moved from per-click to init (eliminates closure re-creation). Pre-computed _totalCharCount for About panel. Synchronous new-ending badge (removed setTimeout). SceneSelect close consolidated (66→65 listeners). build.sh auto-versions prod SW (extracts version from dev sw.js, fixes recurring stale-cache bug). SW v36. 135KB bundle. All 30 JS pass. Committed & pushed.
