@@ -103,6 +103,32 @@ test.describe('Title Screen', () => {
     await expect(page.locator('#filter-clear')).toBeHidden();
   });
 
+  test('title search matches character names across stories', async ({ page }) => {
+    await waitForTitleScreen(page);
+
+    await page.locator('#filter-input').fill('stack canary');
+
+    const visibleCards = page.locator('.story-card:not(.hidden-by-filter)');
+    await expect(visibleCards).toHaveCount(1);
+    await expect(visibleCards.filter({ hasText: /Buffer Overflow/i })).toHaveCount(1);
+    await expect(page.locator('#filter-count')).toContainText('1 story');
+  });
+
+  test('story info modal shows cast chips for the selected story', async ({ page }) => {
+    await waitForTitleScreen(page);
+
+    const card = page.locator('.story-card').filter({ hasText: /Buffer Overflow/i }).first();
+    await card.locator('.story-card-info-btn').click();
+
+    const modal = page.locator('.story-info-overlay');
+    await expect(modal).toBeVisible();
+    const sectionTitles = modal.locator('.story-info-section-title');
+    await expect(sectionTitles).toContainText(['🐾 Cast', '🔮 Endings Discovered', '🕐 Last Played']);
+    await expect(modal.locator('.story-info-cast-chip')).toHaveCount(2);
+    await expect(modal.locator('.story-info-cast')).toContainText('Byte');
+    await expect(modal.locator('.story-info-cast')).toContainText('Stack Canary');
+  });
+
   test('mobile title browser keeps filters sticky while the story list scrolls', async ({ page }) => {
     await page.setViewportSize({ width: 390, height: 844 });
     await waitForTitleScreen(page);

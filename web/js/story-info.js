@@ -113,6 +113,14 @@ class StoryInfoModal {
     const endingsHtml = endings.length > 0
       ? endings.map(e => `<span class="story-info-ending-tag">${this._esc(e)}</span>`).join('')
       : '<span class="story-info-none">None yet</span>';
+    const castHtml = chars.length > 0
+      ? chars.map(char => `
+          <span class="story-info-cast-chip" title="${this._esc(char.appearance || '')}">
+            <span class="story-info-cast-name">${this._esc(char.name)}</span>
+            <span class="story-info-cast-role">${this._esc(char.role || 'cat')}</span>
+          </span>
+        `).join('')
+      : '<span class="story-info-none">Unknown cast</span>';
     const totalReadingMs = data.totalReadingMs || 0;
 
     // Last played
@@ -166,6 +174,11 @@ class StoryInfoModal {
           <div class="story-info-stat-value">${StoryTracker.formatDuration(totalReadingMs)}</div>
           <div class="story-info-stat-label">Reading Time</div>
         </div>
+      </div>
+
+      <div class="story-info-section">
+        <div class="story-info-section-title">🐾 Cast</div>
+        <div class="story-info-cast">${castHtml}</div>
       </div>
 
       <div class="story-info-section">

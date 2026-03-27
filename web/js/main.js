@@ -824,6 +824,7 @@
     card.dataset.slug = story.slug;
     card.dataset.title = story.title.toLowerCase();
     card.dataset.desc = (story.description || '').toLowerCase();
+    card.dataset.search = buildStorySearchBlob(story);
     card.dataset.completed = completed ? '1' : '0';
     card.dataset.favorite = isFav ? '1' : '0';
     card.dataset.readMins = readMins;
@@ -1047,6 +1048,17 @@
     return _cachedCards;
   }
 
+  function buildStorySearchBlob(story) {
+    const chars = (typeof CHARACTER_DATA !== 'undefined' && CHARACTER_DATA[story.slug]) || [];
+    const parts = [story.slug, story.title, story.description || ''];
+    chars.forEach(char => {
+      parts.push(char.name || '');
+      parts.push(char.appearance || '');
+      parts.push(char.role || '');
+    });
+    return parts.join(' ').toLowerCase();
+  }
+
   function applyFilter() {
     const query = (filterInput.value || '').toLowerCase().trim();
     const cards = getStoryCards();
@@ -1055,11 +1067,8 @@
     cards.forEach(card => {
       let show = true;
 
-      if (query) {
-        const matchTitle = card.dataset.title?.includes(query);
-        const matchDesc = card.dataset.desc?.includes(query);
-        const matchSlug = card.dataset.slug?.includes(query);
-        if (!matchTitle && !matchDesc && !matchSlug) show = false;
+      if (query && !card.dataset.search?.includes(query)) {
+        show = false;
       }
 
       if (show && activeFilter === 'completed') {

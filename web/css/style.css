@@ -3238,10 +3238,35 @@ body {
   text-transform: uppercase;
   letter-spacing: 0.04em;
 }
-.story-info-endings {
+.story-info-endings,
+.story-info-cast {
   display: flex;
   flex-wrap: wrap;
   gap: 0.3rem;
+}
+.story-info-cast-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.2rem 0.45rem;
+  border-radius: 999px;
+  background: rgba(var(--accent-r), var(--accent-g), var(--accent-b), 0.08);
+  border: 1px solid rgba(var(--accent-r), var(--accent-g), var(--accent-b), 0.18);
+  color: var(--text-main);
+  max-width: 100%;
+}
+.story-info-cast-name {
+  font-family: var(--font-mono);
+  font-size: 0.68rem;
+  color: var(--text-bright);
+}
+.story-info-cast-role {
+  font-family: var(--font-mono);
+  font-size: 0.58rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--accent-cyan);
+  opacity: 0.85;
 }
 .story-info-ending-tag {
   font-family: var(--font-mono);
