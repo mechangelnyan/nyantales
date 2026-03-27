@@ -760,8 +760,27 @@
       ${tracker.getTotalReadingMs() > 0 ? `<div class="stat">⏱ <span class="stat-value">${totalTime}</span> reading</div>` : ''}
     `;
 
+    // Campaign section
     updateCampaignButton();
     renderChapterGrid();
+
+    // renderStoryList clears the grid and creates fresh cards — no duplicate risk
+    // Card click/keydown events are handled by grid-level delegation (see below)
+    ui.renderStoryList(storyIndex);
+
+    // Invalidate and rebuild cached card list after grid re-render
+    _cachedCards = [...storyGrid.querySelectorAll('.story-card')];
+    const cards = _cachedCards;
+    storyIndex.forEach((story, idx) => {
+      const card = cards[idx];
+      if (card) decorateStoryCard(card, story);
+    });
+
+    // "Continue" button — shows if there's a recent save
+    updateContinueButton();
+
+    applyFilter();
+    applySortToGrid();
   }
 
   // ── Continue Button ──
@@ -1308,20 +1327,14 @@
   /** Update campaign button text on title screen. */
   function updateCampaignButton() {
     const btn = document.getElementById('btn-campaign');
-    if (!btn) return;
-    if (!campaign.isLoaded) {
-      btn.innerHTML = '&#9654; Start Campaign<span class="campaign-hero-tag">One cat. 26 chapters. One connected story.</span>';
-      return;
-    }
-    if (campaign.isComplete()) {
-      btn.innerHTML = '&#127942; Campaign Complete<span class="campaign-hero-tag">Replay from any chapter below.</span>';
-      return;
-    }
+    if (!btn || !campaign.isLoaded) return;
     const label = campaign.getProgressLabel();
-    if (label) {
-      btn.innerHTML = `&#9654; Continue Campaign<span class="campaign-hero-tag">${label}</span>`;
+    if (campaign.isComplete()) {
+      btn.innerHTML = '📖 Campaign <span class="campaign-meta">Complete! ✨</span>';
+    } else if (label) {
+      btn.innerHTML = `📖 Continue Campaign<span class="campaign-meta">${label}</span>`;
     } else {
-      btn.innerHTML = '&#9654; Start Campaign<span class="campaign-hero-tag">One cat. 26 chapters. One connected story.</span>';
+      btn.textContent = '📖 Campaign';
     }
   }
 

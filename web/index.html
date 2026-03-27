@@ -51,7 +51,7 @@
   <link rel="preload" href="js/js-yaml.min.js" as="script">
 </head>
 <body>
-  <a href="#chapter-grid" class="skip-link">Skip to chapters</a>
+  <a href="#story-list" class="skip-link">Skip to stories</a>
   <!-- Loading Screen -->
   <div id="loading-screen" class="loading-screen" role="status" aria-label="Loading NyanTales">
     <div class="loading-cat">
@@ -78,15 +78,39 @@
           <p class="title-subtitle">Interactive Cat Stories from the Terminal</p>
           <div id="title-stats" class="title-stats" aria-label="Play statistics"></div>
           <div class="title-actions" role="toolbar" aria-label="Main actions">
-            <button id="btn-campaign" class="campaign-hero-btn" aria-label="Start or continue the campaign">&#9654; Start Campaign</button>
-            <div class="title-secondary-actions">
-              <button id="btn-gallery" class="gallery-btn" aria-label="Browse character gallery">🐱 Characters</button>
-              <button id="btn-achievements" class="achievements-btn" aria-label="View achievements">🏆 Achievements</button>
-              <button id="btn-stats" class="gallery-btn" aria-label="View detailed statistics">📊 Stats</button>
-              <button id="btn-about" class="gallery-btn" aria-label="About NyanTales">ℹ️ About</button>
-            </div>
+            <button id="btn-campaign" class="campaign-btn" aria-label="Play the connected campaign">📖 Campaign</button>
+            <button id="btn-continue" class="continue-btn hidden" aria-label="Continue last game">▶ Continue</button>
+            <button id="btn-random" class="gallery-btn" aria-label="Play a random story">🎲 Random</button>
+            <button id="btn-gallery" class="gallery-btn" aria-label="Browse character gallery">🐱 Characters</button>
+            <button id="btn-achievements" class="achievements-btn" aria-label="View achievements">🏆 Achievements</button>
+            <button id="btn-stats" class="gallery-btn" aria-label="View detailed statistics">📊 Stats</button>
+            <button id="btn-about" class="gallery-btn" aria-label="About NyanTales">ℹ️ About</button>
           </div>
           <div id="chapter-grid" class="chapter-grid" role="list" aria-label="Campaign chapters"></div>
+          <div id="story-filter" class="story-filter" role="search" aria-label="Filter stories">
+            <input type="text" id="filter-input" placeholder="🔍 Search stories..." autocomplete="off" aria-label="Search stories by title or description" />
+            <div class="filter-row">
+              <div class="filter-tags" role="tablist" aria-label="Story filters">
+                <button class="filter-tag active" data-filter="all" role="tab" aria-selected="true">All</button>
+                <button class="filter-tag" data-filter="favorites" role="tab" aria-selected="false">❤️ Favorites</button>
+                <button class="filter-tag" data-filter="completed" role="tab" aria-selected="false">✅ Completed</button>
+                <button class="filter-tag" data-filter="new" role="tab" aria-selected="false">🆕 New</button>
+              </div>
+              <div class="sort-control" aria-label="Sort stories">
+                <label class="sort-label" for="sort-select">Sort:</label>
+                <select id="sort-select" class="sort-select" aria-label="Sort order">
+                  <option value="title-asc">A → Z</option>
+                  <option value="title-desc">Z → A</option>
+                  <option value="favorites">Favorites First</option>
+                  <option value="recent">Recently Played</option>
+                  <option value="progress">Most Progress</option>
+                  <option value="time-short">Shortest First</option>
+                  <option value="time-long">Longest First</option>
+                </select>
+              </div>
+            </div>
+          </div>
+          <div id="story-list" class="story-grid" role="list" aria-label="Available stories"></div>
         </div>
       </div>
     </div>
