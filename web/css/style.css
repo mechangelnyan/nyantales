@@ -1494,47 +1494,6 @@ body {
   flex-wrap: wrap;
 }
 
-.title-secondary-actions {
-  display: flex;
-  gap: 0.5rem;
-  flex-wrap: wrap;
-  justify-content: center;
-}
-
-/* ── Campaign Hero Button ── */
-.campaign-hero-btn {
-  width: 100%;
-  padding: 1.0rem 2rem;
-  background: rgba(255, 215, 0, 0.1);
-  border: 1px solid rgba(255, 215, 0, 0.55);
-  border-radius: 8px;
-  color: var(--accent-yellow);
-  font-family: var(--font-mono);
-  font-size: 1.1rem;
-  font-weight: 700;
-  cursor: pointer;
-  transition: all 0.25s ease;
-  animation: campaignGlow 3s ease-in-out infinite;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 0.2rem;
-  letter-spacing: 0.04em;
-}
-.campaign-hero-btn:hover {
-  background: rgba(255, 215, 0, 0.2);
-  border-color: #ffd700;
-  box-shadow: 0 0 24px rgba(255, 215, 0, 0.3);
-  transform: translateY(-1px);
-}
-.campaign-hero-btn .campaign-hero-tag {
-  display: block;
-  font-size: 0.65rem;
-  font-weight: 400;
-  color: rgba(255, 215, 0, 0.6);
-  letter-spacing: 0.02em;
-}
-
 /* ── Chapter Grid ── */
 .chapter-grid {
   width: 100%;
@@ -1686,9 +1645,6 @@ body {
 @media (max-width: 480px) {
   .chapter-cards {
     grid-template-columns: 1fr;
-  }
-  .campaign-hero-btn {
-    font-size: 1rem;
   }
   .act-subtitle {
     display: none;
@@ -4004,7 +3960,6 @@ body {
 .gallery-btn,
 .achievements-btn,
 .campaign-btn,
-.campaign-hero-btn,
 .chapter-card,
 .continue-btn,
 .filter-tag {
