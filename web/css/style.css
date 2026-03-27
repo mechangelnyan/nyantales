@@ -829,6 +829,18 @@ body {
   transform: scale(0.97);
 }
 
+.ending-continue-btn {
+  background: rgba(255, 215, 0, 0.08);
+  border-color: rgba(255, 215, 0, 0.4);
+  color: #ffd700;
+  font-size: 1.05rem;
+  letter-spacing: 0.03em;
+}
+.ending-continue-btn:hover {
+  background: rgba(255, 215, 0, 0.15);
+  border-color: rgba(255, 215, 0, 0.6);
+}
+
 .choice-num {
   font-family: var(--font-mono);
   font-size: 0.7rem;

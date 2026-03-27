@@ -402,8 +402,9 @@ class VNUI {
       setTimeout(() => this.containerEl.classList.remove('shake'), 500);
     }
 
-    // Check for ending
+    // Check for ending — show a "Continue" prompt first, then the ending overlay
     if (scene.ending) {
+      await this._waitForEndingContinue();
       this._showEnding(scene, engine);
       // Notify external hook (tracker, achievements)
       if (this._onEndingHook) this._onEndingHook(scene, engine);
@@ -541,6 +542,44 @@ class VNUI {
       clearTimeout(this._typewriterTimeout);
       this._typewriterTimeout = null;
     }
+  }
+
+  /**
+   * Show a "Continue ▶" button and wait for the player to click/tap it
+   * before revealing the ending overlay. Gives the player a moment to
+   * absorb the final scene text.
+   * @returns {Promise<void>}
+   */
+  _waitForEndingContinue() {
+    return new Promise(resolve => {
+      this.clickIndicator.classList.add('hidden');
+      this.choicesEl.innerHTML = '';
+      this.choicesEl.classList.remove('hidden');
+
+      const btn = document.createElement('button');
+      btn.className = 'choice-btn ending-continue-btn fade-in';
+      btn.textContent = 'Continue ▶';
+      this.choicesEl.appendChild(btn);
+
+      const dismiss = () => {
+        btn.removeEventListener('click', dismiss);
+        document.removeEventListener('keydown', keyHandler);
+        this.choicesEl.innerHTML = '';
+        this.choicesEl.classList.add('hidden');
+        resolve();
+      };
+
+      const keyHandler = (e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          dismiss();
+        }
+      };
+
+      btn.addEventListener('click', dismiss);
+      document.addEventListener('keydown', keyHandler);
+      btn.focus();
+    });
   }
 
   // ── Choices ──
