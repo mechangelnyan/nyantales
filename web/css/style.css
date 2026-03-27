@@ -1539,10 +1539,20 @@ body {
 .chapter-grid {
   width: 100%;
   max-width: 1000px;
-  padding: 0 0.5rem 2rem;
-  max-height: calc(100vh - 300px);
-  overflow-y: auto;
-  scroll-behavior: smooth;
+  padding: 0 0.5rem 1.5rem;
+}
+
+.section-divider {
+  width: 100%;
+  max-width: 900px;
+  text-align: center;
+  padding: 0.3rem 0;
+  font-family: var(--font-mono);
+  font-size: 0.65rem;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  color: var(--text-dim);
+  opacity: 0.5;
 }
 
 .chapter-grid-empty {

@@ -266,10 +266,13 @@
 
   // ── Cached DOM refs ──
 
-  const vnContainer = document.querySelector('.vn-container');
-  const btnAutoEl   = document.getElementById('btn-auto');
-  const statsEl     = document.getElementById('title-stats');
-  const textboxEl   = document.getElementById('vn-textbox');
+  const vnContainer    = document.querySelector('.vn-container');
+  const btnAutoEl      = document.getElementById('btn-auto');
+  const statsEl        = document.getElementById('title-stats');
+  const textboxEl      = document.getElementById('vn-textbox');
+  const chapterGridEl  = document.getElementById('chapter-grid');
+  const sectionDivider = document.querySelector('.section-divider');
+  const campaignBtnEl  = document.getElementById('btn-campaign');
 
   // ── In-Game Progress HUD ──
 
@@ -1326,15 +1329,14 @@
 
   /** Update campaign button text on title screen. */
   function updateCampaignButton() {
-    const btn = document.getElementById('btn-campaign');
-    if (!btn || !campaign.isLoaded) return;
+    if (!campaignBtnEl || !campaign.isLoaded) return;
     const label = campaign.getProgressLabel();
     if (campaign.isComplete()) {
-      btn.innerHTML = '📖 Campaign <span class="campaign-meta">Complete! ✨</span>';
+      campaignBtnEl.innerHTML = '📖 Campaign <span class="campaign-meta">Complete! ✨</span>';
     } else if (label) {
-      btn.innerHTML = `📖 Continue Campaign<span class="campaign-meta">${label}</span>`;
+      campaignBtnEl.innerHTML = `📖 Continue Campaign<span class="campaign-meta">${label}</span>`;
     } else {
-      btn.textContent = '📖 Campaign';
+      campaignBtnEl.textContent = '📖 Campaign';
     }
   }
 
@@ -1349,14 +1351,19 @@
 
   /** Render the campaign chapter grid grouped by act. */
   function renderChapterGrid() {
-    const grid = document.getElementById('chapter-grid');
-    if (!grid) return;
-    grid.innerHTML = '';
+    if (!chapterGridEl) return;
+    chapterGridEl.innerHTML = '';
 
+    // Hide campaign section + divider when campaign data isn't loaded
     if (!campaign.isLoaded) {
-      grid.innerHTML = '<p class="chapter-grid-empty">Campaign data unavailable.</p>';
+      chapterGridEl.classList.add('hidden');
+      if (sectionDivider) sectionDivider.classList.add('hidden');
+      if (campaignBtnEl) campaignBtnEl.classList.add('hidden');
       return;
     }
+    chapterGridEl.classList.remove('hidden');
+    if (sectionDivider) sectionDivider.classList.remove('hidden');
+    if (campaignBtnEl) campaignBtnEl.classList.remove('hidden');
 
     const chapters = campaign.chapters;
     const acts = campaign.manifest?.acts || [];
@@ -1440,15 +1447,14 @@
       });
 
       section.appendChild(cards);
-      grid.appendChild(section);
+      chapterGridEl.appendChild(section);
     });
   }
 
   // ── Chapter Grid Click Delegation ──
 
-  const chapterGrid = document.getElementById('chapter-grid');
-  if (chapterGrid) {
-    chapterGrid.addEventListener('click', (e) => {
+  if (chapterGridEl) {
+    chapterGridEl.addEventListener('click', (e) => {
       const card = e.target.closest('.chapter-card');
       if (!card || card.classList.contains('locked')) return;
       const idx = parseInt(card.dataset.chapterIndex, 10);
@@ -1456,7 +1462,7 @@
       ensureAudio();
       startCampaignChapter(idx);
     });
-    chapterGrid.addEventListener('keydown', (e) => {
+    chapterGridEl.addEventListener('keydown', (e) => {
       if (e.key !== 'Enter' && e.key !== ' ') return;
       const card = e.target.closest('.chapter-card');
       if (!card || card.classList.contains('locked')) return;
