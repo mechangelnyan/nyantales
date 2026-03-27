@@ -68,6 +68,7 @@ class AchievementPanel {
     // Close button click handled by delegated listener on _overlay (no per-show addEventListener)
 
     this.isVisible = true;
+    this._overlay.setAttribute('aria-hidden', 'false');
     requestAnimationFrame(() => {
       this._overlay.classList.add('visible');
       this._focusTrap.activate();
@@ -91,6 +92,7 @@ class AchievementPanel {
   hide() {
     if (!this._overlay) return;
     this._overlay.classList.remove('visible');
+    this._overlay.setAttribute('aria-hidden', 'true');
     this.isVisible = false;
     if (this._focusTrap) this._focusTrap.deactivate();
   }

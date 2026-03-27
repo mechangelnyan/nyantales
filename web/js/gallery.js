@@ -58,6 +58,9 @@ class CharacterGallery {
 
     const overlay = document.createElement('div');
     overlay.className = 'gallery-overlay';
+    overlay.setAttribute('role', 'dialog');
+    overlay.setAttribute('aria-label', 'Character Gallery');
+    overlay.setAttribute('aria-hidden', 'true');
     overlay.innerHTML = `
       <div class="gallery-panel">
         <div class="gallery-header">
@@ -118,10 +121,9 @@ class CharacterGallery {
       this._grid.appendChild(card);
     }
 
-    // Close handler
-    closeBtn.addEventListener('click', () => this.hide());
+    // Single delegated click — handles close button + backdrop
     overlay.addEventListener('click', (e) => {
-      if (e.target === overlay) this.hide();
+      if (e.target === overlay || e.target.closest('.gallery-close')) this.hide();
     });
 
     // Cache card NodeList after all cards are built
@@ -179,6 +181,7 @@ class CharacterGallery {
   /** Show the gallery */
   show() {
     this._buildOverlay();
+    this.overlay.setAttribute('aria-hidden', 'false');
     requestAnimationFrame(() => this.overlay.classList.add('visible'));
     if (typeof FocusTrap !== 'undefined') {
       if (!this._focusTrap) this._focusTrap = new FocusTrap(this._panelEl);
@@ -190,6 +193,7 @@ class CharacterGallery {
   hide() {
     if (this.overlay) {
       this.overlay.classList.remove('visible');
+      this.overlay.setAttribute('aria-hidden', 'true');
     }
     if (this._focusTrap) this._focusTrap.deactivate();
   }

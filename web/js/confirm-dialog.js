@@ -76,10 +76,10 @@ class ConfirmDialog {
         resolve(result);
       };
 
-      overlay.querySelector('.cancel-btn').addEventListener('click', () => cleanup(false));
-      overlay.querySelector('.ok-btn').addEventListener('click', () => cleanup(true));
+      // Single delegated click — handles confirm, cancel, and backdrop
       overlay.addEventListener('click', (e) => {
-        if (e.target === overlay) cleanup(false);
+        if (e.target.closest('.ok-btn')) { cleanup(true); return; }
+        if (e.target.closest('.cancel-btn') || e.target === overlay) cleanup(false);
       });
 
       document.addEventListener('keydown', keyHandler);

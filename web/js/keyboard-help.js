@@ -72,10 +72,10 @@ class KeyboardHelp {
 
     document.body.appendChild(this.overlay);
 
+    // Single delegated click — handles close button + backdrop
     this.overlay.addEventListener('click', (e) => {
-      if (e.target === this.overlay) this.hide();
+      if (e.target === this.overlay || e.target.closest('.keyboard-help-close')) this.hide();
     });
-    this.overlay.querySelector('.keyboard-help-close').addEventListener('click', () => this.hide());
 
     this._built = true;
   }

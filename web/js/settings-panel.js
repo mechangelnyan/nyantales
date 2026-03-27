@@ -139,11 +139,10 @@ class SettingsPanel {
     `;
     document.body.appendChild(this.overlay);
 
-    // Close handlers
+    // Single delegated click — handles close button + backdrop
     this.overlay.addEventListener('click', (e) => {
-      if (e.target === this.overlay) this.hide();
+      if (e.target === this.overlay || e.target.closest('.settings-close')) this.hide();
     });
-    this.overlay.querySelector('.settings-close').addEventListener('click', () => this.hide());
 
     // Wire up controls
     this._previewTimer = null;

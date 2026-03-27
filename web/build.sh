@@ -158,7 +158,7 @@ cat > "$DIST/sw.js" << 'SWEOF'
  * Single-bundle caching for optimal performance.
  */
 
-const CACHE_NAME = 'nyantales-v32-prod';
+const CACHE_NAME = 'nyantales-v35-prod';
 
 const SHELL_FILES = [
   './',

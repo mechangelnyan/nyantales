@@ -83,11 +83,11 @@ class HistoryPanel {
     this._countEl = this.overlay.querySelector('.history-count');
     this._panelEl = this.overlay.querySelector('.history-panel');
 
+    // Single delegated click — handles close button, backdrop, and export
     this.overlay.addEventListener('click', (e) => {
-      if (e.target === this.overlay) this.hide();
+      if (e.target === this.overlay || e.target.closest('.history-close')) { this.hide(); return; }
+      if (e.target.closest('.history-export-btn')) this._exportHistory();
     });
-    this.overlay.querySelector('.history-close').addEventListener('click', () => this.hide());
-    this.overlay.querySelector('.history-export-btn').addEventListener('click', () => this._exportHistory());
 
     // Search filtering
     this._searchInput = this.overlay.querySelector('.history-search');

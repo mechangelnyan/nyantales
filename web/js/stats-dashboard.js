@@ -51,6 +51,7 @@ class StatsDashboard {
     }
 
     this._render();
+    this._overlay.setAttribute('aria-hidden', 'false');
     requestAnimationFrame(() => this._overlay.classList.add('visible'));
 
     if (typeof FocusTrap !== 'undefined') {
@@ -64,6 +65,7 @@ class StatsDashboard {
     if (!this.isVisible) return;
     this.isVisible = false;
     this._overlay.classList.remove('visible');
+    this._overlay.setAttribute('aria-hidden', 'true');
     if (this._focusTrap) {
       this._focusTrap.deactivate();
       this._focusTrap = null;
