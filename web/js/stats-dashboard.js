@@ -21,6 +21,8 @@ class StatsDashboard {
     this._overlay = null;
     this._focusTrap = null;
     this._storyIndex = [];
+    this._storySearch = '';
+    this._storySort = 'progress-desc';
 
     /** @type {Function|null} Callback when user clicks "Play" on a story row */
     this.onPlay = null;
@@ -165,11 +167,34 @@ class StatsDashboard {
     };
   }
 
+  /** Filter + sort the per-story table rows for the breakdown section. */
+  _getVisibleStoryRows(storyRows) {
+    const query = this._storySearch.trim().toLowerCase();
+    const filtered = query
+      ? storyRows.filter(s => {
+          const haystack = `${s.title} ${s.slug}`.toLowerCase();
+          return haystack.includes(query);
+        })
+      : [...storyRows];
+
+    const comparators = {
+      'progress-desc': (a, b) => b.progress - a.progress || b.visitedCount - a.visitedCount || a.title.localeCompare(b.title),
+      'recent-desc': (a, b) => b.lastPlayed - a.lastPlayed || a.title.localeCompare(b.title),
+      'plays-desc': (a, b) => b.plays - a.plays || b.progress - a.progress || a.title.localeCompare(b.title),
+      'reading-desc': (a, b) => b.readingMs - a.readingMs || b.progress - a.progress || a.title.localeCompare(b.title),
+      'endings-desc': (a, b) => b.endings - a.endings || b.totalEndings - a.totalEndings || a.title.localeCompare(b.title),
+      'title-asc': (a, b) => a.title.localeCompare(b.title)
+    };
+
+    return filtered.sort(comparators[this._storySort] || comparators['progress-desc']);
+  }
+
   /** Render the dashboard */
   _render() {
     const stats = this._computeStats();
     const g = stats.global;
     const a = stats.achievements;
+    const visibleRows = this._getVisibleStoryRows(stats.storyRows);
 
     // Completion percentage
     const completionPct = this._storyIndex.length > 0
@@ -224,7 +249,7 @@ class StatsDashboard {
           <div class="stats-card">
             <div class="stats-card-value">${a.unlocked}<span class="stats-card-total">/${a.total}</span></div>
             <div class="stats-card-label">Achievements</div>
-            <div class="stats-card-bar"><div class="stats-card-bar-fill" style="width:${Math.round(a.unlocked/a.total*100)}%;background:var(--accent-yellow)"></div></div>
+            <div class="stats-card-bar"><div class="stats-card-bar-fill" style="width:${Math.round(a.unlocked / a.total * 100)}%;background:var(--accent-yellow)"></div></div>
           </div>
           <div class="stats-card">
             <div class="stats-card-value">${stats.saveCount}</div>
@@ -236,8 +261,8 @@ class StatsDashboard {
         <!-- Campaign progress -->
         <div class="stats-section">
           <div class="stats-section-title">📖 Campaign Progress</div>
-          <div class="stats-card" style="max-width:100%">
-            <div class="stats-card-value" style="color:#ffd700">${stats.campaignStats.complete ? '✨ Complete!' : `${stats.campaignStats.chaptersCompleted}/${stats.campaignStats.chaptersTotal} chapters`}</div>
+          <div class="stats-card stats-card-wide">
+            <div class="stats-card-value stats-card-gold">${stats.campaignStats.complete ? '✨ Complete!' : `${stats.campaignStats.chaptersCompleted}/${stats.campaignStats.chaptersTotal} chapters`}</div>
             <div class="stats-card-label">${stats.campaignStats.label || 'The Campaign'}</div>
             <div class="stats-card-bar"><div class="stats-card-bar-fill" style="width:${stats.campaignStats.pct}%;background:#ffd700"></div></div>
           </div>
@@ -250,7 +275,7 @@ class StatsDashboard {
           <div class="stats-section-title">🕐 Recently Played</div>
           <div class="stats-recent-list">
             ${stats.recentlyPlayed.slice(0, 5).map(s => `
-              <div class="stats-recent-item" data-slug="${s.slug}">
+              <div class="stats-recent-item" data-slug="${s.slug}" tabindex="0" role="button" aria-label="Play ${this._escapeHtml(s.title)}">
                 <div class="stats-recent-title">${this._escapeHtml(s.title)}</div>
                 <div class="stats-recent-meta">
                   <span>${s.progress}% explored</span>
@@ -267,6 +292,34 @@ class StatsDashboard {
         <!-- Per-story breakdown -->
         <div class="stats-section">
           <div class="stats-section-title">📖 Story Breakdown</div>
+
+          <div class="stats-controls">
+            <label class="stats-search-wrap">
+              <span class="sr-only">Search stories in statistics</span>
+              <input
+                type="search"
+                class="stats-search"
+                placeholder="Search by title or slug…"
+                value="${this._escapeHtml(this._storySearch)}"
+                aria-label="Search stories in statistics"
+              >
+            </label>
+
+            <label class="stats-sort-wrap">
+              <span class="sr-only">Sort stories in statistics</span>
+              <select class="stats-sort" aria-label="Sort stories in statistics">
+                <option value="progress-desc" ${this._storySort === 'progress-desc' ? 'selected' : ''}>Most Progress</option>
+                <option value="recent-desc" ${this._storySort === 'recent-desc' ? 'selected' : ''}>Recently Played</option>
+                <option value="plays-desc" ${this._storySort === 'plays-desc' ? 'selected' : ''}>Most Plays</option>
+                <option value="endings-desc" ${this._storySort === 'endings-desc' ? 'selected' : ''}>Most Endings</option>
+                <option value="reading-desc" ${this._storySort === 'reading-desc' ? 'selected' : ''}>Longest Read Time</option>
+                <option value="title-asc" ${this._storySort === 'title-asc' ? 'selected' : ''}>Title A → Z</option>
+              </select>
+            </label>
+
+            <div class="stats-story-count" aria-live="polite">${visibleRows.length}/${stats.storyRows.length} shown</div>
+          </div>
+
           <div class="stats-story-table">
             <div class="stats-table-header">
               <span class="stats-th stats-th-title">Story</span>
@@ -275,8 +328,12 @@ class StatsDashboard {
               <span class="stats-th">Plays</span>
               <span class="stats-th">Best</span>
             </div>
-            ${stats.storyRows.map(s => `
-              <div class="stats-table-row ${s.completed ? 'completed' : ''} ${s.plays > 0 ? 'played' : ''}">
+            ${visibleRows.length > 0 ? visibleRows.map(s => `
+              <div class="stats-table-row ${s.completed ? 'completed' : ''} ${s.plays > 0 ? 'played' : ''}"
+                   data-slug="${s.slug}"
+                   tabindex="0"
+                   role="button"
+                   aria-label="Play ${this._escapeHtml(s.title)}">
                 <span class="stats-td stats-td-title" title="${this._escapeHtml(s.title)}">
                   ${s.completed ? '✅' : (s.plays > 0 ? '📖' : '🆕')} ${this._escapeHtml(s.title)}
                 </span>
@@ -288,7 +345,9 @@ class StatsDashboard {
                 <span class="stats-td">${s.plays || '—'}</span>
                 <span class="stats-td">${s.bestTurns || '—'}</span>
               </div>
-            `).join('')}
+            `).join('') : `
+              <div class="stats-empty-state">No stories match that search yet.</div>
+            `}
           </div>
         </div>
       </div>
@@ -297,23 +356,50 @@ class StatsDashboard {
     // Close + recent-item clicks handled by delegated listener (see _initDelegation)
   }
 
-  /** Initialize delegated click handler once (avoids re-binding on every render) */
+  /** Play a story by slug via the external callback. */
+  _playStoryBySlug(slug) {
+    const story = this._storyIndex.find(s => s.slug === slug);
+    if (story && this.onPlay) {
+      this.hide();
+      this.onPlay(story);
+    }
+  }
+
+  /** Initialize delegated click/input/keyboard handlers once (avoids re-binding on every render) */
   _initDelegation() {
     if (this._delegated) return;
     this._delegated = true;
+
     this._overlay.addEventListener('click', (e) => {
       // Close button
       if (e.target.closest('.stats-close')) { this.hide(); return; }
-      // Recent items
-      const recentItem = e.target.closest('.stats-recent-item');
-      if (recentItem) {
-        const slug = recentItem.dataset.slug;
-        const story = this._storyIndex.find(s => s.slug === slug);
-        if (story && this.onPlay) {
-          this.hide();
-          this.onPlay(story);
-        }
-      }
+
+      // Search + sort are handled by dedicated input/change listeners.
+      if (e.target.closest('.stats-search') || e.target.closest('.stats-sort')) return;
+
+      // Clickable rows (story breakdown or recently played)
+      const playable = e.target.closest('.stats-recent-item, .stats-table-row');
+      if (playable) this._playStoryBySlug(playable.dataset.slug);
+    });
+
+    this._overlay.addEventListener('keydown', (e) => {
+      if (e.key !== 'Enter' && e.key !== ' ') return;
+      const playable = e.target.closest('.stats-recent-item, .stats-table-row');
+      if (!playable) return;
+      e.preventDefault();
+      this._playStoryBySlug(playable.dataset.slug);
+    });
+
+    this._overlay.addEventListener('input', (e) => {
+      if (!e.target.classList.contains('stats-search')) return;
+      this._storySearch = e.target.value || '';
+      this._render();
+    });
+
+    this._overlay.addEventListener('change', (e) => {
+      if (!e.target.classList.contains('stats-sort')) return;
+      this._storySort = e.target.value || 'progress-desc';
+      this._render();
     });
   }
 

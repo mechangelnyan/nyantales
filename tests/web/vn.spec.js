@@ -165,6 +165,28 @@ test.describe('VN Panels and Controls', () => {
   });
 });
 
+test.describe('Statistics Dashboard', () => {
+  test('story breakdown can search and launch a story row', async ({ page }) => {
+    await waitForTitleScreen(page);
+
+    await page.locator('#btn-stats').click();
+    const overlay = page.locator('.stats-overlay');
+    await expect(overlay).toBeVisible();
+
+    const search = overlay.locator('.stats-search');
+    await search.fill('terminal cat');
+    await expect(overlay.locator('.stats-story-count')).toContainText('1/30 shown');
+
+    const row = overlay.locator('.stats-table-row').first();
+    await expect(row).toContainText(/Terminal Cat/i);
+    await row.click();
+
+    const intro = page.locator('.story-intro-overlay');
+    await expect(intro).toBeVisible({ timeout: 10000 });
+    await expect(intro).toContainText(/Terminal Cat/i);
+  });
+});
+
 test.describe('Story Assets', () => {
   for (const slug of STORY_SLUGS) {
     test(`story YAML loads: ${slug}`, async ({ page }) => {

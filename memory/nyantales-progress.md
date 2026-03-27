@@ -1080,7 +1080,32 @@ cd /tmp/nyantales && python3 -m http.server 9876
 - All 30 JS files pass `node --check` validation
 - 3 commits pushed
 
+## Phase 62: Stats Dashboard Search + Quick Launch ✅
+- **Searchable story breakdown** — stats dashboard now includes a live search box that filters by story title or slug
+  - Count label updates live (`X/30 shown`)
+  - Empty-state message shown when nothing matches
+- **Sortable story breakdown** — added sort dropdown for:
+  - Most Progress
+  - Recently Played
+  - Most Plays
+  - Most Endings
+  - Longest Read Time
+  - Title A → Z
+- **Quick-launch story rows** — both the “Recently Played” cards and per-story breakdown rows are now keyboard/mouse activatable
+  - Click or press Enter/Space to start that story directly from the stats dashboard
+  - Added `tabindex`, `role="button"`, and focus-visible styling for keyboard accessibility
+- **CSS polish**
+  - New stats control row styling for search/sort inputs
+  - Focus states for clickable stats rows/cards
+  - Removed inline campaign card width/color styling in favor of reusable CSS classes (`.stats-card-wide`, `.stats-card-gold`)
+- **Regression coverage**
+  - Added Playwright test: open stats dashboard → search for Terminal Cat → launch from filtered row
+- Production build regenerated (`159KB` JS / `83KB` CSS)
+- Verified `npm test` (204/204 passing), `npx playwright test` (43/43 passing), and `node --check` on touched files
+- No new stories added
+
 ## Log (continued)
+- 2026-03-27 (7:32 AM): Phase 62 — Stats dashboard polish: added live search + sort controls to the per-story breakdown, clickable/keyboard-activatable story rows for quick launch, focus-visible states, an empty search state, and a new Playwright regression covering search→launch flow. Rebuilt dist (159KB JS / 83KB CSS), verified `npm test` (204/204), `npx playwright test` (43/43), and `node --check`. No new stories added.
 - 2026-03-27 (5:27 AM): Phase 60 — Added real PWA install UX to the web VN: new title-screen `📲 Install App` button appears when `beforeinstallprompt` is available, defers and launches the browser install prompt on tap, and hides itself after `appinstalled` / standalone mode. Added iPhone/iPad fallback guidance (Share → Add to Home Screen) when Safari has no install prompt. Styled new `.install-btn`, updated About panel + README, regenerated dist (154KB JS / 81KB CSS), and verified `npm test` (204/204 passing). No new stories added.
 - 2026-03-27 (4:27 AM): Phase 59 — Refreshed the Playwright browser regression suite (`tests/web/vn.spec.js`) so it matches the current VN UI instead of the old pre-polish interface. Added coverage for story cards + info modal, intro flow, choice playback, numeric shortcuts, settings panel controls, history log, auto-play toggle, mobile HUD overflow, all 30 story YAML assets, and runtime page-error checks. Verified `npx playwright test` (42/42 passing), `npm test` (204/204 passing), and `cd web && bash build.sh` (dist regenerated: 152KB JS / 81KB CSS). No new stories added.
 - 2026-03-27 (3:27 AM): Phase 58 — Added proper browser Back/Forward support for `?story=slug` deep links using pushState/replaceState + popstate handling. Added routeChangeSerial guard to prevent intro/routing races. Scene Select now caches DOM refs, shows live matching counts, and displays a no-results search state. Settings panel removed remaining inline style usage for theme swatches/campaign reset and theme buttons now expose aria-pressed. README updated, SW v45, production build regenerated (152KB JS / 81KB CSS). All touched JS pass `node --check`.
