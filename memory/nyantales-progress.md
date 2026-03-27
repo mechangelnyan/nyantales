@@ -1058,6 +1058,22 @@ cd /tmp/nyantales && python3 -m http.server 9876
 - All 32 JS files pass `node --check`, 204/204 unit tests, 50/50 Playwright tests
 - Committed & pushed
 
+## Phase 72: Timer Cleanup, CSS Custom Properties, Cached Meta ✅
+- **Effect timer management** — glitch/shake/sprite-fade `setTimeout` calls are now tracked in `_effectTimers` array
+  - `_clearEffectTimers()` cancels all pending timers on scene change or sprite clear
+  - Prevents stale timers firing on the wrong scene during rapid navigation (e.g. glitch class added to text belonging to a different scene)
+  - Also removes lingering `glitch-text` / `shake` CSS classes that a cancelled timer would have cleaned up
+  - Sprite fade-out `setTimeout(() => el.remove(), 500)` also tracked (previously orphaned on `_clearSprites()`)
+- **CSS custom property animation delays** — story cards and choice buttons now use `--card-delay` / `--choice-delay` instead of inline `style.animationDelay`
+  - `.fade-in` CSS rule reads `animation-delay: var(--card-delay, var(--choice-delay, 0s))`
+  - Cleaner separation of concerns; works with strict CSP policies
+- **Progress bar CSS custom property** — `--bar-pct` drives width (was inline `style.width`)
+- **Route map cursor CSS class** — `.route-map-grabbing` replaces inline `style.cursor` toggles
+- **Cached `getStoryMeta()`** — per-slug Map cache avoids recomputing word count across all scenes on every title screen render (30 stories × O(scenes) word splits → single computation, cached forever since story data is immutable)
+- SW cache bumped to v54, production build regenerated (168KB bundle)
+- All 33 JS files pass `node --check`, 204/204 unit tests, 50/50 Playwright tests
+- 2 commits pushed
+
 ## Still Possible Future Work
 - Generate remaining character portraits (GPU timeout issue — needs investigation, possibly during lower GPU load)
 - AI-generated scene background images
@@ -1254,6 +1270,7 @@ cd /tmp/nyantales && python3 -m http.server 9876
 - Committed & pushed
 
 ## Log (continued)
+- 2026-03-27 (5:27 PM): Phase 72 — Timer cleanup + CSS custom properties: tracked effect timers (glitch/shake/sprite fade-out) in _effectTimers array to cancel on scene change (fixes stale timer bug during rapid navigation). Story card/choice animation delays use CSS custom properties instead of inline style.animationDelay. Progress bar width driven by --bar-pct. Route map cursor state uses CSS class. Cached getStoryMeta() per slug. SW v54, 168KB bundle. All 33 JS + 204/204 unit + 50/50 Playwright pass. 2 commits pushed.
 - 2026-03-27 (4:27 PM): Phase 71 — Campaign ending delegation (per-ending addEventListener → data-action handled by existing ending delegation, fixes listener leak). Pre-computed bg keyword entries (Object.entries() allocation per render → pre-built array). Sprite fade-out Set lookup (O(n²) find → O(1) Set.has). Combined _formatText regex (4 sequential .replace → single VNUI._FORMAT_RE pass). Scoped ending stats query. SW v53, 167KB bundle. All 32 JS + 204/204 unit + 50/50 Playwright pass. Committed & pushed.
 - 2026-03-27 (3:27 PM): Phase 70 — Pre-created overlay indicators (autoPlayIndicator/skipIndicator/progressHUD/progressBar built once at init instead of lazy createElement), engine callbacks wired once (onChoice/onRestart/onMenu/_onEndingHook no longer re-assigned every initEngine call), fixed 3 Playwright test regressions from Phase 69 campaign locking (tests now target unlocked cards). main.js 1704→1688 lines. SW v52, 167KB bundle. All 32 JS + 204/204 unit + 50/50 Playwright pass. Committed & pushed.
 - 2026-03-27 (2:27 PM): Phase 69 — Extracted TitleBrowser class from main.js (250+ lines → own module), O(1) campaign lock lookups via pre-built slug map (replaces 780 iterations per render), campaign story locking, ending Continue button, achievement deferral during campaign, left-aligned text. main.js 1883→1703 lines. SW v51, 167KB bundle. All 32 JS + 204/204 unit tests pass. Committed & pushed.
