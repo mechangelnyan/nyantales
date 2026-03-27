@@ -895,6 +895,25 @@ cd /tmp/nyantales && python3 -m http.server 9876
 - All 30 JS files pass `node --check` validation
 - Committed & pushed
 
+## Phase 57: Shareable Story Deep Links ✅
+- **Direct story URLs** — web app now supports `?story=<slug>` routes
+  - Example: `https://mechangelnyan.github.io/nyantales/?story=the-terminal-cat`
+  - On boot, the app reads the query param and launches that story automatically
+  - Invalid slugs fail gracefully with a toast and URL reset to the main menu
+- **URL sync during play** — starting a story updates the browser URL via `history.replaceState()`
+  - Keeps the current `/web/` or `/web/dist/` app path intact (no navigation)
+  - Returning to the menu clears the `story` query param
+  - Makes copied browser URLs point at the currently open story
+- **Ending share links improved** — ending share cards now include a real per-story play URL
+  - Uses clean root URLs (`/?story=slug`) instead of generic repo home links
+  - Passes `url` to the Web Share API when available
+- **Root redirect preserves routes** — repo root `index.html` now uses JS redirect to carry query/hash into `web/dist/`
+  - Clean root links like `/?story=slug` survive the GitHub Pages redirect instead of dropping params
+- **Docs + build updates**
+  - README now documents deep-link support and refreshed production bundle/request sizes
+  - Service worker cache bumped to `v44`, production build regenerated (`150KB` JS, `80KB` CSS)
+- All 31 JS files pass `node --check` validation
+
 ## Still Possible Future Work
 - Generate remaining character portraits (GPU timeout issue — needs investigation, possibly during lower GPU load)
 - AI-generated scene background images
@@ -1026,5 +1045,6 @@ cd /tmp/nyantales && python3 -m http.server 9876
 - 3 commits pushed
 
 ## Log (continued)
+- 2026-03-27 (2:27 AM): Phase 57 — Added shareable `?story=slug` deep links: boot auto-opens requested story, browser URL syncs during play via replaceState, ending share cards include per-story play URLs, and root index redirect now preserves query/hash into `web/dist/`. README updated, SW v44, production build regenerated (150KB JS / 80KB CSS). All 31 JS pass. Committed & pushed.
 - 2026-03-27 (1:27 AM): Phase 56 — Extracted CampaignManager from engine.js into new web/js/campaign.js, wired it into index.html + build.sh + service worker, corrected production request-count summary, bumped SW to v43. engine.js now 250 lines (down from 483). Production build regenerated (148KB bundle). All 31 JS pass.
 - 2026-03-27 (12:27 AM): Phase 55 — Restored full title screen that was broken by campaign-first redesign. Story grid, search, filter, sort, continue, random all back. Campaign section shown above story grid with divider. Cached campaign DOM refs. Removed 45 lines dead CSS. SW v42. 147KB bundle. All 30 JS pass. 3 commits pushed.

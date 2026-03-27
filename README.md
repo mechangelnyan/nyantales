@@ -27,7 +27,7 @@ cd nyantales && python3 -m http.server 8080
 
 ### Production Build
 
-The build script bundles 30 JS files into a single minified file, minifies CSS, and generates an optimized service worker — reducing HTTP requests from 30 to 3:
+The build script bundles 31 JS files into a single minified file, minifies CSS, and generates an optimized service worker — reducing HTTP requests from 31 to 4:
 
 ```bash
 cd web && bash build.sh
@@ -35,7 +35,7 @@ cd web && bash build.sh
 cd dist && python3 -m http.server 9877
 ```
 
-Build output: **132KB JS** (from 225KB), **68KB CSS** (from 93KB). GitHub Pages CI runs the build automatically.
+Build output: **150KB JS** (from 268KB), **80KB CSS** (from 108KB). GitHub Pages CI runs the build automatically.
 
 **Features:**
 - 🎮 30 interactive stories with branching narratives
@@ -56,6 +56,7 @@ Build output: **132KB JS** (from 225KB), **68KB CSS** (from 93KB). GitHub Pages 
 - 🗺️ Interactive route map — canvas-based branching graph with pan/zoom
 - 📍 Scene select — jump to any visited scene
 - 📋 Share ending cards via Web Share API / clipboard
+- 🔗 Deep-link directly to any story with `?story=slug` URLs
 - 💾 Data export/import — full backup/restore as JSON
 - ⌨️ Full keyboard shortcuts (1-9, Space, Enter, A, H, S, M, B, R, G, Q, F, ?)
 - 📱 Mobile: responsive design, touch gestures, collapsible HUD, landscape mode

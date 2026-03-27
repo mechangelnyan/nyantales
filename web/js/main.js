@@ -190,6 +190,26 @@
 
   const APP_TITLE = 'NyanTales — Visual Novel';
 
+  function getRouteParams() {
+    return new URLSearchParams(window.location.search);
+  }
+
+  /** Build a shareable URL on the current app path (works for /web/ and /web/dist/). */
+  function buildStoryUrl(slug) {
+    const url = new URL(window.location.href);
+    url.hash = '';
+    url.search = '';
+    if (slug) url.searchParams.set('story', slug);
+    return url.toString();
+  }
+
+  /** Keep the browser URL synced to the currently open story without navigating. */
+  function syncStoryUrl(slug) {
+    const nextUrl = slug ? buildStoryUrl(slug) : `${window.location.pathname}${window.location.hash || ''}`;
+    const state = slug ? { view: 'story', slug } : { view: 'menu' };
+    window.history.replaceState(state, '', nextUrl);
+  }
+
   let storyIndex   = [];
   let currentEngine = null;
   let currentSlug   = null;
@@ -540,6 +560,7 @@
     storyStartTime = Date.now();
     document.title = `${story.title} — NyanTales`;
     ui.setStorySlug(story.slug);
+    if (story.slug) syncStoryUrl(story.slug);
 
     initEngine(story._parsed);
 
@@ -581,6 +602,7 @@
     _lastProgressTurns = -1;
     document.title = APP_TITLE;
     ui.setStorySlug(null);
+    syncStoryUrl(null);
     audio.stop();
     textHistory.clear();
     updateSkipIndicator(false);
@@ -1228,6 +1250,23 @@
     Toast.show('Press ? for keyboard shortcuts', { icon: '⌨️', duration: 4000 });
   }
 
+  async function handleInitialRoute() {
+    const requestedSlug = getRouteParams().get('story');
+    if (!requestedSlug) {
+      syncStoryUrl(null);
+      return;
+    }
+
+    const story = storyIndex.find(s => s.slug === requestedSlug);
+    if (!story) {
+      syncStoryUrl(null);
+      Toast.show(`Story not found: ${requestedSlug}`, { icon: '⚠️', duration: 3500 });
+      return;
+    }
+
+    await startStory(story);
+  }
+
   async function boot() {
     try {
       updateLoadingProgress(10, 'Initializing...');
@@ -1248,6 +1287,7 @@
       await new Promise(r => setTimeout(r, 300));
       hideLoadingScreen();
       ui.showTitleScreen();
+      await handleInitialRoute();
     } catch (err) {
       console.error('Failed to boot NyanTales:', err);
       hideLoadingScreen();

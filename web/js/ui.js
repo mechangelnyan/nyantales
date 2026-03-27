@@ -664,15 +664,30 @@ class VNUI {
     const visitPct = totalScenes > 0 ? Math.round((engine.state.visited.size / totalScenes) * 100) : 0;
 
     // Store share data for delegation handler
+    const shareUrl = (() => {
+      const url = new URL(window.location.href);
+      url.hash = '';
+      url.search = '';
+      url.pathname = url.pathname
+        .replace(/\/index\.html$/, '')
+        .replace(/\/web\/dist\/?$/, '/')
+        .replace(/\/web\/?$/, '/');
+      if (!url.pathname.endsWith('/')) url.pathname += '/';
+      if (engine.story?.slug) url.searchParams.set('story', engine.story.slug);
+      return url.toString();
+    })();
+
     this._endingShareData = {
       icon,
       endingTitle: ending.title || type.toUpperCase(),
       storyTitle: engine.story.title || 'Unknown Story',
+      storySlug: engine.story?.slug || '',
       turns: engine.state.turns,
       visitedSize: engine.state.visited.size,
       totalScenes,
       visitPct,
-      inventory: [...engine.state.inventory]
+      inventory: [...engine.state.inventory],
+      shareUrl
     };
 
     this.endingEl.classList.remove('hidden');
@@ -745,12 +760,12 @@ class VNUI {
       `📊 ${d.turns} turns · ${d.visitedSize}/${d.totalScenes} scenes (${d.visitPct}%)`,
       d.inventory.length ? `🎒 Items: ${d.inventory.join(', ')}` : '',
       '',
-      '🎮 Play at: https://mechangelnyan.github.io/nyantales/'
+      `🎮 Play this story: ${d.shareUrl}`
     ].filter(Boolean).join('\n');
 
     if (navigator.share) {
       try {
-        await navigator.share({ title: `NyanTales — ${d.storyTitle}`, text: shareText });
+        await navigator.share({ title: `NyanTales — ${d.storyTitle}`, text: shareText, url: d.shareUrl });
         return;
       } catch { /* User cancelled — fall through to clipboard */ }
     }

@@ -4,6 +4,12 @@
   <meta charset="UTF-8">
   <meta http-equiv="refresh" content="0; url=web/dist/">
   <title>NyanTales — Redirecting...</title>
+  <script>
+    (function () {
+      var target = 'web/dist/' + window.location.search + window.location.hash;
+      window.location.replace(target);
+    })();
+  </script>
   <style>
     body {
       background: #0a0a0f;
