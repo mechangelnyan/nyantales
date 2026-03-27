@@ -1387,7 +1387,7 @@
         card.dataset.chapterIndex = idx;
         card.setAttribute('role', 'listitem');
         card.setAttribute('tabindex', unlocked ? '0' : '-1');
-        card.setAttribute('aria-label', `Chapter ${ch.chapter}: ${ch.title}${unlocked ? '' : ' (locked)'}`);
+        card.setAttribute('aria-label', unlocked ? `Chapter ${ch.chapter}: ${ch.title}` : `Chapter ${ch.chapter}: Locked`);
 
         const numEl = document.createElement('div');
         numEl.className = 'chapter-num';
@@ -1398,11 +1398,11 @@
 
         const titleEl = document.createElement('div');
         titleEl.className = 'chapter-title';
-        titleEl.textContent = ch.title;
+        titleEl.textContent = unlocked ? ch.title : '???';
 
         const descEl = document.createElement('div');
         descEl.className = 'chapter-desc';
-        descEl.textContent = ch.description || '';
+        descEl.textContent = unlocked ? (ch.description || '') : '';
 
         body.appendChild(titleEl);
         body.appendChild(descEl);
