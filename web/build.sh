@@ -151,14 +151,17 @@ cp -r assets/* "$DIST/assets/" 2>/dev/null || true
 cp manifest.json "$DIST/"
 
 # ── 6. Generate production service worker ──
-echo "⚡ Generating production service worker..."
-cat > "$DIST/sw.js" << 'SWEOF'
+# Extract dev SW version to keep prod in sync automatically
+SW_VERSION=$(grep -oE 'nyantales-v([0-9]+)' sw.js | head -1 | grep -oE '[0-9]+')
+SW_VERSION=${SW_VERSION:-0}
+echo "⚡ Generating production service worker (v${SW_VERSION})..."
+cat > "$DIST/sw.js" << SWEOF
 /**
  * NyanTales — Production Service Worker
  * Single-bundle caching for optimal performance.
  */
 
-const CACHE_NAME = 'nyantales-v35-prod';
+const CACHE_NAME = 'nyantales-v${SW_VERSION}-prod';
 
 const SHELL_FILES = [
   './',

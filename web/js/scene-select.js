@@ -40,11 +40,10 @@ class SceneSelect {
 
     document.body.appendChild(this.overlay);
 
-    // Close handlers
+    // Close: backdrop click or close button (single delegated listener)
     this.overlay.addEventListener('click', (e) => {
-      if (e.target === this.overlay) this.hide();
+      if (e.target === this.overlay || e.target.closest('.scene-select-close')) this.hide();
     });
-    this.overlay.querySelector('.scene-select-close').addEventListener('click', () => this.hide());
 
     // Search filter
     this.overlay.querySelector('.scene-select-search').addEventListener('input', (e) => {

@@ -66,6 +66,24 @@
     }
   };
 
+  // Pre-compute total character count (used by About panel)
+  const _totalCharCount = (() => {
+    const chars = new Set();
+    if (typeof CHARACTER_DATA !== 'undefined') {
+      Object.values(CHARACTER_DATA).forEach(cs => cs.forEach(c => chars.add(c.name)));
+    }
+    return chars.size;
+  })();
+
+  // Wire gallery story click (one-time, not per-show)
+  gallery.onStoryClick((slug) => {
+    const story = storyIndex.find(s => s.slug === slug);
+    if (story) { ensureAudio(); startStory(story); }
+  });
+
+  // Wire stats dashboard play callback (one-time, not per-show)
+  statsDashboard.onPlay = (story) => { ensureAudio(); startStory(story); };
+
   // Migrate legacy save format to new slot system
   saveManager.migrateLegacy();
 
@@ -450,15 +468,14 @@
       const result = tracker.recordEnding(currentSlug, scene.ending, engine.state.turns);
 
       if (result.isNewEnding) {
-        // Insert "new ending" badge after the ending renders
-        setTimeout(() => {
-          const endingEl = document.getElementById('vn-ending');
-          if (!endingEl) return;
+        // Insert "new ending" badge directly into the ending overlay (already rendered at this point)
+        const endingEl = document.getElementById('vn-ending');
+        if (endingEl) {
           const badge = document.createElement('div');
           badge.className = 'new-ending-badge';
           badge.textContent = '✨ New Ending Discovered!';
           endingEl.appendChild(badge);
-        }, 100);
+        }
       }
 
       const newAch = achievements.checkAll();
@@ -1106,28 +1123,14 @@
         startStory(pick);
         break;
       }
-      case 'btn-gallery': {
-        gallery.onStoryClick((slug) => {
-          const story = storyIndex.find(s => s.slug === slug);
-          if (story) { ensureAudio(); startStory(story); }
-        });
-        gallery.show();
-        break;
-      }
+      case 'btn-gallery': gallery.show(); break;
       case 'btn-achievements': togglePanel(achPanel); break;
-      case 'btn-stats': {
-        statsDashboard.setStories(storyIndex);
-        statsDashboard.onPlay = (story) => { ensureAudio(); startStory(story); };
-        statsDashboard.show();
-        break;
-      }
+      case 'btn-stats': statsDashboard.setStories(storyIndex); statsDashboard.show(); break;
       case 'btn-about': {
         const achStats = achievements.getStats();
-        const allChars = new Set();
-        Object.values(CHARACTER_DATA).forEach(chars => chars.forEach(c => allChars.add(c.name)));
         aboutPanel.show({
           stories: storyIndex.length,
-          characters: allChars.size,
+          characters: _totalCharCount,
           achievements: `${achStats.unlocked}/${achStats.total}`
         });
         break;
