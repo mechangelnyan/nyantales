@@ -1176,7 +1176,26 @@ cd /tmp/nyantales && python3 -m http.server 9876
 - Verified `npm test` (204/204 passing), `npx playwright test` (43/43 passing), and `node --check` on touched files
 - No new stories added
 
+## Phase 68: Performance — O(1) Story Lookups, Parallel Boot, Cached DOM ✅
+- **`storySlugMap` (Map)** — O(1) story lookups replacing 9 `storyIndex.find()` O(n) linear scans
+  - Built once in `loadStoryIndex()`, used throughout main.js (gallery, stats, save-load, campaign, routing)
+  - Eliminates iterating 30-element array on every continue-button update, save-load, route change, campaign chapter
+- **Parallel boot loading** — `Promise.all` for story index + campaign + portrait preload
+  - Previously sequential: stories → campaign → render (portraits awaited even earlier, blocking init)
+  - Now all 3 fire concurrently, cutting boot time on slow connections
+- **Pre-created filter DOM elements** — `_filterCountEl` and `_filterEmptyEl` created once at init
+  - Previously: `getElementById` + conditional `createElement` on every filter keystroke (hot path during search)
+  - Now: pre-built with `.hidden` class, toggled via classList
+- **Cached DOM refs** — `btnContinueEl`, `filterTags[]`, `_loadingFill`, `_loadingLabel`
+  - `updateContinueButton()` no longer queries `getElementById('btn-continue')` per menu return
+  - `syncTitleBrowserControls()` uses cached `filterTags` array instead of `querySelectorAll` per sync
+  - `updateLoadingProgress()` uses cached loading screen refs instead of `querySelector` per call
+- SW cache bumped to v50, production build regenerated (162KB bundle)
+- All 32 JS files pass `node --check` validation
+- 50/50 Playwright tests pass
+
 ## Log (continued)
+- 2026-03-27 (1:27 PM): Phase 68 — Performance: replaced 9 `storyIndex.find()` O(n) linear scans with `storySlugMap` Map for O(1) lookups. Parallelized boot loading (story index + campaign + portrait preload via Promise.all). Pre-created filter count/empty state DOM elements at init instead of lazy createElement in hot filter path. Cached btnContinueEl, filterTags, loading screen refs. SW v50, 162KB bundle. All 32 JS + 50/50 Playwright pass. No new stories added.
 - 2026-03-27 (11:27 AM): Phase 66 — Polished the mobile title browser: the story search/filter/sort block is now a sticky frosted panel on small screens, the story list no longer traps touch scrolling inside a nested inner scroller, narrow-width filter pills can scroll horizontally, and title stats wrap more cleanly. Added a Playwright regression covering sticky mobile filters/page-level scrolling, updated the README feature list, bumped the service worker to v49, and regenerated dist. No new stories added.
 - 2026-03-27 (9:27 AM): Phase 64 — Added a `🔗 Share` button to the Story Info modal so title-screen story cards can copy/share clean deep links (`/?story=slug`) before starting a run. Introduced `web/js/share.js` to centralize canonical story URL generation plus native share→clipboard fallback, reused it for ending-share code, wrapped Story Info action buttons better on mobile, added a Playwright regression for Story Info share, updated README build sizes/features, bumped SW to v47, and regenerated dist (160KB JS / 84KB CSS). Verified `node --check`, `npm test` (204/204), and `npx playwright test` (45/45). No new stories added.
 - 2026-03-27 (8:27 AM): Phase 63 — Stats dashboard mobile polish: converted the cramped phone-size breakdown table into labeled stat cards, persisted stats search/sort state in localStorage, added a Playwright regression for close→reopen state persistence, updated README, bumped SW to v46, and regenerated the production build. No new stories added.
