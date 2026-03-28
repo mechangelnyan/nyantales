@@ -1681,6 +1681,7 @@
       if (sectionDivider) sectionDivider.classList.add('hidden');
       if (campaignBtnEl) campaignBtnEl.classList.add('hidden');
       _chapterGridBuilt = false;
+      _chapterCardRefs.clear();
       return;
     }
     chapterGridEl.classList.remove('hidden');
@@ -1694,6 +1695,7 @@
     }
 
     // First render: build full grid from scratch
+    _chapterCardRefs.clear();
     chapterGridEl.innerHTML = '';
 
     // Batch-append act sections via DocumentFragment (1 reflow instead of per-act)
@@ -1786,18 +1788,38 @@
   }
 
   /**
+   * Cached chapter card child refs to avoid querySelector per card on every refresh.
+   * Built once during first grid render, maps chapter index → { titleEl, descEl, statusEl }.
+   * @type {Map<number, { card: HTMLElement, titleEl: HTMLElement, descEl: HTMLElement, statusEl: HTMLElement }>}
+   */
+  const _chapterCardRefs = new Map();
+
+  /**
    * Partial refresh of chapter cards: updates lock/complete/current state
    * without destroying and rebuilding the grid DOM.
    */
   function _refreshChapterCards() {
-    const cards = chapterGridEl.querySelectorAll('.chapter-card');
     const chapters = campaign.chapters;
     const isStarted = campaign.progress.started;
     const currentIdx = campaign.progress.chapterIndex;
 
-    cards.forEach(card => {
-      const idx = parseInt(card.dataset.chapterIndex, 10);
-      if (isNaN(idx) || !chapters[idx]) return;
+    // Build refs cache on first refresh (chapter cards are stable after grid build)
+    if (_chapterCardRefs.size === 0) {
+      chapterGridEl.querySelectorAll('.chapter-card').forEach(card => {
+        const idx = parseInt(card.dataset.chapterIndex, 10);
+        if (!isNaN(idx)) {
+          _chapterCardRefs.set(idx, {
+            card,
+            titleEl: card.querySelector('.chapter-title'),
+            descEl: card.querySelector('.chapter-desc'),
+            statusEl: card.querySelector('.chapter-status')
+          });
+        }
+      });
+    }
+
+    _chapterCardRefs.forEach(({ card, titleEl, descEl, statusEl }, idx) => {
+      if (!chapters[idx]) return;
       const ch = chapters[idx];
 
       const unlocked = isChapterUnlocked(idx);
@@ -1813,26 +1835,23 @@
       card.setAttribute('aria-label', unlocked ? `Chapter ${ch.chapter}: ${ch.title}` : `Chapter ${ch.chapter}: Locked`);
 
       // Update title/desc
-      const titleEl = card.querySelector('.chapter-title');
-      const descEl = card.querySelector('.chapter-desc');
       if (titleEl) titleEl.textContent = unlocked ? ch.title : '???';
       if (descEl) descEl.textContent = unlocked ? (ch.description || '') : '';
 
       // Update status icon
-      const status = card.querySelector('.chapter-status');
-      if (status) {
+      if (statusEl) {
         if (!unlocked) {
-          status.textContent = '🔒';
-          status.setAttribute('aria-hidden', 'true');
+          statusEl.textContent = '🔒';
+          statusEl.setAttribute('aria-hidden', 'true');
         } else if (isCurrent) {
-          status.textContent = '▶';
-          status.removeAttribute('aria-hidden');
+          statusEl.textContent = '▶';
+          statusEl.removeAttribute('aria-hidden');
         } else if (completed) {
-          status.textContent = '✅';
-          status.removeAttribute('aria-hidden');
+          statusEl.textContent = '✅';
+          statusEl.removeAttribute('aria-hidden');
         } else {
-          status.textContent = '○';
-          status.removeAttribute('aria-hidden');
+          statusEl.textContent = '○';
+          statusEl.removeAttribute('aria-hidden');
         }
       }
     });
@@ -1894,8 +1913,8 @@
 
   // ── Online/Offline Toasts ──
 
-  window.addEventListener('online', () => Toast.show('Back online', { icon: '📶', color: 'rgba(0,255,136,0.88)' }));
-  window.addEventListener('offline', () => Toast.show('Offline — saves still work!', { icon: '📴', color: 'rgba(255,68,68,0.88)' }));
+  window.addEventListener('online', () => Toast.show('Back online', { icon: '📶', className: 'nt-toast-success' }));
+  window.addEventListener('offline', () => Toast.show('Offline — saves still work!', { icon: '📴', className: 'nt-toast-error' }));
 
   // Pause auto-play when tab is hidden (saves CPU / prevents unexpected advances)
   document.addEventListener('visibilitychange', () => {

@@ -92,6 +92,10 @@ class HistoryPanel {
     // Search filtering
     this._searchInput = this.overlay.querySelector('.history-search');
     this._searchInput.addEventListener('input', () => this._filterEntries());
+
+    // Permanent keyboard scroll handler — only fires when panel is visible
+    // (avoids per-show addEventListener/removeEventListener churn)
+    document.addEventListener('keydown', (e) => this._onKeydown(e));
   }
 
   show() {
@@ -124,12 +128,6 @@ class HistoryPanel {
     requestAnimationFrame(() => this.overlay.classList.add('visible'));
     if (!this._focusTrap) this._focusTrap = new FocusTrap(this._panelEl);
     this._focusTrap.activate();
-
-    // Attach keyboard scroll handler
-    if (!this._keyHandler) {
-      this._keyHandler = (e) => this._onKeydown(e);
-    }
-    document.addEventListener('keydown', this._keyHandler);
   }
 
   /**
@@ -204,7 +202,6 @@ class HistoryPanel {
     this.overlay.classList.remove('visible');
     this.overlay.setAttribute('aria-hidden', 'true');
     if (this._focusTrap) this._focusTrap.deactivate();
-    if (this._keyHandler) document.removeEventListener('keydown', this._keyHandler);
   }
 
   get isVisible() {

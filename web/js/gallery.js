@@ -131,11 +131,15 @@ class CharacterGallery {
     // Cache card NodeList after all cards are built
     this._cachedCards = [...this._grid.querySelectorAll('.gallery-card')];
 
-    // Search
+    // Search (debounced at 80ms for smooth typing performance)
+    let _searchTimer = null;
     search.addEventListener('input', () => {
-      const q = search.value.toLowerCase().trim();
-      const activeRole = overlay.querySelector('.gallery-filter-btn.active')?.dataset.role || 'all';
-      this._applyFilters(q, activeRole);
+      if (_searchTimer) clearTimeout(_searchTimer);
+      _searchTimer = setTimeout(() => {
+        const q = search.value.toLowerCase().trim();
+        const activeRole = overlay.querySelector('.gallery-filter-btn.active')?.dataset.role || 'all';
+        this._applyFilters(q, activeRole);
+      }, 80);
     });
 
     // Role filter — single delegated listener on filter row

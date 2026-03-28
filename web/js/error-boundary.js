@@ -16,7 +16,7 @@ window.addEventListener('error', (event) => {
   if (typeof Toast !== 'undefined') {
     Toast.show('Something went wrong — your saves are safe', {
       icon: '⚠️',
-      color: 'rgba(255,140,0,0.9)',
+      className: 'nt-toast-warning',
       duration: 5000
     });
   }
@@ -27,7 +27,7 @@ window.addEventListener('unhandledrejection', (event) => {
   if (typeof Toast !== 'undefined') {
     Toast.show('A background task failed — gameplay continues', {
       icon: '⚠️',
-      color: 'rgba(255,140,0,0.9)',
+      className: 'nt-toast-warning',
       duration: 4000
     });
   }

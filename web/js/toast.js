@@ -94,7 +94,7 @@ class Toast {
    * @param {Object} [opts]
    */
   static success(message, opts = {}) {
-    return Toast.show(message, { icon: '✅', color: 'rgba(0,255,136,0.88)', ...opts });
+    return Toast.show(message, { icon: '✅', className: 'nt-toast-success', ...opts });
   }
 
   /**
@@ -103,7 +103,7 @@ class Toast {
    * @param {Object} [opts]
    */
   static error(message, opts = {}) {
-    return Toast.show(message, { icon: '❌', color: 'rgba(255,68,68,0.88)', ...opts });
+    return Toast.show(message, { icon: '❌', className: 'nt-toast-error', ...opts });
   }
 
   /**
