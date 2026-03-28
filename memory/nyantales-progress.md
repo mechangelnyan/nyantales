@@ -1157,6 +1157,30 @@ cd /tmp/nyantales && python3 -m http.server 9876
 - SW cache bumped to v59, production build regenerated (170KB bundle)
 - All 33 JS files pass `node --check`, 204/204 unit tests, 50/50 Playwright tests
 
+## Phase 78: Favorites O(1), Single-Pass Stats, Typewriter CSS, Timer Safety ✅
+- **StoryTracker.isFavorite() O(1)** — cached `_favoritesSet` (Set) replaces `Array.includes()` per call
+  - Set rebuilt lazily, invalidated on `toggleFavorite()` and `reset()`
+  - `isFavorite()` called on every story card decoration (30 calls per title screen render) — now O(1) vs O(n)
+- **StoryTracker.getStats() single-pass** — replaced `Object.keys().filter()` + 2× `.reduce()` with one `for...in` loop
+  - Was 3 array passes over the stories object; now 1 pass with inline accumulation
+- **AchievementSystem._buildContext() single-pass** — merged `getStats()` + `Object.entries()` into one `for...in` loop
+  - Previously called `tracker.getStats()` (which does its own iteration) + iterated again for bestTurns/completedSlugs
+  - Now builds all stats in one pass, returns a flat object (no spread allocation)
+- **Typewriter char visibility: CSS class** — replaced inline `style.visibility = 'hidden'/'visible'` with `.tw-hidden` CSS class
+  - `charSpans[i].className = ''` to reveal (faster than `style.visibility` property access)
+  - New `.tw-hidden { visibility: hidden; }` rule in style.css
+- **Background inference optimization** — avoids `[...].join(' ').toLowerCase()` string allocation per scene render
+  - Now calls `.toLowerCase()` on location/sceneId/text individually and checks each against keywords
+  - Same behavior, zero intermediate string/array allocation
+- **Reusable `_endingContinueBtn`** — single button element reused across all ending screens
+  - Was calling `document.createElement('button')` on every ending
+- **Screen transition timer safety** — `_screenTransTimer` tracked and cleared on rapid title↔story switches
+  - Prevents overlapping `exiting` class removal if transitions happen faster than 500ms
+- **Choice ripple timer safety** — `_choiceRippleTimer` tracked to prevent stale callback if rapid clicks occur
+- SW cache bumped to v60, production build regenerated (170KB bundle)
+- All 33 JS files pass `node --check`, 204/204 unit tests, 50/50 Playwright tests
+- Committed & pushed
+
 ## Still Possible Future Work
 - Generate remaining character portraits (GPU timeout issue — needs investigation, possibly during lower GPU load)
 - AI-generated scene background images
@@ -1375,3 +1399,4 @@ cd /tmp/nyantales && python3 -m http.server 9876
 - 2026-03-27 (12:27 AM): Phase 55 — Restored full title screen that was broken by campaign-first redesign. Story grid, search, filter, sort, continue, random all back. Campaign section shown above story grid with divider. Cached campaign DOM refs. Removed 45 lines dead CSS. SW v42. 147KB bundle. All 30 JS pass. 3 commits pushed.
 - 2026-03-27 (6:27 AM): Phase 61 — Fixed stats dashboard play-count regression (`StatsDashboard` was reading `data.plays`, but tracker persists `totalPlays`), so play totals/recent-story metadata now reflect real completion runs again. Tightened global scene-exploration math to use exact visited-scene counts instead of percentage back-calculation, added total reading time to the stats dashboard, and expanded Story Info modal with endings found / total possible plus cumulative reading time. Made story-info stats grid auto-fit better on smaller screens and initialized stats dialog `aria-hidden` state cleanly. Rebuilt production bundle, verified touched JS with `node --check`, ran `npm test` (204/204), and `npx playwright test` (42/42). No new stories added.
 - 2026-03-27 (12:27 PM): Phase 67 — Improved title-screen discovery by making story search character-aware: cards now index cast names, roles, and appearance text from `CHARACTER_DATA`, so searches like “Stack Canary” find the right story even if the title/description don’t mention it. Expanded the Story Info modal with a compact cast section (name + role chips, appearance in tooltip), updated the search placeholder/ARIA copy to reflect character search, and added Playwright regressions for character-name search plus cast rendering. Verified `node --check` on touched JS, `npm test` (204/204), and `npx playwright test tests/web/vn.spec.js` (50/50). No new stories added.
+- 2026-03-27 (11:27 PM): Phase 78 — Favorites O(1) Set cache (isFavorite was O(n) per call × 30 cards), single-pass getStats() and _buildContext() (was 3+ array passes each), typewriter visibility via CSS class instead of inline style, bg inference avoids string concatenation, reusable ending continue button, screen transition + choice ripple timer safety. SW v60, 170KB bundle. All 33 JS + 204/204 unit + 50/50 Playwright pass. Committed & pushed.
