@@ -247,56 +247,94 @@ class SaveManager {
       slot3: '3️⃣ Slot 3'
     };
 
-    slotsEl.innerHTML = this.SLOT_NAMES.map(name => {
+    slotsEl.textContent = '';
+    const frag = document.createDocumentFragment();
+
+    for (const name of this.SLOT_NAMES) {
       const slot = slots[name];
       const isAuto = name === 'auto';
       const label = slotLabels[name];
+      const card = document.createElement('div');
+      card.className = slot ? 'save-slot filled' : 'save-slot empty';
+      card.dataset.slot = name;
+
+      // Header
+      const header = document.createElement('div');
+      header.className = 'save-slot-header';
+      const labelSpan = document.createElement('span');
+      labelSpan.className = 'save-slot-label';
+      labelSpan.textContent = label;
+      header.appendChild(labelSpan);
 
       if (slot) {
         const date = new Date(slot.timestamp);
         const timeStr = date.toLocaleDateString(undefined, { month: 'short', day: 'numeric' }) +
           ' ' + date.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' });
-        const preview = slot.sceneTextPreview || slot.sceneId || '...';
+        const timeSpan = document.createElement('span');
+        timeSpan.className = 'save-slot-time';
+        timeSpan.textContent = timeStr;
+        header.appendChild(timeSpan);
+        card.appendChild(header);
 
-        return `
-          <div class="save-slot filled" data-slot="${name}">
-            <div class="save-slot-header">
-              <span class="save-slot-label">${label}</span>
-              <span class="save-slot-time">${timeStr}</span>
-            </div>
-            <div class="save-slot-preview">${SaveManager._esc(preview)}</div>
-            <div class="save-slot-meta">
-              ${slot.sceneSpeaker ? `<span>🗣 ${SaveManager._esc(slot.sceneSpeaker)}</span>` : ''}
-              <span>📍 ${slot.turns} turns</span>
-              <span>👁 ${slot.visitedCount || '?'} scenes</span>
-            </div>
-            <div class="save-slot-actions">
-              ${mode === 'save' && !isAuto
-                ? `<button class="save-slot-btn save-action" data-slot="${name}" data-action="save">💾 Save</button>`
-                : ''}
-              ${mode === 'load'
-                ? `<button class="save-slot-btn load-action" data-slot="${name}" data-action="load">📂 Load</button>`
-                : ''}
-              ${!isAuto
-                ? `<button class="save-slot-btn delete-action" data-slot="${name}" data-action="delete">🗑</button>`
-                : ''}
-            </div>
-          </div>
-        `;
+        const preview = document.createElement('div');
+        preview.className = 'save-slot-preview';
+        preview.textContent = slot.sceneTextPreview || slot.sceneId || '...';
+        card.appendChild(preview);
+
+        const meta = document.createElement('div');
+        meta.className = 'save-slot-meta';
+        if (slot.sceneSpeaker) {
+          const sp = document.createElement('span');
+          sp.textContent = '🗣 ' + slot.sceneSpeaker;
+          meta.appendChild(sp);
+        }
+        const turnSpan = document.createElement('span');
+        turnSpan.textContent = '📍 ' + slot.turns + ' turns';
+        meta.appendChild(turnSpan);
+        const visitSpan = document.createElement('span');
+        visitSpan.textContent = '👁 ' + (slot.visitedCount || '?') + ' scenes';
+        meta.appendChild(visitSpan);
+        card.appendChild(meta);
+
+        const actions = document.createElement('div');
+        actions.className = 'save-slot-actions';
+        if (mode === 'save' && !isAuto) {
+          actions.appendChild(this._makeSlotBtn('💾 Save', 'save-action', name, 'save'));
+        }
+        if (mode === 'load') {
+          actions.appendChild(this._makeSlotBtn('📂 Load', 'load-action', name, 'load'));
+        }
+        if (!isAuto) {
+          actions.appendChild(this._makeSlotBtn('🗑', 'delete-action', name, 'delete'));
+        }
+        card.appendChild(actions);
       } else {
-        return `
-          <div class="save-slot empty" data-slot="${name}">
-            <div class="save-slot-header">
-              <span class="save-slot-label">${label}</span>
-            </div>
-            <div class="save-slot-empty-msg">— Empty —</div>
-            ${mode === 'save' && !isAuto
-              ? `<div class="save-slot-actions"><button class="save-slot-btn save-action" data-slot="${name}" data-action="save">💾 Save</button></div>`
-              : ''}
-          </div>
-        `;
+        card.appendChild(header);
+        const empty = document.createElement('div');
+        empty.className = 'save-slot-empty-msg';
+        empty.textContent = '— Empty —';
+        card.appendChild(empty);
+        if (mode === 'save' && !isAuto) {
+          const actions = document.createElement('div');
+          actions.className = 'save-slot-actions';
+          actions.appendChild(this._makeSlotBtn('💾 Save', 'save-action', name, 'save'));
+          card.appendChild(actions);
+        }
       }
-    }).join('');
+
+      frag.appendChild(card);
+    }
+    slotsEl.appendChild(frag);
+  }
+
+  /** Helper: create a slot action button */
+  _makeSlotBtn(text, cls, slotName, action) {
+    const btn = document.createElement('button');
+    btn.className = 'save-slot-btn ' + cls;
+    btn.dataset.slot = slotName;
+    btn.dataset.action = action;
+    btn.textContent = text;
+    return btn;
   }
 
   /** Show the save/load panel for a story */
@@ -332,14 +370,4 @@ class SaveManager {
     return this.overlay?.classList.contains('visible') || false;
   }
 
-  /** Static HTML escape using shared off-screen element (avoids allocating per call) */
-  static _esc(text) {
-    if (typeof VNUI !== 'undefined' && VNUI._escapeDiv) {
-      VNUI._escapeDiv.textContent = text;
-      return VNUI._escapeDiv.innerHTML;
-    }
-    if (!SaveManager._escDiv) SaveManager._escDiv = document.createElement('div');
-    SaveManager._escDiv.textContent = text;
-    return SaveManager._escDiv.innerHTML;
-  }
 }

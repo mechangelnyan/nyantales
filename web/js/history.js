@@ -105,21 +105,38 @@ class HistoryPanel {
     // Clear search
     this._searchInput.value = '';
 
+    this._listEl.textContent = '';
+
     if (entries.length === 0) {
-      this._listEl.innerHTML = '<div class="history-empty">No text yet — start reading!</div>';
+      if (!this._emptyEl) {
+        this._emptyEl = document.createElement('div');
+        this._emptyEl.className = 'history-empty';
+        this._emptyEl.textContent = 'No text yet — start reading!';
+      }
+      this._listEl.appendChild(this._emptyEl);
       this._cachedEntries = [];
     } else {
-      this._listEl.innerHTML = entries.map(e => {
-        const searchable = ((e.speaker || '') + ' ' + e.text).toLowerCase();
-        return `
-          <div class="history-entry" data-searchable="${this._esc(searchable)}">
-            ${e.speaker ? `<div class="history-speaker">${this._esc(e.speaker)}</div>` : ''}
-            <div class="history-text">${this._esc(e.text)}</div>
-          </div>
-        `;
-      }).join('');
-      // Cache entry NodeList for filter reuse (avoids querySelectorAll per keystroke)
-      this._cachedEntries = [...this._listEl.querySelectorAll('.history-entry')];
+      const frag = document.createDocumentFragment();
+      const cached = [];
+      for (const e of entries) {
+        const el = document.createElement('div');
+        el.className = 'history-entry';
+        el.dataset.searchable = ((e.speaker || '') + ' ' + e.text).toLowerCase();
+        if (e.speaker) {
+          const spk = document.createElement('div');
+          spk.className = 'history-speaker';
+          spk.textContent = e.speaker;
+          el.appendChild(spk);
+        }
+        const txt = document.createElement('div');
+        txt.className = 'history-text';
+        txt.textContent = e.text;
+        el.appendChild(txt);
+        frag.appendChild(el);
+        cached.push(el);
+      }
+      this._listEl.appendChild(frag);
+      this._cachedEntries = cached;
       // Scroll to bottom
       requestAnimationFrame(() => { this._listEl.scrollTop = this._listEl.scrollHeight; });
     }
@@ -233,14 +250,4 @@ class HistoryPanel {
     }
   }
 
-  /** Reuses VNUI's shared escape element to avoid per-call allocations */
-  _esc(text) {
-    if (typeof VNUI !== 'undefined' && VNUI._escapeDiv) {
-      VNUI._escapeDiv.textContent = text;
-      return VNUI._escapeDiv.innerHTML;
-    }
-    if (!HistoryPanel._escDiv) HistoryPanel._escDiv = document.createElement('div');
-    HistoryPanel._escDiv.textContent = text;
-    return HistoryPanel._escDiv.innerHTML;
-  }
 }

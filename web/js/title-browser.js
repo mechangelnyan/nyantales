@@ -268,7 +268,16 @@ class TitleBrowser {
       const hint = this._activeFilter === 'favorites' ? 'Tap 🤍 on a story card to favorite it!'
         : this._activeFilter === 'completed' ? 'No stories completed yet — start playing!'
         : 'No matches found. Try a different search.';
-      this._emptyEl.innerHTML = `<span class="filter-empty-icon">🐱</span><span>${hint}</span>`;
+      if (!this._emptyIconEl) {
+        this._emptyIconEl = document.createElement('span');
+        this._emptyIconEl.className = 'filter-empty-icon';
+        this._emptyIconEl.textContent = '🐱';
+        this._emptyHintEl = document.createElement('span');
+        this._emptyEl.textContent = '';
+        this._emptyEl.appendChild(this._emptyIconEl);
+        this._emptyEl.appendChild(this._emptyHintEl);
+      }
+      this._emptyHintEl.textContent = hint;
       this._emptyEl.classList.remove('hidden');
     } else {
       this._emptyEl.classList.add('hidden');

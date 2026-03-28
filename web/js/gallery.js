@@ -96,28 +96,50 @@ class CharacterGallery {
       card.dataset.role = ch.role;
       card.dataset.appearance = ch.appearance.toLowerCase();
 
-      const roleBadge = ch.role === 'protagonist'
-        ? '<span class="gallery-role-badge protagonist">⭐ Hero</span>'
-        : '<span class="gallery-role-badge npc">NPC</span>';
+      // Portrait section
+      const portraitDiv = document.createElement('div');
+      portraitDiv.className = 'gallery-card-portrait';
+      const img = document.createElement('img');
+      img.src = portrait;
+      img.alt = ch.name;
+      img.className = hasAI ? 'gallery-sprite ai-portrait' : 'gallery-sprite';
+      portraitDiv.appendChild(img);
+      card.appendChild(portraitDiv);
 
-      const storyTags = ch.stories.map(s =>
-        `<span class="gallery-story-tag" data-slug="${s}">${this._slugToTitle(s)}</span>`
-      ).join('');
+      // Info section
+      const info = document.createElement('div');
+      info.className = 'gallery-card-info';
 
-      const spriteCls = hasAI ? 'gallery-sprite ai-portrait' : 'gallery-sprite';
-      card.innerHTML = `
-        <div class="gallery-card-portrait">
-          <img src="${portrait}" alt="${ch.name}" class="${spriteCls}" />
-        </div>
-        <div class="gallery-card-info">
-          <div class="gallery-card-header">
-            <span class="gallery-card-name">${ch.name}</span>
-            ${roleBadge}
-          </div>
-          <div class="gallery-card-appearance">${ch.appearance}</div>
-          <div class="gallery-card-stories">${storyTags}</div>
-        </div>
-      `;
+      const header = document.createElement('div');
+      header.className = 'gallery-card-header';
+      const nameSpan = document.createElement('span');
+      nameSpan.className = 'gallery-card-name';
+      nameSpan.textContent = ch.name;
+      header.appendChild(nameSpan);
+      const roleBadge = document.createElement('span');
+      roleBadge.className = ch.role === 'protagonist'
+        ? 'gallery-role-badge protagonist'
+        : 'gallery-role-badge npc';
+      roleBadge.textContent = ch.role === 'protagonist' ? '⭐ Hero' : 'NPC';
+      header.appendChild(roleBadge);
+      info.appendChild(header);
+
+      const appDiv = document.createElement('div');
+      appDiv.className = 'gallery-card-appearance';
+      appDiv.textContent = ch.appearance;
+      info.appendChild(appDiv);
+
+      const storiesDiv = document.createElement('div');
+      storiesDiv.className = 'gallery-card-stories';
+      for (const s of ch.stories) {
+        const tag = document.createElement('span');
+        tag.className = 'gallery-story-tag';
+        tag.dataset.slug = s;
+        tag.textContent = this._slugToTitle(s);
+        storiesDiv.appendChild(tag);
+      }
+      info.appendChild(storiesDiv);
+      card.appendChild(info);
 
       cardFrag.appendChild(card);
     }

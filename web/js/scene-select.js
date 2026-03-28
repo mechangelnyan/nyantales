@@ -103,39 +103,81 @@ class SceneSelect {
     this._sceneCount = Object.keys(scenes).length;
     this._visibleCount = visitedArr.length;
 
+    listEl.textContent = '';
+
     if (visitedArr.length === 0) {
-      listEl.innerHTML = '<div class="scene-select-empty">No visited scenes yet.</div>';
+      if (!this._emptyEl) {
+        this._emptyEl = document.createElement('div');
+        this._emptyEl.className = 'scene-select-empty';
+        this._emptyEl.textContent = 'No visited scenes yet.';
+      }
+      listEl.appendChild(this._emptyEl);
       this._syncCount();
     } else {
-      listEl.innerHTML = visitedArr.map(id => {
+      const frag = document.createDocumentFragment();
+      for (const id of visitedArr) {
         const scene = scenes[id];
         const isCurrent = id === currentSceneId;
         const speaker = scene.speaker || '';
         const preview = (scene.text || '').slice(0, 100).replace(/\n/g, ' ');
         const location = scene.location || '';
-        const hasEnding = scene.ending ? '🏁' : '';
-        const hasChoices = scene.choices && scene.choices.length > 0 ? `${scene.choices.length} choices` : '';
-        const currentBadge = isCurrent ? '<span class="scene-current-badge">◀ current</span>' : '';
 
-        return `
-          <div class="scene-select-item ${isCurrent ? 'current' : ''}" 
-               data-scene-id="${this._esc(id)}" 
-               data-search-text="${this._esc(id + ' ' + speaker + ' ' + preview + ' ' + location)}"
-               tabindex="0"
-               role="button"
-               aria-label="Jump to scene: ${this._esc(id)}">
-            <div class="scene-select-item-header">
-              <span class="scene-select-item-id">${this._esc(id)}</span>
-              ${currentBadge}
-              ${hasEnding ? `<span class="scene-ending-badge">${hasEnding}</span>` : ''}
-            </div>
-            ${location ? `<div class="scene-select-item-location">📍 ${this._esc(location)}</div>` : ''}
-            ${speaker ? `<div class="scene-select-item-speaker">🗣 ${this._esc(speaker)}</div>` : ''}
-            <div class="scene-select-item-preview">${this._esc(preview)}${preview.length >= 100 ? '…' : ''}</div>
-            ${hasChoices ? `<div class="scene-select-item-meta">${hasChoices}</div>` : ''}
-          </div>
-        `;
-      }).join('');
+        const item = document.createElement('div');
+        item.className = 'scene-select-item' + (isCurrent ? ' current' : '');
+        item.dataset.sceneId = id;
+        item.dataset.searchText = (id + ' ' + speaker + ' ' + preview + ' ' + location).toLowerCase();
+        item.tabIndex = 0;
+        item.setAttribute('role', 'button');
+        item.setAttribute('aria-label', 'Jump to scene: ' + id);
+
+        // Header row
+        const hdr = document.createElement('div');
+        hdr.className = 'scene-select-item-header';
+        const idSpan = document.createElement('span');
+        idSpan.className = 'scene-select-item-id';
+        idSpan.textContent = id;
+        hdr.appendChild(idSpan);
+        if (isCurrent) {
+          const badge = document.createElement('span');
+          badge.className = 'scene-current-badge';
+          badge.textContent = '◀ current';
+          hdr.appendChild(badge);
+        }
+        if (scene.ending) {
+          const endBadge = document.createElement('span');
+          endBadge.className = 'scene-ending-badge';
+          endBadge.textContent = '🏁';
+          hdr.appendChild(endBadge);
+        }
+        item.appendChild(hdr);
+
+        if (location) {
+          const loc = document.createElement('div');
+          loc.className = 'scene-select-item-location';
+          loc.textContent = '📍 ' + location;
+          item.appendChild(loc);
+        }
+        if (speaker) {
+          const spk = document.createElement('div');
+          spk.className = 'scene-select-item-speaker';
+          spk.textContent = '🗣 ' + speaker;
+          item.appendChild(spk);
+        }
+        const prev = document.createElement('div');
+        prev.className = 'scene-select-item-preview';
+        prev.textContent = preview + (preview.length >= 100 ? '…' : '');
+        item.appendChild(prev);
+
+        if (scene.choices && scene.choices.length > 0) {
+          const meta = document.createElement('div');
+          meta.className = 'scene-select-item-meta';
+          meta.textContent = scene.choices.length + ' choices';
+          item.appendChild(meta);
+        }
+
+        frag.appendChild(item);
+      }
+      listEl.appendChild(frag);
       this._syncCount();
     }
 
@@ -183,16 +225,17 @@ class SceneSelect {
     this._visibleCount = visible;
     this._syncCount();
 
-    const emptyEl = this._listEl.querySelector('.scene-select-empty');
-    if (emptyEl) {
-      emptyEl.textContent = q && this._visitedCount > 0
-        ? 'No scenes match that search yet.'
-        : 'No visited scenes yet.';
-      emptyEl.classList.toggle('hidden', visible > 0);
-    } else if (q && this._visitedCount > 0 && visible === 0) {
-      this._listEl.insertAdjacentHTML('beforeend', '<div class="scene-select-empty scene-select-empty-search">No scenes match that search yet.</div>');
-    } else {
-      this._listEl.querySelector('.scene-select-empty-search')?.remove();
+    // Manage empty/no-results state element
+    if (!this._filterEmptyEl) {
+      this._filterEmptyEl = document.createElement('div');
+      this._filterEmptyEl.className = 'scene-select-empty scene-select-empty-search';
+    }
+    if (q && this._visitedCount > 0 && visible === 0) {
+      this._filterEmptyEl.textContent = 'No scenes match that search yet.';
+      if (!this._filterEmptyEl.parentNode) this._listEl.appendChild(this._filterEmptyEl);
+      this._filterEmptyEl.classList.remove('hidden');
+    } else if (this._filterEmptyEl.parentNode) {
+      this._filterEmptyEl.classList.add('hidden');
     }
   }
 
@@ -208,14 +251,4 @@ class SceneSelect {
     return this.overlay?.classList.contains('visible') || false;
   }
 
-  /** @private Escape HTML — reuses shared off-screen element */
-  _esc(text) {
-    if (typeof VNUI !== 'undefined' && VNUI._escapeDiv) {
-      VNUI._escapeDiv.textContent = text || '';
-      return VNUI._escapeDiv.innerHTML;
-    }
-    if (!SceneSelect._escDiv) SceneSelect._escDiv = document.createElement('div');
-    SceneSelect._escDiv.textContent = text || '';
-    return SceneSelect._escDiv.innerHTML;
-  }
 }
