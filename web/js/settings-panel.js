@@ -415,7 +415,7 @@ class SettingsPanel {
     if (!this._els.dataStats || !this._dataManager) return;
     const stats = this._dataManager.getStats();
     const sizeKB = (stats.estimatedBytes / 1024).toFixed(1);
-    this._els.dataStats.innerHTML = `${stats.stories} stories tracked · ${stats.saves} save files · ~${sizeKB} KB`;
+    this._els.dataStats.textContent = `${stats.stories} stories tracked · ${stats.saves} save files · ~${sizeKB} KB`;
   }
 
   /** Run a typewriter preview in the settings panel at the given speed (ms per 2-char chunk) */

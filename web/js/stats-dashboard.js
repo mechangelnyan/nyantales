@@ -375,39 +375,125 @@ class StatsDashboard {
 
     const visibleRows = this._getVisibleStoryRows(this._lastStoryRows);
 
-    tableEl.innerHTML = `
-      <div class="stats-table-header">
-        <span class="stats-th stats-th-title">Story</span>
-        <span class="stats-th">Progress</span>
-        <span class="stats-th">Endings</span>
-        <span class="stats-th">Plays</span>
-        <span class="stats-th">Best</span>
-      </div>
-      ${visibleRows.length > 0 ? visibleRows.map(s => `
-        <div class="stats-table-row ${s.completed ? 'completed' : ''} ${s.plays > 0 ? 'played' : ''}"
-             data-slug="${s.slug}"
-             tabindex="0"
-             role="button"
-             aria-label="Play ${this._escapeHtml(s.title)}">
-          <span class="stats-td stats-td-title" title="${this._escapeHtml(s.title)}">
-            ${s.completed ? '✅' : (s.plays > 0 ? '📖' : '🆕')} ${this._escapeHtml(s.title)}
-          </span>
-          <span class="stats-td stats-td-progress" data-label="Progress">
-            <span class="stats-mini-bar"><span class="stats-mini-bar-fill" style="--bar-pct:${s.progress}%"></span></span>
-            <span class="stats-td-pct">${s.progress}%</span>
-          </span>
-          <span class="stats-td" data-label="Endings">${s.endings}/${s.totalEndings}</span>
-          <span class="stats-td" data-label="Plays">${s.plays || '—'}</span>
-          <span class="stats-td" data-label="Best">${s.bestTurns || '—'}</span>
-        </div>
-      `).join('') : `
-        <div class="stats-empty-state">No stories match that search yet.</div>
-      `}
-    `;
+    tableEl.textContent = '';
+    const frag = document.createDocumentFragment();
+
+    // Header row (reuse or create once)
+    if (!this._tableHeader) {
+      const hdr = document.createElement('div');
+      hdr.className = 'stats-table-header';
+      const labels = ['Story', 'Progress', 'Endings', 'Plays', 'Best'];
+      for (const lbl of labels) {
+        const sp = document.createElement('span');
+        sp.className = lbl === 'Story' ? 'stats-th stats-th-title' : 'stats-th';
+        sp.textContent = lbl;
+        hdr.appendChild(sp);
+      }
+      this._tableHeader = hdr;
+    }
+    frag.appendChild(this._tableHeader);
+
+    if (visibleRows.length > 0) {
+      for (let i = 0; i < visibleRows.length; i++) {
+        frag.appendChild(this._getStoryRow(i, visibleRows[i]));
+      }
+    } else {
+      if (!this._tableEmpty) {
+        this._tableEmpty = document.createElement('div');
+        this._tableEmpty.className = 'stats-empty-state';
+        this._tableEmpty.textContent = 'No stories match that search yet.';
+      }
+      frag.appendChild(this._tableEmpty);
+    }
+    tableEl.appendChild(frag);
 
     if (countEl) {
       countEl.textContent = `${visibleRows.length}/${this._lastStoryRows.length} shown`;
     }
+  }
+
+  /**
+   * Get or grow a pooled story row element with pre-built child structure.
+   * @private
+   * @param {number} idx — pool index
+   * @param {Object} s — story row data
+   * @returns {HTMLElement}
+   */
+  _getStoryRow(idx, s) {
+    if (!this._rowPool) this._rowPool = [];
+    let row;
+    if (idx < this._rowPool.length) {
+      row = this._rowPool[idx];
+    } else {
+      row = document.createElement('div');
+      row.className = 'stats-table-row';
+      row.setAttribute('tabindex', '0');
+      row.setAttribute('role', 'button');
+
+      // Title cell
+      const tdTitle = document.createElement('span');
+      tdTitle.className = 'stats-td stats-td-title';
+      row.appendChild(tdTitle);
+
+      // Progress cell
+      const tdProgress = document.createElement('span');
+      tdProgress.className = 'stats-td stats-td-progress';
+      tdProgress.setAttribute('data-label', 'Progress');
+      const miniBar = document.createElement('span');
+      miniBar.className = 'stats-mini-bar';
+      const miniBarFill = document.createElement('span');
+      miniBarFill.className = 'stats-mini-bar-fill';
+      miniBar.appendChild(miniBarFill);
+      tdProgress.appendChild(miniBar);
+      const pctSpan = document.createElement('span');
+      pctSpan.className = 'stats-td-pct';
+      tdProgress.appendChild(pctSpan);
+      row.appendChild(tdProgress);
+
+      // Endings cell
+      const tdEndings = document.createElement('span');
+      tdEndings.className = 'stats-td';
+      tdEndings.setAttribute('data-label', 'Endings');
+      row.appendChild(tdEndings);
+
+      // Plays cell
+      const tdPlays = document.createElement('span');
+      tdPlays.className = 'stats-td';
+      tdPlays.setAttribute('data-label', 'Plays');
+      row.appendChild(tdPlays);
+
+      // Best cell
+      const tdBest = document.createElement('span');
+      tdBest.className = 'stats-td';
+      tdBest.setAttribute('data-label', 'Best');
+      row.appendChild(tdBest);
+
+      // Cache child refs on the row element
+      row._tdTitle = tdTitle;
+      row._miniBarFill = miniBarFill;
+      row._pctSpan = pctSpan;
+      row._tdEndings = tdEndings;
+      row._tdPlays = tdPlays;
+      row._tdBest = tdBest;
+
+      this._rowPool.push(row);
+    }
+
+    // Update content
+    row.className = 'stats-table-row' + (s.completed ? ' completed' : '') + (s.plays > 0 ? ' played' : '');
+    row.dataset.slug = s.slug;
+    row.setAttribute('aria-label', `Play ${s.title}`);
+
+    const icon = s.completed ? '✅' : (s.plays > 0 ? '📖' : '🆕');
+    row._tdTitle.textContent = `${icon} ${s.title}`;
+    row._tdTitle.title = s.title;
+    row._miniBarFill.style.setProperty('--bar-pct', `${s.progress}%`);
+    row._pctSpan.textContent = `${s.progress}%`;
+    row._tdEndings.textContent = `${s.endings}/${s.totalEndings}`;
+    row._tdPlays.textContent = s.plays || '—';
+    row._tdBest.textContent = s.bestTurns || '—';
+
+    return row;
   }
 
   /** Play a story by slug via the external callback. */

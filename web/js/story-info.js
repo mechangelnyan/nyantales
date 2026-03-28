@@ -8,6 +8,10 @@
  *   - Last played timestamp
  *   - Quick-play and continue buttons
  *
+ * Uses pre-built DOM: the panel tree is constructed once in _build(),
+ * and show() swaps content via textContent/src/className updates —
+ * zero innerHTML on the warm per-click path.
+ *
  * @class StoryInfoModal
  * @param {StoryTracker} tracker  — progress/ending tracker
  * @param {SaveManager}  saves    — save slot manager
@@ -26,9 +30,16 @@ class StoryInfoModal {
     this.onPlay = null;   // (story) => void
     this.onLoad = null;   // (slug, stateJson) => void
     this.onShare = null;  // (story) => void
+
+    /** @private Cached DOM refs — populated once in _build() */
+    this._refs = null;
+
+    /** @private Reusable element pools for endings/cast tags */
+    this._endingTagPool = [];
+    this._castChipPool = [];
   }
 
-  /** Lazy-build the overlay DOM with event delegation (called once) */
+  /** Lazy-build the overlay + panel DOM tree (called once) */
   _build() {
     if (this._built) return;
 
@@ -37,10 +48,167 @@ class StoryInfoModal {
     this.overlay.setAttribute('role', 'dialog');
     this.overlay.setAttribute('aria-label', 'Story Details');
     this.overlay.setAttribute('aria-hidden', 'true');
-    this.overlay.innerHTML = '<div class="story-info-panel"></div>';
+
+    const panel = document.createElement('div');
+    panel.className = 'story-info-panel';
+    this.overlay.appendChild(panel);
+
+    // ─── Header ───
+    const header = document.createElement('div');
+    header.className = 'story-info-header';
+
+    const portraitImg = document.createElement('img');
+    portraitImg.className = 'story-info-portrait';
+    portraitImg.alt = '';
+    header.appendChild(portraitImg);
+
+    const titleBlock = document.createElement('div');
+    titleBlock.className = 'story-info-title-block';
+
+    const titleEl = document.createElement('div');
+    titleEl.className = 'story-info-title';
+    titleBlock.appendChild(titleEl);
+
+    const descEl = document.createElement('div');
+    descEl.className = 'story-info-desc';
+    titleBlock.appendChild(descEl);
+
+    const metaRow = document.createElement('div');
+    metaRow.className = 'story-info-meta-row';
+    const metaTime = document.createElement('span');
+    const metaScenes = document.createElement('span');
+    const metaProtag = document.createElement('span');
+    metaRow.appendChild(metaTime);
+    metaRow.appendChild(metaScenes);
+    metaRow.appendChild(metaProtag);
+    titleBlock.appendChild(metaRow);
+
+    header.appendChild(titleBlock);
+
+    const closeBtn = document.createElement('button');
+    closeBtn.className = 'story-info-close';
+    closeBtn.setAttribute('aria-label', 'Close');
+    closeBtn.textContent = '✕';
+    header.appendChild(closeBtn);
+
+    panel.appendChild(header);
+
+    // ─── Stats Grid ───
+    const stats = document.createElement('div');
+    stats.className = 'story-info-stats';
+
+    // 5 stat cards: explored, plays, best turns, endings found, reading time
+    const makeStatCard = (label, hasSub, hasBar) => {
+      const card = document.createElement('div');
+      card.className = 'story-info-stat-card';
+      const valEl = document.createElement('div');
+      valEl.className = 'story-info-stat-value';
+      card.appendChild(valEl);
+      const labEl = document.createElement('div');
+      labEl.className = 'story-info-stat-label';
+      labEl.textContent = label;
+      card.appendChild(labEl);
+      let barFillEl = null, subEl = null;
+      if (hasBar) {
+        const barEl = document.createElement('div');
+        barEl.className = 'story-info-progress-bar';
+        barFillEl = document.createElement('div');
+        barFillEl.className = 'story-info-progress-fill';
+        barEl.appendChild(barFillEl);
+        card.appendChild(barEl);
+      }
+      if (hasSub) {
+        subEl = document.createElement('div');
+        subEl.className = 'story-info-stat-sub';
+        card.appendChild(subEl);
+      }
+      stats.appendChild(card);
+      return { valEl, barFillEl, subEl };
+    };
+
+    const exploredCard = makeStatCard('Explored', true, true);
+    const playsCard = makeStatCard('Plays', false, false);
+    const bestCard = makeStatCard('Best Turns', false, false);
+    const endingsCard = makeStatCard('Endings Found', false, false);
+    const readTimeCard = makeStatCard('Reading Time', false, false);
+    panel.appendChild(stats);
+
+    // ─── Cast Section ───
+    const castSection = document.createElement('div');
+    castSection.className = 'story-info-section';
+    const castTitle = document.createElement('div');
+    castTitle.className = 'story-info-section-title';
+    castTitle.textContent = '🐾 Cast';
+    castSection.appendChild(castTitle);
+    const castContainer = document.createElement('div');
+    castContainer.className = 'story-info-cast';
+    castSection.appendChild(castContainer);
+    panel.appendChild(castSection);
+
+    // ─── Endings Section ───
+    const endingsSection = document.createElement('div');
+    endingsSection.className = 'story-info-section';
+    const endingsTitle = document.createElement('div');
+    endingsTitle.className = 'story-info-section-title';
+    endingsTitle.textContent = '🔮 Endings Discovered';
+    endingsSection.appendChild(endingsTitle);
+    const endingsContainer = document.createElement('div');
+    endingsContainer.className = 'story-info-endings';
+    endingsSection.appendChild(endingsContainer);
+    panel.appendChild(endingsSection);
+
+    // ─── Last Played Section ───
+    const lastSection = document.createElement('div');
+    lastSection.className = 'story-info-section';
+    const lastTitle = document.createElement('div');
+    lastTitle.className = 'story-info-section-title';
+    lastTitle.textContent = '🕐 Last Played';
+    lastSection.appendChild(lastTitle);
+    const lastPlayedEl = document.createElement('div');
+    lastPlayedEl.className = 'story-info-last-played';
+    lastSection.appendChild(lastPlayedEl);
+    panel.appendChild(lastSection);
+
+    // ─── Actions ───
+    const actions = document.createElement('div');
+    actions.className = 'story-info-actions';
+    const playBtn = document.createElement('button');
+    playBtn.className = 'story-info-play-btn';
+    playBtn.textContent = '▶ Play';
+    const continueBtn = document.createElement('button');
+    continueBtn.className = 'story-info-continue-btn';
+    continueBtn.textContent = '📂 Continue';
+    const shareBtn = document.createElement('button');
+    shareBtn.className = 'story-info-share-btn';
+    shareBtn.textContent = '🔗 Share';
+    actions.appendChild(playBtn);
+    actions.appendChild(continueBtn);
+    actions.appendChild(shareBtn);
+    panel.appendChild(actions);
+
+    // ─── None-yet placeholder (reusable) ───
+    const nonePlaceholder = document.createElement('span');
+    nonePlaceholder.className = 'story-info-none';
+    nonePlaceholder.textContent = 'None yet';
+
+    const unknownCast = document.createElement('span');
+    unknownCast.className = 'story-info-none';
+    unknownCast.textContent = 'Unknown cast';
+
     document.body.appendChild(this.overlay);
 
-    // Single delegated click handler for close/play/continue + backdrop
+    // ─── Cache refs ───
+    this._refs = {
+      panel, portraitImg, titleEl, descEl,
+      metaTime, metaScenes, metaProtag,
+      exploredVal: exploredCard.valEl, exploredBar: exploredCard.barFillEl, exploredSub: exploredCard.subEl,
+      playsVal: playsCard.valEl, bestVal: bestCard.valEl,
+      endingsVal: endingsCard.valEl, readTimeVal: readTimeCard.valEl,
+      castContainer, endingsContainer, lastPlayedEl,
+      continueBtn, nonePlaceholder, unknownCast
+    };
+
+    // ─── Event delegation ───
     this.overlay.addEventListener('click', (e) => {
       if (e.target === this.overlay) { this.hide(); return; }
       const btn = e.target.closest('button');
@@ -73,22 +241,55 @@ class StoryInfoModal {
   }
 
   /**
+   * Get or grow a pooled ending tag element.
+   * @private
+   */
+  _getEndingTag(idx) {
+    if (idx < this._endingTagPool.length) return this._endingTagPool[idx];
+    const el = document.createElement('span');
+    el.className = 'story-info-ending-tag';
+    this._endingTagPool.push(el);
+    return el;
+  }
+
+  /**
+   * Get or grow a pooled cast chip element (with pre-built children).
+   * @private
+   */
+  _getCastChip(idx) {
+    if (idx < this._castChipPool.length) return this._castChipPool[idx];
+    const chip = document.createElement('span');
+    chip.className = 'story-info-cast-chip';
+    const nameEl = document.createElement('span');
+    nameEl.className = 'story-info-cast-name';
+    const roleEl = document.createElement('span');
+    roleEl.className = 'story-info-cast-role';
+    chip.appendChild(nameEl);
+    chip.appendChild(roleEl);
+    chip._nameEl = nameEl;
+    chip._roleEl = roleEl;
+    this._castChipPool.push(chip);
+    return chip;
+  }
+
+  /**
    * Show the info modal for a given story.
+   * Updates pre-built DOM refs with new data — zero innerHTML.
    * @param {Object} story — { slug, title, description, _parsed }
    * @param {Object[]} characters — CHARACTER_DATA[slug] array
    */
   show(story, characters) {
     this._build();
     this._currentStory = story;
+    const r = this._refs;
 
-    const panel = this.overlay.querySelector('.story-info-panel');
     const data = this.tracker.getStory(story.slug);
     const scenes = story._parsed?.scenes ? Object.keys(story._parsed.scenes) : [];
     const totalScenes = scenes.length;
     const visitedCount = (data.visitedScenes || []).length;
     const pct = totalScenes > 0 ? Math.round((visitedCount / totalScenes) * 100) : 0;
     const totalEndings = story._parsed?.scenes
-      ? Object.values(story._parsed.scenes).filter(scene => scene.ending).length
+      ? Object.values(story._parsed.scenes).filter(sc => sc.ending).length
       : 0;
 
     // Word count / reading time
@@ -100,108 +301,96 @@ class StoryInfoModal {
     // Protagonist portrait
     const chars = characters || [];
     const protag = chars.find(c => c.role === 'protagonist') || chars[0];
-    let portraitHtml = '';
     if (protag) {
       const url = this.portraits.getPortrait(protag.name, protag.appearance);
       const hasAI = this.portraits.hasPortrait(protag.name);
-      const cls = hasAI ? 'story-info-portrait ai-portrait' : 'story-info-portrait pixel';
-      portraitHtml = `<img src="${url}" class="${cls}" alt="${this._esc(protag.name)}" />`;
+      r.portraitImg.src = url;
+      r.portraitImg.alt = protag.name;
+      r.portraitImg.className = hasAI ? 'story-info-portrait ai-portrait' : 'story-info-portrait pixel';
+      r.portraitImg.classList.remove('hidden');
+    } else {
+      r.portraitImg.classList.add('hidden');
     }
 
-    // Ending list
+    // Header text
+    r.titleEl.textContent = story.title;
+    r.descEl.textContent = story.description || '';
+    r.metaTime.textContent = `⏱ ~${readMins} min`;
+    r.metaScenes.textContent = `📄 ${totalScenes} scenes`;
+    if (protag) {
+      r.metaProtag.textContent = `🐱 ${protag.name}`;
+      r.metaProtag.classList.remove('hidden');
+    } else {
+      r.metaProtag.classList.add('hidden');
+    }
+
+    // Stats
+    r.exploredVal.textContent = `${pct}%`;
+    r.exploredBar.style.setProperty('--bar-pct', `${pct}%`);
+    r.exploredSub.textContent = `${visitedCount} / ${totalScenes} scenes`;
+    r.playsVal.textContent = data.totalPlays || 0;
+    r.bestVal.textContent = data.bestTurns ?? '—';
+
+    // Endings found value (with /total suffix)
     const endings = data.endingsFound || [];
-    const endingsHtml = endings.length > 0
-      ? endings.map(e => `<span class="story-info-ending-tag">${this._esc(e)}</span>`).join('')
-      : '<span class="story-info-none">None yet</span>';
-    const castHtml = chars.length > 0
-      ? chars.map(char => `
-          <span class="story-info-cast-chip" title="${this._esc(char.appearance || '')}">
-            <span class="story-info-cast-name">${this._esc(char.name)}</span>
-            <span class="story-info-cast-role">${this._esc(char.role || 'cat')}</span>
-          </span>
-        `).join('')
-      : '<span class="story-info-none">Unknown cast</span>';
+    r.endingsVal.textContent = '';
+    r.endingsVal.appendChild(document.createTextNode(String(endings.length)));
+    if (totalEndings) {
+      const totalSpan = document.createElement('span');
+      totalSpan.className = 'story-info-stat-total';
+      totalSpan.textContent = `/${totalEndings}`;
+      r.endingsVal.appendChild(totalSpan);
+    }
+
     const totalReadingMs = data.totalReadingMs || 0;
+    r.readTimeVal.textContent = StoryTracker.formatDuration(totalReadingMs);
+
+    // Cast chips
+    r.castContainer.textContent = '';
+    if (chars.length > 0) {
+      const frag = document.createDocumentFragment();
+      for (let i = 0; i < chars.length; i++) {
+        const chip = this._getCastChip(i);
+        chip.title = chars[i].appearance || '';
+        chip._nameEl.textContent = chars[i].name;
+        chip._roleEl.textContent = chars[i].role || 'cat';
+        frag.appendChild(chip);
+      }
+      r.castContainer.appendChild(frag);
+    } else {
+      r.castContainer.appendChild(r.unknownCast);
+    }
+
+    // Ending tags
+    r.endingsContainer.textContent = '';
+    if (endings.length > 0) {
+      const frag = document.createDocumentFragment();
+      for (let i = 0; i < endings.length; i++) {
+        const tag = this._getEndingTag(i);
+        tag.textContent = endings[i];
+        frag.appendChild(tag);
+      }
+      r.endingsContainer.appendChild(frag);
+    } else {
+      r.endingsContainer.appendChild(r.nonePlaceholder);
+    }
 
     // Last played
-    const lastPlayedStr = data.lastPlayed
+    r.lastPlayedEl.textContent = data.lastPlayed
       ? new Date(data.lastPlayed).toLocaleDateString(undefined, {
           month: 'short', day: 'numeric', year: 'numeric',
           hour: '2-digit', minute: '2-digit'
         })
       : 'Never';
 
-    // Has a save to continue?
+    // Continue button visibility
     const hasSave = this.saves.hasSave(story.slug);
-
-    panel.innerHTML = `
-      <div class="story-info-header">
-        ${portraitHtml}
-        <div class="story-info-title-block">
-          <div class="story-info-title">${this._esc(story.title)}</div>
-          <div class="story-info-desc">${this._esc(story.description || '')}</div>
-          <div class="story-info-meta-row">
-            <span>⏱ ~${readMins} min</span>
-            <span>📄 ${totalScenes} scenes</span>
-            ${protag ? `<span>🐱 ${this._esc(protag.name)}</span>` : ''}
-          </div>
-        </div>
-        <button class="story-info-close" aria-label="Close">✕</button>
-      </div>
-
-      <div class="story-info-stats">
-        <div class="story-info-stat-card">
-          <div class="story-info-stat-value">${pct}%</div>
-          <div class="story-info-stat-label">Explored</div>
-          <div class="story-info-progress-bar">
-            <div class="story-info-progress-fill" style="--bar-pct:${pct}%"></div>
-          </div>
-          <div class="story-info-stat-sub">${visitedCount} / ${totalScenes} scenes</div>
-        </div>
-        <div class="story-info-stat-card">
-          <div class="story-info-stat-value">${data.totalPlays || 0}</div>
-          <div class="story-info-stat-label">Plays</div>
-        </div>
-        <div class="story-info-stat-card">
-          <div class="story-info-stat-value">${data.bestTurns ?? '—'}</div>
-          <div class="story-info-stat-label">Best Turns</div>
-        </div>
-        <div class="story-info-stat-card">
-          <div class="story-info-stat-value">${endings.length}${totalEndings ? `<span class="story-info-stat-total">/${totalEndings}</span>` : ''}</div>
-          <div class="story-info-stat-label">Endings Found</div>
-        </div>
-        <div class="story-info-stat-card">
-          <div class="story-info-stat-value">${StoryTracker.formatDuration(totalReadingMs)}</div>
-          <div class="story-info-stat-label">Reading Time</div>
-        </div>
-      </div>
-
-      <div class="story-info-section">
-        <div class="story-info-section-title">🐾 Cast</div>
-        <div class="story-info-cast">${castHtml}</div>
-      </div>
-
-      <div class="story-info-section">
-        <div class="story-info-section-title">🔮 Endings Discovered</div>
-        <div class="story-info-endings">${endingsHtml}</div>
-      </div>
-
-      <div class="story-info-section">
-        <div class="story-info-section-title">🕐 Last Played</div>
-        <div class="story-info-last-played">${lastPlayedStr}</div>
-      </div>
-
-      <div class="story-info-actions">
-        <button class="story-info-play-btn">▶ Play</button>
-        ${hasSave ? '<button class="story-info-continue-btn">📂 Continue</button>' : ''}
-        <button class="story-info-share-btn">🔗 Share</button>
-      </div>
-    `;
+    r.continueBtn.classList.toggle('hidden', !hasSave);
 
     this.overlay.setAttribute('aria-hidden', 'false');
     requestAnimationFrame(() => this.overlay.classList.add('visible'));
 
-    if (!this._focusTrap) this._focusTrap = new FocusTrap(panel);
+    if (!this._focusTrap) this._focusTrap = new FocusTrap(r.panel);
     this._focusTrap.activate();
   }
 
@@ -216,12 +405,5 @@ class StoryInfoModal {
 
   get isVisible() {
     return this.overlay?.classList.contains('visible') || false;
-  }
-
-  /** @private HTML-escape using shared off-screen element */
-  _esc(text) {
-    if (!VNUI._escapeDiv) VNUI._escapeDiv = document.createElement('div');
-    VNUI._escapeDiv.textContent = text;
-    return VNUI._escapeDiv.innerHTML;
   }
 }

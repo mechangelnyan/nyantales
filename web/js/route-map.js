@@ -432,12 +432,14 @@ class RouteMap {
     if (hovered !== this._hoveredNode) {
       this._hoveredNode = hovered;
       if (hovered && this._tooltip) {
-        let tip = `<strong>${hovered.id}</strong>`;
-        if (hovered.speaker) tip += `<br>Speaker: ${hovered.speaker}`;
-        if (hovered.type === 'ending') tip += `<br>🏁 Ending (${hovered.endingType})`;
-        if (hovered.current) tip += `<br>📍 You are here`;
-        if (!hovered.visited) tip += `<br>❓ Not yet visited`;
-        this._tooltip.innerHTML = tip;
+        this._tooltip.textContent = '';
+        const strong = document.createElement('strong');
+        strong.textContent = hovered.id;
+        this._tooltip.appendChild(strong);
+        if (hovered.speaker) { this._tooltip.appendChild(document.createElement('br')); this._tooltip.appendChild(document.createTextNode(`Speaker: ${hovered.speaker}`)); }
+        if (hovered.type === 'ending') { this._tooltip.appendChild(document.createElement('br')); this._tooltip.appendChild(document.createTextNode(`🏁 Ending (${hovered.endingType})`)); }
+        if (hovered.current) { this._tooltip.appendChild(document.createElement('br')); this._tooltip.appendChild(document.createTextNode('📍 You are here')); }
+        if (!hovered.visited) { this._tooltip.appendChild(document.createElement('br')); this._tooltip.appendChild(document.createTextNode('❓ Not yet visited')); }
         this._tooltip.classList.remove('hidden');
         this._tooltip.style.left = `${e.clientX - this.overlay.getBoundingClientRect().left + 12}px`;
         this._tooltip.style.top = `${e.clientY - this.overlay.getBoundingClientRect().top - 10}px`;
