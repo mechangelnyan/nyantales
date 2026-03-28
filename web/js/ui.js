@@ -256,8 +256,11 @@ class VNUI {
     // Position sprites
     const positions = this._getSpritePositions(visible.length);
 
-    // Fade out removed sprites (Set avoids O(n) find per active sprite)
-    const visibleNames = new Set(visible.map(v => v.name));
+    // Fade out removed sprites (reuse Set to avoid allocation per render)
+    if (!this._visibleNamesBuf) this._visibleNamesBuf = new Set();
+    const visibleNames = this._visibleNamesBuf;
+    visibleNames.clear();
+    for (const v of visible) visibleNames.add(v.name);
     for (const [name, el] of this._activeSprites) {
       if (!visibleNames.has(name)) {
         el.classList.remove('visible');

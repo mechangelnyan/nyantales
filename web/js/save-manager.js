@@ -19,6 +19,8 @@ class SaveManager {
     // Callbacks set by main.js
     this.onLoad = null; // (slug, stateJson) => void
     this._focusTrap = null;
+    /** Cached most-recent-save result (invalidated on save/delete/migrate) */
+    this._recentCache = undefined;
   }
 
   // ── Data Access ──
@@ -55,6 +57,7 @@ class SaveManager {
       try { localStorage.setItem(this.STORAGE_PREFIX + slug, JSON.stringify(slots)); } catch { /* storage full */ }
     }
 
+    this._recentCache = undefined; // invalidate
     return slots[slotName];
   }
 
@@ -72,6 +75,7 @@ class SaveManager {
     } else {
       try { localStorage.setItem(this.STORAGE_PREFIX + slug, JSON.stringify(slots)); } catch { /* noop */ }
     }
+    this._recentCache = undefined; // invalidate
   }
 
   /** Check if any save exists for a story */
@@ -80,8 +84,14 @@ class SaveManager {
     return Object.keys(slots).length > 0;
   }
 
-  /** Get the most recent save across ALL stories (for "Continue" button) */
+  /**
+   * Get the most recent save across ALL stories (for "Continue" button).
+   * Result is cached and invalidated on save/delete/migrate to avoid
+   * scanning all localStorage keys on every title screen render.
+   */
   getMostRecentSave() {
+    if (this._recentCache !== undefined) return this._recentCache;
+
     let best = null;
     let bestSlug = null;
 
@@ -101,7 +111,8 @@ class SaveManager {
       }
     } catch { /* noop */ }
 
-    return best ? { slug: bestSlug, ...best } : null;
+    this._recentCache = best ? { slug: bestSlug, ...best } : null;
+    return this._recentCache;
   }
 
   /** Migrate legacy saves (nyantales-save-{slug} format) to slot system */
@@ -132,6 +143,7 @@ class SaveManager {
 
         localStorage.setItem(this.STORAGE_PREFIX + slug, JSON.stringify(slots));
         localStorage.removeItem(key); // Clean up old format
+        this._recentCache = undefined; // invalidate
       }
     } catch { /* migration is best-effort */ }
   }

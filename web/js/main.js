@@ -878,6 +878,8 @@
 
   /** Whether the story grid has been built at least once (for partial refresh). */
   let _gridBuilt = false;
+  /** Whether the chapter grid has been built at least once (for partial refresh). */
+  let _chapterGridBuilt = false;
 
   /**
    * Render (or re-render) the title screen.
@@ -1646,28 +1648,39 @@
     return campaign.progress.persistentFlags?.includes(entry.flag) || false;
   }
 
-  /** Render the campaign chapter grid grouped by act. */
+  /**
+   * Render the campaign chapter grid grouped by act.
+   * First call: builds the full grid from scratch.
+   * Subsequent calls: partial refresh — only updates classes, text, and aria on existing cards.
+   */
   function renderChapterGrid() {
     if (!chapterGridEl) return;
-    chapterGridEl.innerHTML = '';
 
     // Hide campaign section + divider when campaign data isn't loaded
     if (!campaign.isLoaded) {
       chapterGridEl.classList.add('hidden');
       if (sectionDivider) sectionDivider.classList.add('hidden');
       if (campaignBtnEl) campaignBtnEl.classList.add('hidden');
+      _chapterGridBuilt = false;
       return;
     }
     chapterGridEl.classList.remove('hidden');
     if (sectionDivider) sectionDivider.classList.remove('hidden');
     if (campaignBtnEl) campaignBtnEl.classList.remove('hidden');
 
+    if (_chapterGridBuilt) {
+      // Partial refresh: update state of existing chapter cards
+      _refreshChapterCards();
+      return;
+    }
+
+    // First render: build full grid from scratch
+    chapterGridEl.innerHTML = '';
+
     // Batch-append act sections via DocumentFragment (1 reflow instead of per-act)
     const gridFrag = document.createDocumentFragment();
     const chapters = campaign.chapters;
     const acts = campaign.manifest?.acts || [];
-    const currentIdx = campaign.progress.chapterIndex;
-    const isStarted = campaign.progress.started;
 
     // Build act → chapters mapping
     const actMap = {};
@@ -1696,7 +1709,8 @@
       items.forEach(({ ch, idx }) => {
         const unlocked = isChapterUnlocked(idx);
         const completed = campaign.progress.completedChapters.includes(idx);
-        const isCurrent = isStarted && idx === currentIdx && campaign.progress.phase === 'chapter';
+        const isStarted = campaign.progress.started;
+        const isCurrent = isStarted && idx === campaign.progress.chapterIndex && campaign.progress.phase === 'chapter';
 
         const card = document.createElement('div');
         card.className = 'chapter-card' +
@@ -1749,6 +1763,60 @@
       gridFrag.appendChild(section);
     });
     chapterGridEl.appendChild(gridFrag);
+    _chapterGridBuilt = true;
+  }
+
+  /**
+   * Partial refresh of chapter cards: updates lock/complete/current state
+   * without destroying and rebuilding the grid DOM.
+   */
+  function _refreshChapterCards() {
+    const cards = chapterGridEl.querySelectorAll('.chapter-card');
+    const chapters = campaign.chapters;
+    const isStarted = campaign.progress.started;
+    const currentIdx = campaign.progress.chapterIndex;
+
+    cards.forEach(card => {
+      const idx = parseInt(card.dataset.chapterIndex, 10);
+      if (isNaN(idx) || !chapters[idx]) return;
+      const ch = chapters[idx];
+
+      const unlocked = isChapterUnlocked(idx);
+      const completed = campaign.progress.completedChapters.includes(idx);
+      const isCurrent = isStarted && idx === currentIdx && campaign.progress.phase === 'chapter';
+
+      // Update classes
+      card.classList.toggle('unlocked', unlocked);
+      card.classList.toggle('locked', !unlocked);
+      card.classList.toggle('completed', completed);
+      card.classList.toggle('current', isCurrent);
+      card.setAttribute('tabindex', unlocked ? '0' : '-1');
+      card.setAttribute('aria-label', unlocked ? `Chapter ${ch.chapter}: ${ch.title}` : `Chapter ${ch.chapter}: Locked`);
+
+      // Update title/desc
+      const titleEl = card.querySelector('.chapter-title');
+      const descEl = card.querySelector('.chapter-desc');
+      if (titleEl) titleEl.textContent = unlocked ? ch.title : '???';
+      if (descEl) descEl.textContent = unlocked ? (ch.description || '') : '';
+
+      // Update status icon
+      const status = card.querySelector('.chapter-status');
+      if (status) {
+        if (!unlocked) {
+          status.textContent = '🔒';
+          status.setAttribute('aria-hidden', 'true');
+        } else if (isCurrent) {
+          status.textContent = '▶';
+          status.removeAttribute('aria-hidden');
+        } else if (completed) {
+          status.textContent = '✅';
+          status.removeAttribute('aria-hidden');
+        } else {
+          status.textContent = '○';
+          status.removeAttribute('aria-hidden');
+        }
+      }
+    });
   }
 
   // ── Chapter Grid Click Delegation ──

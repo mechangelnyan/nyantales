@@ -240,11 +240,14 @@ class StoryEngine {
   loadState(json) {
     const data = JSON.parse(json);
     this.state.currentScene = data.currentScene;
-    this.state.inventory = data.inventory;
+    this.state.inventory = data.inventory || [];
     this.state.flags = new Set(data.flags);
     this.state.visited = new Set(data.visited);
-    this.state.turns = data.turns;
-    this.state.history = data.history || [];
-    this.state.snapshots = data.snapshots || [];
+    this.state.turns = data.turns || 0;
+    // Cap history/snapshots on load to prevent memory bloat from corrupt or very old saves
+    const hist = data.history || [];
+    this.state.history = hist.length > 500 ? hist.slice(-500) : hist;
+    const snaps = data.snapshots || [];
+    this.state.snapshots = snaps.length > 200 ? snaps.slice(-200) : snaps;
   }
 }
