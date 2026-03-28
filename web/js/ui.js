@@ -48,6 +48,7 @@ class VNUI {
     this._fullText = '';
     this._lastBgClass = '';
     this._transitioning = false;
+    this._lastInventory = ''; // cached inventory key to skip redundant DOM updates
 
     // Reusable transition overlay (avoids DOM create/remove on every bg change)
     this._transOverlay = document.createElement('div');
@@ -614,7 +615,8 @@ class VNUI {
    * Show a "Continue ▶" button and wait for the player to click/tap it
    * before revealing the ending overlay. Gives the player a moment to
    * absorb the final scene text.
-   * Uses a reusable button element to avoid createElement on every ending.
+   * Uses a reusable button element and permanent event handlers to avoid
+   * per-show addEventListener/removeEventListener churn.
    * @returns {Promise<void>}
    */
   _waitForEndingContinue() {
@@ -628,29 +630,35 @@ class VNUI {
         this._endingContinueBtn = document.createElement('button');
         this._endingContinueBtn.className = 'choice-btn ending-continue-btn fade-in';
         this._endingContinueBtn.textContent = 'Continue ▶';
+
+        // Permanent click handler — only fires when _endingContinueResolve is set
+        this._endingContinueBtn.addEventListener('click', () => {
+          if (this._endingContinueResolve) this._dismissEndingContinue();
+        });
+
+        // Permanent keydown handler — only fires when _endingContinueResolve is set
+        document.addEventListener('keydown', (e) => {
+          if (!this._endingContinueResolve) return;
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            this._dismissEndingContinue();
+          }
+        });
       }
-      const btn = this._endingContinueBtn;
-      this.choicesEl.appendChild(btn);
 
-      const dismiss = () => {
-        btn.removeEventListener('click', dismiss);
-        document.removeEventListener('keydown', keyHandler);
-        this.choicesEl.innerHTML = '';
-        this.choicesEl.classList.add('hidden');
-        resolve();
-      };
-
-      const keyHandler = (e) => {
-        if (e.key === 'Enter' || e.key === ' ') {
-          e.preventDefault();
-          dismiss();
-        }
-      };
-
-      btn.addEventListener('click', dismiss);
-      document.addEventListener('keydown', keyHandler);
-      btn.focus();
+      this._endingContinueResolve = resolve;
+      this.choicesEl.appendChild(this._endingContinueBtn);
+      this._endingContinueBtn.focus();
     });
+  }
+
+  /** Dismiss the ending continue prompt and resolve the pending promise. */
+  _dismissEndingContinue() {
+    const resolve = this._endingContinueResolve;
+    this._endingContinueResolve = null;
+    this.choicesEl.innerHTML = '';
+    this.choicesEl.classList.add('hidden');
+    if (resolve) resolve();
   }
 
   // ── Choices ──
@@ -732,8 +740,16 @@ class VNUI {
   _updateInventory(items) {
     if (items.length === 0) {
       this.inventoryEl.classList.add('hidden');
+      this._lastInventory = '';
       return;
     }
+    // Skip DOM write if inventory hasn't changed (common case: same items scene-to-scene)
+    const key = items.join('\0');
+    if (key === this._lastInventory) {
+      this.inventoryEl.classList.remove('hidden');
+      return;
+    }
+    this._lastInventory = key;
     this.inventoryEl.classList.remove('hidden');
     this.inventoryEl.innerHTML = items
       .map(i => `<span class="inv-item">🎒 ${this._escapeHtml(i)}</span>`)

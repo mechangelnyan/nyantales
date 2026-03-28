@@ -312,6 +312,8 @@ body {
   transition: all 0.25s ease;
   text-align: left;
   contain: content;
+  content-visibility: auto;
+  contain-intrinsic-size: auto 120px;
 }
 .story-card:hover {
   border-color: var(--accent-cyan);

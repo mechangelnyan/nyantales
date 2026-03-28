@@ -1493,3 +1493,20 @@ cd /tmp/nyantales && python3 -m http.server 9876
   - Falls back to `SaveManager._escDiv` if VNUI isn't initialized yet
 - SW cache bumped to v65, production build regenerated (174KB bundle)
 - All 33 JS files pass `node --check`, 204/204 unit tests, 50/50 Playwright tests
+
+## Phase 84: Inventory Diff, Permanent EndingContinue, Content-Visibility ✅
+- **Inventory DOM diff** — `_updateInventory()` now caches a key of current items, skips innerHTML rebuild when inventory is unchanged between scenes
+  - Common case: most scenes don't add/remove items, so this avoids redundant DOM writes on every scene render
+  - Key is `items.join('\0')` — cheap and collision-free for inventory-sized arrays
+- **Ending Continue button: permanent handlers** — replaced per-show `addEventListener`/`removeEventListener` with permanent click + keydown handlers
+  - Previously: each `_waitForEndingContinue()` call added a click handler on the button and a document keydown handler, then removed them on dismiss
+  - Risk: if called twice rapidly (e.g. during fast skip through endings), first handler pair could leak
+  - Now: permanent handlers installed once when the button is created, gated by `_endingContinueResolve` being set
+  - `_dismissEndingContinue()` extracted as proper method (clears resolve, hides choices)
+  - Same pattern used by ConfirmDialog and StoryIntro (proven safe across 80+ phases)
+- **CSS `content-visibility: auto`** on `.story-card` — browser skips rendering offscreen cards in the 30-card grid
+  - `contain-intrinsic-size: auto 120px` provides a size estimate for scroll positioning
+  - Combined with existing `contain: content` for full containment + rendering optimization
+  - Especially impactful on mobile where only 3-4 cards are visible at a time
+- SW cache bumped to v66, production build regenerated (175KB bundle)
+- All 33 JS files pass `node --check`, 204/204 unit tests, 50/50 Playwright tests
