@@ -1649,3 +1649,23 @@ cd /tmp/nyantales && python3 -m http.server 9876
 - SW cache bumped to v73, production build regenerated (183KB bundle)
 - All 33 JS files pass `node --check`, 204/204 unit tests, 50/50 Playwright tests
 - Committed & pushed
+
+## Phase 92: innerHTML Elimination — Init & Build Paths ✅
+- **Story card grid: innerHTML → createElement chain** — `renderStoryList()` no longer uses `card.innerHTML` with template literal
+  - Previously: `card.innerHTML = \`<div class="story-card-inner">...\``  with interpolated sprite HTML + escaped title/description
+  - Now: builds `inner` div, `img` sprite, `textDiv` with `h3`/`p` children all via `document.createElement`
+  - `h3.textContent` / `p.textContent` inherently safe (no XSS risk from story titles)
+  - `storyListEl.innerHTML = ''` → `storyListEl.textContent = ''`
+- **Auto-play indicator** — `el.innerHTML = '<div class="auto-play-dot"></div> AUTO'` → createElement + TextNode
+- **Skip indicator** — `el.innerHTML = '⏭ SKIP'` → `el.textContent`
+- **Act headers** — `header.innerHTML = \`<span class="act-title">...\`` → createElement for `actTitle` + `actSub` spans
+- **Clear operations** — 4 `innerHTML = ''` clear calls converted to `textContent = ''`:
+  - `_clearSprites()`, `storyListEl`, `statsEl`, `chapterGridEl`
+- **innerHTML remaining in main.js** — only error fallback (one-time, rare)
+- **innerHTML remaining in ui.js** — only typewriter text rendering (must produce HTML: `<code>`, `<strong>`, `<em>`, `<br>`) and `_escapeHtml` utility (reads innerHTML)
+- SW cache bumped to v74, production build regenerated (184KB bundle)
+- All 33 JS files pass `node --check`, 204/204 unit tests, 50/50 Playwright tests
+- Committed & pushed
+
+## Log (continued)
+- 2026-03-28 (1:27 PM): Phase 92 — innerHTML elimination from init/build paths: story card grid uses createElement chain instead of innerHTML template (XSS-safe textContent for titles), auto-play/skip indicators built via DOM API, act headers via createElement, 4 innerHTML='' clears→textContent=''. Remaining innerHTML only in typewriter (needs HTML output) and error fallback. SW v74, 184KB bundle. All 33 JS + 204/204 unit + 50/50 Playwright pass. Committed & pushed.
