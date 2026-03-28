@@ -320,8 +320,12 @@ class SaveManager {
     return this.overlay?.classList.contains('visible') || false;
   }
 
-  /** Static HTML escape using a shared off-screen element (avoids allocating per call) */
+  /** Static HTML escape using shared off-screen element (avoids allocating per call) */
   static _esc(text) {
+    if (typeof VNUI !== 'undefined' && VNUI._escapeDiv) {
+      VNUI._escapeDiv.textContent = text;
+      return VNUI._escapeDiv.innerHTML;
+    }
     if (!SaveManager._escDiv) SaveManager._escDiv = document.createElement('div');
     SaveManager._escDiv.textContent = text;
     return SaveManager._escDiv.innerHTML;

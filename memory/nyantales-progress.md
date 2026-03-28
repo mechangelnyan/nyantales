@@ -1479,3 +1479,17 @@ cd /tmp/nyantales && python3 -m http.server 9876
 - 2026-03-28 (2:27 AM): Phase 81 — DocumentFragment batching (renderStoryList 30 cards → 1 reflow, renderChapterGrid act sections → 1 reflow). Reusable ending DOM elements (_endingTimeBox, _endingNewBadge, _endingCampaignBtn avoid createElement per ending). Number key choice lookup uses targeted querySelector instead of querySelectorAll. CRITICAL FIX: persistent overlays (StoryIntro, ConfirmDialog) were blocking all clicks when hidden (pointer-events not disabled) — caused 41/50 Playwright failures. SW v63, 173KB bundle. All 33 JS + 204/204 unit + 50/50 Playwright pass. Committed & pushed.
 - 2026-03-28 (12:27 AM): Phase 79 — DRY scene advance (extracted advanceScene() helper, replacing 4 duplicated advance-to-next-scene blocks in main.js). Immutable scene data (playScene no longer mutates scene.effect, uses shallow copy instead). Repo hygiene: fixed git corruption (lost HEAD/config), re-cloned, recreated playwright.config.js, removed tests/ and playwright.config.js from .gitignore so they're properly tracked. SW v61, 170KB bundle. All 33 JS + 204/204 unit pass. Committed & pushed.
 - 2026-03-27 (11:27 PM): Phase 78 — Favorites O(1) Set cache (isFavorite was O(n) per call × 30 cards), single-pass getStats() and _buildContext() (was 3+ array passes each), typewriter visibility via CSS class instead of inline style, bg inference avoids string concatenation, reusable ending continue button, screen transition + choice ripple timer safety. SW v60, 170KB bundle. All 33 JS + 204/204 unit + 50/50 Playwright pass. Committed & pushed.
+
+## Phase 83: Dead Code Removal, Listener Leak Fix, Shared Escape ✅
+- **Removed dead `_esc()` methods** — `ConfirmDialog._esc()` and `StoryIntro._esc()` were never called anywhere
+  - Both had been kept as "utility" methods but no code path actually invoked them
+  - Removes ~20 lines of dead code + eliminates 2 unused `_escDiv` static allocations
+- **StoryIntro keydown listener leak fix** — per-show `document.addEventListener('keydown', keyHandler)` replaced with permanent handler
+  - Previously: each `show()` call added a new keydown listener, properly cleaned up on dismiss — but if `show()` was called twice rapidly (unlikely but possible during route changes), the first handler would never be removed
+  - Now: single permanent keydown handler installed in `_ensureOverlay()`, only fires when `_dismissFn` is set
+  - Matches the same pattern used by `ConfirmDialog` (permanent keydown, gated by `_resolve`)
+  - Eliminates per-show addEventListener/removeEventListener churn
+- **SaveManager._esc() upgraded** — now reuses `VNUI._escapeDiv` when available (was the only escape helper still creating its own element unconditionally)
+  - Falls back to `SaveManager._escDiv` if VNUI isn't initialized yet
+- SW cache bumped to v65, production build regenerated (174KB bundle)
+- All 33 JS files pass `node --check`, 204/204 unit tests, 50/50 Playwright tests

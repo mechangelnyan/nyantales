@@ -46,6 +46,15 @@ class StoryIntro {
       if (StoryIntro._dismissFn) StoryIntro._dismissFn();
     });
 
+    // Permanent keydown handler (only fires when _dismissFn is set)
+    document.addEventListener('keydown', (e) => {
+      if (!StoryIntro._dismissFn) return;
+      if (e.key === 'Enter' || e.key === ' ') {
+        e.preventDefault();
+        StoryIntro._dismissFn();
+      }
+    });
+
     document.body.appendChild(overlay);
   }
 
@@ -92,17 +101,10 @@ class StoryIntro {
       overlay.classList.remove('exiting');
 
       let dismissed = false;
-      const keyHandler = (e) => {
-        if (e.key === 'Enter' || e.key === ' ') {
-          e.preventDefault();
-          dismiss();
-        }
-      };
       const dismiss = () => {
         if (dismissed) return;
         dismissed = true;
         StoryIntro._dismissFn = null;
-        document.removeEventListener('keydown', keyHandler);
         overlay.classList.remove('visible');
         overlay.classList.add('exiting');
         overlay.setAttribute('aria-hidden', 'true');
@@ -113,7 +115,6 @@ class StoryIntro {
       };
 
       StoryIntro._dismissFn = dismiss;
-      document.addEventListener('keydown', keyHandler);
 
       // Animate in
       requestAnimationFrame(() => {
@@ -125,14 +126,4 @@ class StoryIntro {
     });
   }
 
-  /** @private — reuses VNUI's shared escape element when available */
-  static _esc(text) {
-    if (typeof VNUI !== 'undefined' && VNUI._escapeDiv) {
-      VNUI._escapeDiv.textContent = text;
-      return VNUI._escapeDiv.innerHTML;
-    }
-    if (!StoryIntro._escDiv) StoryIntro._escDiv = document.createElement('div');
-    StoryIntro._escDiv.textContent = text;
-    return StoryIntro._escDiv.innerHTML;
-  }
 }
