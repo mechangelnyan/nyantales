@@ -34,16 +34,28 @@ class ConfirmDialog {
     overlay.setAttribute('aria-modal', 'true');
     overlay.setAttribute('aria-hidden', 'true');
 
-    overlay.innerHTML = `
-      <div class="confirm-panel">
-        <div class="confirm-title"></div>
-        <div class="confirm-message"></div>
-        <div class="confirm-actions">
-          <button class="confirm-btn cancel-btn"></button>
-          <button class="confirm-btn ok-btn"></button>
-        </div>
-      </div>
-    `;
+    const panel = document.createElement('div');
+    panel.className = 'confirm-panel';
+
+    const titleEl = document.createElement('div');
+    titleEl.className = 'confirm-title';
+    panel.appendChild(titleEl);
+
+    const messageEl = document.createElement('div');
+    messageEl.className = 'confirm-message';
+    panel.appendChild(messageEl);
+
+    const actions = document.createElement('div');
+    actions.className = 'confirm-actions';
+    const cancelBtn = document.createElement('button');
+    cancelBtn.className = 'confirm-btn cancel-btn';
+    const okBtn = document.createElement('button');
+    okBtn.className = 'confirm-btn ok-btn';
+    actions.appendChild(cancelBtn);
+    actions.appendChild(okBtn);
+    panel.appendChild(actions);
+
+    overlay.appendChild(panel);
 
     // Single delegated click — handles confirm, cancel, and backdrop
     overlay.addEventListener('click', (e) => {
@@ -60,10 +72,10 @@ class ConfirmDialog {
     document.body.appendChild(overlay);
 
     ConfirmDialog._overlay = overlay;
-    ConfirmDialog._titleEl = overlay.querySelector('.confirm-title');
-    ConfirmDialog._messageEl = overlay.querySelector('.confirm-message');
-    ConfirmDialog._okBtn = overlay.querySelector('.ok-btn');
-    ConfirmDialog._cancelBtn = overlay.querySelector('.cancel-btn');
+    ConfirmDialog._titleEl = titleEl;
+    ConfirmDialog._messageEl = messageEl;
+    ConfirmDialog._okBtn = okBtn;
+    ConfirmDialog._cancelBtn = cancelBtn;
   }
 
   /** Resolve the current dialog and hide. */

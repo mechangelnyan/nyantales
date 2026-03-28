@@ -234,35 +234,67 @@ class RouteMap {
     this.overlay.setAttribute('aria-label', 'Story Route Map');
     this.overlay.setAttribute('aria-hidden', 'true');
 
-    this.overlay.innerHTML = `
-      <div class="route-map-panel">
-        <div class="route-map-header">
-          <div class="route-map-title">🗺️ Route Map</div>
-          <div class="route-map-legend">
-            <span class="legend-item"><span class="legend-dot legend-visited"></span> Visited</span>
-            <span class="legend-item"><span class="legend-dot legend-unvisited"></span> Unvisited</span>
-            <span class="legend-item"><span class="legend-dot legend-current"></span> Current</span>
-            <span class="legend-item"><span class="legend-dot legend-ending"></span> Ending</span>
-          </div>
-          <div class="route-map-controls">
-            <button class="route-map-zoom-btn" data-zoom="in" title="Zoom in" aria-label="Zoom in">+</button>
-            <button class="route-map-zoom-btn" data-zoom="out" title="Zoom out" aria-label="Zoom out">−</button>
-            <button class="route-map-zoom-btn" data-zoom="fit" title="Fit to view" aria-label="Fit to view">⊡</button>
-          </div>
-          <button class="route-map-close" aria-label="Close route map">✕</button>
-        </div>
-        <div class="route-map-canvas-wrap">
-          <canvas class="route-map-canvas"></canvas>
-        </div>
-        <div class="route-map-tooltip hidden"></div>
-      </div>
-    `;
+    const panel = document.createElement('div');
+    panel.className = 'route-map-panel';
 
+    const header = document.createElement('div');
+    header.className = 'route-map-header';
+
+    const titleDiv = document.createElement('div');
+    titleDiv.className = 'route-map-title';
+    titleDiv.textContent = '🗺️ Route Map';
+    header.appendChild(titleDiv);
+
+    const legend = document.createElement('div');
+    legend.className = 'route-map-legend';
+    for (const [cls, label] of [['legend-visited', 'Visited'], ['legend-unvisited', 'Unvisited'], ['legend-current', 'Current'], ['legend-ending', 'Ending']]) {
+      const item = document.createElement('span');
+      item.className = 'legend-item';
+      const dot = document.createElement('span');
+      dot.className = 'legend-dot ' + cls;
+      item.appendChild(dot);
+      item.appendChild(document.createTextNode(' ' + label));
+      legend.appendChild(item);
+    }
+    header.appendChild(legend);
+
+    const controls = document.createElement('div');
+    controls.className = 'route-map-controls';
+    for (const [zoom, title, text] of [['in', 'Zoom in', '+'], ['out', 'Zoom out', '−'], ['fit', 'Fit to view', '⊡']]) {
+      const btn = document.createElement('button');
+      btn.className = 'route-map-zoom-btn';
+      btn.dataset.zoom = zoom;
+      btn.title = title;
+      btn.setAttribute('aria-label', title);
+      btn.textContent = text;
+      controls.appendChild(btn);
+    }
+    header.appendChild(controls);
+
+    const closeBtn = document.createElement('button');
+    closeBtn.className = 'route-map-close';
+    closeBtn.setAttribute('aria-label', 'Close route map');
+    closeBtn.textContent = '✕';
+    header.appendChild(closeBtn);
+    panel.appendChild(header);
+
+    const canvasWrap = document.createElement('div');
+    canvasWrap.className = 'route-map-canvas-wrap';
+    const canvas = document.createElement('canvas');
+    canvas.className = 'route-map-canvas';
+    canvasWrap.appendChild(canvas);
+    panel.appendChild(canvasWrap);
+
+    const tooltip = document.createElement('div');
+    tooltip.className = 'route-map-tooltip hidden';
+    panel.appendChild(tooltip);
+
+    this.overlay.appendChild(panel);
     document.body.appendChild(this.overlay);
-    this.canvas = this.overlay.querySelector('.route-map-canvas');
-    this.ctx = this.canvas.getContext('2d');
-    this._tooltip = this.overlay.querySelector('.route-map-tooltip');
-    this._panelEl = this.overlay.querySelector('.route-map-panel');
+    this.canvas = canvas;
+    this.ctx = canvas.getContext('2d');
+    this._tooltip = tooltip;
+    this._panelEl = panel;
 
     // Delegated click listener for close + zoom buttons + backdrop
     this.overlay.addEventListener('click', (e) => {

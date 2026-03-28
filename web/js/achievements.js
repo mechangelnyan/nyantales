@@ -197,17 +197,28 @@ class AchievementSystem {
     if (this._toast) return;
     const toast = document.createElement('div');
     toast.className = 'achievement-toast';
-    toast.innerHTML = `
-      <div class="achievement-toast-icon"></div>
-      <div class="achievement-toast-text">
-        <div class="achievement-toast-label">Achievement Unlocked!</div>
-        <div class="achievement-toast-name"></div>
-        <div class="achievement-toast-desc"></div>
-      </div>
-    `;
-    this._toastIconEl = toast.querySelector('.achievement-toast-icon');
-    this._toastNameEl = toast.querySelector('.achievement-toast-name');
-    this._toastDescEl = toast.querySelector('.achievement-toast-desc');
+
+    const iconEl = document.createElement('div');
+    iconEl.className = 'achievement-toast-icon';
+    toast.appendChild(iconEl);
+
+    const textWrap = document.createElement('div');
+    textWrap.className = 'achievement-toast-text';
+    const label = document.createElement('div');
+    label.className = 'achievement-toast-label';
+    label.textContent = 'Achievement Unlocked!';
+    textWrap.appendChild(label);
+    const nameEl = document.createElement('div');
+    nameEl.className = 'achievement-toast-name';
+    textWrap.appendChild(nameEl);
+    const descEl = document.createElement('div');
+    descEl.className = 'achievement-toast-desc';
+    textWrap.appendChild(descEl);
+    toast.appendChild(textWrap);
+
+    this._toastIconEl = iconEl;
+    this._toastNameEl = nameEl;
+    this._toastDescEl = descEl;
     this._toast = toast;
   }
 

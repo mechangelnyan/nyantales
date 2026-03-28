@@ -17,132 +17,191 @@ class SettingsPanel {
     this.overlay.setAttribute('role', 'dialog');
     this.overlay.setAttribute('aria-label', 'Settings');
     this.overlay.setAttribute('aria-hidden', 'true');
-    this.overlay.innerHTML = `
-      <div class="settings-panel">
-        <div class="settings-header">
-          <div class="settings-title">⚙️ Settings</div>
-          <button class="settings-close">✕</button>
-        </div>
-        <div class="settings-body">
+    const panelEl = document.createElement('div');
+    panelEl.className = 'settings-panel';
 
-          <div class="settings-group">
-            <div class="settings-group-title">📝 Text</div>
+    const header = document.createElement('div');
+    header.className = 'settings-header';
+    const titleDiv = document.createElement('div');
+    titleDiv.className = 'settings-title';
+    titleDiv.textContent = '⚙️ Settings';
+    header.appendChild(titleDiv);
+    const closeBtn = document.createElement('button');
+    closeBtn.className = 'settings-close';
+    closeBtn.textContent = '✕';
+    header.appendChild(closeBtn);
+    panelEl.appendChild(header);
 
-            <div class="settings-row">
-              <label class="settings-label">Text Speed</label>
-              <div class="settings-control">
-                <input type="range" id="set-text-speed" min="2" max="40" step="2" class="settings-slider" />
-                <span class="settings-value" id="set-text-speed-val"></span>
-              </div>
-            </div>
-            <div class="settings-row">
-              <div class="settings-text-preview" id="set-text-preview" aria-label="Text speed preview"></div>
-            </div>
+    const bodyEl = document.createElement('div');
+    bodyEl.className = 'settings-body';
 
-            <div class="settings-row">
-              <label class="settings-label">Auto-Play</label>
-              <div class="settings-control">
-                <button id="set-auto-play" class="settings-toggle"></button>
-              </div>
-            </div>
+    // Helper: create a settings row with label + control
+    const mkRow = (labelText, controlContent, opts = {}) => {
+      const row = document.createElement('div');
+      row.className = 'settings-row';
+      if (opts.id) row.id = opts.id;
+      if (labelText) {
+        const lbl = document.createElement('label');
+        lbl.className = 'settings-label';
+        lbl.textContent = labelText;
+        row.appendChild(lbl);
+      }
+      const ctrl = document.createElement('div');
+      ctrl.className = 'settings-control' + (opts.ctrlClass ? ' ' + opts.ctrlClass : '');
+      if (opts.ctrlId) ctrl.id = opts.ctrlId;
+      if (opts.role) { ctrl.setAttribute('role', opts.role); ctrl.setAttribute('aria-label', opts.ariaLabel || ''); }
+      if (controlContent) ctrl.appendChild(controlContent);
+      if (opts.extraChildren) opts.extraChildren.forEach(c => ctrl.appendChild(c));
+      row.appendChild(ctrl);
+      return row;
+    };
+    const mkSlider = (id, min, max, step) => {
+      const frag = document.createDocumentFragment();
+      const input = document.createElement('input');
+      input.type = 'range'; input.id = id; input.min = min; input.max = max; input.step = step;
+      input.className = 'settings-slider';
+      frag.appendChild(input);
+      const val = document.createElement('span');
+      val.className = 'settings-value'; val.id = id + '-val';
+      frag.appendChild(val);
+      return { frag, input, val };
+    };
+    const mkToggle = (id) => {
+      const btn = document.createElement('button');
+      btn.id = id; btn.className = 'settings-toggle';
+      return btn;
+    };
+    const mkGroup = (icon, title) => {
+      const g = document.createElement('div');
+      g.className = 'settings-group';
+      const t = document.createElement('div');
+      t.className = 'settings-group-title';
+      t.textContent = icon + ' ' + title;
+      g.appendChild(t);
+      return g;
+    };
 
-            <div class="settings-row" id="row-auto-delay">
-              <label class="settings-label">Auto-Play Delay</label>
-              <div class="settings-control">
-                <input type="range" id="set-auto-delay" min="500" max="6000" step="250" class="settings-slider" />
-                <span class="settings-value" id="set-auto-delay-val"></span>
-              </div>
-            </div>
+    // ── Text group ──
+    const textGrp = mkGroup('📝', 'Text');
+    const speedSlider = mkSlider('set-text-speed', '2', '40', '2');
+    const speedRow = mkRow('Text Speed', null);
+    const speedCtrl = speedRow.querySelector('.settings-control');
+    speedCtrl.appendChild(speedSlider.input);
+    speedCtrl.appendChild(speedSlider.val);
+    textGrp.appendChild(speedRow);
 
-            <div class="settings-row">
-              <label class="settings-label">Skip Read Scenes</label>
-              <div class="settings-control">
-                <button id="set-skip-read" class="settings-toggle"></button>
-              </div>
-            </div>
-          </div>
+    const previewRow = document.createElement('div');
+    previewRow.className = 'settings-row';
+    const previewDiv = document.createElement('div');
+    previewDiv.className = 'settings-text-preview';
+    previewDiv.id = 'set-text-preview';
+    previewDiv.setAttribute('aria-label', 'Text speed preview');
+    previewRow.appendChild(previewDiv);
+    textGrp.appendChild(previewRow);
 
-          <div class="settings-group">
-            <div class="settings-group-title">🎨 Visual</div>
+    const autoPlayBtn = mkToggle('set-auto-play');
+    textGrp.appendChild(mkRow('Auto-Play', autoPlayBtn));
 
-            <div class="settings-row">
-              <label class="settings-label">Font Size</label>
-              <div class="settings-control">
-                <input type="range" id="set-font-size" min="80" max="140" step="5" class="settings-slider" />
-                <span class="settings-value" id="set-font-size-val"></span>
-              </div>
-            </div>
+    const delaySlider = mkSlider('set-auto-delay', '500', '6000', '250');
+    const delayRow = mkRow('Auto-Play Delay', null, { id: 'row-auto-delay' });
+    const delayCtrl = delayRow.querySelector('.settings-control');
+    delayCtrl.appendChild(delaySlider.input);
+    delayCtrl.appendChild(delaySlider.val);
+    textGrp.appendChild(delayRow);
 
-            <div class="settings-row">
-              <label class="settings-label">Screen Effects</label>
-              <div class="settings-control">
-                <button id="set-screen-shake" class="settings-toggle"></button>
-              </div>
-            </div>
+    textGrp.appendChild(mkRow('Skip Read Scenes', mkToggle('set-skip-read')));
+    bodyEl.appendChild(textGrp);
 
-            <div class="settings-row">
-              <label class="settings-label">Particles</label>
-              <div class="settings-control">
-                <button id="set-particles" class="settings-toggle"></button>
-              </div>
-            </div>
+    // ── Visual group ──
+    const visGrp = mkGroup('🎨', 'Visual');
+    const fontSlider = mkSlider('set-font-size', '80', '140', '5');
+    const fontRow = mkRow('Font Size', null);
+    const fontCtrl = fontRow.querySelector('.settings-control');
+    fontCtrl.appendChild(fontSlider.input);
+    fontCtrl.appendChild(fontSlider.val);
+    visGrp.appendChild(fontRow);
 
-            <div class="settings-row">
-              <label class="settings-label">Fullscreen</label>
-              <div class="settings-control">
-                <button id="set-fullscreen" class="settings-toggle"></button>
-              </div>
-            </div>
+    visGrp.appendChild(mkRow('Screen Effects', mkToggle('set-screen-shake')));
+    visGrp.appendChild(mkRow('Particles', mkToggle('set-particles')));
+    visGrp.appendChild(mkRow('Fullscreen', mkToggle('set-fullscreen')));
 
-            <div class="settings-row">
-              <label class="settings-label">Color Theme</label>
-              <div class="settings-control theme-swatches" id="set-color-theme" role="group" aria-label="Color theme">
-                <button class="theme-swatch theme-swatch-cyan" data-theme="cyan" title="Cyan (default)" aria-label="Use cyan color theme"></button>
-                <button class="theme-swatch theme-swatch-magenta" data-theme="magenta" title="Magenta" aria-label="Use magenta color theme"></button>
-                <button class="theme-swatch theme-swatch-green" data-theme="green" title="Green" aria-label="Use green color theme"></button>
-                <button class="theme-swatch theme-swatch-amber" data-theme="amber" title="Amber" aria-label="Use amber color theme"></button>
-                <button class="theme-swatch theme-swatch-violet" data-theme="violet" title="Violet" aria-label="Use violet color theme"></button>
-              </div>
-            </div>
-          </div>
+    // Color theme swatches
+    const themeCtrl = document.createElement('div');
+    themeCtrl.className = 'settings-control theme-swatches';
+    themeCtrl.id = 'set-color-theme';
+    themeCtrl.setAttribute('role', 'group');
+    themeCtrl.setAttribute('aria-label', 'Color theme');
+    for (const [theme, title] of [['cyan','Cyan (default)'],['magenta','Magenta'],['green','Green'],['amber','Amber'],['violet','Violet']]) {
+      const sw = document.createElement('button');
+      sw.className = 'theme-swatch theme-swatch-' + theme;
+      sw.dataset.theme = theme;
+      sw.title = title;
+      sw.setAttribute('aria-label', 'Use ' + theme + ' color theme');
+      themeCtrl.appendChild(sw);
+    }
+    const themeRow = mkRow('Color Theme', null);
+    themeRow.querySelector('.settings-control').replaceWith(themeCtrl);
+    visGrp.appendChild(themeRow);
+    bodyEl.appendChild(visGrp);
 
-          <div class="settings-group">
-            <div class="settings-group-title">🔊 Audio</div>
+    // ── Audio group ──
+    const audioGrp = mkGroup('🔊', 'Audio');
+    const volSlider = mkSlider('set-volume', '0', '100', '5');
+    const volRow = mkRow('Volume', null);
+    const volCtrl = volRow.querySelector('.settings-control');
+    volCtrl.appendChild(volSlider.input);
+    volCtrl.appendChild(volSlider.val);
+    audioGrp.appendChild(volRow);
+    bodyEl.appendChild(audioGrp);
 
-            <div class="settings-row">
-              <label class="settings-label">Volume</label>
-              <div class="settings-control">
-                <input type="range" id="set-volume" min="0" max="100" step="5" class="settings-slider" />
-                <span class="settings-value" id="set-volume-val"></span>
-              </div>
-            </div>
-          </div>
+    // ── Data group ──
+    const dataGrp = mkGroup('💾', 'Data');
+    const exportBtn = document.createElement('button');
+    exportBtn.id = 'set-export';
+    exportBtn.className = 'settings-toggle on settings-data-btn';
+    exportBtn.textContent = '📤 Export';
+    const importBtn = document.createElement('button');
+    importBtn.id = 'set-import';
+    importBtn.className = 'settings-toggle settings-data-btn';
+    importBtn.textContent = '📥 Import';
+    const importFile = document.createElement('input');
+    importFile.type = 'file';
+    importFile.id = 'set-import-file';
+    importFile.accept = '.json';
+    importFile.className = 'hidden';
+    const backupRow = mkRow('Backup / Restore', null, { ctrlClass: 'settings-data-btns' });
+    const backupCtrl = backupRow.querySelector('.settings-control');
+    backupCtrl.appendChild(exportBtn);
+    backupCtrl.appendChild(importBtn);
+    backupCtrl.appendChild(importFile);
+    dataGrp.appendChild(backupRow);
 
-          <div class="settings-group">
-            <div class="settings-group-title">💾 Data</div>
-            <div class="settings-row">
-              <label class="settings-label">Backup / Restore</label>
-              <div class="settings-control settings-data-btns">
-                <button id="set-export" class="settings-toggle on settings-data-btn">📤 Export</button>
-                <button id="set-import" class="settings-toggle settings-data-btn">📥 Import</button>
-                <input type="file" id="set-import-file" accept=".json" class="hidden" />
-              </div>
-            </div>
-            <div class="settings-row">
-              <label class="settings-label">Campaign</label>
-              <div class="settings-control settings-data-btns">
-                <button id="set-campaign-reset" class="settings-toggle settings-data-btn settings-data-btn-warn">📖 Reset Campaign</button>
-              </div>
-            </div>
-            <div id="set-data-stats" class="settings-data-stats"></div>
-          </div>
+    const campaignResetBtn = document.createElement('button');
+    campaignResetBtn.id = 'set-campaign-reset';
+    campaignResetBtn.className = 'settings-toggle settings-data-btn settings-data-btn-warn';
+    campaignResetBtn.textContent = '📖 Reset Campaign';
+    const campaignRow = mkRow('Campaign', null, { ctrlClass: 'settings-data-btns' });
+    campaignRow.querySelector('.settings-control').appendChild(campaignResetBtn);
+    dataGrp.appendChild(campaignRow);
 
-          <div class="settings-footer">
-            <button id="set-reset" class="settings-reset-btn">↺ Reset Defaults</button>
-          </div>
-        </div>
-      </div>
-    `;
+    const dataStats = document.createElement('div');
+    dataStats.id = 'set-data-stats';
+    dataStats.className = 'settings-data-stats';
+    dataGrp.appendChild(dataStats);
+    bodyEl.appendChild(dataGrp);
+
+    // Footer
+    const footer = document.createElement('div');
+    footer.className = 'settings-footer';
+    const resetBtn = document.createElement('button');
+    resetBtn.id = 'set-reset';
+    resetBtn.className = 'settings-reset-btn';
+    resetBtn.textContent = '↺ Reset Defaults';
+    footer.appendChild(resetBtn);
+    bodyEl.appendChild(footer);
+
+    panelEl.appendChild(bodyEl);
+    this.overlay.appendChild(panelEl);
     document.body.appendChild(this.overlay);
 
     // Single delegated click — handles close button + backdrop

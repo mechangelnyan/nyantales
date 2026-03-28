@@ -27,20 +27,35 @@ class StoryIntro {
     overlay.setAttribute('role', 'dialog');
     overlay.setAttribute('aria-hidden', 'true');
 
-    overlay.innerHTML = `
-      <div class="story-intro-content">
-        <img class="story-intro-portrait" alt="" />
-        <h2 class="story-intro-title"></h2>
-        <p class="story-intro-desc"></p>
-        <button class="story-intro-prompt" type="button">Continue ▶</button>
-      </div>
-    `;
+    const content = document.createElement('div');
+    content.className = 'story-intro-content';
+
+    const portrait = document.createElement('img');
+    portrait.className = 'story-intro-portrait';
+    portrait.alt = '';
+    content.appendChild(portrait);
+
+    const titleEl = document.createElement('h2');
+    titleEl.className = 'story-intro-title';
+    content.appendChild(titleEl);
+
+    const descEl = document.createElement('p');
+    descEl.className = 'story-intro-desc';
+    content.appendChild(descEl);
+
+    const continueBtn = document.createElement('button');
+    continueBtn.className = 'story-intro-prompt';
+    continueBtn.type = 'button';
+    continueBtn.textContent = 'Continue ▶';
+    content.appendChild(continueBtn);
+
+    overlay.appendChild(content);
 
     StoryIntro._overlay = overlay;
-    StoryIntro._portraitEl = overlay.querySelector('.story-intro-portrait');
-    StoryIntro._titleEl = overlay.querySelector('.story-intro-title');
-    StoryIntro._descEl = overlay.querySelector('.story-intro-desc');
-    StoryIntro._continueBtn = overlay.querySelector('.story-intro-prompt');
+    StoryIntro._portraitEl = portrait;
+    StoryIntro._titleEl = titleEl;
+    StoryIntro._descEl = descEl;
+    StoryIntro._continueBtn = continueBtn;
 
     // Permanent click handler on the continue button
     StoryIntro._continueBtn.addEventListener('click', () => {

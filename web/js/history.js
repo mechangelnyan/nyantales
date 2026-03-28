@@ -58,30 +58,57 @@ class HistoryPanel {
     this.overlay.setAttribute('role', 'dialog');
     this.overlay.setAttribute('aria-label', 'Text History');
     this.overlay.setAttribute('aria-hidden', 'true');
-    this.overlay.innerHTML = `
-      <div class="history-panel">
-        <div class="history-header">
-          <div>
-            <div class="history-title">📜 Text History</div>
-            <div class="history-count"></div>
-          </div>
-          <div class="history-header-actions">
-            <button class="history-export-btn" title="Export as text file">📥 Export</button>
-            <button class="history-close">✕</button>
-          </div>
-        </div>
-        <div class="history-search-wrap">
-          <input type="text" class="history-search" placeholder="🔍 Search dialogue..." autocomplete="off" aria-label="Search text history" />
-        </div>
-        <div class="history-list"></div>
-      </div>
-    `;
+    const panel = document.createElement('div');
+    panel.className = 'history-panel';
+
+    const header = document.createElement('div');
+    header.className = 'history-header';
+    const headerLeft = document.createElement('div');
+    const titleDiv = document.createElement('div');
+    titleDiv.className = 'history-title';
+    titleDiv.textContent = '📜 Text History';
+    headerLeft.appendChild(titleDiv);
+    const countDiv = document.createElement('div');
+    countDiv.className = 'history-count';
+    headerLeft.appendChild(countDiv);
+    header.appendChild(headerLeft);
+
+    const headerActions = document.createElement('div');
+    headerActions.className = 'history-header-actions';
+    const exportBtn = document.createElement('button');
+    exportBtn.className = 'history-export-btn';
+    exportBtn.title = 'Export as text file';
+    exportBtn.textContent = '📥 Export';
+    headerActions.appendChild(exportBtn);
+    const closeBtn = document.createElement('button');
+    closeBtn.className = 'history-close';
+    closeBtn.textContent = '✕';
+    headerActions.appendChild(closeBtn);
+    header.appendChild(headerActions);
+    panel.appendChild(header);
+
+    const searchWrap = document.createElement('div');
+    searchWrap.className = 'history-search-wrap';
+    const searchInput = document.createElement('input');
+    searchInput.type = 'text';
+    searchInput.className = 'history-search';
+    searchInput.placeholder = '🔍 Search dialogue...';
+    searchInput.autocomplete = 'off';
+    searchInput.setAttribute('aria-label', 'Search text history');
+    searchWrap.appendChild(searchInput);
+    panel.appendChild(searchWrap);
+
+    const listDiv = document.createElement('div');
+    listDiv.className = 'history-list';
+    panel.appendChild(listDiv);
+
+    this.overlay.appendChild(panel);
     document.body.appendChild(this.overlay);
 
     // Cache frequently accessed child elements
-    this._listEl = this.overlay.querySelector('.history-list');
-    this._countEl = this.overlay.querySelector('.history-count');
-    this._panelEl = this.overlay.querySelector('.history-panel');
+    this._listEl = listDiv;
+    this._countEl = countDiv;
+    this._panelEl = panel;
 
     // Single delegated click — handles close button, backdrop, and export
     this.overlay.addEventListener('click', (e) => {

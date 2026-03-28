@@ -159,23 +159,44 @@ class SaveManager {
     this.overlay.setAttribute('role', 'dialog');
     this.overlay.setAttribute('aria-label', 'Save and Load');
     this.overlay.setAttribute('aria-hidden', 'true');
-    this.overlay.innerHTML = `
-      <div class="save-panel">
-        <div class="save-panel-header">
-          <div class="save-panel-title">💾 Save / Load</div>
-          <button class="save-panel-close">✕</button>
-        </div>
-        <div class="save-panel-mode">
-          <button class="save-mode-btn active" data-mode="save">Save</button>
-          <button class="save-mode-btn" data-mode="load">Load</button>
-        </div>
-        <div class="save-slots"></div>
-      </div>
-    `;
+    const panel = document.createElement('div');
+    panel.className = 'save-panel';
+
+    const panelHeader = document.createElement('div');
+    panelHeader.className = 'save-panel-header';
+    const panelTitle = document.createElement('div');
+    panelTitle.className = 'save-panel-title';
+    panelTitle.textContent = '💾 Save / Load';
+    panelHeader.appendChild(panelTitle);
+    const closeBtn = document.createElement('button');
+    closeBtn.className = 'save-panel-close';
+    closeBtn.textContent = '✕';
+    panelHeader.appendChild(closeBtn);
+    panel.appendChild(panelHeader);
+
+    const modeRow = document.createElement('div');
+    modeRow.className = 'save-panel-mode';
+    const saveBtn = document.createElement('button');
+    saveBtn.className = 'save-mode-btn active';
+    saveBtn.dataset.mode = 'save';
+    saveBtn.textContent = 'Save';
+    modeRow.appendChild(saveBtn);
+    const loadBtn = document.createElement('button');
+    loadBtn.className = 'save-mode-btn';
+    loadBtn.dataset.mode = 'load';
+    loadBtn.textContent = 'Load';
+    modeRow.appendChild(loadBtn);
+    panel.appendChild(modeRow);
+
+    const slotsDiv = document.createElement('div');
+    slotsDiv.className = 'save-slots';
+    panel.appendChild(slotsDiv);
+
+    this.overlay.appendChild(panel);
     document.body.appendChild(this.overlay);
 
     // Close + mode toggle — single delegated listener on overlay
-    this._modeBtns = this.overlay.querySelectorAll('.save-mode-btn');
+    this._modeBtns = [saveBtn, loadBtn];
     this.overlay.addEventListener('click', (e) => {
       // Backdrop or close button
       if (e.target === this.overlay || e.target.closest('.save-panel-close')) {
@@ -193,7 +214,7 @@ class SaveManager {
     });
 
     // Event delegation on save-slots container (one listener handles all slot actions)
-    this._slotsEl = this.overlay.querySelector('.save-slots');
+    this._slotsEl = slotsDiv;
     this._slotsEl.addEventListener('click', async (e) => {
       const btn = e.target.closest('[data-action]');
       if (!btn) return;

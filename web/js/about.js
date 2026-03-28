@@ -23,52 +23,100 @@ class AboutPanel {
     this.overlay.setAttribute('aria-label', 'About NyanTales');
     this.overlay.setAttribute('aria-hidden', 'true');
 
-    this.overlay.innerHTML = `
-      <div class="about-panel">
-        <div class="about-header">
-          <div class="about-title">🐱 About NyanTales</div>
-          <button class="about-close" aria-label="Close">✕</button>
-        </div>
-        <div class="about-body">
-          <pre class="about-ascii" aria-hidden="true"> /\\_/\\
-( o.o )
- > ^ <</pre>
-          <p class="about-desc">
-            <strong>NyanTales</strong> is an interactive visual novel collection featuring
-            30 stories of cats navigating the world of computer science — from kernel panics
-            to merge conflicts, from DNS quests to Docker escapes.
-          </p>
-          <div class="about-stats" id="about-stats"></div>
-          <div class="about-section">
-            <div class="about-section-title">Features</div>
-            <ul class="about-features">
-              <li>🎮 30 branching interactive stories</li>
-              <li>📖 Connected campaign mode (26 chapters across 5 acts)</li>
-              <li>🐱 45+ unique cat characters</li>
-              <li>🎨 Procedural pixel sprite system</li>
-              <li>🔊 Synthesized ambient soundscapes</li>
-              <li>💾 Multiple save slots with auto-save</li>
-              <li>🏆 16 unlockable achievements</li>
-              <li>📱 Mobile touch gestures + installable PWA</li>
-              <li>📲 One-tap install prompt + iPhone home-screen help</li>
-              <li>♿ Full keyboard + screen reader support</li>
-            </ul>
-          </div>
-          <div class="about-section">
-            <div class="about-section-title">Tech</div>
-            <p class="about-tech">
-              Vanilla JS · No frameworks · Web Audio API · Canvas pixel art · Service Worker offline · CSS gradient backgrounds · localStorage persistence
-            </p>
-          </div>
-          <div class="about-footer-text">
-            Made with 😻 by <a href="https://github.com/mechangelnyan/nyantales" target="_blank" rel="noopener">NyanTales</a>
-          </div>
-        </div>
-      </div>
-    `;
+    const panel = document.createElement('div');
+    panel.className = 'about-panel';
 
+    const header = document.createElement('div');
+    header.className = 'about-header';
+    const titleDiv = document.createElement('div');
+    titleDiv.className = 'about-title';
+    titleDiv.textContent = '🐱 About NyanTales';
+    header.appendChild(titleDiv);
+    const closeBtn = document.createElement('button');
+    closeBtn.className = 'about-close';
+    closeBtn.setAttribute('aria-label', 'Close');
+    closeBtn.textContent = '✕';
+    header.appendChild(closeBtn);
+    panel.appendChild(header);
+
+    const body = document.createElement('div');
+    body.className = 'about-body';
+
+    const ascii = document.createElement('pre');
+    ascii.className = 'about-ascii';
+    ascii.setAttribute('aria-hidden', 'true');
+    ascii.textContent = ' /\\_/\\\n( o.o )\n > ^ <';
+    body.appendChild(ascii);
+
+    const desc = document.createElement('p');
+    desc.className = 'about-desc';
+    const strong = document.createElement('strong');
+    strong.textContent = 'NyanTales';
+    desc.appendChild(strong);
+    desc.appendChild(document.createTextNode(' is an interactive visual novel collection featuring 30 stories of cats navigating the world of computer science — from kernel panics to merge conflicts, from DNS quests to Docker escapes.'));
+    body.appendChild(desc);
+
+    const statsDiv = document.createElement('div');
+    statsDiv.className = 'about-stats';
+    statsDiv.id = 'about-stats';
+    body.appendChild(statsDiv);
+
+    // Features section
+    const featSec = document.createElement('div');
+    featSec.className = 'about-section';
+    const featTitle = document.createElement('div');
+    featTitle.className = 'about-section-title';
+    featTitle.textContent = 'Features';
+    featSec.appendChild(featTitle);
+    const featList = document.createElement('ul');
+    featList.className = 'about-features';
+    for (const f of [
+      '🎮 30 branching interactive stories',
+      '📖 Connected campaign mode (26 chapters across 5 acts)',
+      '🐱 45+ unique cat characters',
+      '🎨 Procedural pixel sprite system',
+      '🔊 Synthesized ambient soundscapes',
+      '💾 Multiple save slots with auto-save',
+      '🏆 16 unlockable achievements',
+      '📱 Mobile touch gestures + installable PWA',
+      '📲 One-tap install prompt + iPhone home-screen help',
+      '♿ Full keyboard + screen reader support'
+    ]) {
+      const li = document.createElement('li');
+      li.textContent = f;
+      featList.appendChild(li);
+    }
+    featSec.appendChild(featList);
+    body.appendChild(featSec);
+
+    // Tech section
+    const techSec = document.createElement('div');
+    techSec.className = 'about-section';
+    const techTitle = document.createElement('div');
+    techTitle.className = 'about-section-title';
+    techTitle.textContent = 'Tech';
+    techSec.appendChild(techTitle);
+    const techP = document.createElement('p');
+    techP.className = 'about-tech';
+    techP.textContent = 'Vanilla JS · No frameworks · Web Audio API · Canvas pixel art · Service Worker offline · CSS gradient backgrounds · localStorage persistence';
+    techSec.appendChild(techP);
+    body.appendChild(techSec);
+
+    const footer = document.createElement('div');
+    footer.className = 'about-footer-text';
+    footer.appendChild(document.createTextNode('Made with 😻 by '));
+    const link = document.createElement('a');
+    link.href = 'https://github.com/mechangelnyan/nyantales';
+    link.target = '_blank';
+    link.rel = 'noopener';
+    link.textContent = 'NyanTales';
+    footer.appendChild(link);
+    body.appendChild(footer);
+
+    panel.appendChild(body);
+    this.overlay.appendChild(panel);
     document.body.appendChild(this.overlay);
-    this._statsEl = this.overlay.querySelector('#about-stats');
+    this._statsEl = statsDiv;
 
     // Pre-build stat value elements so show() can update textContent instead of innerHTML
     this._statVals = {};

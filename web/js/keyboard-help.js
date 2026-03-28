@@ -24,52 +24,93 @@ class KeyboardHelp {
     this.overlay.setAttribute('aria-label', 'Keyboard Shortcuts');
     this.overlay.setAttribute('aria-hidden', 'true');
 
-    this.overlay.innerHTML = `
-      <div class="keyboard-help-panel">
-        <div class="keyboard-help-header">
-          <div class="keyboard-help-title">⌨️ Keyboard Shortcuts</div>
-          <button class="keyboard-help-close" aria-label="Close">✕</button>
-        </div>
-        <div class="keyboard-help-body">
-          <div class="kh-section">
-            <div class="kh-section-title">Navigation</div>
-            <div class="kh-row"><kbd>Space</kbd> / <kbd>Enter</kbd><span>Advance text / skip typewriter</span></div>
-            <div class="kh-row"><kbd>1</kbd>–<kbd>9</kbd><span>Select choice by number</span></div>
-            <div class="kh-row"><kbd>B</kbd><span>Rewind one scene</span></div>
-            <div class="kh-row"><kbd>Esc</kbd><span>Back to story list / close panel</span></div>
-          </div>
-          <div class="kh-section">
-            <div class="kh-section-title">Panels</div>
-            <div class="kh-row"><kbd>H</kbd><span>Text history</span></div>
-            <div class="kh-row"><kbd>G</kbd><span>Scene select</span></div>
-            <div class="kh-row"><kbd>R</kbd><span>Route map (branching graph)</span></div>
-            <div class="kh-row"><kbd>Q</kbd><span>Save / Load</span></div>
-            <div class="kh-row"><kbd>S</kbd><span>Settings</span></div>
-          </div>
-          <div class="kh-section">
-            <div class="kh-section-title">Toggles</div>
-            <div class="kh-row"><kbd>A</kbd><span>Auto-play on/off</span></div>
-            <div class="kh-row"><kbd>M</kbd><span>Audio on/off</span></div>
-            <div class="kh-row"><kbd>F</kbd><span>Fullscreen on/off</span></div>
-            <div class="kh-row"><kbd>?</kbd><span>This help screen</span></div>
-          </div>
-          <div class="kh-section">
-            <div class="kh-section-title">History Panel</div>
-            <div class="kh-row"><kbd>PgUp</kbd> / <kbd>PgDn</kbd><span>Scroll history (large step)</span></div>
-            <div class="kh-row"><kbd>↑</kbd> / <kbd>↓</kbd><span>Scroll history (small step)</span></div>
-            <div class="kh-row"><kbd>Home</kbd> / <kbd>End</kbd><span>Jump to start / end of history</span></div>
-          </div>
-          <div class="kh-section">
-            <div class="kh-section-title">Mobile Gestures</div>
-            <div class="kh-row"><span class="kh-gesture">← Swipe left</span><span>Advance text</span></div>
-            <div class="kh-row"><span class="kh-gesture">→ Swipe right</span><span>Open history</span></div>
-            <div class="kh-row"><span class="kh-gesture">↓ Swipe down</span><span>Open settings</span></div>
-            <div class="kh-row"><span class="kh-gesture">↑ Swipe up</span><span>Open save/load</span></div>
-          </div>
-        </div>
-      </div>
-    `;
+    const panel = document.createElement('div');
+    panel.className = 'keyboard-help-panel';
 
+    const header = document.createElement('div');
+    header.className = 'keyboard-help-header';
+    const titleDiv = document.createElement('div');
+    titleDiv.className = 'keyboard-help-title';
+    titleDiv.textContent = '⌨️ Keyboard Shortcuts';
+    header.appendChild(titleDiv);
+    const closeBtn = document.createElement('button');
+    closeBtn.className = 'keyboard-help-close';
+    closeBtn.setAttribute('aria-label', 'Close');
+    closeBtn.textContent = '✕';
+    header.appendChild(closeBtn);
+    panel.appendChild(header);
+
+    const body = document.createElement('div');
+    body.className = 'keyboard-help-body';
+
+    // Helper to build a section with rows
+    const mkSection = (title, rows) => {
+      const sec = document.createElement('div');
+      sec.className = 'kh-section';
+      const h = document.createElement('div');
+      h.className = 'kh-section-title';
+      h.textContent = title;
+      sec.appendChild(h);
+      for (const row of rows) {
+        const r = document.createElement('div');
+        r.className = 'kh-row';
+        // Keys part
+        const keysSpan = document.createElement('span');
+        if (row.gesture) {
+          keysSpan.className = 'kh-gesture';
+          keysSpan.textContent = row.keys;
+        } else {
+          // Build kbd elements
+          const parts = row.keys.split('|');
+          for (let i = 0; i < parts.length; i++) {
+            if (i > 0) keysSpan.appendChild(document.createTextNode(' / '));
+            const kbd = document.createElement('kbd');
+            kbd.textContent = parts[i].trim();
+            keysSpan.appendChild(kbd);
+          }
+        }
+        r.appendChild(keysSpan);
+        const desc = document.createElement('span');
+        desc.textContent = row.desc;
+        r.appendChild(desc);
+        sec.appendChild(r);
+      }
+      return sec;
+    };
+
+    body.appendChild(mkSection('Navigation', [
+      { keys: 'Space|Enter', desc: 'Advance text / skip typewriter' },
+      { keys: '1|9', desc: 'Select choice by number' },
+      { keys: 'B', desc: 'Rewind one scene' },
+      { keys: 'Esc', desc: 'Back to story list / close panel' }
+    ]));
+    body.appendChild(mkSection('Panels', [
+      { keys: 'H', desc: 'Text history' },
+      { keys: 'G', desc: 'Scene select' },
+      { keys: 'R', desc: 'Route map (branching graph)' },
+      { keys: 'Q', desc: 'Save / Load' },
+      { keys: 'S', desc: 'Settings' }
+    ]));
+    body.appendChild(mkSection('Toggles', [
+      { keys: 'A', desc: 'Auto-play on/off' },
+      { keys: 'M', desc: 'Audio on/off' },
+      { keys: 'F', desc: 'Fullscreen on/off' },
+      { keys: '?', desc: 'This help screen' }
+    ]));
+    body.appendChild(mkSection('History Panel', [
+      { keys: 'PgUp|PgDn', desc: 'Scroll history (large step)' },
+      { keys: '↑|↓', desc: 'Scroll history (small step)' },
+      { keys: 'Home|End', desc: 'Jump to start / end of history' }
+    ]));
+    body.appendChild(mkSection('Mobile Gestures', [
+      { keys: '← Swipe left', desc: 'Advance text', gesture: true },
+      { keys: '→ Swipe right', desc: 'Open history', gesture: true },
+      { keys: '↓ Swipe down', desc: 'Open settings', gesture: true },
+      { keys: '↑ Swipe up', desc: 'Open save/load', gesture: true }
+    ]));
+
+    panel.appendChild(body);
+    this.overlay.appendChild(panel);
     document.body.appendChild(this.overlay);
 
     // Single delegated click — handles close button + backdrop
@@ -85,7 +126,7 @@ class KeyboardHelp {
     this.overlay.setAttribute('aria-hidden', 'false');
     requestAnimationFrame(() => this.overlay.classList.add('visible'));
     if (!this._focusTrap) {
-      this._focusTrap = new FocusTrap(this.overlay.querySelector('.keyboard-help-panel'));
+      this._focusTrap = new FocusTrap(this.overlay.querySelector('.keyboard-help-panel') || this.overlay.firstElementChild);
     }
     this._focusTrap.activate();
   }

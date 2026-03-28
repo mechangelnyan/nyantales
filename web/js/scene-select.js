@@ -31,20 +31,39 @@ class SceneSelect {
     this.overlay.setAttribute('aria-label', 'Scene Select');
     this.overlay.setAttribute('aria-hidden', 'true');
 
-    this.overlay.innerHTML = `
-      <div class="scene-select-panel">
-        <div class="scene-select-header">
-          <div>
-            <div class="scene-select-title">📍 Scene Select</div>
-            <div class="scene-select-count"></div>
-          </div>
-          <button class="scene-select-close">✕</button>
-        </div>
-        <input type="text" class="scene-select-search" placeholder="🔍 Filter scenes..." autocomplete="off" aria-label="Search scenes" />
-        <div class="scene-select-list"></div>
-      </div>
-    `;
+    const panel = document.createElement('div');
+    panel.className = 'scene-select-panel';
 
+    const header = document.createElement('div');
+    header.className = 'scene-select-header';
+    const headerLeft = document.createElement('div');
+    const titleDiv = document.createElement('div');
+    titleDiv.className = 'scene-select-title';
+    titleDiv.textContent = '📍 Scene Select';
+    headerLeft.appendChild(titleDiv);
+    const countDiv = document.createElement('div');
+    countDiv.className = 'scene-select-count';
+    headerLeft.appendChild(countDiv);
+    header.appendChild(headerLeft);
+    const closeBtn = document.createElement('button');
+    closeBtn.className = 'scene-select-close';
+    closeBtn.textContent = '✕';
+    header.appendChild(closeBtn);
+    panel.appendChild(header);
+
+    const searchInput = document.createElement('input');
+    searchInput.type = 'text';
+    searchInput.className = 'scene-select-search';
+    searchInput.placeholder = '🔍 Filter scenes...';
+    searchInput.autocomplete = 'off';
+    searchInput.setAttribute('aria-label', 'Search scenes');
+    panel.appendChild(searchInput);
+
+    const listDiv = document.createElement('div');
+    listDiv.className = 'scene-select-list';
+    panel.appendChild(listDiv);
+
+    this.overlay.appendChild(panel);
     document.body.appendChild(this.overlay);
 
     // Close: backdrop click or close button (single delegated listener)
@@ -52,10 +71,10 @@ class SceneSelect {
       if (e.target === this.overlay || e.target.closest('.scene-select-close')) this.hide();
     });
 
-    this._searchEl = this.overlay.querySelector('.scene-select-search');
-    this._listEl = this.overlay.querySelector('.scene-select-list');
-    this._countEl = this.overlay.querySelector('.scene-select-count');
-    this._panelEl = this.overlay.querySelector('.scene-select-panel');
+    this._searchEl = searchInput;
+    this._listEl = listDiv;
+    this._countEl = countDiv;
+    this._panelEl = panel;
 
     // Search filter
     this._searchEl.addEventListener('input', (e) => {

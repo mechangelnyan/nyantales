@@ -61,27 +61,53 @@ class CharacterGallery {
     overlay.setAttribute('role', 'dialog');
     overlay.setAttribute('aria-label', 'Character Gallery');
     overlay.setAttribute('aria-hidden', 'true');
-    overlay.innerHTML = `
-      <div class="gallery-panel">
-        <div class="gallery-header">
-          <h2 class="gallery-title">🐱 Character Gallery</h2>
-          <div class="gallery-count">${characters.length} characters across 30 stories</div>
-          <button class="gallery-close" title="Close">✕</button>
-        </div>
-        <div class="gallery-filter-row">
-          <input type="text" class="gallery-search" placeholder="🔍 Search characters..." autocomplete="off" />
-          <button class="gallery-filter-btn active" data-role="all">All</button>
-          <button class="gallery-filter-btn" data-role="protagonist">⭐ Heroes</button>
-          <button class="gallery-filter-btn" data-role="npc">👥 NPCs</button>
-        </div>
-        <div class="gallery-grid"></div>
-      </div>
-    `;
+    const panelEl = document.createElement('div');
+    panelEl.className = 'gallery-panel';
 
-    this._grid = overlay.querySelector('.gallery-grid');
-    const search = overlay.querySelector('.gallery-search');
-    const filterBtns = overlay.querySelectorAll('.gallery-filter-btn');
-    const closeBtn = overlay.querySelector('.gallery-close');
+    const headerEl = document.createElement('div');
+    headerEl.className = 'gallery-header';
+    const titleH2 = document.createElement('h2');
+    titleH2.className = 'gallery-title';
+    titleH2.textContent = '🐱 Character Gallery';
+    headerEl.appendChild(titleH2);
+    const countDiv = document.createElement('div');
+    countDiv.className = 'gallery-count';
+    countDiv.textContent = characters.length + ' characters across 30 stories';
+    headerEl.appendChild(countDiv);
+    const closeBtn = document.createElement('button');
+    closeBtn.className = 'gallery-close';
+    closeBtn.title = 'Close';
+    closeBtn.textContent = '✕';
+    headerEl.appendChild(closeBtn);
+    panelEl.appendChild(headerEl);
+
+    const filterRow = document.createElement('div');
+    filterRow.className = 'gallery-filter-row';
+    const search = document.createElement('input');
+    search.type = 'text';
+    search.className = 'gallery-search';
+    search.placeholder = '🔍 Search characters...';
+    search.autocomplete = 'off';
+    filterRow.appendChild(search);
+    const filterData = [['all', 'All'], ['protagonist', '⭐ Heroes'], ['npc', '👥 NPCs']];
+    const filterBtns = [];
+    for (const [role, label] of filterData) {
+      const btn = document.createElement('button');
+      btn.className = 'gallery-filter-btn' + (role === 'all' ? ' active' : '');
+      btn.dataset.role = role;
+      btn.textContent = label;
+      filterRow.appendChild(btn);
+      filterBtns.push(btn);
+    }
+    panelEl.appendChild(filterRow);
+
+    const grid = document.createElement('div');
+    grid.className = 'gallery-grid';
+    panelEl.appendChild(grid);
+
+    overlay.appendChild(panelEl);
+
+    this._grid = grid;
 
     // Build character cards (batch via DocumentFragment — 1 reflow instead of per-card)
     const cardFrag = document.createDocumentFragment();
@@ -165,7 +191,6 @@ class CharacterGallery {
     });
 
     // Role filter — single delegated listener on filter row
-    const filterRow = overlay.querySelector('.gallery-filter-row');
     filterRow.addEventListener('click', (e) => {
       const btn = e.target.closest('.gallery-filter-btn');
       if (!btn) return;
@@ -186,7 +211,7 @@ class CharacterGallery {
 
     document.body.appendChild(overlay);
     this.overlay = overlay;
-    this._panelEl = overlay.querySelector('.gallery-panel');
+    this._panelEl = panelEl;
     this._built = true;
   }
 
