@@ -1269,6 +1269,25 @@ cd /tmp/nyantales && python3 -m http.server 9876
 - All 33 JS files pass `node --check`, 204/204 unit tests, 50/50 Playwright tests
 - Committed & pushed
 
+## Phase 88: Permanent History Keydown, Cached Chapter Refs, Gallery Debounce, Toast CSS ✅
+- **HistoryPanel permanent keydown handler** — installed once in `_create()`, gated by `isVisible`
+  - Previously: `document.addEventListener('keydown')` added on every `show()`, removed on `hide()`
+  - Same pattern as ConfirmDialog and StoryIntro (proven safe across 80+ phases)
+  - Eliminates per-show addEventListener/removeEventListener churn
+- **Cached chapter card child refs** — `_chapterCardRefs` Map built lazily on first `_refreshChapterCards()`
+  - Maps chapter index → `{ card, titleEl, descEl, statusEl }`
+  - Avoids 3 `querySelector` calls per card on every menu return (was 3 × N cards per refresh)
+  - Cache cleared when grid is rebuilt (campaign unavailable or full re-render)
+- **Gallery search debounced at 80ms** — prevents per-keystroke filter on 45+ character cards
+  - Same debounce pattern used by TitleBrowser search (consistency)
+- **Toast color CSS classes** — replaced hardcoded `rgba()` inline styles with CSS utility classes
+  - `.nt-toast-success` (green), `.nt-toast-error` (red), `.nt-toast-warning` (orange)
+  - Applied to: online/offline toasts, error boundary toasts, `Toast.success()`, `Toast.error()`
+  - Colors now follow the stylesheet instead of being baked into JS
+- SW cache bumped to v70, production build regenerated (179KB bundle)
+- All 33 JS files pass `node --check`, 204/204 unit tests, 50/50 Playwright tests
+- Committed & pushed
+
 ## Still Possible Future Work
 - Generate remaining character portraits (GPU timeout issue — needs investigation, possibly during lower GPU load)
 - AI-generated scene background images
@@ -1488,6 +1507,7 @@ cd /tmp/nyantales && python3 -m http.server 9876
 - 2026-03-27 (12:27 AM): Phase 55 — Restored full title screen that was broken by campaign-first redesign. Story grid, search, filter, sort, continue, random all back. Campaign section shown above story grid with divider. Cached campaign DOM refs. Removed 45 lines dead CSS. SW v42. 147KB bundle. All 30 JS pass. 3 commits pushed.
 - 2026-03-27 (6:27 AM): Phase 61 — Fixed stats dashboard play-count regression (`StatsDashboard` was reading `data.plays`, but tracker persists `totalPlays`), so play totals/recent-story metadata now reflect real completion runs again. Tightened global scene-exploration math to use exact visited-scene counts instead of percentage back-calculation, added total reading time to the stats dashboard, and expanded Story Info modal with endings found / total possible plus cumulative reading time. Made story-info stats grid auto-fit better on smaller screens and initialized stats dialog `aria-hidden` state cleanly. Rebuilt production bundle, verified touched JS with `node --check`, ran `npm test` (204/204), and `npx playwright test` (42/42). No new stories added.
 - 2026-03-27 (12:27 PM): Phase 67 — Improved title-screen discovery by making story search character-aware: cards now index cast names, roles, and appearance text from `CHARACTER_DATA`, so searches like “Stack Canary” find the right story even if the title/description don’t mention it. Expanded the Story Info modal with a compact cast section (name + role chips, appearance in tooltip), updated the search placeholder/ARIA copy to reflect character search, and added Playwright regressions for character-name search plus cast rendering. Verified `node --check` on touched JS, `npm test` (204/204), and `npx playwright test tests/web/vn.spec.js` (50/50). No new stories added.
+- 2026-03-28 (9:27 AM): Phase 88 — Permanent HistoryPanel keydown handler (was add/remove per show/hide, now installed once + gated by isVisible). Cached chapter card child refs (_chapterCardRefs Map avoids 3× querySelector per card per refresh). Gallery search debounced at 80ms. Toast color CSS classes (.nt-toast-success/error/warning replace inline rgba). SW v70, 179KB bundle. All 33 JS + 204/204 unit + 50/50 Playwright pass. Committed & pushed.
 - 2026-03-28 (8:27 AM): Phase 87 — Tracked misc timers: 5 untracked setTimeout calls in main.js (achievement toasts on ending/start, campaign advance pacing) now managed via trackTimeout()/clearMiscTimers(), cleared on menu return. DataManager export/import now includes nyantales-title-browser and nyantales-stats-dashboard keys (were missing). SW v69, 178KB bundle. All 33 JS + 204/204 unit + 50/50 Playwright pass. Committed & pushed.
 - 2026-03-28 (3:27 AM): Phase 82 — Partial re-render for Stats Dashboard (search/sort only updates story table instead of full innerHTML rebuild). Stats O(1) story lookup via _storySlugMap. Scene Select cached item NodeList for filter reuse. Gallery DocumentFragment batching (45+ cards → 1 reflow). SW v64, 175KB bundle. All 33 JS + 204/204 unit + 50/50 Playwright pass. Committed & pushed.
 - 2026-03-28 (2:27 AM): Phase 81 — DocumentFragment batching (renderStoryList 30 cards → 1 reflow, renderChapterGrid act sections → 1 reflow). Reusable ending DOM elements (_endingTimeBox, _endingNewBadge, _endingCampaignBtn avoid createElement per ending). Number key choice lookup uses targeted querySelector instead of querySelectorAll. CRITICAL FIX: persistent overlays (StoryIntro, ConfirmDialog) were blocking all clicks when hidden (pointer-events not disabled) — caused 41/50 Playwright failures. SW v63, 173KB bundle. All 33 JS + 204/204 unit + 50/50 Playwright pass. Committed & pushed.
