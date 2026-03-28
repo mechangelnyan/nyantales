@@ -1124,6 +1124,29 @@ cd /tmp/nyantales && python3 -m http.server 9876
 - SW cache bumped to v57, production build regenerated (169KB bundle)
 - All 33 JS files pass `node --check`, 204/204 unit tests, 50/50 Playwright tests
 
+## Phase 76: Cached Settings DOM, Tracker Set Cache, CSS Custom Property Bars ✅
+- **SettingsPanel cached theme swatches** — `_swatches` array built once at construction
+  - Previously: `querySelectorAll('.theme-swatch')` called 3× (init, click handler, every `_syncAll`)
+  - Now: pre-built array reused across all swatch updates
+- **SettingsPanel cached toggle buttons** — `_toggleBtns` object maps IDs to button elements
+  - Previously: `document.getElementById()` called 5× on every `_syncAll()` (per panel open or setting change)
+  - Now: cached once, looked up by key
+- **StoryTracker `_visitedSets` cache** — lazy `Map<slug, Set<string>>` for visited scene lookups
+  - Previously: `new Set(story.visitedScenes)` allocated on every `recordVisitedScenes()` call (every scene transition)
+  - Now: Set built once per story, reused across all subsequent calls, invalidated on `reset()`
+- **Progress bar inline widths → CSS custom property `--bar-pct`** — 9 inline `style="width:X%"` converted:
+  - `loading-bar-fill`, `story-card-progress-fill`, `story-info-progress-fill`
+  - `achievements-progress-fill`, `stats-card-bar-fill` (4 uses), `stats-mini-bar-fill`
+  - CSS `width: var(--bar-pct, 0%)` rule added to each fill class
+  - Consistent with the Phase 72 pattern for progress/animation bars
+- **Stats dashboard bar colors → CSS classes** — replaced inline `background:` with named classes
+  - `.stats-bar-magenta`, `.stats-bar-green`, `.stats-bar-yellow`, `.stats-bar-gold`
+  - Cleaner separation of structure (JS) and style (CSS)
+- Zero inline `style="width:"` remaining in any JS file (verified via grep)
+- SW cache bumped to v58, production build regenerated (170KB bundle)
+- All 33 JS files pass `node --check`, 204/204 unit tests, 50/50 Playwright tests
+- Committed & pushed
+
 ## Still Possible Future Work
 - Generate remaining character portraits (GPU timeout issue — needs investigation, possibly during lower GPU load)
 - AI-generated scene background images
@@ -1321,6 +1344,7 @@ cd /tmp/nyantales && python3 -m http.server 9876
 - Committed & pushed
 
 ## Log (continued)
+- 2026-03-27 (9:27 PM): Phase 76 — Cached settings DOM (theme swatches array + toggle button refs eliminate querySelectorAll/getElementById on every _syncAll). Tracker _visitedSets Map cache (avoids new Set() per recordVisitedScenes call). All 9 inline style="width:X%" progress bars converted to CSS --bar-pct custom property. Stats bar colors → CSS classes (.stats-bar-magenta/green/yellow/gold). Zero inline width styles remaining in JS. SW v58, 170KB bundle. All 33 JS + 204/204 unit + 50/50 Playwright pass. Committed & pushed.
 - 2026-03-27 (8:27 PM): Phase 75 — Achievement toast timer tracking (staggered showNewUnlocks timeouts now in _toastTimers array, cancelPendingToasts() called on menu return). Cached HistoryPanel entries (eliminates querySelectorAll per filter keystroke). ConfirmDialog double-resolve guard (prevents race between Escape + click). SW v57, 169KB bundle. All 33 JS + 204/204 unit + 50/50 Playwright pass. Committed & pushed.
 - 2026-03-27 (7:27 PM): Phase 74 — Asset cleanup + build optimization: removed 15 unused legacy portrait files (~10MB), build script now only copies 44 referenced portraits (31MB vs 41MB), PortraitManager.preloadAll() deduplicates by filename (54 map entries → 44 Image loads). SW v56, 169KB JS bundle. All 33 JS + 204/204 unit + 50/50 Playwright pass. Committed & pushed.
 - 2026-03-27 (5:27 PM): Phase 72 — Timer cleanup + CSS custom properties: tracked effect timers (glitch/shake/sprite fade-out) in _effectTimers array to cancel on scene change (fixes stale timer bug during rapid navigation). Story card/choice animation delays use CSS custom properties instead of inline style.animationDelay. Progress bar width driven by --bar-pct. Route map cursor state uses CSS class. Cached getStoryMeta() per slug. SW v54, 168KB bundle. All 33 JS + 204/204 unit + 50/50 Playwright pass. 2 commits pushed.
