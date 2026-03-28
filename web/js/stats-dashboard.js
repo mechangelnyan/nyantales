@@ -1,7 +1,9 @@
 /**
  * NyanTales — Statistics Dashboard
  * Comprehensive player statistics panel with per-story breakdown,
- * play streaks, and global analytics.
+ * play streaks, and global analytics. Pre-builds the entire DOM tree
+ * once, then updates content via textContent on each show() — zero
+ * innerHTML on the warm per-open path.
  *
  * @class StatsDashboard
  * @param {StoryTracker} tracker - Story progress tracker
@@ -28,6 +30,11 @@ class StatsDashboard {
 
     /** @type {Function|null} Callback when user clicks "Play" on a story row */
     this.onPlay = null;
+
+    // Pre-built DOM refs (populated by _buildPanel)
+    this._dom = null;
+    this._recentPool = [];
+    this._panelBuilt = false;
   }
 
   /**
@@ -55,10 +62,11 @@ class StatsDashboard {
       this._overlay.addEventListener('click', (e) => {
         if (e.target === this._overlay) this.hide();
       });
+      this._buildPanel();
       this._initDelegation();
     }
 
-    this._render();
+    this._update();
     this._overlay.setAttribute('aria-hidden', 'false');
     requestAnimationFrame(() => this._overlay.classList.add('visible'));
 
@@ -79,6 +87,313 @@ class StatsDashboard {
       this._focusTrap = null;
     }
   }
+
+  // ─── DOM Construction (called once) ────────────────────────────
+
+  /** Build the entire panel DOM tree. Content updated via _update(). */
+  _buildPanel() {
+    if (this._panelBuilt) return;
+    this._panelBuilt = true;
+
+    const d = {};  // cached DOM refs
+
+    const panel = document.createElement('div');
+    panel.className = 'stats-panel';
+
+    // ── Header ──
+    const header = document.createElement('div');
+    header.className = 'stats-header';
+    const headerLeft = document.createElement('div');
+    d.title = document.createElement('div');
+    d.title.className = 'stats-title';
+    d.title.textContent = '📊 Statistics';
+    d.subtitle = document.createElement('div');
+    d.subtitle.className = 'stats-subtitle';
+    headerLeft.appendChild(d.title);
+    headerLeft.appendChild(d.subtitle);
+    const closeBtn = document.createElement('button');
+    closeBtn.className = 'stats-close';
+    closeBtn.setAttribute('aria-label', 'Close statistics');
+    closeBtn.textContent = '✕';
+    header.appendChild(headerLeft);
+    header.appendChild(closeBtn);
+    panel.appendChild(header);
+
+    // ── Summary cards ──
+    d.summary = document.createElement('div');
+    d.summary.className = 'stats-summary';
+
+    // Helper to build a summary card
+    const makeCard = (label, barClass) => {
+      const card = document.createElement('div');
+      card.className = 'stats-card';
+      const valDiv = document.createElement('div');
+      valDiv.className = 'stats-card-value';
+      const valText = document.createTextNode('');
+      const totalSpan = document.createElement('span');
+      totalSpan.className = 'stats-card-total';
+      valDiv.appendChild(valText);
+      valDiv.appendChild(totalSpan);
+      const lblDiv = document.createElement('div');
+      lblDiv.className = 'stats-card-label';
+      lblDiv.textContent = label;
+      card.appendChild(valDiv);
+      card.appendChild(lblDiv);
+      let barFill = null;
+      if (barClass !== undefined) {
+        const bar = document.createElement('div');
+        bar.className = 'stats-card-bar';
+        barFill = document.createElement('div');
+        barFill.className = 'stats-card-bar-fill' + (barClass ? ' ' + barClass : '');
+        bar.appendChild(barFill);
+        card.appendChild(bar);
+      }
+      return { card, valText, totalSpan, barFill };
+    };
+
+    const cStories = makeCard('Stories Complete', '');
+    const cEndings = makeCard('Endings Found', 'stats-bar-magenta');
+    const cScenes = makeCard('Scenes Explored', 'stats-bar-green');
+    const cPlays = makeCard('Total Plays');          // no bar
+    const cReading = makeCard('Reading Time');        // no bar
+    const cAch = makeCard('Achievements', 'stats-bar-yellow');
+    const cSaves = makeCard('Active Saves');          // no bar
+
+    d.storiesVal = cStories.valText;  d.storiesTotal = cStories.totalSpan;  d.storiesBar = cStories.barFill;
+    d.endingsVal = cEndings.valText;  d.endingsTotal = cEndings.totalSpan;  d.endingsBar = cEndings.barFill;
+    d.scenesVal = cScenes.valText;    d.scenesBar = cScenes.barFill;
+    // scenes total span not used (value is "X%")
+    cScenes.totalSpan.remove();
+    d.playsVal = cPlays.valText;      cPlays.totalSpan.remove();
+    d.readingVal = cReading.valText;  cReading.totalSpan.remove();
+    d.achVal = cAch.valText;          d.achTotal = cAch.totalSpan;          d.achBar = cAch.barFill;
+    d.savesVal = cSaves.valText;      cSaves.totalSpan.remove();
+
+    [cStories, cEndings, cScenes, cPlays, cReading, cAch, cSaves].forEach(c => d.summary.appendChild(c.card));
+    panel.appendChild(d.summary);
+
+    // ── Campaign section (hidden by default) ──
+    d.campaignSection = document.createElement('div');
+    d.campaignSection.className = 'stats-section hidden';
+    const campTitle = document.createElement('div');
+    campTitle.className = 'stats-section-title';
+    campTitle.textContent = '📖 Campaign Progress';
+    d.campaignSection.appendChild(campTitle);
+
+    const campCard = document.createElement('div');
+    campCard.className = 'stats-card stats-card-wide';
+    d.campVal = document.createElement('div');
+    d.campVal.className = 'stats-card-value stats-card-gold';
+    d.campLabel = document.createElement('div');
+    d.campLabel.className = 'stats-card-label';
+    const campBar = document.createElement('div');
+    campBar.className = 'stats-card-bar';
+    d.campBarFill = document.createElement('div');
+    d.campBarFill.className = 'stats-card-bar-fill stats-bar-gold';
+    campBar.appendChild(d.campBarFill);
+    campCard.appendChild(d.campVal);
+    campCard.appendChild(d.campLabel);
+    campCard.appendChild(campBar);
+    d.campaignSection.appendChild(campCard);
+    panel.appendChild(d.campaignSection);
+
+    // ── Recently played section (hidden by default) ──
+    d.recentSection = document.createElement('div');
+    d.recentSection.className = 'stats-section hidden';
+    const recentTitle = document.createElement('div');
+    recentTitle.className = 'stats-section-title';
+    recentTitle.textContent = '🕐 Recently Played';
+    d.recentSection.appendChild(recentTitle);
+    d.recentList = document.createElement('div');
+    d.recentList.className = 'stats-recent-list';
+    d.recentSection.appendChild(d.recentList);
+    panel.appendChild(d.recentSection);
+
+    // ── Story breakdown section ──
+    const breakdownSection = document.createElement('div');
+    breakdownSection.className = 'stats-section';
+    const breakdownTitle = document.createElement('div');
+    breakdownTitle.className = 'stats-section-title';
+    breakdownTitle.textContent = '📖 Story Breakdown';
+    breakdownSection.appendChild(breakdownTitle);
+
+    // Controls row
+    const controls = document.createElement('div');
+    controls.className = 'stats-controls';
+
+    const searchWrap = document.createElement('label');
+    searchWrap.className = 'stats-search-wrap';
+    const searchSr = document.createElement('span');
+    searchSr.className = 'sr-only';
+    searchSr.textContent = 'Search stories in statistics';
+    d.searchInput = document.createElement('input');
+    d.searchInput.type = 'search';
+    d.searchInput.className = 'stats-search';
+    d.searchInput.placeholder = 'Search by title or slug…';
+    d.searchInput.setAttribute('aria-label', 'Search stories in statistics');
+    searchWrap.appendChild(searchSr);
+    searchWrap.appendChild(d.searchInput);
+
+    const sortWrap = document.createElement('label');
+    sortWrap.className = 'stats-sort-wrap';
+    const sortSr = document.createElement('span');
+    sortSr.className = 'sr-only';
+    sortSr.textContent = 'Sort stories in statistics';
+    d.sortSelect = document.createElement('select');
+    d.sortSelect.className = 'stats-sort';
+    d.sortSelect.setAttribute('aria-label', 'Sort stories in statistics');
+    const sortOptions = [
+      ['progress-desc', 'Most Progress'],
+      ['recent-desc', 'Recently Played'],
+      ['plays-desc', 'Most Plays'],
+      ['endings-desc', 'Most Endings'],
+      ['reading-desc', 'Longest Read Time'],
+      ['title-asc', 'Title A → Z']
+    ];
+    for (const [val, lbl] of sortOptions) {
+      const opt = document.createElement('option');
+      opt.value = val;
+      opt.textContent = lbl;
+      d.sortSelect.appendChild(opt);
+    }
+    sortWrap.appendChild(sortSr);
+    sortWrap.appendChild(d.sortSelect);
+
+    d.storyCount = document.createElement('div');
+    d.storyCount.className = 'stats-story-count';
+    d.storyCount.setAttribute('aria-live', 'polite');
+
+    controls.appendChild(searchWrap);
+    controls.appendChild(sortWrap);
+    controls.appendChild(d.storyCount);
+    breakdownSection.appendChild(controls);
+
+    d.storyTable = document.createElement('div');
+    d.storyTable.className = 'stats-story-table';
+    breakdownSection.appendChild(d.storyTable);
+    panel.appendChild(breakdownSection);
+
+    this._overlay.appendChild(panel);
+    this._dom = d;
+  }
+
+  // ─── Content Update (called on every show) ─────────────────────
+
+  /** Update all pre-built DOM elements with fresh stats. Zero innerHTML. */
+  _update() {
+    const stats = this._computeStats();
+    const g = stats.global;
+    const a = stats.achievements;
+    const d = this._dom;
+    const storyLen = this._storyIndex.length;
+
+    // Subtitle
+    d.subtitle.textContent = `${storyLen} stories · ${stats.totalScenes} scenes`;
+
+    // Summary cards
+    const completionPct = storyLen > 0 ? Math.round((g.storiesCompleted / storyLen) * 100) : 0;
+    const endingPct = stats.totalEndingsPossible > 0 ? Math.round((g.totalEndings / stats.totalEndingsPossible) * 100) : 0;
+    const scenePct = stats.totalScenes > 0 ? Math.round((stats.totalScenesVisited / stats.totalScenes) * 100) : 0;
+    const achPct = a.total > 0 ? Math.round(a.unlocked / a.total * 100) : 0;
+
+    d.storiesVal.textContent = g.storiesCompleted;
+    d.storiesTotal.textContent = `/${storyLen}`;
+    d.storiesBar.style.setProperty('--bar-pct', `${completionPct}%`);
+
+    d.endingsVal.textContent = g.totalEndings;
+    d.endingsTotal.textContent = `/${stats.totalEndingsPossible}`;
+    d.endingsBar.style.setProperty('--bar-pct', `${endingPct}%`);
+
+    d.scenesVal.textContent = `${scenePct}%`;
+    d.scenesBar.style.setProperty('--bar-pct', `${scenePct}%`);
+
+    d.playsVal.textContent = g.totalPlays;
+    d.readingVal.textContent = StoryTracker.formatDuration(stats.totalReadingMs);
+
+    d.achVal.textContent = a.unlocked;
+    d.achTotal.textContent = `/${a.total}`;
+    d.achBar.style.setProperty('--bar-pct', `${achPct}%`);
+
+    d.savesVal.textContent = stats.saveCount;
+
+    // Campaign section
+    const cs = stats.campaignStats;
+    if (cs && cs.started) {
+      d.campaignSection.classList.remove('hidden');
+      d.campVal.textContent = cs.complete ? '✨ Complete!' : `${cs.chaptersCompleted}/${cs.chaptersTotal} chapters`;
+      d.campLabel.textContent = cs.label || 'The Campaign';
+      d.campBarFill.style.setProperty('--bar-pct', `${cs.pct}%`);
+    } else {
+      d.campaignSection.classList.add('hidden');
+    }
+
+    // Recently played
+    if (stats.recentlyPlayed.length > 0) {
+      d.recentSection.classList.remove('hidden');
+      this._updateRecentList(stats.recentlyPlayed.slice(0, 5));
+    } else {
+      d.recentSection.classList.add('hidden');
+    }
+
+    // Search/sort inputs — restore persisted values
+    d.searchInput.value = this._storySearch;
+    d.sortSelect.value = this._storySort;
+
+    // Story table
+    this._lastStoryRows = stats.storyRows;
+    this._renderStoryTable();
+  }
+
+  /** Update the recently-played list using a pool of reusable elements. */
+  _updateRecentList(items) {
+    const list = this._dom.recentList;
+
+    for (let i = 0; i < items.length; i++) {
+      let item;
+      if (i < this._recentPool.length) {
+        item = this._recentPool[i];
+      } else {
+        item = document.createElement('div');
+        item.className = 'stats-recent-item';
+        item.setAttribute('tabindex', '0');
+        item.setAttribute('role', 'button');
+        item._titleEl = document.createElement('div');
+        item._titleEl.className = 'stats-recent-title';
+        item._metaEl = document.createElement('div');
+        item._metaEl.className = 'stats-recent-meta';
+        // 4 meta spans
+        item._metaSpans = [];
+        for (let j = 0; j < 4; j++) {
+          const sp = document.createElement('span');
+          item._metaEl.appendChild(sp);
+          item._metaSpans.push(sp);
+        }
+        item.appendChild(item._titleEl);
+        item.appendChild(item._metaEl);
+        this._recentPool.push(item);
+      }
+
+      const s = items[i];
+      item.dataset.slug = s.slug;
+      item.setAttribute('aria-label', `Play ${s.title}`);
+      item._titleEl.textContent = s.title;
+      item._metaSpans[0].textContent = `${s.progress}% explored`;
+      item._metaSpans[1].textContent = `${s.endings}/${s.totalEndings} endings`;
+      item._metaSpans[2].textContent = `${s.plays} play${s.plays !== 1 ? 's' : ''}`;
+      item._metaSpans[3].textContent = this._timeAgo(s.lastPlayed);
+
+      if (item.parentNode !== list) list.appendChild(item);
+    }
+
+    // Hide excess pooled items
+    for (let i = items.length; i < this._recentPool.length; i++) {
+      if (this._recentPool[i].parentNode === list) {
+        list.removeChild(this._recentPool[i]);
+      }
+    }
+  }
+
+  // ─── Stats Computation ─────────────────────────────────────────
 
   /** Compute global stats */
   _computeStats() {
@@ -171,6 +486,8 @@ class StatsDashboard {
     };
   }
 
+  // ─── Story Table ───────────────────────────────────────────────
+
   /** Filter + sort the per-story table rows for the breakdown section. */
   _getVisibleStoryRows(storyRows) {
     const query = this._storySearch.trim().toLowerCase();
@@ -193,185 +510,14 @@ class StatsDashboard {
     return filtered.sort(comparators[this._storySort] || comparators['progress-desc']);
   }
 
-  /** Render the dashboard */
-  _render() {
-    const stats = this._computeStats();
-    const g = stats.global;
-    const a = stats.achievements;
-    const visibleRows = this._getVisibleStoryRows(stats.storyRows);
-
-    // Completion percentage
-    const completionPct = this._storyIndex.length > 0
-      ? Math.round((g.storiesCompleted / this._storyIndex.length) * 100)
-      : 0;
-
-    // Scene exploration percentage
-    const scenePct = stats.totalScenes > 0
-      ? Math.round((stats.totalScenesVisited / stats.totalScenes) * 100)
-      : 0;
-
-    // Ending discovery percentage
-    const endingPct = stats.totalEndingsPossible > 0
-      ? Math.round((g.totalEndings / stats.totalEndingsPossible) * 100)
-      : 0;
-
-    this._overlay.innerHTML = `
-      <div class="stats-panel">
-        <div class="stats-header">
-          <div>
-            <div class="stats-title">📊 Statistics</div>
-            <div class="stats-subtitle">${this._storyIndex.length} stories · ${stats.totalScenes} scenes</div>
-          </div>
-          <button class="stats-close" aria-label="Close statistics">✕</button>
-        </div>
-
-        <!-- Global summary cards -->
-        <div class="stats-summary">
-          <div class="stats-card">
-            <div class="stats-card-value">${g.storiesCompleted}<span class="stats-card-total">/${this._storyIndex.length}</span></div>
-            <div class="stats-card-label">Stories Complete</div>
-            <div class="stats-card-bar"><div class="stats-card-bar-fill" style="--bar-pct:${completionPct}%"></div></div>
-          </div>
-          <div class="stats-card">
-            <div class="stats-card-value">${g.totalEndings}<span class="stats-card-total">/${stats.totalEndingsPossible}</span></div>
-            <div class="stats-card-label">Endings Found</div>
-            <div class="stats-card-bar"><div class="stats-card-bar-fill stats-bar-magenta" style="--bar-pct:${endingPct}%"></div></div>
-          </div>
-          <div class="stats-card">
-            <div class="stats-card-value">${scenePct}%</div>
-            <div class="stats-card-label">Scenes Explored</div>
-            <div class="stats-card-bar"><div class="stats-card-bar-fill stats-bar-green" style="--bar-pct:${scenePct}%"></div></div>
-          </div>
-          <div class="stats-card">
-            <div class="stats-card-value">${g.totalPlays}</div>
-            <div class="stats-card-label">Total Plays</div>
-          </div>
-          <div class="stats-card">
-            <div class="stats-card-value">${StoryTracker.formatDuration(stats.totalReadingMs)}</div>
-            <div class="stats-card-label">Reading Time</div>
-          </div>
-          <div class="stats-card">
-            <div class="stats-card-value">${a.unlocked}<span class="stats-card-total">/${a.total}</span></div>
-            <div class="stats-card-label">Achievements</div>
-            <div class="stats-card-bar"><div class="stats-card-bar-fill stats-bar-yellow" style="--bar-pct:${Math.round(a.unlocked / a.total * 100)}%"></div></div>
-          </div>
-          <div class="stats-card">
-            <div class="stats-card-value">${stats.saveCount}</div>
-            <div class="stats-card-label">Active Saves</div>
-          </div>
-        </div>
-
-        ${stats.campaignStats && stats.campaignStats.started ? `
-        <!-- Campaign progress -->
-        <div class="stats-section">
-          <div class="stats-section-title">📖 Campaign Progress</div>
-          <div class="stats-card stats-card-wide">
-            <div class="stats-card-value stats-card-gold">${stats.campaignStats.complete ? '✨ Complete!' : `${stats.campaignStats.chaptersCompleted}/${stats.campaignStats.chaptersTotal} chapters`}</div>
-            <div class="stats-card-label">${stats.campaignStats.label || 'The Campaign'}</div>
-            <div class="stats-card-bar"><div class="stats-card-bar-fill stats-bar-gold" style="--bar-pct:${stats.campaignStats.pct}%"></div></div>
-          </div>
-        </div>
-        ` : ''}
-
-        ${stats.recentlyPlayed.length > 0 ? `
-        <!-- Recently played -->
-        <div class="stats-section">
-          <div class="stats-section-title">🕐 Recently Played</div>
-          <div class="stats-recent-list">
-            ${stats.recentlyPlayed.slice(0, 5).map(s => `
-              <div class="stats-recent-item" data-slug="${s.slug}" tabindex="0" role="button" aria-label="Play ${this._escapeHtml(s.title)}">
-                <div class="stats-recent-title">${this._escapeHtml(s.title)}</div>
-                <div class="stats-recent-meta">
-                  <span>${s.progress}% explored</span>
-                  <span>${s.endings}/${s.totalEndings} endings</span>
-                  <span>${s.plays} play${s.plays !== 1 ? 's' : ''}</span>
-                  <span>${this._timeAgo(s.lastPlayed)}</span>
-                </div>
-              </div>
-            `).join('')}
-          </div>
-        </div>
-        ` : ''}
-
-        <!-- Per-story breakdown -->
-        <div class="stats-section">
-          <div class="stats-section-title">📖 Story Breakdown</div>
-
-          <div class="stats-controls">
-            <label class="stats-search-wrap">
-              <span class="sr-only">Search stories in statistics</span>
-              <input
-                type="search"
-                class="stats-search"
-                placeholder="Search by title or slug…"
-                value="${this._escapeHtml(this._storySearch)}"
-                aria-label="Search stories in statistics"
-              >
-            </label>
-
-            <label class="stats-sort-wrap">
-              <span class="sr-only">Sort stories in statistics</span>
-              <select class="stats-sort" aria-label="Sort stories in statistics">
-                <option value="progress-desc" ${this._storySort === 'progress-desc' ? 'selected' : ''}>Most Progress</option>
-                <option value="recent-desc" ${this._storySort === 'recent-desc' ? 'selected' : ''}>Recently Played</option>
-                <option value="plays-desc" ${this._storySort === 'plays-desc' ? 'selected' : ''}>Most Plays</option>
-                <option value="endings-desc" ${this._storySort === 'endings-desc' ? 'selected' : ''}>Most Endings</option>
-                <option value="reading-desc" ${this._storySort === 'reading-desc' ? 'selected' : ''}>Longest Read Time</option>
-                <option value="title-asc" ${this._storySort === 'title-asc' ? 'selected' : ''}>Title A → Z</option>
-              </select>
-            </label>
-
-            <div class="stats-story-count" aria-live="polite">${visibleRows.length}/${stats.storyRows.length} shown</div>
-          </div>
-
-          <div class="stats-story-table">
-            <div class="stats-table-header">
-              <span class="stats-th stats-th-title">Story</span>
-              <span class="stats-th">Progress</span>
-              <span class="stats-th">Endings</span>
-              <span class="stats-th">Plays</span>
-              <span class="stats-th">Best</span>
-            </div>
-            ${visibleRows.length > 0 ? visibleRows.map(s => `
-              <div class="stats-table-row ${s.completed ? 'completed' : ''} ${s.plays > 0 ? 'played' : ''}"
-                   data-slug="${s.slug}"
-                   tabindex="0"
-                   role="button"
-                   aria-label="Play ${this._escapeHtml(s.title)}">
-                <span class="stats-td stats-td-title" title="${this._escapeHtml(s.title)}">
-                  ${s.completed ? '✅' : (s.plays > 0 ? '📖' : '🆕')} ${this._escapeHtml(s.title)}
-                </span>
-                <span class="stats-td stats-td-progress" data-label="Progress">
-                  <span class="stats-mini-bar"><span class="stats-mini-bar-fill" style="--bar-pct:${s.progress}%"></span></span>
-                  <span class="stats-td-pct">${s.progress}%</span>
-                </span>
-                <span class="stats-td" data-label="Endings">${s.endings}/${s.totalEndings}</span>
-                <span class="stats-td" data-label="Plays">${s.plays || '—'}</span>
-                <span class="stats-td" data-label="Best">${s.bestTurns || '—'}</span>
-              </div>
-            `).join('') : `
-              <div class="stats-empty-state">No stories match that search yet.</div>
-            `}
-          </div>
-        </div>
-      </div>
-    `;
-
-    // Close + recent-item clicks handled by delegated listener (see _initDelegation)
-
-    // Cache computed data for partial re-renders (search/sort only update the table)
-    this._lastStoryRows = stats.storyRows;
-  }
-
   /**
-   * Re-render only the story breakdown table (not summary/recent sections).
-   * Called on search/sort input to avoid full innerHTML rebuild on every keystroke.
+   * Re-render only the story breakdown table.
+   * Uses pooled row elements — zero innerHTML.
    */
   _renderStoryTable() {
-    if (!this._lastStoryRows || !this._overlay) return;
-    const tableEl = this._overlay.querySelector('.stats-story-table');
-    const countEl = this._overlay.querySelector('.stats-story-count');
-    if (!tableEl) return;
+    if (!this._lastStoryRows || !this._dom) return;
+    const tableEl = this._dom.storyTable;
+    const countEl = this._dom.storyCount;
 
     const visibleRows = this._getVisibleStoryRows(this._lastStoryRows);
 
@@ -407,9 +553,7 @@ class StatsDashboard {
     }
     tableEl.appendChild(frag);
 
-    if (countEl) {
-      countEl.textContent = `${visibleRows.length}/${this._lastStoryRows.length} shown`;
-    }
+    countEl.textContent = `${visibleRows.length}/${this._lastStoryRows.length} shown`;
   }
 
   /**
@@ -496,6 +640,8 @@ class StatsDashboard {
     return row;
   }
 
+  // ─── Interaction ───────────────────────────────────────────────
+
   /** Play a story by slug via the external callback. */
   _playStoryBySlug(slug) {
     if (!this.onPlay) return;
@@ -548,6 +694,8 @@ class StatsDashboard {
     });
   }
 
+  // ─── Preferences ───────────────────────────────────────────────
+
   /** Persist lightweight dashboard UI prefs between opens/reloads. */
   _savePrefs() {
     try {
@@ -575,6 +723,8 @@ class StatsDashboard {
     }
   }
 
+  // ─── Utilities ─────────────────────────────────────────────────
+
   /** Format a timestamp to relative time */
   _timeAgo(ts) {
     if (!ts) return 'never';
@@ -587,12 +737,5 @@ class StatsDashboard {
     const days = Math.floor(hours / 24);
     if (days < 30) return `${days}d ago`;
     return new Date(ts).toLocaleDateString();
-  }
-
-  /** Escape HTML (reuses shared off-screen element) */
-  _escapeHtml(text) {
-    if (!VNUI._escapeDiv) VNUI._escapeDiv = document.createElement('div');
-    VNUI._escapeDiv.textContent = text;
-    return VNUI._escapeDiv.innerHTML;
   }
 }
