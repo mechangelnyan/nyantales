@@ -129,7 +129,7 @@ class KeyboardHelp {
     this.overlay.setAttribute('aria-hidden', 'false');
     requestAnimationFrame(() => this.overlay.classList.add('visible'));
     if (!this._focusTrap) {
-      this._focusTrap = new FocusTrap(this.overlay.querySelector('.keyboard-help-panel') || this.overlay.firstElementChild);
+      this._focusTrap = new FocusTrap(this.overlay.firstElementChild);
     }
     this._focusTrap.activate();
   }

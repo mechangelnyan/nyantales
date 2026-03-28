@@ -185,7 +185,7 @@ class CharacterGallery {
       if (_searchTimer) clearTimeout(_searchTimer);
       _searchTimer = setTimeout(() => {
         const q = search.value.toLowerCase().trim();
-        const activeRole = overlay.querySelector('.gallery-filter-btn.active')?.dataset.role || 'all';
+        const activeRole = filterBtns.find(b => b.classList.contains('active'))?.dataset.role || 'all';
         this._applyFilters(q, activeRole);
       }, 80);
     });

@@ -117,7 +117,7 @@ class HistoryPanel {
     });
 
     // Search filtering
-    this._searchInput = this.overlay.querySelector('.history-search');
+    this._searchInput = searchInput;
     this._searchInput.addEventListener('input', () => this._filterEntries());
 
     // Permanent keyboard scroll handler — only fires when panel is visible

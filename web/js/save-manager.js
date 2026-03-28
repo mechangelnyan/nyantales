@@ -251,6 +251,7 @@ class SaveManager {
       }
     });
 
+    this._panelEl = panel;
     this._built = true;
   }
 
@@ -373,7 +374,7 @@ class SaveManager {
     this._renderSlots();
     this.overlay.setAttribute('aria-hidden', 'false');
     requestAnimationFrame(() => this.overlay.classList.add('visible'));
-    if (!this._panelEl) this._panelEl = this.overlay.querySelector('.save-panel');
+    // _panelEl cached in _buildOverlay()
     if (!this._focusTrap) this._focusTrap = new FocusTrap(this._panelEl);
     this._focusTrap.activate();
   }

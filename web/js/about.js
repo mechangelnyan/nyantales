@@ -158,7 +158,7 @@ class AboutPanel {
     this.overlay.setAttribute('aria-hidden', 'false');
     requestAnimationFrame(() => this.overlay.classList.add('visible'));
     if (!this._focusTrap) {
-      this._focusTrap = new FocusTrap(this.overlay.querySelector('.about-panel'));
+      this._focusTrap = new FocusTrap(this.overlay.firstElementChild);
     }
     this._focusTrap.activate();
   }

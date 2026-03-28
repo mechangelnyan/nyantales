@@ -35,7 +35,7 @@ class SettingsPanel {
     const bodyEl = document.createElement('div');
     bodyEl.className = 'settings-body';
 
-    // Helper: create a settings row with label + control
+    // Helper: create a settings row with label + control. Returns { row, ctrl }.
     const mkRow = (labelText, controlContent, opts = {}) => {
       const row = document.createElement('div');
       row.className = 'settings-row';
@@ -53,7 +53,7 @@ class SettingsPanel {
       if (controlContent) ctrl.appendChild(controlContent);
       if (opts.extraChildren) opts.extraChildren.forEach(c => ctrl.appendChild(c));
       row.appendChild(ctrl);
-      return row;
+      return { row, ctrl };
     };
     const mkSlider = (id, min, max, step) => {
       const frag = document.createDocumentFragment();
@@ -84,8 +84,7 @@ class SettingsPanel {
     // ── Text group ──
     const textGrp = mkGroup('📝', 'Text');
     const speedSlider = mkSlider('set-text-speed', '2', '40', '2');
-    const speedRow = mkRow('Text Speed', null);
-    const speedCtrl = speedRow.querySelector('.settings-control');
+    const { row: speedRow, ctrl: speedCtrl } = mkRow('Text Speed', null);
     speedCtrl.appendChild(speedSlider.input);
     speedCtrl.appendChild(speedSlider.val);
     textGrp.appendChild(speedRow);
@@ -100,30 +99,28 @@ class SettingsPanel {
     textGrp.appendChild(previewRow);
 
     const autoPlayBtn = mkToggle('set-auto-play');
-    textGrp.appendChild(mkRow('Auto-Play', autoPlayBtn));
+    textGrp.appendChild(mkRow('Auto-Play', autoPlayBtn).row);
 
     const delaySlider = mkSlider('set-auto-delay', '500', '6000', '250');
-    const delayRow = mkRow('Auto-Play Delay', null, { id: 'row-auto-delay' });
-    const delayCtrl = delayRow.querySelector('.settings-control');
+    const { row: delayRow, ctrl: delayCtrl } = mkRow('Auto-Play Delay', null, { id: 'row-auto-delay' });
     delayCtrl.appendChild(delaySlider.input);
     delayCtrl.appendChild(delaySlider.val);
     textGrp.appendChild(delayRow);
 
-    textGrp.appendChild(mkRow('Skip Read Scenes', mkToggle('set-skip-read')));
+    textGrp.appendChild(mkRow('Skip Read Scenes', mkToggle('set-skip-read')).row);
     bodyEl.appendChild(textGrp);
 
     // ── Visual group ──
     const visGrp = mkGroup('🎨', 'Visual');
     const fontSlider = mkSlider('set-font-size', '80', '140', '5');
-    const fontRow = mkRow('Font Size', null);
-    const fontCtrl = fontRow.querySelector('.settings-control');
+    const { row: fontRow, ctrl: fontCtrl } = mkRow('Font Size', null);
     fontCtrl.appendChild(fontSlider.input);
     fontCtrl.appendChild(fontSlider.val);
     visGrp.appendChild(fontRow);
 
-    visGrp.appendChild(mkRow('Screen Effects', mkToggle('set-screen-shake')));
-    visGrp.appendChild(mkRow('Particles', mkToggle('set-particles')));
-    visGrp.appendChild(mkRow('Fullscreen', mkToggle('set-fullscreen')));
+    visGrp.appendChild(mkRow('Screen Effects', mkToggle('set-screen-shake')).row);
+    visGrp.appendChild(mkRow('Particles', mkToggle('set-particles')).row);
+    visGrp.appendChild(mkRow('Fullscreen', mkToggle('set-fullscreen')).row);
 
     // Color theme swatches
     const themeCtrl = document.createElement('div');
@@ -139,16 +136,15 @@ class SettingsPanel {
       sw.setAttribute('aria-label', 'Use ' + theme + ' color theme');
       themeCtrl.appendChild(sw);
     }
-    const themeRow = mkRow('Color Theme', null);
-    themeRow.querySelector('.settings-control').replaceWith(themeCtrl);
+    const { row: themeRow, ctrl: themeRowCtrl } = mkRow('Color Theme', null);
+    themeRowCtrl.replaceWith(themeCtrl);
     visGrp.appendChild(themeRow);
     bodyEl.appendChild(visGrp);
 
     // ── Audio group ──
     const audioGrp = mkGroup('🔊', 'Audio');
     const volSlider = mkSlider('set-volume', '0', '100', '5');
-    const volRow = mkRow('Volume', null);
-    const volCtrl = volRow.querySelector('.settings-control');
+    const { row: volRow, ctrl: volCtrl } = mkRow('Volume', null);
     volCtrl.appendChild(volSlider.input);
     volCtrl.appendChild(volSlider.val);
     audioGrp.appendChild(volRow);
@@ -169,8 +165,7 @@ class SettingsPanel {
     importFile.id = 'set-import-file';
     importFile.accept = '.json';
     importFile.className = 'hidden';
-    const backupRow = mkRow('Backup / Restore', null, { ctrlClass: 'settings-data-btns' });
-    const backupCtrl = backupRow.querySelector('.settings-control');
+    const { row: backupRow, ctrl: backupCtrl } = mkRow('Backup / Restore', null, { ctrlClass: 'settings-data-btns' });
     backupCtrl.appendChild(exportBtn);
     backupCtrl.appendChild(importBtn);
     backupCtrl.appendChild(importFile);
@@ -180,8 +175,8 @@ class SettingsPanel {
     campaignResetBtn.id = 'set-campaign-reset';
     campaignResetBtn.className = 'settings-toggle settings-data-btn settings-data-btn-warn';
     campaignResetBtn.textContent = '📖 Reset Campaign';
-    const campaignRow = mkRow('Campaign', null, { ctrlClass: 'settings-data-btns' });
-    campaignRow.querySelector('.settings-control').appendChild(campaignResetBtn);
+    const { row: campaignRow, ctrl: campaignCtrl } = mkRow('Campaign', null, { ctrlClass: 'settings-data-btns' });
+    campaignCtrl.appendChild(campaignResetBtn);
     dataGrp.appendChild(campaignRow);
 
     const dataStats = document.createElement('div');
@@ -274,7 +269,7 @@ class SettingsPanel {
 
     // Data section — single delegated listener on settings body for export/import/reset
     this._dataManager = new DataManager();
-    this.overlay.querySelector('.settings-body').addEventListener('click', (e) => {
+    bodyEl.addEventListener('click', (e) => {
       const target = e.target;
       if (target === this._els.exportBtn || target.closest('#set-export')) {
         this._handleExport();
@@ -508,7 +503,7 @@ class SettingsPanel {
     this._runPreview(this.settings.get('textSpeed'));
     this.overlay.setAttribute('aria-hidden', 'false');
     requestAnimationFrame(() => this.overlay.classList.add('visible'));
-    if (!this._focusTrap) this._focusTrap = new FocusTrap(this.overlay.querySelector('.settings-panel'));
+    if (!this._focusTrap) this._focusTrap = new FocusTrap(this.overlay.firstElementChild);
     this._focusTrap.activate();
   }
 
