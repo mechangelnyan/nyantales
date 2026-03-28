@@ -14,7 +14,9 @@ class DataManager {
       'nyantales-achievements',
       'nyantales-settings',
       'nyantales-hints-shown',
-      'nyantales-campaign'
+      'nyantales-campaign',
+      'nyantales-title-browser',
+      'nyantales-stats-dashboard'
     ];
     /** Prefix for per-story save slots */
     this.SAVE_PREFIX = 'nyantales-saves-';

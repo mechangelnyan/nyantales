@@ -254,6 +254,8 @@
   // ── Auto-play State ──
 
   let autoPlayTimer     = null;
+  /** Tracked timers for achievement toasts, campaign pacing, etc. Cleared on menu return. */
+  let _miscTimers       = [];
 
   // Reusable DOM elements for ending overlays (avoids createElement per ending)
   let _endingTimeBox      = null;
@@ -262,6 +264,22 @@
 
   function clearAutoPlayTimer() {
     if (autoPlayTimer) { clearTimeout(autoPlayTimer); autoPlayTimer = null; }
+  }
+
+  /** Schedule a tracked timeout — automatically cleared on menu return via clearMiscTimers(). */
+  function trackTimeout(fn, ms) {
+    const id = setTimeout(() => {
+      const idx = _miscTimers.indexOf(id);
+      if (idx !== -1) _miscTimers.splice(idx, 1);
+      fn();
+    }, ms);
+    _miscTimers.push(id);
+    return id;
+  }
+
+  function clearMiscTimers() {
+    for (const id of _miscTimers) clearTimeout(id);
+    _miscTimers.length = 0;
   }
 
   /**
@@ -562,7 +580,7 @@
       if (campaignMode) {
         pendingAchievementUnlocks.push(...newAch);
       } else {
-        setTimeout(() => achievements.showNewUnlocks(newAch), 2000);
+        trackTimeout(() => achievements.showNewUnlocks(newAch), 2000);
       }
     }
 
@@ -648,7 +666,7 @@
       if (campaignMode) {
         pendingAchievementUnlocks.push(...startAch);
       } else {
-        setTimeout(() => achievements.showNewUnlocks(startAch), 1500);
+        trackTimeout(() => achievements.showNewUnlocks(startAch), 1500);
       }
     }
   }
@@ -662,6 +680,7 @@
     }
 
     clearAutoPlayTimer();
+    clearMiscTimers();
     achievements.cancelPendingToasts();
     currentEngine = null;
     currentSlug = null;
@@ -1585,10 +1604,10 @@
     rebuildCampaignSlugMap(); // Refresh unlock state after advancing
     const queuedUnlocks = pendingAchievementUnlocks.splice(0, pendingAchievementUnlocks.length);
     // Small delay before advancing to next phase for pacing
-    setTimeout(() => {
+    trackTimeout(() => {
       playCampaignPhase();
       if (queuedUnlocks.length > 0) {
-        setTimeout(() => achievements.showNewUnlocks(queuedUnlocks), 1200);
+        trackTimeout(() => achievements.showNewUnlocks(queuedUnlocks), 1200);
       }
     }, 500);
   }
