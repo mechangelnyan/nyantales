@@ -1582,3 +1582,25 @@ cd /tmp/nyantales && python3 -m http.server 9876
 - SW cache bumped to v68, production build regenerated (178KB bundle)
 - All 33 JS files pass `node --check`, 204/204 unit tests, 50/50 Playwright tests
 - Committed & pushed
+
+## Phase 89: Cached DOM Everywhere, Zero Hot-Path innerHTML ✅
+- **ProgressHUD pre-built spans** — `_visitedSpan` and `_turnSpan` children created once at init
+  - Previously: `innerHTML` with template literal on every scene render (hot path during play + skip mode)
+  - Now: `textContent` updates on pre-built span elements (zero parsing, zero DOM allocation)
+- **Ending time box cached value span** — `_endingTimeBox._valSpan` avoids `querySelector('.ending-stat-value')` per ending
+  - Also builds children via `createElement` instead of `innerHTML` on first creation
+- **Stats bar pre-built elements** — `_ensureStatsBar()` builds 5 stat divs once, `_updateStatsBar()` updates via `textContent`
+  - Previously: `statsEl.innerHTML = ...` rebuilt 5 divs with spans on every menu return
+  - Now: zero innerHTML on menu return, just 10 textContent writes
+- **Continue button pre-built** — text node + `<span class="continue-meta">` created once at init
+  - Previously: `btn.innerHTML = ...` on every `updateContinueButton()` call (every menu return)
+- **Campaign button pre-built** — text node + `<span class="campaign-meta">` created once at init
+  - Previously: `campaignBtnEl.innerHTML = ...` on every `updateCampaignButton()` call
+- **Cached `_currentTotalScenes`** — `Object.keys(engine.scenes).length` computed once per story start
+  - Previously: `Object.keys()` allocated a new array on every `updateProgressHUD()` call
+- **StoryIntro exit timer tracked** — `StoryIntro._exitTimer` prevents orphaned 500ms setTimeout
+- **Toast.info CSS class** — `.nt-toast-info` replaces inline `color: 'rgba(0,80,120,0.9)'`
+- innerHTML usage in main.js: 13 → 8 (remaining 8 are one-time init/build/error, zero in hot paths)
+- SW cache bumped to v71, production build regenerated (180KB bundle)
+- All 33 JS files pass `node --check`, 204/204 unit tests, 50/50 Playwright tests
+- 2 commits pushed
