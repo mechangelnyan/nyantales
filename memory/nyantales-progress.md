@@ -1667,5 +1667,33 @@ cd /tmp/nyantales && python3 -m http.server 9876
 - All 33 JS files pass `node --check`, 204/204 unit tests, 50/50 Playwright tests
 - Committed & pushed
 
+## Phase 93: innerHTML Elimination — Warm Render Paths ✅
+- **HistoryPanel.show()** — entries built via `createElement` + `DocumentFragment` (1 reflow)
+  - Previously: `innerHTML = entries.map(...).join('')` rebuilt all entries as HTML string on every open
+  - Now: loop builds `div.history-entry` with child `div.history-speaker` + `div.history-text` via `textContent`
+  - `_cachedEntries` array built inline during creation (no `querySelectorAll` needed)
+  - Reusable `_emptyEl` for zero-entry state
+- **SaveManager._renderSlots()** — slot cards built via `createElement` loop + `DocumentFragment`
+  - Previously: `innerHTML = SLOT_NAMES.map(...).join('')` with nested ternaries and HTML escaping
+  - Now: explicit DOM construction per slot (header, preview, meta, actions) with `textContent`
+  - New `_makeSlotBtn()` helper creates reusable slot action buttons
+  - `slotsEl.textContent = ''` replaces `innerHTML` for clearing
+- **SceneSelect.show()** — scene items built via `createElement` + `DocumentFragment`
+  - Previously: `innerHTML = visitedArr.map(...).join('')` with per-item HTML template
+  - Now: loop builds full item DOM tree (header, badges, location, speaker, preview, meta)
+  - Reusable `_emptyEl` and `_filterEmptyEl` for empty/no-results states
+  - `_applyFilter()`: replaced `insertAdjacentHTML` with pre-created element toggle
+- **CharacterGallery** — card content built via `createElement` chain
+  - Previously: `card.innerHTML = \`...\`` with portrait img, name, role badge, appearance, story tags
+  - Now: explicit DOM construction with `textContent` (inherently XSS-safe)
+- **TitleBrowser** — empty state uses pre-created `_emptyIconEl` + `_emptyHintEl` (was `innerHTML`)
+- **Dead code removed** — `_esc()` methods from HistoryPanel, SceneSelect, SaveManager
+  - All 3 were HTML-escape helpers only used by the now-eliminated `innerHTML` templates
+  - `SaveManager._escDiv`, `HistoryPanel._escDiv`, `SceneSelect._escDiv` static allocations removed
+- SW cache bumped to v75, production build regenerated (184KB bundle)
+- All 33 JS files pass `node --check`, 204/204 unit tests, 50/50 Playwright tests
+- Committed & pushed
+
 ## Log (continued)
 - 2026-03-28 (1:27 PM): Phase 92 — innerHTML elimination from init/build paths: story card grid uses createElement chain instead of innerHTML template (XSS-safe textContent for titles), auto-play/skip indicators built via DOM API, act headers via createElement, 4 innerHTML='' clears→textContent=''. Remaining innerHTML only in typewriter (needs HTML output) and error fallback. SW v74, 184KB bundle. All 33 JS + 204/204 unit + 50/50 Playwright pass. Committed & pushed.
+- 2026-03-28 (2:27 PM): Phase 93 — innerHTML elimination from warm render paths: HistoryPanel.show() entries via createElement+DocumentFragment (was innerHTML template per entry), SaveManager._renderSlots() slot cards via createElement loop+fragment (was innerHTML map+join), SceneSelect.show() scene items via createElement+fragment, CharacterGallery card content via createElement chain, TitleBrowser empty state via pre-created elements. Removed 3 dead _esc() methods (HistoryPanel, SceneSelect, SaveManager — no longer needed with textContent). SceneSelect._applyFilter() uses reusable _filterEmptyEl. All remaining innerHTML in these files is one-time overlay construction only. SW v75, 184KB bundle. All 33 JS + 204/204 unit + 50/50 Playwright pass. Committed & pushed.
