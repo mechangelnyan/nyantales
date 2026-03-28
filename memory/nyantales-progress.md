@@ -1109,6 +1109,21 @@ cd /tmp/nyantales && python3 -m http.server 9876
 - All 33 JS files pass `node --check`, 204/204 unit tests, 50/50 Playwright tests
 - Committed & pushed
 
+## Phase 75: Toast Timer Tracking, Cached History Entries, Dialog Guard ✅
+- **Achievement toast timer tracking** — `showNewUnlocks()` staggered `setTimeout` calls now stored in `_toastTimers` array
+  - `cancelPendingToasts()` cancels all pending timers + removes active toast element
+  - Called in `returnToMenu()` — prevents orphaned achievement toasts animating in after leaving a story
+  - Previously: rapid story→menu→story transitions could show toasts from the previous session
+- **HistoryPanel cached entry NodeList** — `_filterEntries()` no longer calls `querySelectorAll('.history-entry')` on every keystroke
+  - `_cachedEntries` array built once in `show()` when rendering entries
+  - Reused across all filter invocations until next `show()` rebuild
+  - Especially impactful for large backlogs (500 entries max) during rapid search typing
+- **ConfirmDialog double-resolve guard** — `cleanup()` can be triggered by both click delegation and Escape keydown
+  - Added `resolved` boolean flag to prevent double `resolve()` call on the promise
+  - Race condition: rapid Escape + click could call `cleanup()` twice, causing unpredictable behavior in the caller
+- SW cache bumped to v57, production build regenerated (169KB bundle)
+- All 33 JS files pass `node --check`, 204/204 unit tests, 50/50 Playwright tests
+
 ## Still Possible Future Work
 - Generate remaining character portraits (GPU timeout issue — needs investigation, possibly during lower GPU load)
 - AI-generated scene background images
@@ -1306,6 +1321,7 @@ cd /tmp/nyantales && python3 -m http.server 9876
 - Committed & pushed
 
 ## Log (continued)
+- 2026-03-27 (8:27 PM): Phase 75 — Achievement toast timer tracking (staggered showNewUnlocks timeouts now in _toastTimers array, cancelPendingToasts() called on menu return). Cached HistoryPanel entries (eliminates querySelectorAll per filter keystroke). ConfirmDialog double-resolve guard (prevents race between Escape + click). SW v57, 169KB bundle. All 33 JS + 204/204 unit + 50/50 Playwright pass. Committed & pushed.
 - 2026-03-27 (7:27 PM): Phase 74 — Asset cleanup + build optimization: removed 15 unused legacy portrait files (~10MB), build script now only copies 44 referenced portraits (31MB vs 41MB), PortraitManager.preloadAll() deduplicates by filename (54 map entries → 44 Image loads). SW v56, 169KB JS bundle. All 33 JS + 204/204 unit + 50/50 Playwright pass. Committed & pushed.
 - 2026-03-27 (5:27 PM): Phase 72 — Timer cleanup + CSS custom properties: tracked effect timers (glitch/shake/sprite fade-out) in _effectTimers array to cancel on scene change (fixes stale timer bug during rapid navigation). Story card/choice animation delays use CSS custom properties instead of inline style.animationDelay. Progress bar width driven by --bar-pct. Route map cursor state uses CSS class. Cached getStoryMeta() per slug. SW v54, 168KB bundle. All 33 JS + 204/204 unit + 50/50 Playwright pass. 2 commits pushed.
 - 2026-03-27 (4:27 PM): Phase 71 — Campaign ending delegation (per-ending addEventListener → data-action handled by existing ending delegation, fixes listener leak). Pre-computed bg keyword entries (Object.entries() allocation per render → pre-built array). Sprite fade-out Set lookup (O(n²) find → O(1) Set.has). Combined _formatText regex (4 sequential .replace → single VNUI._FORMAT_RE pass). Scoped ending stats query. SW v53, 167KB bundle. All 32 JS + 204/204 unit + 50/50 Playwright pass. Committed & pushed.

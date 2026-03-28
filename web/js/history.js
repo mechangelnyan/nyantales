@@ -103,6 +103,7 @@ class HistoryPanel {
 
     if (entries.length === 0) {
       this._listEl.innerHTML = '<div class="history-empty">No text yet — start reading!</div>';
+      this._cachedEntries = [];
     } else {
       this._listEl.innerHTML = entries.map(e => {
         const searchable = ((e.speaker || '') + ' ' + e.text).toLowerCase();
@@ -113,6 +114,8 @@ class HistoryPanel {
           </div>
         `;
       }).join('');
+      // Cache entry NodeList for filter reuse (avoids querySelectorAll per keystroke)
+      this._cachedEntries = [...this._listEl.querySelectorAll('.history-entry')];
       // Scroll to bottom
       requestAnimationFrame(() => { this._listEl.scrollTop = this._listEl.scrollHeight; });
     }
@@ -176,7 +179,7 @@ class HistoryPanel {
   /** Filter history entries by search query */
   _filterEntries() {
     const query = (this._searchInput.value || '').toLowerCase().trim();
-    const entries = this._listEl.querySelectorAll('.history-entry');
+    const entries = this._cachedEntries || [];
     let visible = 0;
 
     entries.forEach(el => {

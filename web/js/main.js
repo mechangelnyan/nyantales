@@ -644,6 +644,7 @@
     }
 
     clearAutoPlayTimer();
+    achievements.cancelPendingToasts();
     currentEngine = null;
     currentSlug = null;
     storyStartTime = null;

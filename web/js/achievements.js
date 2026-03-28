@@ -9,6 +9,8 @@ class AchievementSystem {
     this.storageKey = 'nyantales-achievements';
     this.unlocked = this._load();
     this._toast = null;
+    /** Tracked staggered toast timers — cancellable on story exit */
+    this._toastTimers = [];
 
     // Achievement definitions
     this.achievements = [
@@ -223,9 +225,21 @@ class AchievementSystem {
 
   /** Show all toasts for newly unlocked achievements (staggered) */
   showNewUnlocks(newlyUnlocked) {
+    this.cancelPendingToasts();
     newlyUnlocked.forEach((ach, i) => {
-      setTimeout(() => this.showToast(ach), i * 4000);
+      const id = setTimeout(() => this.showToast(ach), i * 4000);
+      this._toastTimers.push(id);
     });
+  }
+
+  /** Cancel any pending staggered achievement toasts (e.g. on story exit) */
+  cancelPendingToasts() {
+    for (const id of this._toastTimers) clearTimeout(id);
+    this._toastTimers.length = 0;
+    if (this._toast) {
+      this._toast.remove();
+      this._toast = null;
+    }
   }
 
   /** Get all achievements with unlock status */
