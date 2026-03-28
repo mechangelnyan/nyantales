@@ -924,17 +924,57 @@
    * dynamic card state without destroying/rebuilding 30 DOM cards.
    * Safe to call multiple times.
    */
+  // Pre-built stats bar elements (avoid innerHTML on every menu return)
+  let _statsBuilt = false;
+  const _statRefs = {};
+
+  function _ensureStatsBar() {
+    if (_statsBuilt) return;
+    statsEl.innerHTML = '';
+    const defs = [
+      { key: 'complete', icon: '📖', suffix: () => `/${storyIndex.length} complete` },
+      { key: 'endings', icon: '🔮', suffix: () => ' endings found' },
+      { key: 'plays', icon: '🎮', suffix: () => ' plays' },
+      { key: 'achievements', icon: '🏆', suffix: () => '' },
+      { key: 'readTime', icon: '⏱', suffix: () => ' reading' }
+    ];
+    for (const d of defs) {
+      const div = document.createElement('div');
+      div.className = 'stat';
+      const valSpan = document.createElement('span');
+      valSpan.className = 'stat-value';
+      div.appendChild(document.createTextNode(d.icon + ' '));
+      div.appendChild(valSpan);
+      const suffixNode = document.createTextNode('');
+      div.appendChild(suffixNode);
+      _statRefs[d.key] = { el: div, valSpan, suffixNode, suffixFn: d.suffix };
+      statsEl.appendChild(div);
+    }
+    _statsBuilt = true;
+  }
+
+  function _updateStatsBar(stats, achStats, totalTime) {
+    _statRefs.complete.valSpan.textContent = stats.storiesCompleted;
+    _statRefs.complete.suffixNode.textContent = _statRefs.complete.suffixFn();
+    _statRefs.endings.valSpan.textContent = stats.totalEndings;
+    _statRefs.endings.suffixNode.textContent = _statRefs.endings.suffixFn();
+    _statRefs.plays.valSpan.textContent = stats.totalPlays;
+    _statRefs.plays.suffixNode.textContent = _statRefs.plays.suffixFn();
+    _statRefs.achievements.valSpan.textContent = `${achStats.unlocked}/${achStats.total}`;
+    const hasReadTime = tracker.getTotalReadingMs() > 0;
+    _statRefs.readTime.el.classList.toggle('hidden', !hasReadTime);
+    if (hasReadTime) {
+      _statRefs.readTime.valSpan.textContent = totalTime;
+      _statRefs.readTime.suffixNode.textContent = _statRefs.readTime.suffixFn();
+    }
+  }
+
   function renderTitleScreen() {
     const stats = tracker.getStats();
     const achStats = achievements.getStats();
     const totalTime = StoryTracker.formatDuration(tracker.getTotalReadingMs());
-    statsEl.innerHTML = `
-      <div class="stat">📖 <span class="stat-value">${stats.storiesCompleted}</span>/${storyIndex.length} complete</div>
-      <div class="stat">🔮 <span class="stat-value">${stats.totalEndings}</span> endings found</div>
-      <div class="stat">🎮 <span class="stat-value">${stats.totalPlays}</span> plays</div>
-      <div class="stat">🏆 <span class="stat-value">${achStats.unlocked}</span>/${achStats.total}</div>
-      ${tracker.getTotalReadingMs() > 0 ? `<div class="stat">⏱ <span class="stat-value">${totalTime}</span> reading</div>` : ''}
-    `;
+    _ensureStatsBar();
+    _updateStatsBar(stats, achStats, totalTime);
 
     // Campaign section
     updateCampaignButton();
@@ -1076,6 +1116,15 @@
   // ── Continue Button ──
 
   const btnContinueEl = document.getElementById('btn-continue');
+  // Pre-build continue button children so we can update textContent instead of innerHTML
+  let _continueMeta = null;
+  if (btnContinueEl) {
+    btnContinueEl.textContent = '';
+    btnContinueEl.appendChild(document.createTextNode('▶ Continue'));
+    _continueMeta = document.createElement('span');
+    _continueMeta.className = 'continue-meta';
+    btnContinueEl.appendChild(_continueMeta);
+  }
 
   function updateContinueButton() {
     const btn = btnContinueEl;
@@ -1089,7 +1138,7 @@
     if (recent && btn) {
       const story = storySlugMap.get(recent.slug);
       const title = story ? story.title : recent.slug;
-      btn.innerHTML = `▶ Continue<span class="continue-meta">${title} · ${recent.turns} turns</span>`;
+      _continueMeta.textContent = `${title} · ${recent.turns} turns`;
       btn.classList.remove('hidden');
     } else if (btn) {
       btn.classList.add('hidden');
@@ -1629,16 +1678,31 @@
     }, 500);
   }
 
+  /** Pre-built campaign button children for textContent updates instead of innerHTML. */
+  let _campaignBtnText = null;
+  let _campaignBtnMeta = null;
+  if (campaignBtnEl) {
+    campaignBtnEl.textContent = '';
+    _campaignBtnText = document.createTextNode('📖 Campaign');
+    _campaignBtnMeta = document.createElement('span');
+    _campaignBtnMeta.className = 'campaign-meta';
+    campaignBtnEl.appendChild(_campaignBtnText);
+    campaignBtnEl.appendChild(_campaignBtnMeta);
+  }
+
   /** Update campaign button text on title screen. */
   function updateCampaignButton() {
     if (!campaignBtnEl || !campaign.isLoaded) return;
     const label = campaign.getProgressLabel();
     if (campaign.isComplete()) {
-      campaignBtnEl.innerHTML = '📖 Campaign <span class="campaign-meta">Complete! ✨</span>';
+      _campaignBtnText.textContent = '📖 Campaign ';
+      _campaignBtnMeta.textContent = 'Complete! ✨';
     } else if (label) {
-      campaignBtnEl.innerHTML = `📖 Continue Campaign<span class="campaign-meta">${label}</span>`;
+      _campaignBtnText.textContent = '📖 Continue Campaign';
+      _campaignBtnMeta.textContent = label;
     } else {
-      campaignBtnEl.textContent = '📖 Campaign';
+      _campaignBtnText.textContent = '📖 Campaign';
+      _campaignBtnMeta.textContent = '';
     }
   }
 
