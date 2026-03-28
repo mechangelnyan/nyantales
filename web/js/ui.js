@@ -150,6 +150,7 @@ class VNUI {
     this.currentStorySlug = slug;
     this._speakerCache = new Map(); // reset speaker lookup cache per story
     this._charNameCache = new Map(); // reset lowercase name cache per story
+    this._charHyphenCache = new Map(); // reset hyphenated name cache per story
     this._lastSpeakerKey = ''; // reset speaker DOM cache
     this._lastInventory = ''; // reset inventory cache
   }
@@ -245,13 +246,16 @@ class VNUI {
     // Determine which characters should be visible
     // 1. The speaker (if named)
     // 2. Characters mentioned in text
-    const speakerLower = (scene.speaker || '').toLowerCase();
-    const textLower = (scene.text || '').toLowerCase();
-    const sceneIdLower = (engine.state.currentScene || '').toLowerCase();
+    // Use pre-computed lowercase strings from renderScene (avoids redundant toLowerCase)
+    const sl = this._sceneLower;
+    const speakerLower = sl ? sl.spk : (scene.speaker || '').toLowerCase();
+    const textLower = sl ? sl.txt : (scene.text || '').toLowerCase();
+    const sceneIdLower = sl ? sl.scn : (engine.state.currentScene || '').toLowerCase();
 
     // Build visible list without spreading (avoids object allocation per character per render)
     // Cache lowercase names per story to avoid toLowerCase() on every render
     if (!this._charNameCache) this._charNameCache = new Map();
+    if (!this._charHyphenCache) this._charHyphenCache = new Map();
     const visible = [];
     const speakerFlags = []; // parallel array: true if the char at this index is speaking
     for (const char of chars) {
@@ -260,9 +264,14 @@ class VNUI {
         nameLower = char.name.toLowerCase();
         this._charNameCache.set(char.name, nameLower);
       }
+      let nameHyphen = this._charHyphenCache.get(char.name);
+      if (nameHyphen === undefined) {
+        nameHyphen = nameLower.replace(/\s+/g, '-');
+        this._charHyphenCache.set(char.name, nameHyphen);
+      }
       const isSpeaker = speakerLower === nameLower || speakerLower.includes(nameLower);
       const inText = textLower.includes(nameLower);
-      const inScene = sceneIdLower.includes(nameLower.replace(/\s+/g, '-'));
+      const inScene = sceneIdLower.includes(nameHyphen);
 
       if (isSpeaker || inText || inScene) {
         visible.push(char);
@@ -351,13 +360,9 @@ class VNUI {
   }
 
   _getSpritePositions(count) {
-    if (count === 0) return [];
-    if (count === 1) return [{ x: '50%', scale: 1 }];
-    if (count === 2) return [{ x: '30%', scale: 0.9 }, { x: '70%', scale: 0.9 }];
-    if (count === 3) return [
-      { x: '20%', scale: 0.8 }, { x: '50%', scale: 0.9 }, { x: '80%', scale: 0.8 }
-    ];
-    // 4+: spread evenly
+    // Use pre-built static arrays for common counts (0-3) to avoid allocation per render
+    if (count <= 3) return VNUI._SPRITE_POS[count];
+    // 4+: spread evenly (rare — most scenes have 1-3 visible characters)
     return Array.from({ length: count }, (_, i) => ({
       x: `${15 + (70 * i / (count - 1))}%`,
       scale: 0.75
@@ -382,6 +387,14 @@ class VNUI {
 
     // Cancel any lingering effect timers from the previous scene
     this._clearEffectTimers();
+
+    // Pre-compute lowercase strings once for use by both _sceneTransition and _updateSprites
+    this._sceneLower = {
+      loc: (scene.location || '').toLowerCase(),
+      scn: (engine.state.currentScene || '').toLowerCase(),
+      txt: (scene.text || '').toLowerCase(),
+      spk: (scene.speaker || '').toLowerCase()
+    };
 
     // Scene transition effect
     await this._sceneTransition(scene, engine);
@@ -523,10 +536,11 @@ class VNUI {
   _inferBackground(scene, engine) {
     if (scene.background) return `bg-${scene.background}`;
 
-    // Build haystack without array allocation (join creates a new array + string)
-    const loc = (scene.location || '').toLowerCase();
-    const scn = (engine.state.currentScene || '').toLowerCase();
-    const txt = (scene.text || '').toLowerCase();
+    // Use pre-computed lowercase strings from renderScene (avoids redundant toLowerCase per render)
+    const sl = this._sceneLower;
+    const loc = sl ? sl.loc : (scene.location || '').toLowerCase();
+    const scn = sl ? sl.scn : (engine.state.currentScene || '').toLowerCase();
+    const txt = sl ? sl.txt : (scene.text || '').toLowerCase();
 
     for (const [keyword, bgClass] of this._bgEntries) {
       if (loc.includes(keyword) || scn.includes(keyword) || txt.includes(keyword)) return bgClass;
@@ -938,13 +952,15 @@ class VNUI {
     const type = ending.type || 'neutral';
     const icon = VNUI._ENDING_ICONS[type] || '📋';
 
-    // Dim sprites with CSS class instead of inline styles
-    this.spritesEl.querySelectorAll('.vn-sprite-wrap').forEach(wrap => {
+    // Dim sprites with CSS class — use cached _activeSprites Map (no querySelectorAll)
+    const endingClass = `ending-${type === 'secret' ? 'neutral' : type}`;
+    for (const [, wrap] of this._activeSprites) {
       wrap.classList.remove('ending-good', 'ending-bad', 'ending-neutral');
-      wrap.classList.add(`ending-${type === 'secret' ? 'neutral' : type}`);
-    });
+      wrap.classList.add(endingClass);
+    }
 
-    const totalScenes = Object.keys(engine.scenes).length;
+    // Use cached scene count if available (avoids Object.keys allocation per ending)
+    const totalScenes = this._totalScenes || Object.keys(engine.scenes).length;
     const visitPct = totalScenes > 0 ? Math.round((engine.state.visited.size / totalScenes) * 100) : 0;
 
     // Store share data for delegation handler
@@ -1104,3 +1120,11 @@ VNUI._ENDING_ICONS = { good: '🌟', bad: '💀', neutral: '📋', secret: '🔮
 /** Pre-compiled HTML escape regex and lookup map (replaces 3 chained .replace() calls). */
 VNUI._HTML_ESC_RE = /[&<>]/g;
 VNUI._HTML_ESC_MAP = { '&': '&amp;', '<': '&lt;', '>': '&gt;' };
+
+/** Pre-built sprite position arrays for counts 0-3 (avoids object/array allocation per render). */
+VNUI._SPRITE_POS = [
+  [],
+  [{ x: '50%', scale: 1 }],
+  [{ x: '30%', scale: 0.9 }, { x: '70%', scale: 0.9 }],
+  [{ x: '20%', scale: 0.8 }, { x: '50%', scale: 0.9 }, { x: '80%', scale: 0.8 }]
+];

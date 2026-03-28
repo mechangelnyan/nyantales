@@ -564,7 +564,7 @@
     // Inject reading time into ending stats grid (reusable element)
     if (sessionElapsed > 0) {
       const timeStr = StoryTracker.formatDuration(sessionElapsed);
-      const statsGrid = ui.endingEl.querySelector('#ending-stats-grid');
+      const statsGrid = ui._endingRefs.statsGrid;
       if (statsGrid) {
         if (!_endingTimeBox) {
           _endingTimeBox = document.createElement('div');
@@ -611,12 +611,8 @@
         _endingCampaignBtn.dataset.action = 'campaign-next'; // handled by ending delegation
       }
       _endingCampaignBtn.textContent = campaign.isComplete() ? '🏠 Return Home' : '▶ Next Chapter';
-      const actionsRow = ui.endingEl.querySelector('.ending-actions');
-      if (actionsRow) {
-        actionsRow.insertBefore(_endingCampaignBtn, actionsRow.firstChild);
-      } else {
-        ui.endingEl.appendChild(_endingCampaignBtn);
-      }
+      const actionsRow = ui._endingRefs.actionsRow;
+      actionsRow.insertBefore(_endingCampaignBtn, actionsRow.firstChild);
       requestAnimationFrame(() => _endingCampaignBtn.focus());
     }
   };
@@ -639,6 +635,7 @@
     _currentParsed = parsed;
     currentEngine = new StoryEngine(parsed);
     _currentTotalScenes = Object.keys(parsed.scenes).length;
+    ui._totalScenes = _currentTotalScenes; // share with UI to avoid re-computing in _showEnding
     textHistory.clear();
     ui.typewriterSpeed = settings.get('textSpeed');
   }
