@@ -4584,3 +4584,6 @@ body {
 .title-bg {
   scroll-behavior: smooth;
 }
+
+/* Typewriter char-level reveal (replaces inline style.visibility) */
+.tw-hidden { visibility: hidden; }

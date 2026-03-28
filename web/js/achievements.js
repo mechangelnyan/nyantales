@@ -146,30 +146,29 @@ class AchievementSystem {
    * Build context object from tracker for checking achievements.
    * Uses tracker instance data directly instead of reading raw localStorage,
    * which avoids parsing overhead and ensures consistency with in-memory state.
+   * Single-pass iteration avoids Object.entries() allocation and separate getStats() call.
    */
   _buildContext() {
-    const stats = this.tracker.getStats();
     const completedSlugs = new Set();
-    let bestTurns = null;
-    let maxTurns = null;
+    let storiesCompleted = 0, totalEndings = 0, totalPlays = 0;
+    let bestTurns = null, maxTurns = null;
 
-    const stories = this.tracker.data.stories || {};
-    for (const [slug, info] of Object.entries(stories)) {
+    const stories = this.tracker.data.stories;
+    for (const slug in stories) {
+      const info = stories[slug];
       if (info.completed) {
+        storiesCompleted++;
         completedSlugs.add(slug);
       }
+      totalEndings += info.endingsFound.length;
+      totalPlays += info.totalPlays;
       if (info.bestTurns != null) {
         if (bestTurns === null || info.bestTurns < bestTurns) bestTurns = info.bestTurns;
         if (maxTurns === null || info.bestTurns > maxTurns) maxTurns = info.bestTurns;
       }
     }
 
-    return {
-      ...stats,
-      completedSlugs,
-      bestTurns,
-      maxTurns
-    };
+    return { storiesCompleted, totalEndings, totalPlays, completedSlugs, bestTurns, maxTurns };
   }
 
   /** Check all achievements, return newly unlocked ones */

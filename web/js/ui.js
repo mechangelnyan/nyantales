@@ -105,7 +105,8 @@ class VNUI {
         this.titleScreen.classList.add('active');
       });
     });
-    setTimeout(() => {
+    clearTimeout(this._screenTransTimer);
+    this._screenTransTimer = setTimeout(() => {
       this.storyScreen.classList.remove('exiting');
     }, 500);
     this._clearSprites();
@@ -123,7 +124,8 @@ class VNUI {
         this.storyScreen.classList.add('active');
       });
     });
-    setTimeout(() => {
+    clearTimeout(this._screenTransTimer);
+    this._screenTransTimer = setTimeout(() => {
       this.titleScreen.classList.remove('exiting');
     }, 500);
   }
@@ -480,14 +482,13 @@ class VNUI {
   _inferBackground(scene, engine) {
     if (scene.background) return `bg-${scene.background}`;
 
-    const haystack = [
-      scene.location || '',
-      engine.state.currentScene || '',
-      scene.text || ''
-    ].join(' ').toLowerCase();
+    // Build haystack without array allocation (join creates a new array + string)
+    const loc = (scene.location || '').toLowerCase();
+    const scn = (engine.state.currentScene || '').toLowerCase();
+    const txt = (scene.text || '').toLowerCase();
 
     for (const [keyword, bgClass] of this._bgEntries) {
-      if (haystack.includes(keyword)) return bgClass;
+      if (loc.includes(keyword) || scn.includes(keyword) || txt.includes(keyword)) return bgClass;
     }
     return '';
   }
@@ -552,7 +553,7 @@ class VNUI {
         for (let i = 0; i < chars.length; i++) {
           const span = document.createElement('span');
           span.textContent = chars[i];
-          span.style.visibility = 'hidden';
+          span.className = 'tw-hidden';
           charSpans.push(span);
           frag.appendChild(span);
         }
@@ -562,7 +563,7 @@ class VNUI {
       const type = () => {
         const end = Math.min(revealedLen + 2, charSpans.length);
         for (let i = revealedLen; i < end; i++) {
-          charSpans[i].style.visibility = 'visible';
+          charSpans[i].className = '';
         }
         revealedLen = end;
 
@@ -610,6 +611,7 @@ class VNUI {
    * Show a "Continue ▶" button and wait for the player to click/tap it
    * before revealing the ending overlay. Gives the player a moment to
    * absorb the final scene text.
+   * Uses a reusable button element to avoid createElement on every ending.
    * @returns {Promise<void>}
    */
   _waitForEndingContinue() {
@@ -618,9 +620,13 @@ class VNUI {
       this.choicesEl.innerHTML = '';
       this.choicesEl.classList.remove('hidden');
 
-      const btn = document.createElement('button');
-      btn.className = 'choice-btn ending-continue-btn fade-in';
-      btn.textContent = 'Continue ▶';
+      // Reuse the continue button element across endings
+      if (!this._endingContinueBtn) {
+        this._endingContinueBtn = document.createElement('button');
+        this._endingContinueBtn.className = 'choice-btn ending-continue-btn fade-in';
+        this._endingContinueBtn.textContent = 'Continue ▶';
+      }
+      const btn = this._endingContinueBtn;
       this.choicesEl.appendChild(btn);
 
       const dismiss = () => {
@@ -698,9 +704,10 @@ class VNUI {
       const choice = this._currentChoices[idx];
       if (!choice) return;
 
-      // Click ripple effect
+      // Click ripple effect — track timer so rapid clicks don't queue stale callbacks
       btn.classList.add('chosen');
-      setTimeout(() => {
+      clearTimeout(this._choiceRippleTimer);
+      this._choiceRippleTimer = setTimeout(() => {
         this.choicesEl.classList.add('hidden');
         if (this._onChoice) this._onChoice(choice);
       }, 200);

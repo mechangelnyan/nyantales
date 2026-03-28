@@ -22,6 +22,8 @@ class StoryTracker {
     this._SAVE_DEBOUNCE_MS = 500;
     /** @type {Map<string, Set<string>>} Cached Sets for visitedScenes lookups (avoids new Set per call) */
     this._visitedSets = new Map();
+    /** @type {Set<string>|null} Cached favorites Set for O(1) isFavorite() lookups (rebuilt on toggle/reset/load) */
+    this._favoritesSet = null;
   }
 
   /** Get tracking data for a story, creating if absent */
@@ -143,18 +145,17 @@ class StoryTracker {
     return { isNewEnding: isNew };
   }
 
-  /** Get overall stats */
+  /** Get overall stats — single-pass computation (avoids filter + 2× reduce) */
   getStats() {
-    const slugs = Object.keys(this.data.stories);
-    const completed = slugs.filter(s => this.data.stories[s].completed);
-    const totalEndings = slugs.reduce((sum, s) => sum + this.data.stories[s].endingsFound.length, 0);
-    const totalPlays = slugs.reduce((sum, s) => sum + this.data.stories[s].totalPlays, 0);
-
-    return {
-      storiesCompleted: completed.length,
-      totalEndings,
-      totalPlays
-    };
+    const stories = this.data.stories;
+    let storiesCompleted = 0, totalEndings = 0, totalPlays = 0;
+    for (const slug in stories) {
+      const s = stories[slug];
+      if (s.completed) storiesCompleted++;
+      totalEndings += s.endingsFound.length;
+      totalPlays += s.totalPlays;
+    }
+    return { storiesCompleted, totalEndings, totalPlays };
   }
 
   /** Check if story is completed */
@@ -183,14 +184,18 @@ class StoryTracker {
     } else {
       this.data.favorites.splice(idx, 1);
     }
+    this._favoritesSet = null; // invalidate cache
     // User action — flush immediately
     this._saveNow();
     return this.isFavorite(slug);
   }
 
-  /** Check if a story is favorited */
+  /** Check if a story is favorited — O(1) via cached Set (was O(n) Array.includes per call) */
   isFavorite(slug) {
-    return (this.data.favorites || []).includes(slug);
+    if (!this._favoritesSet) {
+      this._favoritesSet = new Set(this.data.favorites || []);
+    }
+    return this._favoritesSet.has(slug);
   }
 
   /** Get all favorite slugs */
@@ -202,6 +207,7 @@ class StoryTracker {
   reset() {
     this.data = { stories: {}, favorites: [] };
     this._visitedSets.clear();
+    this._favoritesSet = null;
     this._save();
   }
 
