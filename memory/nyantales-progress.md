@@ -1510,3 +1510,20 @@ cd /tmp/nyantales && python3 -m http.server 9876
   - Especially impactful on mobile where only 3-4 cards are visible at a time
 - SW cache bumped to v66, production build regenerated (175KB bundle)
 - All 33 JS files pass `node --check`, 204/204 unit tests, 50/50 Playwright tests
+
+## Phase 85: Audio Fade Timers, Partial Title Screen Refresh ✅
+- **Audio fade timer tracking** — `setTheme()` and `stop()` had 3 untracked `setTimeout` calls
+  - `_fadeTimers` array tracks all fade-in/out and node-cleanup timers
+  - `_cancelFadeTimers()` called at start of every `setTheme()` and `stop()` (alongside `_cancelBlipTimers()`)
+  - Prevents stale callbacks: rapid scene transitions could fire old node-stop timers after a new theme was already built, or fire old build timers against a now-irrelevant theme
+  - `_trackFadeTimer(id)` convenience method matches existing `_blipTimers` pattern
+- **Partial title screen refresh** — `renderTitleScreen()` no longer destroys/rebuilds 30 story cards on every menu return
+  - First call builds the full grid (same as before)
+  - Subsequent calls run `_refreshStoryCards()` — updates badges, progress bars, favorites, save indicators, and data attributes in-place
+  - Avoids cost of: `storyListEl.innerHTML = ''` + DocumentFragment build + 30 `decorateStoryCard()` calls + sprite re-rendering + CSS animation replays
+  - `_gridBuilt` flag tracks whether the initial build has been done
+  - Lock state changes (campaign advance) handled by `_resetCardForRedecorate()` — strips dynamic decorations and re-runs `decorateStoryCard()` for that single card
+  - Net effect: menu return is significantly cheaper (DOM diff vs full rebuild)
+- SW cache bumped to v67, production build regenerated (177KB bundle)
+- All 33 JS files pass `node --check`, 204/204 unit tests, 50/50 Playwright tests
+- Committed & pushed
