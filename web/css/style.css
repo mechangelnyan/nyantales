@@ -2717,11 +2717,13 @@ body {
   align-items: center;
   justify-content: center;
   opacity: 0;
+  pointer-events: none;
   transition: opacity 0.2s ease;
   backdrop-filter: blur(6px);
 }
 .confirm-overlay.visible {
   opacity: 1;
+  pointer-events: auto;
 }
 .confirm-panel {
   background: linear-gradient(180deg, rgba(15, 15, 30, 0.99), rgba(8, 8, 18, 0.99));
@@ -2988,10 +2990,12 @@ body {
   align-items: center;
   justify-content: center;
   opacity: 0;
+  pointer-events: none;
   transition: opacity 0.6s ease;
 }
 .story-intro-overlay.visible {
   opacity: 1;
+  pointer-events: auto;
 }
 .story-intro-overlay.exiting {
   opacity: 0;

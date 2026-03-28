@@ -167,6 +167,8 @@ class VNUI {
    */
   renderStoryList(stories) {
     this.storyListEl.innerHTML = '';
+    // Batch-append cards via DocumentFragment (1 reflow instead of 30)
+    const frag = document.createDocumentFragment();
     stories.forEach((story, idx) => {
       const card = document.createElement('div');
       card.className = 'story-card fade-in';
@@ -195,8 +197,9 @@ class VNUI {
           </div>
         </div>
       `;
-      this.storyListEl.appendChild(card);
+      frag.appendChild(card);
     });
+    this.storyListEl.appendChild(frag);
   }
 
   // ── Character Sprites ──

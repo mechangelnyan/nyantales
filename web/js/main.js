@@ -255,6 +255,11 @@
 
   let autoPlayTimer     = null;
 
+  // Reusable DOM elements for ending overlays (avoids createElement per ending)
+  let _endingTimeBox      = null;
+  let _endingNewBadge     = null;
+  let _endingCampaignBtn  = null;
+
   function clearAutoPlayTimer() {
     if (autoPlayTimer) { clearTimeout(autoPlayTimer); autoPlayTimer = null; }
   }
@@ -526,25 +531,30 @@
       storyStartTime = null; // prevent double-counting on menu return
     }
 
-    // Inject reading time into ending stats grid (query from endingEl, not document — avoids stale ID match)
+    // Inject reading time into ending stats grid (reusable element)
     if (sessionElapsed > 0) {
       const timeStr = StoryTracker.formatDuration(sessionElapsed);
       const statsGrid = ui.endingEl.querySelector('#ending-stats-grid');
       if (statsGrid) {
-        const timeBox = document.createElement('div');
-        timeBox.className = 'ending-stat-box';
-        timeBox.innerHTML = `<span class="ending-stat-value">⏱ ${timeStr}</span><span class="ending-stat-label">Reading Time</span>`;
-        statsGrid.insertBefore(timeBox, statsGrid.firstChild);
+        if (!_endingTimeBox) {
+          _endingTimeBox = document.createElement('div');
+          _endingTimeBox.className = 'ending-stat-box';
+          _endingTimeBox.innerHTML = '<span class="ending-stat-value"></span><span class="ending-stat-label">Reading Time</span>';
+        }
+        _endingTimeBox.querySelector('.ending-stat-value').textContent = `⏱ ${timeStr}`;
+        statsGrid.insertBefore(_endingTimeBox, statsGrid.firstChild);
       }
     }
 
     const result = tracker.recordEnding(currentSlug, scene.ending, engine.state.turns);
 
     if (result.isNewEnding && ui.endingEl) {
-      const badge = document.createElement('div');
-      badge.className = 'new-ending-badge';
-      badge.textContent = '✨ New Ending Discovered!';
-      ui.endingEl.appendChild(badge);
+      if (!_endingNewBadge) {
+        _endingNewBadge = document.createElement('div');
+        _endingNewBadge.className = 'new-ending-badge';
+        _endingNewBadge.textContent = '✨ New Ending Discovered!';
+      }
+      ui.endingEl.appendChild(_endingNewBadge);
     }
 
     const newAch = achievements.checkAll();
@@ -556,19 +566,21 @@
       }
     }
 
-    // In campaign mode, add a "Next Chapter" button to the ending overlay
+    // In campaign mode, add a "Next Chapter" button to the ending overlay (reusable element)
     if (campaignMode && ui.endingEl) {
-      const nextBtn = document.createElement('button');
-      nextBtn.className = 'campaign-btn campaign-btn-ending';
-      nextBtn.textContent = campaign.isComplete() ? '🏠 Return Home' : '▶ Next Chapter';
-      nextBtn.dataset.action = 'campaign-next'; // handled by ending delegation
+      if (!_endingCampaignBtn) {
+        _endingCampaignBtn = document.createElement('button');
+        _endingCampaignBtn.className = 'campaign-btn campaign-btn-ending';
+        _endingCampaignBtn.dataset.action = 'campaign-next'; // handled by ending delegation
+      }
+      _endingCampaignBtn.textContent = campaign.isComplete() ? '🏠 Return Home' : '▶ Next Chapter';
       const actionsRow = ui.endingEl.querySelector('.ending-actions');
       if (actionsRow) {
-        actionsRow.insertBefore(nextBtn, actionsRow.firstChild);
+        actionsRow.insertBefore(_endingCampaignBtn, actionsRow.firstChild);
       } else {
-        ui.endingEl.appendChild(nextBtn);
+        ui.endingEl.appendChild(_endingCampaignBtn);
       }
-      requestAnimationFrame(() => nextBtn.focus());
+      requestAnimationFrame(() => _endingCampaignBtn.focus());
     }
   };
 
@@ -1066,11 +1078,10 @@
       }
     }
 
-    // Number keys for choices
+    // Number keys for choices — look up by data-choice-idx to avoid querySelectorAll
     if (e.key >= '1' && e.key <= '9') {
-      const idx = parseInt(e.key) - 1;
-      const btns = ui.choicesEl.querySelectorAll('.choice-btn');
-      if (btns[idx]) btns[idx].click();
+      const btn = ui.choicesEl.querySelector(`[data-choice-idx="${parseInt(e.key) - 1}"]`);
+      if (btn) btn.click();
     }
 
     const noMod = !e.ctrlKey && !e.metaKey;
@@ -1530,6 +1541,8 @@
     if (sectionDivider) sectionDivider.classList.remove('hidden');
     if (campaignBtnEl) campaignBtnEl.classList.remove('hidden');
 
+    // Batch-append act sections via DocumentFragment (1 reflow instead of per-act)
+    const gridFrag = document.createDocumentFragment();
     const chapters = campaign.chapters;
     const acts = campaign.manifest?.acts || [];
     const currentIdx = campaign.progress.chapterIndex;
@@ -1612,8 +1625,9 @@
       });
 
       section.appendChild(cards);
-      chapterGridEl.appendChild(section);
+      gridFrag.appendChild(section);
     });
+    chapterGridEl.appendChild(gridFrag);
   }
 
   // ── Chapter Grid Click Delegation ──
