@@ -108,18 +108,27 @@ class PortraitManager {
   }
 
   /**
-   * Preload all AI portraits to check availability and cache
+   * Preload all AI portraits to check availability and cache.
+   * De-duplicates by filename so shared portraits (e.g. 'thread-a' / 'thread a')
+   * only trigger one network request.
    */
   async preloadAll() {
-    const promises = Object.entries(PORTRAIT_MAP).map(([name, file]) => {
+    // Build file → [names] map to deduplicate
+    const fileToNames = new Map();
+    for (const [name, file] of Object.entries(PORTRAIT_MAP)) {
+      if (!fileToNames.has(file)) fileToNames.set(file, []);
+      fileToNames.get(file).push(name);
+    }
+
+    const promises = Array.from(fileToNames.entries()).map(([file, names]) => {
       return new Promise((resolve) => {
         const img = new Image();
         img.onload = () => {
-          this.preloaded.set(name, true);
+          for (const n of names) this.preloaded.set(n, true);
           resolve(true);
         };
         img.onerror = () => {
-          this.failedLoads.add(name);
+          for (const n of names) this.failedLoads.add(n);
           resolve(false);
         };
         img.src = this.basePath + file;
@@ -128,7 +137,6 @@ class PortraitManager {
 
     const results = await Promise.all(promises);
     const loaded = results.filter(Boolean).length;
-    // Portrait preload complete (loaded/total logged only in dev)
     return loaded;
   }
 }

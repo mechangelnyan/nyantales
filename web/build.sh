@@ -148,9 +148,23 @@ with open('$DIST/index.html', 'w') as f:
     f.write(result)
 "
 
-# ── 5. Copy static assets ──
+# ── 5. Copy static assets (only referenced portraits, not legacy/unused) ──
 echo "📁 Copying assets..."
-cp -r assets/* "$DIST/assets/" 2>/dev/null || true
+# Copy non-character assets (icons, etc.)
+for f in assets/*; do
+  [ -d "$f" ] && continue
+  cp "$f" "$DIST/assets/" 2>/dev/null || true
+done
+# Copy only portraits referenced in PORTRAIT_MAP
+mkdir -p "$DIST/assets/characters"
+grep -o "'[^']*\.png'" js/portraits.js | tr -d "'" | sort -u | while read img; do
+  [ -f "assets/characters/$img" ] && cp "assets/characters/$img" "$DIST/assets/characters/"
+done
+# Copy portrait docs
+cp assets/characters/PICKS.md assets/characters/PORTRAIT_STATUS.md "$DIST/assets/characters/" 2>/dev/null || true
+CHAR_COUNT=$(ls "$DIST/assets/characters/"*.png 2>/dev/null | wc -l | tr -d ' ')
+CHAR_SIZE=$(du -sh "$DIST/assets/characters/" 2>/dev/null | cut -f1)
+echo "   Characters: $CHAR_COUNT portraits ($CHAR_SIZE)"
 cp manifest.json "$DIST/"
 
 # ── 6. Generate production service worker ──
