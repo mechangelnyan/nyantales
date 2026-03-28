@@ -16,6 +16,7 @@ class StoryIntro {
   static _descEl = null;
   static _continueBtn = null;
   static _dismissFn = null;
+  static _exitTimer = null;
 
   /** Build the persistent overlay structure once. */
   static _ensureOverlay() {
@@ -108,7 +109,9 @@ class StoryIntro {
         overlay.classList.remove('visible');
         overlay.classList.add('exiting');
         overlay.setAttribute('aria-hidden', 'true');
-        setTimeout(() => {
+        if (StoryIntro._exitTimer) clearTimeout(StoryIntro._exitTimer);
+        StoryIntro._exitTimer = setTimeout(() => {
+          StoryIntro._exitTimer = null;
           overlay.classList.remove('exiting');
           resolve();
         }, 500);

@@ -70,6 +70,22 @@ class AboutPanel {
     document.body.appendChild(this.overlay);
     this._statsEl = this.overlay.querySelector('#about-stats');
 
+    // Pre-build stat value elements so show() can update textContent instead of innerHTML
+    this._statVals = {};
+    ['stories', 'characters', 'achievements'].forEach(key => {
+      const div = document.createElement('div');
+      div.className = 'about-stat';
+      const valEl = document.createElement('span');
+      valEl.className = 'about-stat-val';
+      const lblEl = document.createElement('span');
+      lblEl.className = 'about-stat-lbl';
+      lblEl.textContent = key.charAt(0).toUpperCase() + key.slice(1);
+      div.appendChild(valEl);
+      div.appendChild(lblEl);
+      this._statsEl.appendChild(div);
+      this._statVals[key] = valEl;
+    });
+
     // Single delegated click listener for close + backdrop
     this.overlay.addEventListener('click', (e) => {
       if (e.target === this.overlay || e.target.closest('.about-close')) this.hide();
@@ -85,12 +101,10 @@ class AboutPanel {
   show(stats) {
     this._build();
 
-    if (stats && this._statsEl) {
-      this._statsEl.innerHTML = `
-        <div class="about-stat"><span class="about-stat-val">${stats.stories}</span><span class="about-stat-lbl">Stories</span></div>
-        <div class="about-stat"><span class="about-stat-val">${stats.characters}</span><span class="about-stat-lbl">Characters</span></div>
-        <div class="about-stat"><span class="about-stat-val">${stats.achievements}</span><span class="about-stat-lbl">Achievements</span></div>
-      `;
+    if (stats && this._statVals) {
+      this._statVals.stories.textContent = stats.stories;
+      this._statVals.characters.textContent = stats.characters;
+      this._statVals.achievements.textContent = stats.achievements;
     }
 
     this.overlay.setAttribute('aria-hidden', 'false');

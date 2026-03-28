@@ -4262,6 +4262,7 @@ body {
 .nt-toast.nt-toast-success { background: rgba(0, 255, 136, 0.88); color: #111; }
 .nt-toast.nt-toast-error   { background: rgba(255, 68, 68, 0.88); }
 .nt-toast.nt-toast-warning { background: rgba(255, 140, 0, 0.9); }
+.nt-toast.nt-toast-info { background: rgba(0, 80, 120, 0.9); }
 
 .nt-toast-container {
   position: fixed;

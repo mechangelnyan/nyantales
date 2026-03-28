@@ -244,6 +244,7 @@
   /** @type {Map<string, Object>} slug → story for O(1) lookups */
   let storySlugMap  = new Map();
   let currentEngine = null;
+  let _currentTotalScenes = 0; // cached Object.keys(engine.scenes).length
   let currentSlug   = null;
   let storyStartTime = null; // timestamp when current story session began
   let campaignMode  = false; // true when playing the connected campaign
@@ -377,6 +378,13 @@
     const el = document.createElement('div');
     el.className = 'progress-hud hidden';
     el.setAttribute('aria-live', 'off');
+    // Pre-build child spans so we can update textContent instead of innerHTML
+    const visitedSpan = document.createElement('span');
+    const turnSpan = document.createElement('span');
+    el.appendChild(visitedSpan);
+    el.appendChild(turnSpan);
+    el._visitedSpan = visitedSpan;
+    el._turnSpan = turnSpan;
     vnContainer.appendChild(el);
     return el;
   })();
@@ -395,7 +403,7 @@
   function updateProgressHUD() {
     if (!currentEngine) return;
 
-    const totalScenes = Object.keys(currentEngine.scenes).length;
+    const totalScenes = _currentTotalScenes;
     const visited = currentEngine.state.visited.size;
     const pct = totalScenes > 0 ? Math.round((visited / totalScenes) * 100) : 0;
     const turns = currentEngine.state.turns;
@@ -409,7 +417,8 @@
     _lastProgressPct = pct;
     _lastProgressTurns = turns;
 
-    progressHUD.innerHTML = `<span>📍 ${visited}/${totalScenes}</span> <span>· Turn ${turns}</span>`;
+    progressHUD._visitedSpan.textContent = `📍 ${visited}/${totalScenes}`;
+    progressHUD._turnSpan.textContent = ` · Turn ${turns}`;
     progressHUD.title = `${pct}% explored · Turn ${turns}`;
     progressHUD.classList.remove('hidden');
 
@@ -557,9 +566,16 @@
         if (!_endingTimeBox) {
           _endingTimeBox = document.createElement('div');
           _endingTimeBox.className = 'ending-stat-box';
-          _endingTimeBox.innerHTML = '<span class="ending-stat-value"></span><span class="ending-stat-label">Reading Time</span>';
+          const valSpan = document.createElement('span');
+          valSpan.className = 'ending-stat-value';
+          const lblSpan = document.createElement('span');
+          lblSpan.className = 'ending-stat-label';
+          lblSpan.textContent = 'Reading Time';
+          _endingTimeBox.appendChild(valSpan);
+          _endingTimeBox.appendChild(lblSpan);
+          _endingTimeBox._valSpan = valSpan;
         }
-        _endingTimeBox.querySelector('.ending-stat-value').textContent = `⏱ ${timeStr}`;
+        _endingTimeBox._valSpan.textContent = `⏱ ${timeStr}`;
         statsGrid.insertBefore(_endingTimeBox, statsGrid.firstChild);
       }
     }
@@ -619,6 +635,7 @@
   function initEngine(parsed) {
     _currentParsed = parsed;
     currentEngine = new StoryEngine(parsed);
+    _currentTotalScenes = Object.keys(parsed.scenes).length;
     textHistory.clear();
     ui.typewriterSpeed = settings.get('textSpeed');
   }

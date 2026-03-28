@@ -112,7 +112,7 @@ class Toast {
    * @param {Object} [opts]
    */
   static info(message, opts = {}) {
-    return Toast.show(message, { icon: 'ℹ️', color: 'rgba(0,80,120,0.9)', ...opts });
+    return Toast.show(message, { icon: 'ℹ️', className: 'nt-toast-info', ...opts });
   }
 
   /** @private Get or create the toast container for a position (styled via CSS class) */
