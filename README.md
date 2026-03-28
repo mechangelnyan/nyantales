@@ -35,7 +35,7 @@ cd web && bash build.sh
 cd dist && python3 -m http.server 9877
 ```
 
-Build output: **175KB JS** (from 311KB), **88KB CSS** (from 117KB). GitHub Pages CI runs the build automatically.
+Build output: **189KB JS** (from 359KB), **88KB CSS** (from 117KB). GitHub Pages CI runs the build automatically.
 
 **Features:**
 - 🎮 30 interactive stories with branching narratives
@@ -64,6 +64,7 @@ Build output: **175KB JS** (from 311KB), **88KB CSS** (from 117KB). GitHub Pages
 - ♿ Accessible: ARIA roles, focus traps, reduced motion support, high contrast mode
 - 📲 PWA: installable, offline-capable with service worker + in-app install prompt / iPhone home-screen help
 - 🛡️ Error boundary with SafeStorage — graceful quota handling, no lost saves
+- 🔒 Strict Content-Security-Policy — zero `unsafe-eval`, zero inline event handlers
 - 🔗 Open Graph, Twitter Card meta tags, and JSON-LD structured data for rich link previews
 - 🔍 SEO: robots.txt, sitemap.xml, canonical URLs
 - 🌙 Cyberpunk dark terminal theme with animated backgrounds and particles

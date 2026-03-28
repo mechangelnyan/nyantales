@@ -60,12 +60,15 @@ class KeyboardHelp {
           keysSpan.className = 'kh-gesture';
           keysSpan.textContent = row.keys;
         } else {
-          // Build kbd elements
-          const parts = row.keys.split('|');
+          // Build kbd elements; '|' = ' / ' separator, '~' = '–' (range)
+          const parts = row.keys.split(/([|~])/);
           for (let i = 0; i < parts.length; i++) {
-            if (i > 0) keysSpan.appendChild(document.createTextNode(' / '));
+            const tok = parts[i];
+            if (tok === '|') { keysSpan.appendChild(document.createTextNode(' / ')); continue; }
+            if (tok === '~') { keysSpan.appendChild(document.createTextNode('–')); continue; }
+            if (!tok.trim()) continue;
             const kbd = document.createElement('kbd');
-            kbd.textContent = parts[i].trim();
+            kbd.textContent = tok.trim();
             keysSpan.appendChild(kbd);
           }
         }
@@ -80,7 +83,7 @@ class KeyboardHelp {
 
     body.appendChild(mkSection('Navigation', [
       { keys: 'Space|Enter', desc: 'Advance text / skip typewriter' },
-      { keys: '1|9', desc: 'Select choice by number' },
+      { keys: '1~9', desc: 'Select choice by number' },
       { keys: 'B', desc: 'Rewind one scene' },
       { keys: 'Esc', desc: 'Back to story list / close panel' }
     ]));
@@ -98,9 +101,9 @@ class KeyboardHelp {
       { keys: '?', desc: 'This help screen' }
     ]));
     body.appendChild(mkSection('History Panel', [
-      { keys: 'PgUp|PgDn', desc: 'Scroll history (large step)' },
-      { keys: '↑|↓', desc: 'Scroll history (small step)' },
-      { keys: 'Home|End', desc: 'Jump to start / end of history' }
+      { keys: 'PgUp | PgDn', desc: 'Scroll history (large step)' },
+      { keys: '↑ | ↓', desc: 'Scroll history (small step)' },
+      { keys: 'Home | End', desc: 'Jump to start / end of history' }
     ]));
     body.appendChild(mkSection('Mobile Gestures', [
       { keys: '← Swipe left', desc: 'Advance text', gesture: true },

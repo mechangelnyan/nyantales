@@ -1737,3 +1737,32 @@ cd /tmp/nyantales && python3 -m http.server 9876
 - SW cache bumped to v77, production build regenerated (189KB bundle)
 - All 33 JS files pass `node --check`, 204/204 unit tests, 50/50 Playwright tests
 - Committed & pushed
+
+## Phase 96: innerHTML Elimination + CSP ✅
+- **Eliminated innerHTML from all 11 overlay constructors** — converted to `document.createElement` chains
+  - `confirm-dialog.js`, `story-intro.js`, `achievements.js` (toast), `history.js`, `scene-select.js`, `save-manager.js`, `gallery.js`, `route-map.js`, `keyboard-help.js`, `about.js`, `settings-panel.js`
+  - Each module now builds its overlay DOM tree via `createElement` + `appendChild` instead of innerHTML template literals
+  - Cached DOM refs (querySelector calls eliminated) built inline during construction
+  - Settings panel uses helper functions (`mkRow`, `mkSlider`, `mkToggle`, `mkGroup`) for DRY construction
+  - Keyboard help uses `mkSection` helper with data-driven row definitions + `|`/`~` separator parsing
+  - Gallery filter buttons built from data array instead of repeated HTML
+  - Route map legend/controls built via loop over tuples
+- **Remaining innerHTML** — only 3 unavoidable uses:
+  - `ui.js` typewriter rendering (must produce HTML: `<code>`, `<strong>`, `<em>`, `<br>`)
+  - `ui.js` `_escapeHtml()` utility (reads `.innerHTML` by design)
+  - `main.js` error fallback (one-time, rare path)
+- **Content-Security-Policy meta tag** added to `web/index.html`
+  - `script-src 'self'` — no `unsafe-inline` or `unsafe-eval` needed
+  - `style-src 'self' https://fonts.googleapis.com 'unsafe-inline'` — Google Fonts + CSS custom properties
+  - `font-src 'self' https://fonts.gstatic.com` — Google Font files
+  - `img-src 'self' data: blob:` — canvas sprites use data/blob URIs
+  - All 50 Playwright tests pass with CSP enabled
+- **Keyboard help `1–9` range** — fixed separator rendering (was showing `1 / 9` instead of `1–9`)
+  - New `~` separator in key definitions renders as `–` (en-dash)
+- **README** updated with CSP feature mention + accurate build output sizes (189KB JS)
+- SW cache bumped to v78, production build regenerated (189KB bundle)
+- All 33 JS files pass `node --check`, 204/204 unit tests, 50/50 Playwright tests
+- Committed & pushed
+
+## Log (continued)
+- 2026-03-28 (5:27 PM): Phase 96 — Eliminated innerHTML from all 11 overlay constructors (confirm-dialog, story-intro, achievements toast, history, scene-select, save-manager, gallery, route-map, keyboard-help, about, settings-panel) → pure DOM API construction. Added Content-Security-Policy meta tag (script-src 'self', no unsafe-eval/unsafe-inline for scripts). Fixed keyboard help 1–9 range separator. Remaining innerHTML only in typewriter (needs HTML output), _escapeHtml (by design), and error fallback. README updated. SW v78, 189KB bundle. All 33 JS + 204/204 unit + 50/50 Playwright pass. Committed & pushed.
