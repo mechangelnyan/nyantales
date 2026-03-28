@@ -39,6 +39,15 @@ class VNUI {
     // Cached container ref (used for shake effects)
     this.containerEl = document.querySelector('.vn-container');
 
+    // Pre-built speaker name plate children (avoids innerHTML per scene render)
+    this._speakerIcon = document.createElement('img');
+    this._speakerIcon.className = 'speaker-icon';
+    this._speakerText = document.createTextNode('');
+    this._lastSpeakerKey = ''; // cache key to skip redundant updates
+
+    // Pre-built inventory item pool
+    this._invPool = []; // reusable <span> elements
+
     // State
     this.typewriterSpeed = 18; // ms per character
     this.fastMode = false;
@@ -135,6 +144,8 @@ class VNUI {
     this.currentStorySlug = slug;
     this._speakerCache = new Map(); // reset speaker lookup cache per story
     this._charNameCache = new Map(); // reset lowercase name cache per story
+    this._lastSpeakerKey = ''; // reset speaker DOM cache
+    this._lastInventory = ''; // reset inventory cache
   }
 
   /**
@@ -393,19 +404,29 @@ class VNUI {
       this.artEl.classList.add('hidden');
     }
 
-    // Speaker (with portrait in name plate) — uses cache to avoid repeated find()
+    // Speaker (with portrait in name plate) — uses pre-built DOM + cache to skip redundant updates
     if (scene.speaker) {
       const speakerChar = this._findSpeakerChar(scene.speaker);
-      if (speakerChar) {
-        const spriteUrl = this.portraits.getSprite(speakerChar.name, speakerChar.appearance);
-        const iconCls = this.portraits.hasPortrait(speakerChar.name) ? 'speaker-icon ai-icon' : 'speaker-icon';
-        this.speakerEl.innerHTML = `<img src="${spriteUrl}" class="${iconCls}" /> ${this._escapeHtml(scene.speaker)}`;
-      } else {
-        this.speakerEl.textContent = scene.speaker;
+      // Build a cache key: "charName|speaker" or just "speaker" (null char)
+      const speakerKey = speakerChar ? `${speakerChar.name}|${scene.speaker}` : scene.speaker;
+      if (speakerKey !== this._lastSpeakerKey) {
+        this._lastSpeakerKey = speakerKey;
+        if (speakerChar) {
+          const spriteUrl = this.portraits.getSprite(speakerChar.name, speakerChar.appearance);
+          this._speakerIcon.src = spriteUrl;
+          this._speakerIcon.className = this.portraits.hasPortrait(speakerChar.name) ? 'speaker-icon ai-icon' : 'speaker-icon';
+          this._speakerText.textContent = ` ${scene.speaker}`;
+          this.speakerEl.textContent = '';
+          this.speakerEl.appendChild(this._speakerIcon);
+          this.speakerEl.appendChild(this._speakerText);
+        } else {
+          this.speakerEl.textContent = scene.speaker;
+        }
       }
       this.speakerEl.classList.remove('hidden');
     } else {
       this.speakerEl.classList.add('hidden');
+      this._lastSpeakerKey = '';
     }
 
     // Inventory
@@ -754,23 +775,46 @@ class VNUI {
     }
     this._lastInventory = key;
     this.inventoryEl.classList.remove('hidden');
-    this.inventoryEl.innerHTML = items
-      .map(i => `<span class="inv-item">🎒 ${this._escapeHtml(i)}</span>`)
-      .join('');
+
+    // Reuse pooled span elements instead of innerHTML + map + join
+    while (this._invPool.length < items.length) {
+      const span = document.createElement('span');
+      span.className = 'inv-item';
+      this._invPool.push(span);
+    }
+    // Update text and ensure correct children
+    const frag = document.createDocumentFragment();
+    for (let i = 0; i < items.length; i++) {
+      this._invPool[i].textContent = `🎒 ${items[i]}`;
+      frag.appendChild(this._invPool[i]);
+    }
+    this.inventoryEl.textContent = ''; // clear without innerHTML
+    this.inventoryEl.appendChild(frag);
   }
 
   // ── Conditionals ──
 
   _showConditionals(conditionals, engine) {
     this.conditionalEl.classList.remove('hidden');
-    this.conditionalEl.innerHTML = conditionals
-      .map(ct => `<div class="cond-text">${this._escapeHtml(engine.interpolate(ct.text))}</div>`)
-      .join('');
+    // Reuse pooled div elements instead of innerHTML + map + join
+    if (!this._condPool) this._condPool = [];
+    while (this._condPool.length < conditionals.length) {
+      const div = document.createElement('div');
+      div.className = 'cond-text';
+      this._condPool.push(div);
+    }
+    const frag = document.createDocumentFragment();
+    for (let i = 0; i < conditionals.length; i++) {
+      this._condPool[i].textContent = engine.interpolate(conditionals[i].text);
+      frag.appendChild(this._condPool[i]);
+    }
+    this.conditionalEl.textContent = '';
+    this.conditionalEl.appendChild(frag);
   }
 
   hideConditional() {
     this.conditionalEl.classList.add('hidden');
-    this.conditionalEl.innerHTML = '';
+    this.conditionalEl.textContent = '';
   }
 
   // ── Ending ──
@@ -782,7 +826,7 @@ class VNUI {
   _showEnding(scene, engine) {
     const ending = scene.ending;
     const type = ending.type || 'neutral';
-    const icon = { good: '🌟', bad: '💀', neutral: '📋', secret: '🔮' }[type] || '📋';
+    const icon = VNUI._ENDING_ICONS[type] || '📋';
 
     // Dim sprites with CSS class instead of inline styles
     this.spritesEl.querySelectorAll('.vn-sprite-wrap').forEach(wrap => {
@@ -944,6 +988,9 @@ class VNUI {
 
 /** Pre-compiled regex for _formatText: matches backtick code, **bold**, *italic*, or newline in one pass. */
 VNUI._FORMAT_RE = /`([^`]+)`|\*\*([^*]+)\*\*|\*([^*]+)\*|\n/g;
+
+/** Ending type → icon map (static, avoids object literal allocation per ending). */
+VNUI._ENDING_ICONS = { good: '🌟', bad: '💀', neutral: '📋', secret: '🔮' };
 
 /** Pre-compiled HTML escape regex and lookup map (replaces 3 chained .replace() calls). */
 VNUI._HTML_ESC_RE = /[&<>]/g;
