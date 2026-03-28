@@ -1766,3 +1766,17 @@ cd /tmp/nyantales && python3 -m http.server 9876
 
 ## Log (continued)
 - 2026-03-28 (5:27 PM): Phase 96 — Eliminated innerHTML from all 11 overlay constructors (confirm-dialog, story-intro, achievements toast, history, scene-select, save-manager, gallery, route-map, keyboard-help, about, settings-panel) → pure DOM API construction. Added Content-Security-Policy meta tag (script-src 'self', no unsafe-eval/unsafe-inline for scripts). Fixed keyboard help 1–9 range separator. Remaining innerHTML only in typewriter (needs HTML output), _escapeHtml (by design), and error fallback. README updated. SW v78, 189KB bundle. All 33 JS + 204/204 unit + 50/50 Playwright pass. Committed & pushed.
+
+## Phase 97: Cached Build Refs, Zero querySelector in Overlay Builders ✅
+- **Settings panel `mkRow()` returns `{row, ctrl}`** — eliminates 7 `querySelector('.settings-control')` during build
+  - Previously: `mkRow()` returned just the row, callers immediately queried `.settings-control` back
+  - Now: control div ref returned alongside row, no DOM traversal needed
+- **Settings body event delegation** uses cached `bodyEl` ref (was `querySelector('.settings-body')`)
+- **Gallery search** uses cached `filterBtns` array for active role lookup (was `querySelector('.gallery-filter-btn.active')`)
+- **History search input** cached from build variable (was `querySelector('.history-search')`)
+- **SaveManager._panelEl** cached in `_buildOverlay()` (was lazy `querySelector` on first `show()`)
+- **FocusTrap refs** — about, keyboard-help, settings panels use `overlay.firstElementChild` (no querySelector)
+- Zero `querySelector` calls remain in any overlay builder's warm path
+- SW cache bumped to v79, production build regenerated (189KB bundle)
+- All 33 JS files pass `node --check`, 204/204 unit tests, 50/50 Playwright tests
+- Committed & pushed
