@@ -1147,6 +1147,16 @@ cd /tmp/nyantales && python3 -m http.server 9876
 - All 33 JS files pass `node --check`, 204/204 unit tests, 50/50 Playwright tests
 - Committed & pushed
 
+## Phase 77: HTML Escape Optimization, README Freshness ✅
+- **HTML escape single-pass regex** — `_formatText()` HTML escape consolidated from 3 chained `.replace()` calls into 1 regex
+  - `VNUI._HTML_ESC_RE = /[&<>]/g` with `VNUI._HTML_ESC_MAP` lookup object
+  - Previously: `text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')` — 3 full string scans
+  - Now: single `replace(VNUI._HTML_ESC_RE, c => VNUI._HTML_ESC_MAP[c])` — 1 scan
+  - Called on every scene render for all dialogue text (`_formatText` is the main text pipeline)
+- **README build sizes updated** — were stale at 161KB/85KB, now correctly show 170KB JS / 88KB CSS
+- SW cache bumped to v59, production build regenerated (170KB bundle)
+- All 33 JS files pass `node --check`, 204/204 unit tests, 50/50 Playwright tests
+
 ## Still Possible Future Work
 - Generate remaining character portraits (GPU timeout issue — needs investigation, possibly during lower GPU load)
 - AI-generated scene background images

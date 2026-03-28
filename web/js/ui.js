@@ -882,8 +882,8 @@ class VNUI {
    * Uses a single pre-compiled regex for markdown transforms (replaces 4 sequential passes).
    */
   _formatText(text) {
-    // First pass: HTML escape (3 sequential replaces — unavoidable for correctness)
-    const escaped = text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    // First pass: HTML escape (single regex with map lookup)
+    const escaped = text.replace(VNUI._HTML_ESC_RE, c => VNUI._HTML_ESC_MAP[c]);
     // Second pass: markdown + newlines in one regex
     return escaped.replace(VNUI._FORMAT_RE, (m, code, bold, italic) => {
       if (code !== undefined) return `<code class="vn-inline-code">${code}</code>`;
@@ -915,3 +915,7 @@ class VNUI {
 
 /** Pre-compiled regex for _formatText: matches backtick code, **bold**, *italic*, or newline in one pass. */
 VNUI._FORMAT_RE = /`([^`]+)`|\*\*([^*]+)\*\*|\*([^*]+)\*|\n/g;
+
+/** Pre-compiled HTML escape regex and lookup map (replaces 3 chained .replace() calls). */
+VNUI._HTML_ESC_RE = /[&<>]/g;
+VNUI._HTML_ESC_MAP = { '&': '&amp;', '<': '&lt;', '>': '&gt;' };
