@@ -1181,6 +1181,22 @@ cd /tmp/nyantales && python3 -m http.server 9876
 - All 33 JS files pass `node --check`, 204/204 unit tests, 50/50 Playwright tests
 - Committed & pushed
 
+## Phase 79: DRY Scene Advance, Immutable Scenes, Repo Hygiene ✅
+- **`advanceScene()` helper** — extracted repeated scene-advance pattern into single function
+  - 3 duplicated blocks (textbox click indicator, touch gesture, keyboard Space/Enter) + auto-play timer → all call `advanceScene()`
+  - Pattern: check `currentEngine` → get scene → validate `next` + no choices + no ending → `goToScene` + `playScene`
+  - Eliminates 4 copies of the same 5-line block scattered across main.js
+- **Immutable scene data** — `playScene()` no longer mutates `scene.effect` when shake/glitch is disabled
+  - Previously: `scene.effect = null` then `scene.effect = origEffect` (mutated parsed story data)
+  - Now: creates shallow copy `{ ...scene, effect: null }` only when needed (original data unchanged)
+  - Prevents subtle bugs if scene objects are referenced elsewhere
+- **Repo hygiene** — removed `tests/` and `playwright.config.js` from `.gitignore`
+  - Tests and config were tracked in git but excluded by gitignore (confusing)
+  - Previous git corruption lost `.git/HEAD` and `.git/config` — rebuilt from fresh clone
+  - Playwright config recreated (was lost during corruption)
+- SW cache bumped to v61, production build regenerated (170KB bundle)
+- All 33 JS files pass `node --check`, 204/204 unit tests pass
+
 ## Still Possible Future Work
 - Generate remaining character portraits (GPU timeout issue — needs investigation, possibly during lower GPU load)
 - AI-generated scene background images
@@ -1399,4 +1415,5 @@ cd /tmp/nyantales && python3 -m http.server 9876
 - 2026-03-27 (12:27 AM): Phase 55 — Restored full title screen that was broken by campaign-first redesign. Story grid, search, filter, sort, continue, random all back. Campaign section shown above story grid with divider. Cached campaign DOM refs. Removed 45 lines dead CSS. SW v42. 147KB bundle. All 30 JS pass. 3 commits pushed.
 - 2026-03-27 (6:27 AM): Phase 61 — Fixed stats dashboard play-count regression (`StatsDashboard` was reading `data.plays`, but tracker persists `totalPlays`), so play totals/recent-story metadata now reflect real completion runs again. Tightened global scene-exploration math to use exact visited-scene counts instead of percentage back-calculation, added total reading time to the stats dashboard, and expanded Story Info modal with endings found / total possible plus cumulative reading time. Made story-info stats grid auto-fit better on smaller screens and initialized stats dialog `aria-hidden` state cleanly. Rebuilt production bundle, verified touched JS with `node --check`, ran `npm test` (204/204), and `npx playwright test` (42/42). No new stories added.
 - 2026-03-27 (12:27 PM): Phase 67 — Improved title-screen discovery by making story search character-aware: cards now index cast names, roles, and appearance text from `CHARACTER_DATA`, so searches like “Stack Canary” find the right story even if the title/description don’t mention it. Expanded the Story Info modal with a compact cast section (name + role chips, appearance in tooltip), updated the search placeholder/ARIA copy to reflect character search, and added Playwright regressions for character-name search plus cast rendering. Verified `node --check` on touched JS, `npm test` (204/204), and `npx playwright test tests/web/vn.spec.js` (50/50). No new stories added.
+- 2026-03-28 (12:27 AM): Phase 79 — DRY scene advance (extracted advanceScene() helper, replacing 4 duplicated advance-to-next-scene blocks in main.js). Immutable scene data (playScene no longer mutates scene.effect, uses shallow copy instead). Repo hygiene: fixed git corruption (lost HEAD/config), re-cloned, recreated playwright.config.js, removed tests/ and playwright.config.js from .gitignore so they're properly tracked. SW v61, 170KB bundle. All 33 JS + 204/204 unit pass. Committed & pushed.
 - 2026-03-27 (11:27 PM): Phase 78 — Favorites O(1) Set cache (isFavorite was O(n) per call × 30 cards), single-pass getStats() and _buildContext() (was 3+ array passes each), typewriter visibility via CSS class instead of inline style, bg inference avoids string concatenation, reusable ending continue button, screen transition + choice ripple timer safety. SW v60, 170KB bundle. All 33 JS + 204/204 unit + 50/50 Playwright pass. Committed & pushed.

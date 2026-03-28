@@ -259,6 +259,22 @@
     if (autoPlayTimer) { clearTimeout(autoPlayTimer); autoPlayTimer = null; }
   }
 
+  /**
+   * Advance to the next scene if the current scene has a `next` link
+   * and no choices / no ending. Returns true if advanced.
+   */
+  function advanceScene() {
+    if (!currentEngine) return false;
+    const scene = currentEngine.getCurrentScene();
+    if (scene && scene.next && currentEngine.getAvailableChoices().length === 0 && !scene.ending) {
+      clearAutoPlayTimer();
+      const next = currentEngine.goToScene(scene.next);
+      playScene(next);
+      return true;
+    }
+    return false;
+  }
+
   /** Check if any overlay panel is currently visible */
   function isAnyPanelOpen() {
     return settingsPanel.isVisible || historyPanel.isVisible || saveManager.isVisible
@@ -293,11 +309,7 @@
 
     autoPlayTimer = setTimeout(() => {
       if (!currentEngine || isAnyPanelOpen()) return;
-      const s = currentEngine.getCurrentScene();
-      if (s && s.next) {
-        const next = currentEngine.goToScene(s.next);
-        playScene(next);
-      }
+      advanceScene();
     }, settings.get('autoPlayDelay'));
   }
 
@@ -437,31 +449,25 @@
     const sceneId = currentEngine.state.currentScene;
     textHistory.add(sceneId, scene.speaker, scene.text);
 
-    // Suppress shake/glitch if disabled in settings
-    const origEffect = scene.effect;
-    if (!settings.get('screenShake') && (scene.effect === 'glitch' || scene.effect === 'shake')) {
-      scene.effect = null;
-    }
+    // Suppress shake/glitch if disabled in settings (pass to render without mutating parsed data)
+    const effectOverride = (!settings.get('screenShake') && (scene.effect === 'glitch' || scene.effect === 'shake'))
+      ? null : undefined;
 
     // Skip-read: temporarily enable fast mode for visited scenes
+    const skipActive = shouldSkipScene(sceneId) && !scene.ending;
     const wasInFastMode = ui.fastMode;
-    if (shouldSkipScene(sceneId) && !scene.ending) {
-      ui.fastMode = true;
-      updateSkipIndicator(true);
-    } else {
-      updateSkipIndicator(false);
-    }
+    if (skipActive) ui.fastMode = true;
+    updateSkipIndicator(skipActive);
 
-    await ui.renderScene(scene, currentEngine);
+    // Render with optional effect override (avoids mutating the original scene object)
+    const renderScene = effectOverride !== undefined ? { ...scene, effect: effectOverride } : scene;
+    await ui.renderScene(renderScene, currentEngine);
 
     // Update audio theme to match background
     if (audio.enabled) audio.setTheme(ui._lastBgClass);
 
-    // Restore fast mode if we forced it
-    if (!wasInFastMode && shouldSkipScene(sceneId)) {
-      ui.fastMode = wasInFastMode;
-    }
-    scene.effect = origEffect;
+    // Restore fast mode if we forced it for skip-read
+    if (skipActive) ui.fastMode = wasInFastMode;
 
     // Auto-save after each scene and record visited scenes for progress tracking
     if (currentSlug) {
@@ -1000,12 +1006,7 @@
 
   ui.clickIndicator?.addEventListener('click', () => {
     if (ui.isTyping || !currentEngine) return;
-    const scene = currentEngine.getCurrentScene();
-    if (scene && scene.next && currentEngine.getAvailableChoices().length === 0 && !scene.ending) {
-      clearAutoPlayTimer();
-      const next = currentEngine.goToScene(scene.next);
-      playScene(next);
-    }
+    advanceScene();
   });
 
   // ── Touch Gestures (mobile) ──
@@ -1013,13 +1014,8 @@
     onAdvance: () => {
       if (ui.isTyping) {
         ui.skipTypewriter();
-      } else if (currentEngine) {
-        const scene = currentEngine.getCurrentScene();
-        if (scene && scene.next && currentEngine.getAvailableChoices().length === 0 && !scene.ending) {
-          clearAutoPlayTimer();
-          const next = currentEngine.goToScene(scene.next);
-          playScene(next);
-        }
+      } else {
+        advanceScene();
       }
     },
     onOpenHistory: () => {
@@ -1065,14 +1061,8 @@
       e.preventDefault();
       if (ui.isTyping) {
         ui.skipTypewriter();
-      } else if (currentEngine) {
-        // Advance to next scene when no choices and not at an ending
-        const scene = currentEngine.getCurrentScene();
-        if (scene && scene.next && currentEngine.getAvailableChoices().length === 0 && !scene.ending) {
-          clearAutoPlayTimer();
-          const next = currentEngine.goToScene(scene.next);
-          playScene(next);
-        }
+      } else {
+        advanceScene();
       }
     }
 
