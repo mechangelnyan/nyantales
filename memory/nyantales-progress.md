@@ -1717,3 +1717,23 @@ cd /tmp/nyantales && python3 -m http.server 9876
 - SW cache bumped to v76, production build regenerated (188KB bundle)
 - All 33 JS files pass `node --check`, 204/204 unit tests, 50/50 Playwright tests
 - Committed & pushed
+
+## Phase 95: Pre-Built StatsDashboard & AchievementPanel DOM ✅
+- **StatsDashboard pre-built DOM** — entire panel tree constructed once in `_buildPanel()`
+  - `_update()` swaps all content via `textContent` / `style.setProperty` (zero innerHTML per `show()`)
+  - Summary cards (7 cards with values, totals, progress bars) all have cached DOM refs
+  - Campaign section toggles via `.hidden` class, content updated via textContent
+  - Recently-played items use reusable `_recentPool` with pre-built child structure (4 meta spans per item)
+  - Excess pool items detached when fewer recent entries exist
+  - Search input + sort select built via DOM API, values restored from persisted prefs
+  - Story count + story table refs cached at build time (no querySelector in `_renderStoryTable`)
+  - Removed `_escapeHtml()` method entirely — no longer needed when using textContent
+  - Previously: `this._overlay.innerHTML = \`...\`` with 100+ lines of template literal on every `show()`
+- **AchievementPanel pre-built DOM** — panel structure (header, progress bar, list) built once in `_ensureOverlay()`
+  - `_update()` populates via pooled `_itemPool` elements with cached `_iconEl`, `_nameEl`, `_descEl` refs
+  - Divider element reused between unlocked/locked sections
+  - Removed `_renderItem()` HTML template method
+  - Previously: `this._overlay.innerHTML = \`...\`` on every `show()` call
+- SW cache bumped to v77, production build regenerated (189KB bundle)
+- All 33 JS files pass `node --check`, 204/204 unit tests, 50/50 Playwright tests
+- Committed & pushed
