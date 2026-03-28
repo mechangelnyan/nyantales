@@ -1697,3 +1697,23 @@ cd /tmp/nyantales && python3 -m http.server 9876
 ## Log (continued)
 - 2026-03-28 (1:27 PM): Phase 92 — innerHTML elimination from init/build paths: story card grid uses createElement chain instead of innerHTML template (XSS-safe textContent for titles), auto-play/skip indicators built via DOM API, act headers via createElement, 4 innerHTML='' clears→textContent=''. Remaining innerHTML only in typewriter (needs HTML output) and error fallback. SW v74, 184KB bundle. All 33 JS + 204/204 unit + 50/50 Playwright pass. Committed & pushed.
 - 2026-03-28 (2:27 PM): Phase 93 — innerHTML elimination from warm render paths: HistoryPanel.show() entries via createElement+DocumentFragment (was innerHTML template per entry), SaveManager._renderSlots() slot cards via createElement loop+fragment (was innerHTML map+join), SceneSelect.show() scene items via createElement+fragment, CharacterGallery card content via createElement chain, TitleBrowser empty state via pre-created elements. Removed 3 dead _esc() methods (HistoryPanel, SceneSelect, SaveManager — no longer needed with textContent). SceneSelect._applyFilter() uses reusable _filterEmptyEl. All remaining innerHTML in these files is one-time overlay construction only. SW v75, 184KB bundle. All 33 JS + 204/204 unit + 50/50 Playwright pass. Committed & pushed.
+
+## Phase 94: Pre-Built StoryInfo DOM, Pooled Stats Rows, Tooltip Safety ✅
+- **StoryInfoModal pre-built DOM** — entire panel tree (header, stats grid, cast/endings/last-played sections, actions) constructed once in `_build()`
+  - `show()` now swaps content via `textContent`/`src`/`className` (zero innerHTML on warm per-click path)
+  - Pooled `_endingTagPool` and `_castChipPool` arrays — elements grow lazily, reused across show() calls
+  - Continue button toggled via `.hidden` class instead of conditional HTML generation
+  - Removed `_esc()` method entirely (no longer needed when using textContent)
+  - Previously: `panel.innerHTML = \`...\`` with 80+ lines of template literal on every info button click
+- **StatsDashboard pooled story rows** — `_renderStoryTable()` uses `_getStoryRow(idx, data)` pool
+  - Previously: `tableEl.innerHTML` with `map().join('')` on every search keystroke/sort change
+  - Now: pooled `<div>` elements with pre-built child structure (`_tdTitle`, `_miniBarFill`, `_pctSpan`, etc.)
+  - Pool grows lazily, existing rows updated via `textContent` on re-render
+  - Reusable `_tableHeader` and `_tableEmpty` elements (built once)
+  - DocumentFragment batching for table rebuild (1 reflow)
+- **RouteMap tooltip** — `innerHTML` with `<strong>` + `<br>` template → DOM API (`createElement` + `createTextNode`)
+  - Prevents potential XSS from scene IDs containing HTML-like characters
+- **SettingsPanel data stats** — `innerHTML` → `textContent` (content is plain text, no markup needed)
+- SW cache bumped to v76, production build regenerated (188KB bundle)
+- All 33 JS files pass `node --check`, 204/204 unit tests, 50/50 Playwright tests
+- Committed & pushed
