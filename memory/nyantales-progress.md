@@ -1780,3 +1780,30 @@ cd /tmp/nyantales && python3 -m http.server 9876
 - SW cache bumped to v79, production build regenerated (189KB bundle)
 - All 33 JS files pass `node --check`, 204/204 unit tests, 50/50 Playwright tests
 - Committed & pushed
+
+## Phase 98: Warm-Path querySelector Elimination, Cached toLowerCase, Static Positions ✅
+- **`_showEnding()` uses `_activeSprites` Map** — replaces `querySelectorAll('.vn-sprite-wrap')` per ending
+  - Iterates cached Map instead of querying the entire sprites container DOM
+  - Bonus: pre-computes `endingClass` string once instead of building it per sprite
+- **Ending hook uses `ui._endingRefs`** — main.js accesses `.statsGrid` and `.actionsRow` directly
+  - Replaces `ui.endingEl.querySelector('#ending-stats-grid')` and `.querySelector('.ending-actions')` per ending
+  - Both refs are pre-built in `_buildEndingDOM()` (Phase 91) — now exposed for external use
+- **Pre-computed `_sceneLower` object** — shared between `_sceneTransition()` and `_updateSprites()`
+  - Both methods previously called `.toLowerCase()` independently on scene text, location, sceneId, and speaker
+  - Now: computed once in `renderScene()` as `{ loc, scn, txt, spk }`, reused by both callees
+  - Eliminates 6 redundant `.toLowerCase()` string allocations per scene render
+  - Fallback to per-call `.toLowerCase()` if methods are called outside `renderScene()` (defensive)
+- **Cached `_charHyphenCache`** — hyphenated character name lookup (for scene-ID matching)
+  - `nameLower.replace(/\s+/g, '-')` was called per character per render (regex creation + string alloc)
+  - Now cached per character per story in `_charHyphenCache` Map, reset on `setStorySlug()`
+- **Static `VNUI._SPRITE_POS`** — pre-built position arrays for 0-3 characters
+  - `_getSpritePositions()` was allocating new `[{ x, scale }]` arrays every render for 1-3 chars (the common case)
+  - Now returns static frozen-shape arrays for counts 0-3, only allocates for 4+ (rare)
+- **`ui._totalScenes`** — set from main.js at story start, used by `_showEnding()`
+  - Avoids `Object.keys(engine.scenes).length` array allocation per ending
+- SW cache bumped to v80, production build regenerated (189KB bundle)
+- All 33 JS files pass `node --check`, 204/204 unit tests, 50/50 Playwright tests
+- Committed & pushed
+
+## Log (continued)
+- 2026-03-28 (6:27 PM): Phase 98 — Warm-path optimization: _showEnding uses _activeSprites Map instead of querySelectorAll, main.js ending hook uses ui._endingRefs directly (eliminates 2 querySelector per ending), pre-computed _sceneLower object shared between _sceneTransition + _updateSprites (saves 6 toLowerCase per render), cached _charHyphenCache (avoids regex per char per render), static VNUI._SPRITE_POS for counts 0-3 (zero allocation per render), ui._totalScenes avoids Object.keys in _showEnding. SW v80, 189KB bundle. All 33 JS + 204/204 unit + 50/50 Playwright pass. Committed & pushed.
