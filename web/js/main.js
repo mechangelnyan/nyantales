@@ -840,44 +840,67 @@
     const endings = tracker.endingCount(story.slug);
     const { sceneCount, readMins } = getStoryMeta(story);
 
+    // Ref object for caching child elements (used by _refreshStoryCards)
+    const refs = { badge: null, saveIcon: null, barFill: null, barEl: null, favBtn: null };
+
     // Completion badge
+    const badge = document.createElement('div');
+    badge.className = 'story-card-badge';
     if (completed) {
       card.classList.add('completed');
-      const badge = document.createElement('div');
-      badge.className = 'story-card-badge';
       badge.textContent = `✅ ${endings} ending${endings !== 1 ? 's' : ''}`;
-      card.appendChild(badge);
+    } else {
+      badge.classList.add('hidden');
     }
+    card.appendChild(badge);
+    refs.badge = badge;
 
-    // Save indicator
+    // Save indicator (always created, hidden when no save)
+    const saveIcon = document.createElement('div');
+    saveIcon.textContent = '💾';
     if (saveManager.hasSave(story.slug)) {
-      const saveIcon = document.createElement('div');
       saveIcon.className = completed
         ? 'story-card-badge story-card-save-badge save-badge-bottom'
         : 'story-card-badge story-card-save-badge';
-      saveIcon.textContent = '💾';
-      card.appendChild(saveIcon);
+    } else {
+      saveIcon.className = 'story-card-badge story-card-save-badge hidden';
     }
+    card.appendChild(saveIcon);
+    refs.saveIcon = saveIcon;
 
-    // Progress bar (actual visited scenes)
+    // Progress bar (always created for consistent ref caching)
+    const bar = document.createElement('div');
+    bar.className = 'story-card-progress';
+    bar.setAttribute('role', 'progressbar');
+    bar.setAttribute('aria-valuemin', '0');
+    bar.setAttribute('aria-valuemax', '100');
+    const barFill = document.createElement('div');
+    barFill.className = 'story-card-progress-fill';
     if (sceneCount > 0) {
       const pct = tracker.getProgress(story.slug, sceneCount);
-      const bar = document.createElement('div');
-      bar.className = 'story-card-progress';
-      bar.innerHTML = `<div class="story-card-progress-fill" style="--bar-pct:${pct}%"></div>`;
-      bar.setAttribute('role', 'progressbar');
+      barFill.style.setProperty('--bar-pct', `${pct}%`);
       bar.setAttribute('aria-valuenow', pct);
-      bar.setAttribute('aria-valuemin', '0');
-      bar.setAttribute('aria-valuemax', '100');
       bar.setAttribute('aria-label', `${pct}% explored`);
-      card.appendChild(bar);
+    } else {
+      barFill.style.setProperty('--bar-pct', '0%');
+      bar.setAttribute('aria-valuenow', 0);
+      bar.setAttribute('aria-label', '0% explored');
     }
+    bar.appendChild(barFill);
+    card.appendChild(bar);
+    refs.barFill = barFill;
+    refs.barEl = bar;
 
     // Meta info (reading time + scene count)
     if (sceneCount > 0 || readMins > 0) {
       const metaEl = document.createElement('div');
       metaEl.className = 'story-card-meta';
-      metaEl.innerHTML = `<span>⏱ ~${readMins} min</span><span>📄 ${sceneCount} scenes</span>`;
+      const timeSpan = document.createElement('span');
+      timeSpan.textContent = `⏱ ~${readMins} min`;
+      const sceneSpan = document.createElement('span');
+      sceneSpan.textContent = `📄 ${sceneCount} scenes`;
+      metaEl.appendChild(timeSpan);
+      metaEl.appendChild(sceneSpan);
       const textContainer = card.querySelector('.story-card-text');
       if (textContainer) textContainer.appendChild(metaEl);
     }
@@ -899,6 +922,11 @@
     favBtn.setAttribute('aria-label', isFav ? `Remove ${story.title} from favorites` : `Add ${story.title} to favorites`);
     favBtn.setAttribute('aria-pressed', isFav ? 'true' : 'false');
     card.appendChild(favBtn);
+    refs.favBtn = favBtn;
+
+    // Cache refs for this card index
+    const cardIdx = storyIndex.indexOf(story);
+    if (cardIdx >= 0) _storyCardRefs.set(cardIdx, refs);
 
     // Data attributes for filtering/sorting
     card.dataset.slug = story.slug;
@@ -916,6 +944,14 @@
   let _gridBuilt = false;
   /** Whether the chapter grid has been built at least once (for partial refresh). */
   let _chapterGridBuilt = false;
+
+  /**
+   * Cached story card child refs to avoid querySelector per card on every refresh.
+   * Maps card index → { badge, saveIcon, barFill, barEl, favBtn }.
+   * Built lazily on first _refreshStoryCards() call.
+   * @type {Map<number, Object>}
+   */
+  const _storyCardRefs = new Map();
 
   /**
    * Render (or re-render) the title screen.
@@ -982,6 +1018,7 @@
 
     if (!_gridBuilt) {
       // First render: build full story grid from scratch
+      _storyCardRefs.clear();
       ui.renderStoryList(storyIndex);
       const cards = titleBrowser.refreshCards();
       storyIndex.forEach((story, idx) => {
@@ -1017,6 +1054,7 @@
       // If lock state changed, we need a full card rebuild for this card
       if (locked !== wasLocked) {
         // Re-render this single card via full decoration (rare: only on campaign advance)
+        _storyCardRefs.delete(idx);
         _resetCardForRedecorate(card, story);
         decorateStoryCard(card, story);
         return;
@@ -1031,52 +1069,41 @@
       const hasSave = saveManager.hasSave(story.slug);
       const pct = sceneCount > 0 ? tracker.getProgress(story.slug, sceneCount) : 0;
 
+      // Use cached refs (built in decorateStoryCard) — avoids 5+ querySelector per card
+      const refs = _storyCardRefs.get(idx);
+
       // Update completion badge
       card.classList.toggle('completed', completed);
-      let badge = card.querySelector('.story-card-badge:not(.story-card-save-badge)');
-      if (completed) {
-        if (!badge) {
-          badge = document.createElement('div');
-          badge.className = 'story-card-badge';
-          card.appendChild(badge);
+      if (refs?.badge) {
+        if (completed) {
+          refs.badge.classList.remove('hidden');
+          refs.badge.textContent = `✅ ${endings} ending${endings !== 1 ? 's' : ''}`;
+        } else {
+          refs.badge.classList.add('hidden');
         }
-        badge.textContent = `✅ ${endings} ending${endings !== 1 ? 's' : ''}`;
-      } else if (badge) {
-        badge.remove();
       }
 
       // Update save indicator
-      let saveIcon = card.querySelector('.story-card-save-badge');
-      if (hasSave) {
-        if (!saveIcon) {
-          saveIcon = document.createElement('div');
-          saveIcon.className = completed
-            ? 'story-card-badge story-card-save-badge save-badge-bottom'
-            : 'story-card-badge story-card-save-badge';
-          card.appendChild(saveIcon);
-          saveIcon.textContent = '💾';
+      if (refs?.saveIcon) {
+        if (hasSave) {
+          refs.saveIcon.classList.remove('hidden');
+          refs.saveIcon.classList.toggle('save-badge-bottom', completed);
         } else {
-          // Adjust position class based on completion state
-          saveIcon.classList.toggle('save-badge-bottom', completed);
+          refs.saveIcon.classList.add('hidden');
         }
-      } else if (saveIcon) {
-        saveIcon.remove();
       }
 
       // Update progress bar
-      const barFill = card.querySelector('.story-card-progress-fill');
-      if (barFill) {
-        barFill.style.setProperty('--bar-pct', `${pct}%`);
-        const barEl = barFill.parentElement;
-        if (barEl) barEl.setAttribute('aria-valuenow', pct);
+      if (refs?.barFill) {
+        refs.barFill.style.setProperty('--bar-pct', `${pct}%`);
+        if (refs.barEl) refs.barEl.setAttribute('aria-valuenow', pct);
       }
 
       // Update favorite button
-      const favBtn = card.querySelector('.story-card-fav-btn');
-      if (favBtn) {
-        favBtn.textContent = isFav ? '❤️' : '🤍';
-        favBtn.title = isFav ? 'Remove from favorites' : 'Add to favorites';
-        favBtn.setAttribute('aria-pressed', isFav ? 'true' : 'false');
+      if (refs?.favBtn) {
+        refs.favBtn.textContent = isFav ? '❤️' : '🤍';
+        refs.favBtn.title = isFav ? 'Remove from favorites' : 'Add to favorites';
+        refs.favBtn.setAttribute('aria-pressed', isFav ? 'true' : 'false');
       }
 
       // Update data attributes for filtering/sorting

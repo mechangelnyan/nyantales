@@ -48,6 +48,12 @@ class VNUI {
     // Pre-built inventory item pool
     this._invPool = []; // reusable <span> elements
 
+    // Choice button pool (avoids createElement per choice per render)
+    this._choiceBtnPool = [];
+
+    // Pre-built ending overlay child elements (avoids innerHTML per ending)
+    this._endingRefs = this._buildEndingDOM();
+
     // State
     this.typewriterSpeed = 18; // ms per character
     this.fastMode = false;
@@ -646,7 +652,7 @@ class VNUI {
   _waitForEndingContinue() {
     return new Promise(resolve => {
       this.clickIndicator.classList.add('hidden');
-      this.choicesEl.innerHTML = '';
+      this.choicesEl.textContent = '';
       this.choicesEl.classList.remove('hidden');
 
       // Reuse the continue button element across endings
@@ -680,7 +686,7 @@ class VNUI {
   _dismissEndingContinue() {
     const resolve = this._endingContinueResolve;
     this._endingContinueResolve = null;
-    this.choicesEl.innerHTML = '';
+    this.choicesEl.textContent = '';
     this.choicesEl.classList.add('hidden');
     if (resolve) resolve();
   }
@@ -692,13 +698,28 @@ class VNUI {
    * initialized once in constructor-like flow via _initChoiceDelegation).
    */
   showChoices(choices, engine) {
-    this.choicesEl.innerHTML = '';
+    this.choicesEl.textContent = '';
     this.choicesEl.classList.remove('hidden');
     // Store current choices for delegation handler lookup
     this._currentChoices = choices;
 
-    choices.forEach((choice, i) => {
+    // Grow pool as needed (reuse buttons across choice renders)
+    while (this._choiceBtnPool.length < choices.length) {
       const btn = document.createElement('button');
+      // Pre-build child structure: [numHint span] [text node] [visited span]
+      btn._numSpan = document.createElement('span');
+      btn._numSpan.className = 'choice-num';
+      btn._textNode = document.createTextNode('');
+      btn._visitedSpan = document.createElement('span');
+      btn._visitedSpan.className = 'choice-visited';
+      btn._visitedSpan.title = 'Previously visited';
+      btn._visitedSpan.textContent = '✓';
+      this._choiceBtnPool.push(btn);
+    }
+
+    const frag = document.createDocumentFragment();
+    choices.forEach((choice, i) => {
+      const btn = this._choiceBtnPool[i];
       btn.className = 'choice-btn fade-in';
       btn.style.setProperty('--choice-delay', `${i * 0.08}s`);
       btn.dataset.choiceIdx = i;
@@ -709,15 +730,22 @@ class VNUI {
         if (hasItem) label += ` [${choice.requires_item}]`;
       }
 
-      // Number hint + visited badge
-      const numHint = i < 9 ? `<span class="choice-num">${i + 1}</span>` : '';
       const visited = choice.goto && engine.state.visited.has(choice.goto);
-      const visitedHint = visited ? '<span class="choice-visited" title="Previously visited">✓</span>' : '';
-      btn.innerHTML = `${numHint}${this._escapeHtml(label)}${visitedHint}`;
       if (visited) btn.classList.add('choice-visited-path');
 
-      this.choicesEl.appendChild(btn);
+      // Update pre-built children
+      btn.textContent = '';
+      if (i < 9) {
+        btn._numSpan.textContent = i + 1;
+        btn.appendChild(btn._numSpan);
+      }
+      btn._textNode.textContent = label;
+      btn.appendChild(btn._textNode);
+      if (visited) btn.appendChild(btn._visitedSpan);
+
+      frag.appendChild(btn);
     });
+    this.choicesEl.appendChild(frag);
 
     // One-time delegation setup
     this._initChoiceDelegation();
@@ -751,7 +779,7 @@ class VNUI {
 
   hideChoices() {
     this.choicesEl.classList.add('hidden');
-    this.choicesEl.innerHTML = '';
+    this.choicesEl.textContent = '';
     this._currentChoices = null;
   }
 
@@ -820,8 +848,83 @@ class VNUI {
   // ── Ending ──
 
   /**
-   * Show the ending overlay. Uses event delegation on the endingEl to avoid
-   * creating new listeners on every ending (prevents listener leak).
+   * Build the ending overlay DOM tree once. Returns refs to dynamic elements
+   * so _showEnding can swap content via textContent/classList instead of innerHTML.
+   * @private
+   */
+  _buildEndingDOM() {
+    const r = {};
+    r.iconEl = document.createElement('div');
+    r.iconEl.className = 'ending-icon';
+
+    r.typeEl = document.createElement('div');
+    r.typeEl.className = 'ending-type';
+
+    r.textEl = document.createElement('div');
+    r.textEl.className = 'ending-text';
+
+    r.statsGrid = document.createElement('div');
+    r.statsGrid.className = 'ending-stats-grid';
+    r.statsGrid.id = 'ending-stats-grid';
+
+    // Turns stat (always visible)
+    r.turnsBox = document.createElement('div');
+    r.turnsBox.className = 'ending-stat-box';
+    r.turnsVal = document.createElement('span');
+    r.turnsVal.className = 'ending-stat-value';
+    const turnsLabel = document.createElement('span');
+    turnsLabel.className = 'ending-stat-label';
+    turnsLabel.textContent = 'Turns';
+    r.turnsBox.appendChild(r.turnsVal);
+    r.turnsBox.appendChild(turnsLabel);
+
+    // Scenes stat (always visible)
+    r.scenesBox = document.createElement('div');
+    r.scenesBox.className = 'ending-stat-box';
+    r.scenesVal = document.createElement('span');
+    r.scenesVal.className = 'ending-stat-value';
+    r.scenesLabel = document.createElement('span');
+    r.scenesLabel.className = 'ending-stat-label';
+    r.scenesBox.appendChild(r.scenesVal);
+    r.scenesBox.appendChild(r.scenesLabel);
+
+    // Inventory stat (conditionally shown)
+    r.invBox = document.createElement('div');
+    r.invBox.className = 'ending-stat-box ending-stat-wide';
+    r.invVal = document.createElement('span');
+    r.invVal.className = 'ending-stat-value';
+    const invLabel = document.createElement('span');
+    invLabel.className = 'ending-stat-label';
+    invLabel.textContent = 'Items Collected';
+    r.invBox.appendChild(r.invVal);
+    r.invBox.appendChild(invLabel);
+
+    // Actions row (always the same buttons)
+    r.actionsRow = document.createElement('div');
+    r.actionsRow.className = 'ending-actions';
+    r.restartBtn = document.createElement('button');
+    r.restartBtn.className = 'ending-btn';
+    r.restartBtn.dataset.action = 'restart';
+    r.restartBtn.textContent = '↻ Play Again';
+    r.menuBtn = document.createElement('button');
+    r.menuBtn.className = 'ending-btn ending-btn-secondary';
+    r.menuBtn.dataset.action = 'menu';
+    r.menuBtn.textContent = '⏎ Story List';
+    r.shareBtn = document.createElement('button');
+    r.shareBtn.className = 'ending-btn ending-btn-secondary ending-btn-share';
+    r.shareBtn.dataset.action = 'share';
+    r.shareBtn.title = 'Copy ending summary to clipboard';
+    r.shareBtn.textContent = '📋 Share';
+    r.actionsRow.appendChild(r.restartBtn);
+    r.actionsRow.appendChild(r.menuBtn);
+    r.actionsRow.appendChild(r.shareBtn);
+
+    return r;
+  }
+
+  /**
+   * Show the ending overlay. Uses pre-built DOM elements (no innerHTML) and
+   * event delegation on endingEl to avoid listener leaks.
    */
   _showEnding(scene, engine) {
     const ending = scene.ending;
@@ -853,41 +956,40 @@ class VNUI {
       shareUrl
     };
 
+    const r = this._endingRefs;
+
+    // Update pre-built elements with current ending data
+    r.iconEl.textContent = icon;
+    r.typeEl.className = `ending-type ${type}`;
+    r.typeEl.textContent = (ending.title || type.toUpperCase()).toUpperCase();
+    r.textEl.textContent = engine.interpolate(ending.text || scene.text || '');
+    r.turnsVal.textContent = engine.state.turns;
+    r.scenesVal.textContent = `${engine.state.visited.size}/${totalScenes}`;
+    r.scenesLabel.textContent = `Scenes (${visitPct}%)`;
+
+    // Rebuild stats grid (just re-append existing elements, no creation)
+    r.statsGrid.textContent = '';
+    r.statsGrid.appendChild(r.turnsBox);
+    r.statsGrid.appendChild(r.scenesBox);
+    if (engine.state.inventory.length) {
+      r.invVal.textContent = `🎒 ${engine.state.inventory.join(', ')}`;
+      r.statsGrid.appendChild(r.invBox);
+    }
+
+    // Assemble into endingEl (no innerHTML — just re-append pre-built children)
+    this.endingEl.textContent = '';
+    this.endingEl.appendChild(r.iconEl);
+    this.endingEl.appendChild(r.typeEl);
+    this.endingEl.appendChild(r.textEl);
+    this.endingEl.appendChild(r.statsGrid);
+    this.endingEl.appendChild(r.actionsRow);
     this.endingEl.classList.remove('hidden');
-    this.endingEl.innerHTML = `
-      <div class="ending-icon">${icon}</div>
-      <div class="ending-type ${type}">${(ending.title || type.toUpperCase()).toUpperCase()}</div>
-      <div class="ending-text">${this._escapeHtml(engine.interpolate(ending.text || scene.text || ''))}</div>
-      <div class="ending-stats-grid" id="ending-stats-grid">
-        <div class="ending-stat-box">
-          <span class="ending-stat-value">${engine.state.turns}</span>
-          <span class="ending-stat-label">Turns</span>
-        </div>
-        <div class="ending-stat-box">
-          <span class="ending-stat-value">${engine.state.visited.size}/${totalScenes}</span>
-          <span class="ending-stat-label">Scenes (${visitPct}%)</span>
-        </div>
-        ${engine.state.inventory.length ? `
-        <div class="ending-stat-box ending-stat-wide">
-          <span class="ending-stat-value">🎒 ${engine.state.inventory.join(', ')}</span>
-          <span class="ending-stat-label">Items Collected</span>
-        </div>
-        ` : ''}
-      </div>
-      <div class="ending-actions">
-        <button class="ending-btn" data-action="restart">↻ Play Again</button>
-        <button class="ending-btn ending-btn-secondary" data-action="menu">⏎ Story List</button>
-        <button class="ending-btn ending-btn-secondary ending-btn-share" data-action="share" title="Copy ending summary to clipboard">📋 Share</button>
-      </div>
-    `;
+
     this.endingEl.setAttribute('role', 'dialog');
     this.endingEl.setAttribute('aria-label', `Ending: ${ending.title || type}`);
 
     // Auto-focus the "Play Again" button for keyboard users
-    requestAnimationFrame(() => {
-      const restartBtn = this.endingEl.querySelector('[data-action="restart"]');
-      if (restartBtn) restartBtn.focus();
-    });
+    requestAnimationFrame(() => r.restartBtn.focus());
   }
 
   /**
@@ -942,7 +1044,7 @@ class VNUI {
 
   hideEnding() {
     this.endingEl.classList.add('hidden');
-    this.endingEl.innerHTML = '';
+    this.endingEl.textContent = '';
   }
 
   onRestart(callback) { this._onRestart = callback; }
