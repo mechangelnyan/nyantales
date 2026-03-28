@@ -1197,6 +1197,32 @@ cd /tmp/nyantales && python3 -m http.server 9876
 - SW cache bumped to v61, production build regenerated (170KB bundle)
 - All 33 JS files pass `node --check`, 204/204 unit tests pass
 
+## Phase 80: Reusable Overlays, Tracked Timers, SpeedLabel Optimization ✅
+- **ConfirmDialog reusable overlay** — overlay built once via `_ensureOverlay()`, content updated per `show()` (no DOM create/remove per invocation)
+  - Previously: `document.createElement('div')` + full innerHTML + `overlay.remove()` on every confirm/cancel
+  - Now: single persistent overlay with cached `_titleEl`, `_messageEl`, `_okBtn`, `_cancelBtn` refs
+  - Delegated click + permanent keydown handler (only fires when `_resolve` is set)
+  - Previous dialog auto-cancelled if `show()` called while one is open
+- **StoryIntro reusable overlay** — overlay built once via `_ensureOverlay()`, portrait/title/desc updated per `show()`
+  - Previously: `document.createElement('div')` + full innerHTML + `overlay.remove()` on every story start
+  - Now: persistent overlay with cached refs, content swapped via `.textContent` / `.src`
+  - Continue button click handler bound once (uses `_dismissFn` callback pattern)
+- **AchievementSystem reusable toast** — toast element built once via `_ensureToast()`, content updated per `showToast()`
+  - Previously: new `document.createElement('div')` + innerHTML per achievement unlock
+  - Now: single element with cached `_toastIconEl`, `_toastNameEl`, `_toastDescEl` refs
+  - Appended/detached from body as needed (not destroyed)
+  - Auto-dismiss timers tracked in `_toastTimers` (consistent with existing pattern)
+- **SettingsPanel feedback timer tracking** — export/import/campaign-reset button text reset `setTimeout` calls tracked in `_feedbackTimers[]`
+  - `hide()` now cancels all pending feedback timers (prevents orphan writes to hidden buttons)
+  - Previously: 3 untracked `setTimeout` calls could fire after panel was closed
+- **SettingsPanel._speedLabel() optimization** — replaced `Object.keys(labels).reduce()` with pre-sorted `_SPEED_BREAKS` threshold scan
+  - `_SPEED_BREAKS` is a static sorted array of `[threshold, label]` tuples
+  - Single linear scan with early return (O(1) for common values) vs allocating key array + full reduce per call
+  - Called on every slider input event and every `_syncAll()` (panel open/setting change)
+- SW cache bumped to v62, production build regenerated (173KB bundle)
+- All 33 JS files pass `node --check`, 204/204 unit tests, 50/50 Playwright tests
+- Committed & pushed
+
 ## Still Possible Future Work
 - Generate remaining character portraits (GPU timeout issue — needs investigation, possibly during lower GPU load)
 - AI-generated scene background images
@@ -1394,6 +1420,7 @@ cd /tmp/nyantales && python3 -m http.server 9876
 - Committed & pushed
 
 ## Log (continued)
+- 2026-03-28 (1:27 AM): Phase 80 — Reusable overlays: ConfirmDialog (overlay built once, content swapped per show instead of create/remove), StoryIntro (same pattern — persistent overlay with cached refs), AchievementSystem toast (single element reused, content updated per unlock). SettingsPanel feedback timers tracked in _feedbackTimers array, cleared on hide (was 3 untracked setTimeout calls). _speedLabel optimization (pre-sorted threshold scan replaces Object.keys().reduce()). SW v62, 173KB bundle. All 33 JS + 204/204 unit + 50/50 Playwright pass. Committed & pushed.
 - 2026-03-27 (10:27 PM): Phase 77 — HTML escape single-pass regex (_formatText's 3 chained .replace() → single VNUI._HTML_ESC_RE regex with map lookup). README build sizes refreshed (170KB JS / 88KB CSS). SW v59. All 33 JS + 204/204 unit + 50/50 Playwright pass. Committed & pushed.
 - 2026-03-27 (9:27 PM): Phase 76 — Cached settings DOM (theme swatches array + toggle button refs eliminate querySelectorAll/getElementById on every _syncAll). Tracker _visitedSets Map cache (avoids new Set() per recordVisitedScenes call). All 9 inline style="width:X%" progress bars converted to CSS --bar-pct custom property. Stats bar colors → CSS classes (.stats-bar-magenta/green/yellow/gold). Zero inline width styles remaining in JS. SW v58, 170KB bundle. All 33 JS + 204/204 unit + 50/50 Playwright pass. Committed & pushed.
 - 2026-03-27 (8:27 PM): Phase 75 — Achievement toast timer tracking (staggered showNewUnlocks timeouts now in _toastTimers array, cancelPendingToasts() called on menu return). Cached HistoryPanel entries (eliminates querySelectorAll per filter keystroke). ConfirmDialog double-resolve guard (prevents race between Escape + click). SW v57, 169KB bundle. All 33 JS + 204/204 unit + 50/50 Playwright pass. Committed & pushed.
