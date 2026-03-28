@@ -1093,6 +1093,22 @@ cd /tmp/nyantales && python3 -m http.server 9876
 - All 33 JS files pass `node --check`, 204/204 unit tests, 50/50 Playwright tests
 - Committed & pushed
 
+## Phase 74: Asset Cleanup, Build Optimization, Preload Dedup ✅
+- **Removed 15 unused legacy portrait files** (~10MB freed from repo)
+  - Old superseded versions: `byte.png`, `nyan.png`, `nyan_v2`–`v5`, `nyan_anime_lora`, `nyan_zimage`, `mochi.png`, `mochi_v2`–`v3`, `pixel.png`, `pixel_v2.png`, `query.png`, `inspector_whiskers.png`
+  - All have newer versioned replacements already mapped in PORTRAIT_MAP
+- **Build script optimized** — only copies referenced portraits to dist
+  - Extracts filenames from `PORTRAIT_MAP` in `portraits.js` via grep
+  - 44 portraits / 31MB instead of 59 files / 41MB (24% smaller dist)
+  - Reports character count + size in build output
+- **PortraitManager.preloadAll() deduplication** — shared portraits loaded once
+  - Builds `file → [names]` map to avoid duplicate Image loads for aliased entries
+  - 54 map entries → 44 unique Image loads on boot (18% fewer network requests)
+  - Same file (e.g. `api_worker_7_v2_s694661517.png`) mapped by both `'api-worker-7'` and `'api worker 7'` now only triggers one load
+- SW cache bumped to v56, production build regenerated (169KB JS, 88KB CSS)
+- All 33 JS files pass `node --check`, 204/204 unit tests, 50/50 Playwright tests
+- Committed & pushed
+
 ## Still Possible Future Work
 - Generate remaining character portraits (GPU timeout issue — needs investigation, possibly during lower GPU load)
 - AI-generated scene background images
@@ -1290,6 +1306,7 @@ cd /tmp/nyantales && python3 -m http.server 9876
 - Committed & pushed
 
 ## Log (continued)
+- 2026-03-27 (7:27 PM): Phase 74 — Asset cleanup + build optimization: removed 15 unused legacy portrait files (~10MB), build script now only copies 44 referenced portraits (31MB vs 41MB), PortraitManager.preloadAll() deduplicates by filename (54 map entries → 44 Image loads). SW v56, 169KB JS bundle. All 33 JS + 204/204 unit + 50/50 Playwright pass. Committed & pushed.
 - 2026-03-27 (5:27 PM): Phase 72 — Timer cleanup + CSS custom properties: tracked effect timers (glitch/shake/sprite fade-out) in _effectTimers array to cancel on scene change (fixes stale timer bug during rapid navigation). Story card/choice animation delays use CSS custom properties instead of inline style.animationDelay. Progress bar width driven by --bar-pct. Route map cursor state uses CSS class. Cached getStoryMeta() per slug. SW v54, 168KB bundle. All 33 JS + 204/204 unit + 50/50 Playwright pass. 2 commits pushed.
 - 2026-03-27 (4:27 PM): Phase 71 — Campaign ending delegation (per-ending addEventListener → data-action handled by existing ending delegation, fixes listener leak). Pre-computed bg keyword entries (Object.entries() allocation per render → pre-built array). Sprite fade-out Set lookup (O(n²) find → O(1) Set.has). Combined _formatText regex (4 sequential .replace → single VNUI._FORMAT_RE pass). Scoped ending stats query. SW v53, 167KB bundle. All 32 JS + 204/204 unit + 50/50 Playwright pass. Committed & pushed.
 - 2026-03-27 (3:27 PM): Phase 70 — Pre-created overlay indicators (autoPlayIndicator/skipIndicator/progressHUD/progressBar built once at init instead of lazy createElement), engine callbacks wired once (onChoice/onRestart/onMenu/_onEndingHook no longer re-assigned every initEngine call), fixed 3 Playwright test regressions from Phase 69 campaign locking (tests now target unlocked cards). main.js 1704→1688 lines. SW v52, 167KB bundle. All 32 JS + 204/204 unit + 50/50 Playwright pass. Committed & pushed.
