@@ -36,6 +36,8 @@ class StatsDashboard {
    */
   setStories(stories) {
     this._storyIndex = stories;
+    // Build slug→story Map for O(1) lookups in _playStoryBySlug
+    this._storySlugMap = new Map(stories.map(s => [s.slug, s]));
   }
 
   /** Show the stats dashboard */
@@ -356,12 +358,65 @@ class StatsDashboard {
     `;
 
     // Close + recent-item clicks handled by delegated listener (see _initDelegation)
+
+    // Cache computed data for partial re-renders (search/sort only update the table)
+    this._lastStoryRows = stats.storyRows;
+  }
+
+  /**
+   * Re-render only the story breakdown table (not summary/recent sections).
+   * Called on search/sort input to avoid full innerHTML rebuild on every keystroke.
+   */
+  _renderStoryTable() {
+    if (!this._lastStoryRows || !this._overlay) return;
+    const tableEl = this._overlay.querySelector('.stats-story-table');
+    const countEl = this._overlay.querySelector('.stats-story-count');
+    if (!tableEl) return;
+
+    const visibleRows = this._getVisibleStoryRows(this._lastStoryRows);
+
+    tableEl.innerHTML = `
+      <div class="stats-table-header">
+        <span class="stats-th stats-th-title">Story</span>
+        <span class="stats-th">Progress</span>
+        <span class="stats-th">Endings</span>
+        <span class="stats-th">Plays</span>
+        <span class="stats-th">Best</span>
+      </div>
+      ${visibleRows.length > 0 ? visibleRows.map(s => `
+        <div class="stats-table-row ${s.completed ? 'completed' : ''} ${s.plays > 0 ? 'played' : ''}"
+             data-slug="${s.slug}"
+             tabindex="0"
+             role="button"
+             aria-label="Play ${this._escapeHtml(s.title)}">
+          <span class="stats-td stats-td-title" title="${this._escapeHtml(s.title)}">
+            ${s.completed ? '✅' : (s.plays > 0 ? '📖' : '🆕')} ${this._escapeHtml(s.title)}
+          </span>
+          <span class="stats-td stats-td-progress" data-label="Progress">
+            <span class="stats-mini-bar"><span class="stats-mini-bar-fill" style="--bar-pct:${s.progress}%"></span></span>
+            <span class="stats-td-pct">${s.progress}%</span>
+          </span>
+          <span class="stats-td" data-label="Endings">${s.endings}/${s.totalEndings}</span>
+          <span class="stats-td" data-label="Plays">${s.plays || '—'}</span>
+          <span class="stats-td" data-label="Best">${s.bestTurns || '—'}</span>
+        </div>
+      `).join('') : `
+        <div class="stats-empty-state">No stories match that search yet.</div>
+      `}
+    `;
+
+    if (countEl) {
+      countEl.textContent = `${visibleRows.length}/${this._lastStoryRows.length} shown`;
+    }
   }
 
   /** Play a story by slug via the external callback. */
   _playStoryBySlug(slug) {
-    const story = this._storyIndex.find(s => s.slug === slug);
-    if (story && this.onPlay) {
+    if (!this.onPlay) return;
+    // Use cached slug map for O(1) lookup (built on setStories)
+    const story = this._storySlugMap ? this._storySlugMap.get(slug)
+      : this._storyIndex.find(s => s.slug === slug);
+    if (story) {
       this.hide();
       this.onPlay(story);
     }
@@ -396,14 +451,14 @@ class StatsDashboard {
       if (!e.target.classList.contains('stats-search')) return;
       this._storySearch = e.target.value || '';
       this._savePrefs();
-      this._render();
+      this._renderStoryTable();
     });
 
     this._overlay.addEventListener('change', (e) => {
       if (!e.target.classList.contains('stats-sort')) return;
       this._storySort = e.target.value || 'progress-desc';
       this._savePrefs();
-      this._render();
+      this._renderStoryTable();
     });
   }
 

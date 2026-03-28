@@ -139,6 +139,9 @@ class SceneSelect {
       this._syncCount();
     }
 
+    // Cache scene item NodeList for filter reuse (avoids querySelectorAll per keystroke)
+    this._cachedItems = [...this._listEl.querySelectorAll('.scene-select-item')];
+
     // Reset search + visible state
     if (this._searchEl) this._searchEl.value = '';
     this._applyFilter('');
@@ -167,7 +170,7 @@ class SceneSelect {
   _applyFilter(query) {
     if (!this._listEl) return;
     const q = (query || '').toLowerCase().trim();
-    const items = this._listEl.querySelectorAll('.scene-select-item');
+    const items = this._cachedItems || [];
     let visible = 0;
 
     items.forEach(item => {

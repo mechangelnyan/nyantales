@@ -83,7 +83,8 @@ class CharacterGallery {
     const filterBtns = overlay.querySelectorAll('.gallery-filter-btn');
     const closeBtn = overlay.querySelector('.gallery-close');
 
-    // Build character cards
+    // Build character cards (batch via DocumentFragment — 1 reflow instead of per-card)
+    const cardFrag = document.createDocumentFragment();
     for (const ch of characters) {
       const hasAI = this.portraits && this.portraits.hasPortrait(ch.name);
       const portrait = hasAI
@@ -118,8 +119,9 @@ class CharacterGallery {
         </div>
       `;
 
-      this._grid.appendChild(card);
+      cardFrag.appendChild(card);
     }
+    this._grid.appendChild(cardFrag);
 
     // Single delegated click — handles close button + backdrop
     overlay.addEventListener('click', (e) => {
