@@ -1604,3 +1604,22 @@ cd /tmp/nyantales && python3 -m http.server 9876
 - SW cache bumped to v71, production build regenerated (180KB bundle)
 - All 33 JS files pass `node --check`, 204/204 unit tests, 50/50 Playwright tests
 - 2 commits pushed
+
+## Phase 90: Pre-Built Speaker DOM, Pooled Inventory/Conditionals, Static Icons ✅
+- **Speaker name plate pre-built DOM** — `_speakerIcon` (img) and `_speakerText` (TextNode) created once in constructor, reused on every scene render
+  - Previously: `speakerEl.innerHTML = \`<img ...> ${name}\`` on every scene with a speaker (hot path during play + skip mode)
+  - Now: updates `_speakerIcon.src` + `_speakerText.textContent` only when speaker changes
+  - `_lastSpeakerKey` cache key skips DOM write entirely when same speaker speaks consecutive scenes (common in dialogue-heavy stories)
+  - `setStorySlug()` resets cache
+- **Inventory pooled `<span>` elements** — reusable pool `_invPool` avoids `innerHTML + map + join` per inventory update
+  - Pool grows lazily to match max inventory size, elements reused via DocumentFragment
+  - `inventoryEl.textContent = ''` replaces `innerHTML = ''` for clear
+- **Conditionals pooled `<div>` elements** — `_condPool` avoids `innerHTML + map + join` per conditional render
+  - Same pool + fragment pattern as inventory
+  - `conditionalEl.textContent = ''` replaces `innerHTML = ''` for clear
+- **Static `VNUI._ENDING_ICONS`** — ending type → icon map moved from object literal inside `_showEnding()` to static property
+  - Was allocating `{ good: '🌟', bad: '💀', neutral: '📋', secret: '🔮' }` on every ending reached
+- innerHTML usage in ui.js hot paths: speaker (eliminated), inventory (eliminated), conditionals (eliminated)
+- SW cache bumped to v72, production build regenerated (181KB bundle)
+- All 33 JS files pass `node --check`, 204/204 unit tests, 50/50 Playwright tests
+- Committed & pushed
