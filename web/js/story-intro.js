@@ -5,9 +5,50 @@
  * description, and protagonist portrait. Provides a brief atmospheric moment
  * before gameplay begins.
  *
+ * Overlay is created once and reused across all story starts (no DOM churn).
+ *
  * @class StoryIntro
  */
 class StoryIntro {
+  static _overlay = null;
+  static _portraitEl = null;
+  static _titleEl = null;
+  static _descEl = null;
+  static _continueBtn = null;
+  static _dismissFn = null;
+
+  /** Build the persistent overlay structure once. */
+  static _ensureOverlay() {
+    if (StoryIntro._overlay) return;
+
+    const overlay = document.createElement('div');
+    overlay.className = 'story-intro-overlay';
+    overlay.setAttribute('role', 'dialog');
+    overlay.setAttribute('aria-hidden', 'true');
+
+    overlay.innerHTML = `
+      <div class="story-intro-content">
+        <img class="story-intro-portrait" alt="" />
+        <h2 class="story-intro-title"></h2>
+        <p class="story-intro-desc"></p>
+        <button class="story-intro-prompt" type="button">Continue ▶</button>
+      </div>
+    `;
+
+    StoryIntro._overlay = overlay;
+    StoryIntro._portraitEl = overlay.querySelector('.story-intro-portrait');
+    StoryIntro._titleEl = overlay.querySelector('.story-intro-title');
+    StoryIntro._descEl = overlay.querySelector('.story-intro-desc');
+    StoryIntro._continueBtn = overlay.querySelector('.story-intro-prompt');
+
+    // Permanent click handler on the continue button
+    StoryIntro._continueBtn.addEventListener('click', () => {
+      if (StoryIntro._dismissFn) StoryIntro._dismissFn();
+    });
+
+    document.body.appendChild(overlay);
+  }
+
   /**
    * Show a story intro splash, returning a Promise that resolves when
    * the player explicitly presses Continue.
@@ -18,32 +59,37 @@ class StoryIntro {
    */
   static show(story, portraits) {
     return new Promise(resolve => {
+      StoryIntro._ensureOverlay();
+
       const chars = CHARACTER_DATA[story.slug] || [];
       const protag = chars.find(c => c.role === 'protagonist') || chars[0];
 
-      const overlay = document.createElement('div');
-      overlay.className = 'story-intro-overlay';
-      overlay.setAttribute('role', 'dialog');
+      const overlay = StoryIntro._overlay;
+      const portrait = StoryIntro._portraitEl;
+      const titleEl = StoryIntro._titleEl;
+      const descEl = StoryIntro._descEl;
+
+      // Update content
+      if (protag) {
+        portrait.src = portraits.getPortrait(protag.name, protag.appearance);
+        portrait.className = `story-intro-portrait ${portraits.hasPortrait(protag.name) ? 'ai' : 'pixel'}`;
+        portrait.alt = protag.name;
+        portrait.classList.remove('hidden');
+      } else {
+        portrait.classList.add('hidden');
+      }
+
+      titleEl.textContent = story.title || '';
+      if (story.description) {
+        descEl.textContent = story.description;
+        descEl.classList.remove('hidden');
+      } else {
+        descEl.classList.add('hidden');
+      }
+
       overlay.setAttribute('aria-label', `Starting ${story.title}`);
-      overlay.innerHTML = `
-        <div class="story-intro-content">
-          ${protag ? `<img
-            src="${portraits.getPortrait(protag.name, protag.appearance)}"
-            class="story-intro-portrait ${portraits.hasPortrait(protag.name) ? 'ai' : 'pixel'}"
-            alt="${protag.name}"
-          />` : ''}
-          <h2 class="story-intro-title">${StoryIntro._esc(story.title)}</h2>
-          ${story.description ? `<p class="story-intro-desc">${StoryIntro._esc(story.description)}</p>` : ''}
-          <button class="story-intro-prompt" type="button">Continue ▶</button>
-        </div>
-      `;
-
-      document.body.appendChild(overlay);
-
-      // Animate in
-      requestAnimationFrame(() => {
-        requestAnimationFrame(() => overlay.classList.add('visible'));
-      });
+      overlay.setAttribute('aria-hidden', 'false');
+      overlay.classList.remove('exiting');
 
       let dismissed = false;
       const keyHandler = (e) => {
@@ -55,19 +101,27 @@ class StoryIntro {
       const dismiss = () => {
         if (dismissed) return;
         dismissed = true;
+        StoryIntro._dismissFn = null;
         document.removeEventListener('keydown', keyHandler);
         overlay.classList.remove('visible');
         overlay.classList.add('exiting');
+        overlay.setAttribute('aria-hidden', 'true');
         setTimeout(() => {
-          overlay.remove();
+          overlay.classList.remove('exiting');
           resolve();
         }, 500);
       };
 
-      const continueBtn = overlay.querySelector('.story-intro-prompt');
-      continueBtn?.addEventListener('click', dismiss);
-      continueBtn?.focus();
+      StoryIntro._dismissFn = dismiss;
       document.addEventListener('keydown', keyHandler);
+
+      // Animate in
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+          overlay.classList.add('visible');
+          StoryIntro._continueBtn.focus();
+        });
+      });
     });
   }
 

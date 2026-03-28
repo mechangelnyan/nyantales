@@ -192,34 +192,49 @@ class AchievementSystem {
     return newlyUnlocked;
   }
 
-  /** Show toast notification for a newly unlocked achievement */
-  showToast(ach) {
-    // Remove existing toast
-    if (this._toast) {
-      this._toast.remove();
-    }
-
+  /** Ensure the reusable toast element exists. */
+  _ensureToast() {
+    if (this._toast) return;
     const toast = document.createElement('div');
     toast.className = 'achievement-toast';
     toast.innerHTML = `
-      <div class="achievement-toast-icon">${ach.icon}</div>
+      <div class="achievement-toast-icon"></div>
       <div class="achievement-toast-text">
         <div class="achievement-toast-label">Achievement Unlocked!</div>
-        <div class="achievement-toast-name">${ach.name}</div>
-        <div class="achievement-toast-desc">${ach.desc}</div>
+        <div class="achievement-toast-name"></div>
+        <div class="achievement-toast-desc"></div>
       </div>
     `;
-    document.body.appendChild(toast);
+    this._toastIconEl = toast.querySelector('.achievement-toast-icon');
+    this._toastNameEl = toast.querySelector('.achievement-toast-name');
+    this._toastDescEl = toast.querySelector('.achievement-toast-desc');
     this._toast = toast;
+  }
+
+  /** Show toast notification for a newly unlocked achievement (reuses single DOM element). */
+  showToast(ach) {
+    this._ensureToast();
+    const toast = this._toast;
+
+    // Update content
+    this._toastIconEl.textContent = ach.icon;
+    this._toastNameEl.textContent = ach.name;
+    this._toastDescEl.textContent = ach.desc;
+
+    // Reset animation state
+    toast.classList.remove('visible');
+    if (!toast.parentNode) document.body.appendChild(toast);
 
     // Animate in
     requestAnimationFrame(() => toast.classList.add('visible'));
 
-    // Auto-dismiss
-    setTimeout(() => {
+    // Auto-dismiss (tracked for cleanup)
+    const id = setTimeout(() => {
       toast.classList.remove('visible');
-      setTimeout(() => toast.remove(), 500);
+      const id2 = setTimeout(() => { if (toast.parentNode) toast.parentNode.removeChild(toast); }, 500);
+      this._toastTimers.push(id2);
     }, 3500);
+    this._toastTimers.push(id);
   }
 
   /** Show all toasts for newly unlocked achievements (staggered) */
@@ -235,9 +250,9 @@ class AchievementSystem {
   cancelPendingToasts() {
     for (const id of this._toastTimers) clearTimeout(id);
     this._toastTimers.length = 0;
-    if (this._toast) {
-      this._toast.remove();
-      this._toast = null;
+    if (this._toast && this._toast.parentNode) {
+      this._toast.classList.remove('visible');
+      this._toast.parentNode.removeChild(this._toast);
     }
   }
 

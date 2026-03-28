@@ -152,6 +152,8 @@ class SettingsPanel {
 
     // Cache DOM refs used repeatedly (avoids getElementById on every show/sync/action)
     this._previewTimer = null;
+    /** Tracked feedback timers for button text reset (cleared on hide to prevent orphan writes) */
+    this._feedbackTimers = [];
     this._els = {
       textSpeed:    document.getElementById('set-text-speed'),
       textSpeedVal: document.getElementById('set-text-speed-val'),
@@ -229,17 +231,39 @@ class SettingsPanel {
     this._els.importFile.addEventListener('change', (e) => this._handleImport(e));
   }
 
+  /** Pre-sorted speed breakpoints for O(1)-ish label lookup (avoids Object.keys+reduce per call). */
+  static _SPEED_BREAKS = [
+    [4,  'Instant'],   // 2–4
+    [9,  'Very Fast'], // 5–9
+    [15, 'Fast'],      // 10–15
+    [22, 'Normal'],    // 16–22
+    [30, 'Slow'],      // 23–30
+    [37, 'Very Slow'], // 31–37
+    [Infinity, 'Crawl'] // 38+
+  ];
+
   /** Map speed value to human-readable label. Shared by _wireSlider + _syncAll. */
   static _speedLabel(v) {
-    const labels = { 2: 'Instant', 6: 'Very Fast', 12: 'Fast', 18: 'Normal', 26: 'Slow', 34: 'Very Slow', 40: 'Crawl' };
-    const closest = Object.keys(labels).reduce((a, b) => Math.abs(b - v) < Math.abs(a - v) ? b : a);
-    return labels[closest] || `${v}ms`;
+    for (const [threshold, label] of SettingsPanel._SPEED_BREAKS) {
+      if (v <= threshold) return label;
+    }
+    return `${v}ms`;
+  }
+
+  /** Schedule a feedback timer (auto-cleared on panel hide). */
+  _feedbackTimer(fn, ms) {
+    const id = setTimeout(() => {
+      fn();
+      const idx = this._feedbackTimers.indexOf(id);
+      if (idx !== -1) this._feedbackTimers.splice(idx, 1);
+    }, ms);
+    this._feedbackTimers.push(id);
   }
 
   async _handleExport() {
     this._dataManager.downloadExport();
     this._els.exportBtn.textContent = '✅ Done!';
-    setTimeout(() => { this._els.exportBtn.textContent = '📤 Export'; }, 1500);
+    this._feedbackTimer(() => { this._els.exportBtn.textContent = '📤 Export'; }, 1500);
   }
 
   async _handleImport(e) {
@@ -256,11 +280,11 @@ class SettingsPanel {
     try {
       const result = await this._dataManager.importFromFile(file);
       this._els.importBtn.textContent = `✅ ${result.imported} items`;
-      setTimeout(() => { this._els.importBtn.textContent = '📥 Import'; }, 2000);
+      this._feedbackTimer(() => { this._els.importBtn.textContent = '📥 Import'; }, 2000);
       this._updateDataStats();
     } catch (err) {
       this._els.importBtn.textContent = '❌ Error';
-      setTimeout(() => { this._els.importBtn.textContent = '📥 Import'; }, 2000);
+      this._feedbackTimer(() => { this._els.importBtn.textContent = '📥 Import'; }, 2000);
       console.warn('Import failed:', err);
     }
     e.target.value = '';
@@ -434,6 +458,9 @@ class SettingsPanel {
     this.overlay.setAttribute('aria-hidden', 'true');
     if (this._focusTrap) this._focusTrap.deactivate();
     if (this._previewTimer) { clearTimeout(this._previewTimer); this._previewTimer = null; }
+    // Cancel pending feedback timers (prevents orphan writes to detached/hidden button refs)
+    for (const id of this._feedbackTimers) clearTimeout(id);
+    this._feedbackTimers.length = 0;
   }
 
   get isVisible() {

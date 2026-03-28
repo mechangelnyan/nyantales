@@ -1,6 +1,7 @@
 /**
  * NyanTales — Confirmation Dialog
  * Reusable modal confirmation for destructive actions.
+ * Overlay is created once and reused across all invocations (no DOM churn).
  *
  * Usage:
  *   const confirmed = await ConfirmDialog.show({
@@ -16,6 +17,66 @@
  */
 class ConfirmDialog {
   static _overlay = null;
+  static _titleEl = null;
+  static _messageEl = null;
+  static _okBtn = null;
+  static _cancelBtn = null;
+  static _resolve = null;
+  static _keyHandler = null;
+
+  /** Build the overlay once, attach permanent delegation. */
+  static _ensureOverlay() {
+    if (ConfirmDialog._overlay) return;
+
+    const overlay = document.createElement('div');
+    overlay.className = 'confirm-overlay';
+    overlay.setAttribute('role', 'alertdialog');
+    overlay.setAttribute('aria-modal', 'true');
+    overlay.setAttribute('aria-hidden', 'true');
+
+    overlay.innerHTML = `
+      <div class="confirm-panel">
+        <div class="confirm-title"></div>
+        <div class="confirm-message"></div>
+        <div class="confirm-actions">
+          <button class="confirm-btn cancel-btn"></button>
+          <button class="confirm-btn ok-btn"></button>
+        </div>
+      </div>
+    `;
+
+    // Single delegated click — handles confirm, cancel, and backdrop
+    overlay.addEventListener('click', (e) => {
+      if (e.target.closest('.ok-btn')) { ConfirmDialog._finish(true); return; }
+      if (e.target.closest('.cancel-btn') || e.target === overlay) ConfirmDialog._finish(false);
+    });
+
+    // Permanent keydown handler (only active when dialog is visible)
+    ConfirmDialog._keyHandler = (e) => {
+      if (e.key === 'Escape' && ConfirmDialog._resolve) ConfirmDialog._finish(false);
+    };
+    document.addEventListener('keydown', ConfirmDialog._keyHandler);
+
+    document.body.appendChild(overlay);
+
+    ConfirmDialog._overlay = overlay;
+    ConfirmDialog._titleEl = overlay.querySelector('.confirm-title');
+    ConfirmDialog._messageEl = overlay.querySelector('.confirm-message');
+    ConfirmDialog._okBtn = overlay.querySelector('.ok-btn');
+    ConfirmDialog._cancelBtn = overlay.querySelector('.cancel-btn');
+  }
+
+  /** Resolve the current dialog and hide. */
+  static _finish(result) {
+    if (!ConfirmDialog._resolve) return;
+    const resolve = ConfirmDialog._resolve;
+    ConfirmDialog._resolve = null;
+
+    const overlay = ConfirmDialog._overlay;
+    overlay.classList.remove('visible');
+    overlay.setAttribute('aria-hidden', 'true');
+    resolve(result);
+  }
 
   /**
    * Show a confirmation dialog and return a promise that resolves to true/false.
@@ -36,64 +97,34 @@ class ConfirmDialog {
       danger = false
     } = opts;
 
+    // If a dialog is already open, resolve it as cancelled
+    if (ConfirmDialog._resolve) ConfirmDialog._finish(false);
+
+    ConfirmDialog._ensureOverlay();
+
+    const overlay = ConfirmDialog._overlay;
+    overlay.setAttribute('aria-label', title);
+
+    // Update content (reusing existing elements)
+    ConfirmDialog._titleEl.textContent = title;
+    if (message) {
+      ConfirmDialog._messageEl.textContent = message;
+      ConfirmDialog._messageEl.classList.remove('hidden');
+    } else {
+      ConfirmDialog._messageEl.textContent = '';
+      ConfirmDialog._messageEl.classList.add('hidden');
+    }
+    ConfirmDialog._cancelBtn.textContent = cancelText;
+    ConfirmDialog._okBtn.textContent = confirmText;
+    ConfirmDialog._okBtn.className = `confirm-btn ok-btn${danger ? ' danger' : ''}`;
+
     return new Promise(resolve => {
-      // Remove existing dialog if any
-      if (ConfirmDialog._overlay) {
-        ConfirmDialog._overlay.remove();
-        ConfirmDialog._overlay = null;
-      }
+      ConfirmDialog._resolve = resolve;
 
-      const overlay = document.createElement('div');
-      overlay.className = 'confirm-overlay';
-      overlay.setAttribute('role', 'alertdialog');
-      overlay.setAttribute('aria-modal', 'true');
-      overlay.setAttribute('aria-label', title);
-
-      const dangerClass = danger ? ' danger' : '';
-
-      overlay.innerHTML = `
-        <div class="confirm-panel">
-          <div class="confirm-title">${ConfirmDialog._esc(title)}</div>
-          ${message ? `<div class="confirm-message">${ConfirmDialog._esc(message)}</div>` : ''}
-          <div class="confirm-actions">
-            <button class="confirm-btn cancel-btn">${ConfirmDialog._esc(cancelText)}</button>
-            <button class="confirm-btn ok-btn${dangerClass}">${ConfirmDialog._esc(confirmText)}</button>
-          </div>
-        </div>
-      `;
-
-      let resolved = false;
-      const keyHandler = (e) => {
-        if (e.key === 'Escape') cleanup(false);
-      };
-
-      const cleanup = (result) => {
-        if (resolved) return;
-        resolved = true;
-        document.removeEventListener('keydown', keyHandler);
-        overlay.classList.remove('visible');
-        setTimeout(() => {
-          overlay.remove();
-          ConfirmDialog._overlay = null;
-        }, 250);
-        resolve(result);
-      };
-
-      // Single delegated click — handles confirm, cancel, and backdrop
-      overlay.addEventListener('click', (e) => {
-        if (e.target.closest('.ok-btn')) { cleanup(true); return; }
-        if (e.target.closest('.cancel-btn') || e.target === overlay) cleanup(false);
-      });
-
-      document.addEventListener('keydown', keyHandler);
-
-      document.body.appendChild(overlay);
-      ConfirmDialog._overlay = overlay;
-
-      // Focus the cancel button by default (safer default)
+      overlay.setAttribute('aria-hidden', 'false');
       requestAnimationFrame(() => {
         overlay.classList.add('visible');
-        overlay.querySelector('.cancel-btn').focus();
+        ConfirmDialog._cancelBtn.focus();
       });
     });
   }
