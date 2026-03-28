@@ -1507,6 +1507,7 @@ cd /tmp/nyantales && python3 -m http.server 9876
 - 2026-03-27 (12:27 AM): Phase 55 — Restored full title screen that was broken by campaign-first redesign. Story grid, search, filter, sort, continue, random all back. Campaign section shown above story grid with divider. Cached campaign DOM refs. Removed 45 lines dead CSS. SW v42. 147KB bundle. All 30 JS pass. 3 commits pushed.
 - 2026-03-27 (6:27 AM): Phase 61 — Fixed stats dashboard play-count regression (`StatsDashboard` was reading `data.plays`, but tracker persists `totalPlays`), so play totals/recent-story metadata now reflect real completion runs again. Tightened global scene-exploration math to use exact visited-scene counts instead of percentage back-calculation, added total reading time to the stats dashboard, and expanded Story Info modal with endings found / total possible plus cumulative reading time. Made story-info stats grid auto-fit better on smaller screens and initialized stats dialog `aria-hidden` state cleanly. Rebuilt production bundle, verified touched JS with `node --check`, ran `npm test` (204/204), and `npx playwright test` (42/42). No new stories added.
 - 2026-03-27 (12:27 PM): Phase 67 — Improved title-screen discovery by making story search character-aware: cards now index cast names, roles, and appearance text from `CHARACTER_DATA`, so searches like “Stack Canary” find the right story even if the title/description don’t mention it. Expanded the Story Info modal with a compact cast section (name + role chips, appearance in tooltip), updated the search placeholder/ARIA copy to reflect character search, and added Playwright regressions for character-name search plus cast rendering. Verified `node --check` on touched JS, `npm test` (204/204), and `npx playwright test tests/web/vn.spec.js` (50/50). No new stories added.
+- 2026-03-28 (12:27 PM): Phase 91 — Pre-built ending DOM (constructor builds full ending overlay tree, content swapped via textContent instead of innerHTML per ending). Choice button pool (reusable _choiceBtnPool with pre-built child structure, eliminates createElement per choice per render). Cached story card refs (_storyCardRefs Map caches badge/saveIcon/barFill/favBtn per card, eliminates 150+ querySelector calls per menu return). Badge+saveIcon always created, toggled via .hidden. Zero innerHTML in hot render paths. SW v73, 183KB bundle. All 33 JS + 204/204 unit + 50/50 Playwright pass. Committed & pushed.
 - 2026-03-28 (9:27 AM): Phase 88 — Permanent HistoryPanel keydown handler (was add/remove per show/hide, now installed once + gated by isVisible). Cached chapter card child refs (_chapterCardRefs Map avoids 3× querySelector per card per refresh). Gallery search debounced at 80ms. Toast color CSS classes (.nt-toast-success/error/warning replace inline rgba). SW v70, 179KB bundle. All 33 JS + 204/204 unit + 50/50 Playwright pass. Committed & pushed.
 - 2026-03-28 (8:27 AM): Phase 87 — Tracked misc timers: 5 untracked setTimeout calls in main.js (achievement toasts on ending/start, campaign advance pacing) now managed via trackTimeout()/clearMiscTimers(), cleared on menu return. DataManager export/import now includes nyantales-title-browser and nyantales-stats-dashboard keys (were missing). SW v69, 178KB bundle. All 33 JS + 204/204 unit + 50/50 Playwright pass. Committed & pushed.
 - 2026-03-28 (3:27 AM): Phase 82 — Partial re-render for Stats Dashboard (search/sort only updates story table instead of full innerHTML rebuild). Stats O(1) story lookup via _storySlugMap. Scene Select cached item NodeList for filter reuse. Gallery DocumentFragment batching (45+ cards → 1 reflow). SW v64, 175KB bundle. All 33 JS + 204/204 unit + 50/50 Playwright pass. Committed & pushed.
@@ -1621,5 +1622,30 @@ cd /tmp/nyantales && python3 -m http.server 9876
   - Was allocating `{ good: '🌟', bad: '💀', neutral: '📋', secret: '🔮' }` on every ending reached
 - innerHTML usage in ui.js hot paths: speaker (eliminated), inventory (eliminated), conditionals (eliminated)
 - SW cache bumped to v72, production build regenerated (181KB bundle)
+- All 33 JS files pass `node --check`, 204/204 unit tests, 50/50 Playwright tests
+- Committed & pushed
+
+## Phase 91: Pre-Built Ending DOM, Choice Pool, Cached Story Card Refs ✅
+- **Pre-built ending overlay** — `_buildEndingDOM()` constructs the entire ending DOM tree once in constructor
+  - Previously: `endingEl.innerHTML = \`...\`` rebuilt 15+ elements on every ending reached
+  - Now: pre-built refs (`iconEl`, `typeEl`, `textEl`, `statsGrid`, `turnsVal`, `scenesVal`, `invBox`, `actionsRow`) updated via `textContent` per ending
+  - `endingEl.textContent = ''` + `appendChild` re-assembles without parsing
+  - Inventory stat box conditionally appended only when items exist
+  - `hideEnding()` uses `textContent = ''` instead of `innerHTML = ''`
+- **Choice button pool** — `_choiceBtnPool` array of reusable `<button>` elements
+  - Previously: `document.createElement('button')` per choice per render, with `innerHTML` for num hint + label + visited badge
+  - Now: buttons created once in pool with pre-built child structure (`_numSpan`, `_textNode`, `_visitedSpan`)
+  - Pool grows lazily as needed, buttons reused via `textContent` update + `appendChild`
+  - `choicesEl` uses `textContent = ''` instead of `innerHTML = ''` throughout (showChoices, hideChoices, waitForEndingContinue, dismissEndingContinue)
+  - DocumentFragment batching for all choice buttons
+- **Story card child ref caching** — `_storyCardRefs` Map caches per-card DOM refs
+  - `decorateStoryCard()` now always creates badge + saveIcon (toggled via `.hidden` class instead of conditional create/remove), enabling consistent ref caching
+  - Cached refs: `badge`, `saveIcon`, `barFill`, `barEl`, `favBtn`
+  - `_refreshStoryCards()` now uses cached refs instead of 5+ `querySelector` per card × 30 cards = 150+ querySelector calls eliminated per menu return
+  - Refs invalidated on lock state change (rare: campaign advance) or full grid rebuild
+  - Progress bar fill built via `createElement` instead of `innerHTML`
+  - Meta info built via `createElement` instead of `innerHTML`
+- innerHTML remaining in ui.js: only init/one-time paths (story grid build, typewriter internal, escapeHtml) — zero in hot render paths
+- SW cache bumped to v73, production build regenerated (183KB bundle)
 - All 33 JS files pass `node --check`, 204/204 unit tests, 50/50 Playwright tests
 - Committed & pushed
