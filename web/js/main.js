@@ -876,10 +876,15 @@
     card.dataset.lastPlayed = tracker.getStory(story.slug).lastPlayed || 0;
   }
 
+  /** Whether the story grid has been built at least once (for partial refresh). */
+  let _gridBuilt = false;
+
   /**
    * Render (or re-render) the title screen.
-   * Uses ui.renderStoryList to create fresh cards, then decorates them once.
-   * Safe to call multiple times (no duplicate badges/buttons).
+   * First call: builds the full story grid from scratch.
+   * Subsequent calls: partial refresh — only updates stats, badges, progress, and
+   * dynamic card state without destroying/rebuilding 30 DOM cards.
+   * Safe to call multiple times.
    */
   function renderTitleScreen() {
     const stats = tracker.getStats();
@@ -897,21 +902,137 @@
     updateCampaignButton();
     renderChapterGrid();
 
-    // renderStoryList clears the grid and creates fresh cards — no duplicate risk
-    // Card click/keydown events are handled by grid-level delegation (see below)
-    ui.renderStoryList(storyIndex);
-
-    // Invalidate and rebuild cached card list after grid re-render
-    const cards = titleBrowser.refreshCards();
-    storyIndex.forEach((story, idx) => {
-      const card = cards[idx];
-      if (card) decorateStoryCard(card, story);
-    });
+    if (!_gridBuilt) {
+      // First render: build full story grid from scratch
+      ui.renderStoryList(storyIndex);
+      const cards = titleBrowser.refreshCards();
+      storyIndex.forEach((story, idx) => {
+        const card = cards[idx];
+        if (card) decorateStoryCard(card, story);
+      });
+      _gridBuilt = true;
+    } else {
+      // Subsequent renders: update dynamic card state without rebuilding DOM
+      _refreshStoryCards();
+    }
 
     // "Continue" button — shows if there's a recent save
     updateContinueButton();
 
     titleBrowser.apply();
+  }
+
+  /**
+   * Partial refresh of story cards: updates badges, progress bars, favorites,
+   * and data attributes without destroying/recreating DOM elements.
+   * Avoids the cost of rebuilding 30 cards + re-attaching sprites on every menu return.
+   */
+  function _refreshStoryCards() {
+    const cards = titleBrowser.refreshCards();
+    storyIndex.forEach((story, idx) => {
+      const card = cards[idx];
+      if (!card) return;
+
+      const locked = !isStoryUnlocked(story.slug);
+      const wasLocked = card.dataset.locked === '1';
+
+      // If lock state changed, we need a full card rebuild for this card
+      if (locked !== wasLocked) {
+        // Re-render this single card via full decoration (rare: only on campaign advance)
+        _resetCardForRedecorate(card, story);
+        decorateStoryCard(card, story);
+        return;
+      }
+
+      if (locked) return; // Locked cards don't need dynamic updates
+
+      const completed = tracker.isCompleted(story.slug);
+      const endings = tracker.endingCount(story.slug);
+      const { sceneCount } = getStoryMeta(story);
+      const isFav = tracker.isFavorite(story.slug);
+      const hasSave = saveManager.hasSave(story.slug);
+      const pct = sceneCount > 0 ? tracker.getProgress(story.slug, sceneCount) : 0;
+
+      // Update completion badge
+      card.classList.toggle('completed', completed);
+      let badge = card.querySelector('.story-card-badge:not(.story-card-save-badge)');
+      if (completed) {
+        if (!badge) {
+          badge = document.createElement('div');
+          badge.className = 'story-card-badge';
+          card.appendChild(badge);
+        }
+        badge.textContent = `✅ ${endings} ending${endings !== 1 ? 's' : ''}`;
+      } else if (badge) {
+        badge.remove();
+      }
+
+      // Update save indicator
+      let saveIcon = card.querySelector('.story-card-save-badge');
+      if (hasSave) {
+        if (!saveIcon) {
+          saveIcon = document.createElement('div');
+          saveIcon.className = completed
+            ? 'story-card-badge story-card-save-badge save-badge-bottom'
+            : 'story-card-badge story-card-save-badge';
+          card.appendChild(saveIcon);
+          saveIcon.textContent = '💾';
+        } else {
+          // Adjust position class based on completion state
+          saveIcon.classList.toggle('save-badge-bottom', completed);
+        }
+      } else if (saveIcon) {
+        saveIcon.remove();
+      }
+
+      // Update progress bar
+      const barFill = card.querySelector('.story-card-progress-fill');
+      if (barFill) {
+        barFill.style.setProperty('--bar-pct', `${pct}%`);
+        const barEl = barFill.parentElement;
+        if (barEl) barEl.setAttribute('aria-valuenow', pct);
+      }
+
+      // Update favorite button
+      const favBtn = card.querySelector('.story-card-fav-btn');
+      if (favBtn) {
+        favBtn.textContent = isFav ? '❤️' : '🤍';
+        favBtn.title = isFav ? 'Remove from favorites' : 'Add to favorites';
+        favBtn.setAttribute('aria-pressed', isFav ? 'true' : 'false');
+      }
+
+      // Update data attributes for filtering/sorting
+      card.dataset.completed = completed ? '1' : '0';
+      card.dataset.favorite = isFav ? '1' : '0';
+      card.dataset.progress = pct;
+      card.dataset.lastPlayed = tracker.getStory(story.slug).lastPlayed || 0;
+    });
+  }
+
+  /**
+   * Strip dynamic decorations from a card so it can be re-decorated from scratch.
+   * Used when lock state changes (rare: campaign advance).
+   */
+  function _resetCardForRedecorate(card, story) {
+    // Remove dynamic children (badges, save icons, progress bars, meta, info/fav buttons)
+    card.querySelectorAll('.story-card-badge, .story-card-save-badge, .story-card-progress, .story-card-info-btn, .story-card-fav-btn').forEach(el => el.remove());
+    const meta = card.querySelector('.story-card-meta');
+    if (meta) meta.remove();
+    card.classList.remove('completed', 'story-locked');
+    card.removeAttribute('data-locked');
+
+    // Restore original title/description text if it was changed by locking
+    const inner = card.querySelector('.story-card-inner');
+    if (inner) {
+      const h3 = inner.querySelector('h3');
+      if (h3) h3.textContent = story.title;
+      const p = inner.querySelector('.story-card-text p');
+      if (p) p.textContent = story.description || '';
+      const sprite = inner.querySelector('.story-card-sprite');
+      if (sprite) sprite.classList.remove('locked-sprite');
+    }
+    card.setAttribute('tabindex', '0');
+    card.setAttribute('aria-label', `${story.title}: ${story.description || 'Interactive story'}`);
   }
 
   // ── Continue Button ──

@@ -11,6 +11,7 @@ class AmbientAudio {
     this.currentTheme = null;
     this.nodes = [];
     this._blipTimers = []; // track blip setTimeout IDs for cleanup
+    this._fadeTimers = []; // track setTheme/stop fade setTimeout IDs for cleanup
     this._noiseBuffer = null; // shared noise buffer (reused across theme changes)
     this.enabled = false;
     this.volume = 0.15;
@@ -56,50 +57,61 @@ class AmbientAudio {
     // Fade out old
     this.masterGain.gain.setTargetAtTime(0, this.ctx.currentTime, 0.4);
 
-    // Cancel blip timers before stopping nodes (prevents orphaned recursive setTimeout chains)
+    // Cancel blip + fade timers before stopping nodes (prevents orphaned callbacks)
     this._cancelBlipTimers();
+    this._cancelFadeTimers();
 
-    // Stop old nodes after fade
+    // Stop old nodes after fade (tracked to prevent stale cleanup on rapid theme changes)
     const oldNodes = [...this.nodes];
-    setTimeout(() => {
+    this._trackFadeTimer(setTimeout(() => {
       oldNodes.forEach(n => {
         try { n.stop(); } catch (e) {}
         try { n.disconnect(); } catch (e) {}
       });
-    }, 800);
+    }, 800));
     this.nodes = [];
 
     this.currentTheme = theme;
 
-    // Build new theme after brief pause
-    setTimeout(() => {
+    // Build new theme after brief pause (tracked for cancellation)
+    this._trackFadeTimer(setTimeout(() => {
       if (this.currentTheme !== theme) return; // theme changed during fade
       this._buildTheme(theme);
       if (this.enabled) {
         this.masterGain.gain.setTargetAtTime(this.volume, this.ctx.currentTime, this._fadeTime);
       }
-    }, 500);
+    }, 500));
   }
 
   /** Stop all audio */
   stop() {
     if (!this.ctx) return;
     this._cancelBlipTimers();
+    this._cancelFadeTimers();
     this.masterGain.gain.setTargetAtTime(0, this.ctx.currentTime, 0.3);
-    setTimeout(() => {
+    this._trackFadeTimer(setTimeout(() => {
       this.nodes.forEach(n => {
         try { n.stop(); } catch (e) {}
         try { n.disconnect(); } catch (e) {}
       });
       this.nodes = [];
       this.currentTheme = null;
-    }, 500);
+    }, 500));
   }
 
   /** Cancel all blip recursive setTimeout chains to prevent memory leaks. */
   _cancelBlipTimers() {
     for (const id of this._blipTimers) clearTimeout(id);
     this._blipTimers.length = 0;
+  }
+
+  /** Track a fade/build setTimeout for cancellation on rapid theme changes. */
+  _trackFadeTimer(id) { this._fadeTimers.push(id); return id; }
+
+  /** Cancel all pending fade/build timers (prevents stale node stops + builds during rapid transitions). */
+  _cancelFadeTimers() {
+    for (const id of this._fadeTimers) clearTimeout(id);
+    this._fadeTimers.length = 0;
   }
 
   // ── Theme Classification ──
