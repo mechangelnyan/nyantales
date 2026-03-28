@@ -1527,3 +1527,24 @@ cd /tmp/nyantales && python3 -m http.server 9876
 - SW cache bumped to v67, production build regenerated (177KB bundle)
 - All 33 JS files pass `node --check`, 204/204 unit tests, 50/50 Playwright tests
 - Committed & pushed
+
+## Phase 86: Reusable Sprite Set, Cached Recent Save, Chapter Grid Partial Refresh, Engine Guard ✅
+- **Reusable `_visibleNamesBuf` Set** — `_updateSprites()` was allocating a new `Set` via `new Set(visible.map())` on every scene render
+  - Now reuses a single `_visibleNamesBuf` Set instance, cleared and repopulated per render (zero allocation)
+  - Called on every scene transition for sprite fade-out diffing
+- **SaveManager `getMostRecentSave()` cache** — result cached in `_recentCache`, invalidated on `save()`, `deleteSlot()`, and `migrateLegacy()`
+  - Previously: scanned all `localStorage` keys on every title screen render (called from `updateContinueButton()`)
+  - Now: single scan on first call, O(1) on subsequent calls until a save changes
+  - Especially impactful with many stories that have saves
+- **Chapter grid partial refresh** — `renderChapterGrid()` now matches the story card pattern
+  - First call: builds full grid from scratch via DocumentFragment
+  - Subsequent calls: `_refreshChapterCards()` updates classes, text, aria, and status icons on existing cards
+  - `_chapterGridBuilt` flag tracks whether the initial build has been done
+  - Reset when campaign data is unavailable
+  - Avoids full `innerHTML = ''` + rebuild on every menu return
+- **Engine `loadState()` safety** — caps history at 500 entries and snapshots at 200 on load
+  - Prevents memory bloat from corrupt or very old saves with unbounded arrays
+  - Also adds fallback defaults for missing `inventory` and `turns` fields
+- SW cache bumped to v68, production build regenerated (178KB bundle)
+- All 33 JS files pass `node --check`, 204/204 unit tests, 50/50 Playwright tests
+- Committed & pushed
