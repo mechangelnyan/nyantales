@@ -170,6 +170,20 @@ class SettingsPanel {
       themeContainer: document.getElementById('set-color-theme')
     };
 
+    // Cache theme swatch elements (avoids querySelectorAll on every theme change / sync)
+    this._swatches = this._els.themeContainer
+      ? Array.from(this._els.themeContainer.querySelectorAll('.theme-swatch'))
+      : [];
+
+    // Cache toggle button refs (avoids getElementById on every _syncAll)
+    this._toggleBtns = {
+      'set-auto-play': document.getElementById('set-auto-play'),
+      'set-skip-read': document.getElementById('set-skip-read'),
+      'set-screen-shake': document.getElementById('set-screen-shake'),
+      'set-particles': document.getElementById('set-particles'),
+      'set-fullscreen': document.getElementById('set-fullscreen')
+    };
+
     // Wire up controls
     this._wireSlider('set-text-speed', 'textSpeed', v => {
       this._runPreview(parseInt(v));
@@ -316,7 +330,7 @@ class SettingsPanel {
     const container = this._els.themeContainer;
     const currentTheme = this.settings.get('colorTheme');
 
-    container.querySelectorAll('.theme-swatch').forEach(btn => {
+    this._swatches.forEach(btn => {
       const isActive = btn.dataset.theme === currentTheme;
       btn.classList.toggle('active', isActive);
       btn.setAttribute('aria-pressed', isActive ? 'true' : 'false');
@@ -325,7 +339,7 @@ class SettingsPanel {
     container.addEventListener('click', (e) => {
       const swatch = e.target.closest('.theme-swatch');
       if (!swatch) return;
-      container.querySelectorAll('.theme-swatch').forEach(s => {
+      this._swatches.forEach(s => {
         s.classList.remove('active');
         s.setAttribute('aria-pressed', 'false');
       });
@@ -344,7 +358,7 @@ class SettingsPanel {
       if (valEl) valEl.textContent = formatter(parseInt(el.value));
     };
     const syncToggle = (id, key) => {
-      const btn = document.getElementById(id);
+      const btn = this._toggleBtns[id];
       if (!btn) return;
       const val = this.settings.get(key);
       btn.textContent = val ? 'ON' : 'OFF';
@@ -363,9 +377,9 @@ class SettingsPanel {
 
     this._els.autoDelayRow.classList.toggle('hidden', !this.settings.get('autoPlay'));
 
-    // Sync color theme swatches
+    // Sync color theme swatches (uses cached _swatches array)
     const currentTheme = this.settings.get('colorTheme');
-    this._els.themeContainer.querySelectorAll('.theme-swatch').forEach(btn => {
+    this._swatches.forEach(btn => {
       const isActive = btn.dataset.theme === currentTheme;
       btn.classList.toggle('active', isActive);
       btn.setAttribute('aria-pressed', isActive ? 'true' : 'false');

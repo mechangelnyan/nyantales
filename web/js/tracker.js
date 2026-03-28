@@ -20,6 +20,8 @@ class StoryTracker {
     this.data = this._load();
     this._saveTimer = null;
     this._SAVE_DEBOUNCE_MS = 500;
+    /** @type {Map<string, Set<string>>} Cached Sets for visitedScenes lookups (avoids new Set per call) */
+    this._visitedSets = new Map();
   }
 
   /** Get tracking data for a story, creating if absent */
@@ -50,7 +52,12 @@ class StoryTracker {
    */
   recordVisitedScenes(slug, visitedSet) {
     const story = this.getStory(slug);
-    const existing = new Set(story.visitedScenes);
+    // Use cached Set to avoid new Set() allocation on every scene transition
+    let existing = this._visitedSets.get(slug);
+    if (!existing) {
+      existing = new Set(story.visitedScenes);
+      this._visitedSets.set(slug, existing);
+    }
     let changed = false;
     for (const sceneId of visitedSet) {
       if (!existing.has(sceneId)) {
@@ -194,6 +201,7 @@ class StoryTracker {
   /** Reset all tracking data */
   reset() {
     this.data = { stories: {}, favorites: [] };
+    this._visitedSets.clear();
     this._save();
   }
 

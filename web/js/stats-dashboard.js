@@ -228,17 +228,17 @@ class StatsDashboard {
           <div class="stats-card">
             <div class="stats-card-value">${g.storiesCompleted}<span class="stats-card-total">/${this._storyIndex.length}</span></div>
             <div class="stats-card-label">Stories Complete</div>
-            <div class="stats-card-bar"><div class="stats-card-bar-fill" style="width:${completionPct}%"></div></div>
+            <div class="stats-card-bar"><div class="stats-card-bar-fill" style="--bar-pct:${completionPct}%"></div></div>
           </div>
           <div class="stats-card">
             <div class="stats-card-value">${g.totalEndings}<span class="stats-card-total">/${stats.totalEndingsPossible}</span></div>
             <div class="stats-card-label">Endings Found</div>
-            <div class="stats-card-bar"><div class="stats-card-bar-fill" style="width:${endingPct}%;background:var(--accent-magenta)"></div></div>
+            <div class="stats-card-bar"><div class="stats-card-bar-fill stats-bar-magenta" style="--bar-pct:${endingPct}%"></div></div>
           </div>
           <div class="stats-card">
             <div class="stats-card-value">${scenePct}%</div>
             <div class="stats-card-label">Scenes Explored</div>
-            <div class="stats-card-bar"><div class="stats-card-bar-fill" style="width:${scenePct}%;background:var(--accent-green)"></div></div>
+            <div class="stats-card-bar"><div class="stats-card-bar-fill stats-bar-green" style="--bar-pct:${scenePct}%"></div></div>
           </div>
           <div class="stats-card">
             <div class="stats-card-value">${g.totalPlays}</div>
@@ -251,7 +251,7 @@ class StatsDashboard {
           <div class="stats-card">
             <div class="stats-card-value">${a.unlocked}<span class="stats-card-total">/${a.total}</span></div>
             <div class="stats-card-label">Achievements</div>
-            <div class="stats-card-bar"><div class="stats-card-bar-fill" style="width:${Math.round(a.unlocked / a.total * 100)}%;background:var(--accent-yellow)"></div></div>
+            <div class="stats-card-bar"><div class="stats-card-bar-fill stats-bar-yellow" style="--bar-pct:${Math.round(a.unlocked / a.total * 100)}%"></div></div>
           </div>
           <div class="stats-card">
             <div class="stats-card-value">${stats.saveCount}</div>
@@ -266,7 +266,7 @@ class StatsDashboard {
           <div class="stats-card stats-card-wide">
             <div class="stats-card-value stats-card-gold">${stats.campaignStats.complete ? '✨ Complete!' : `${stats.campaignStats.chaptersCompleted}/${stats.campaignStats.chaptersTotal} chapters`}</div>
             <div class="stats-card-label">${stats.campaignStats.label || 'The Campaign'}</div>
-            <div class="stats-card-bar"><div class="stats-card-bar-fill" style="width:${stats.campaignStats.pct}%;background:#ffd700"></div></div>
+            <div class="stats-card-bar"><div class="stats-card-bar-fill stats-bar-gold" style="--bar-pct:${stats.campaignStats.pct}%"></div></div>
           </div>
         </div>
         ` : ''}
@@ -340,7 +340,7 @@ class StatsDashboard {
                   ${s.completed ? '✅' : (s.plays > 0 ? '📖' : '🆕')} ${this._escapeHtml(s.title)}
                 </span>
                 <span class="stats-td stats-td-progress" data-label="Progress">
-                  <span class="stats-mini-bar"><span class="stats-mini-bar-fill" style="width:${s.progress}%"></span></span>
+                  <span class="stats-mini-bar"><span class="stats-mini-bar-fill" style="--bar-pct:${s.progress}%"></span></span>
                   <span class="stats-td-pct">${s.progress}%</span>
                 </span>
                 <span class="stats-td" data-label="Endings">${s.endings}/${s.totalEndings}</span>

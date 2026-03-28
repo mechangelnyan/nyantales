@@ -1292,6 +1292,7 @@ body {
 }
 .achievements-progress-fill {
   height: 100%;
+  width: var(--bar-pct, 0%);
   background: linear-gradient(90deg, var(--accent-yellow), #ffaa00);
   border-radius: 2px;
   transition: width 0.6s ease;
@@ -2509,7 +2510,7 @@ body {
 }
 .loading-bar-fill {
   height: 100%;
-  width: 0%;
+  width: var(--bar-pct, 0%);
   background: var(--accent-cyan);
   border-radius: 2px;
   transition: width 0.3s ease;
@@ -2607,6 +2608,7 @@ body {
 }
 .story-card-progress-fill {
   height: 100%;
+  width: var(--bar-pct, 0%);
   background: var(--accent-cyan);
   border-radius: 0 0 0 8px;
   transition: width 0.5s ease;
@@ -3260,6 +3262,7 @@ body {
 }
 .story-info-progress-fill {
   height: 100%;
+  width: var(--bar-pct, 0%);
   background: var(--accent-cyan);
   border-radius: 2px;
   transition: width 0.5s ease;
@@ -3774,10 +3777,15 @@ body {
 }
 .stats-card-bar-fill {
   height: 100%;
+  width: var(--bar-pct, 0%);
   background: var(--accent-cyan);
   border-radius: 1px;
   transition: width 0.5s ease;
 }
+.stats-bar-magenta { background: var(--accent-magenta); }
+.stats-bar-green { background: var(--accent-green); }
+.stats-bar-yellow { background: var(--accent-yellow); }
+.stats-bar-gold { background: #ffd700; }
 
 /* Sections */
 .stats-section {
@@ -3947,6 +3955,7 @@ body {
 }
 .stats-mini-bar-fill {
   height: 100%;
+  width: var(--bar-pct, 0%);
   background: var(--accent-cyan);
   border-radius: 1.5px;
 }

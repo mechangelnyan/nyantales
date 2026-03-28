@@ -810,7 +810,7 @@
       const pct = tracker.getProgress(story.slug, sceneCount);
       const bar = document.createElement('div');
       bar.className = 'story-card-progress';
-      bar.innerHTML = `<div class="story-card-progress-fill" style="width:${pct}%"></div>`;
+      bar.innerHTML = `<div class="story-card-progress-fill" style="--bar-pct:${pct}%"></div>`;
       bar.setAttribute('role', 'progressbar');
       bar.setAttribute('aria-valuenow', pct);
       bar.setAttribute('aria-valuemin', '0');
@@ -1277,7 +1277,7 @@
   const _loadingFill  = document.querySelector('.loading-bar-fill');
   const _loadingLabel = document.querySelector('.loading-text');
   function updateLoadingProgress(pct, text) {
-    if (_loadingFill) _loadingFill.style.width = `${pct}%`;
+    if (_loadingFill) _loadingFill.style.setProperty('--bar-pct', `${pct}%`);
     if (_loadingLabel && text) _loadingLabel.textContent = text;
   }
 

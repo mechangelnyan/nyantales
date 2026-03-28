@@ -55,7 +55,7 @@ class AchievementPanel {
           <button class="achievements-panel-close" aria-label="Close achievements">✕</button>
         </div>
         <div class="achievements-progress-bar">
-          <div class="achievements-progress-fill" style="width:${Math.round((achStats.unlocked / achStats.total) * 100)}%"></div>
+          <div class="achievements-progress-fill" style="--bar-pct:${Math.round((achStats.unlocked / achStats.total) * 100)}%"></div>
         </div>
         <div class="achievements-list">
           ${unlocked.map(a => this._renderItem(a)).join('')}

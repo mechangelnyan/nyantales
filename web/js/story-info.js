@@ -154,7 +154,7 @@ class StoryInfoModal {
           <div class="story-info-stat-value">${pct}%</div>
           <div class="story-info-stat-label">Explored</div>
           <div class="story-info-progress-bar">
-            <div class="story-info-progress-fill" style="width:${pct}%"></div>
+            <div class="story-info-progress-fill" style="--bar-pct:${pct}%"></div>
           </div>
           <div class="story-info-stat-sub">${visitedCount} / ${totalScenes} scenes</div>
         </div>
