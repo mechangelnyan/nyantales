@@ -361,7 +361,10 @@
   const autoPlayIndicator = (() => {
     const el = document.createElement('div');
     el.className = 'auto-play-indicator hidden';
-    el.innerHTML = '<div class="auto-play-dot"></div> AUTO';
+    const dot = document.createElement('div');
+    dot.className = 'auto-play-dot';
+    el.appendChild(dot);
+    el.appendChild(document.createTextNode(' AUTO'));
     vnContainer.appendChild(el);
     return el;
   })();
@@ -369,7 +372,7 @@
   const skipIndicator = (() => {
     const el = document.createElement('div');
     el.className = 'skip-indicator hidden';
-    el.innerHTML = '⏭ SKIP';
+    el.textContent = '⏭ SKIP';
     vnContainer.appendChild(el);
     return el;
   })();
@@ -966,7 +969,7 @@
 
   function _ensureStatsBar() {
     if (_statsBuilt) return;
-    statsEl.innerHTML = '';
+    statsEl.textContent = '';
     const defs = [
       { key: 'complete', icon: '📖', suffix: () => `/${storyIndex.length} complete` },
       { key: 'endings', icon: '🔮', suffix: () => ' endings found' },
@@ -1804,7 +1807,7 @@
 
     // First render: build full grid from scratch
     _chapterCardRefs.clear();
-    chapterGridEl.innerHTML = '';
+    chapterGridEl.textContent = '';
 
     // Batch-append act sections via DocumentFragment (1 reflow instead of per-act)
     const gridFrag = document.createDocumentFragment();
@@ -1829,7 +1832,14 @@
 
       const header = document.createElement('div');
       header.className = 'act-header';
-      header.innerHTML = `<span class="act-title">${act.title}</span><span class="act-subtitle">${act.subtitle || ''}</span>`;
+      const actTitle = document.createElement('span');
+      actTitle.className = 'act-title';
+      actTitle.textContent = act.title;
+      const actSub = document.createElement('span');
+      actSub.className = 'act-subtitle';
+      actSub.textContent = act.subtitle || '';
+      header.appendChild(actTitle);
+      header.appendChild(actSub);
       section.appendChild(header);
 
       const cards = document.createElement('div');

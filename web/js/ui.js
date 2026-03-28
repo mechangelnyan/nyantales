@@ -184,7 +184,7 @@ class VNUI {
    * @param {Array} stories - Story index entries
    */
   renderStoryList(stories) {
-    this.storyListEl.innerHTML = '';
+    this.storyListEl.textContent = '';
     // Batch-append cards via DocumentFragment (1 reflow instead of 30)
     const frag = document.createDocumentFragment();
     stories.forEach((story, idx) => {
@@ -195,26 +195,33 @@ class VNUI {
       card.setAttribute('tabindex', '0');
       card.setAttribute('aria-label', `${story.title}: ${story.description || 'Interactive story'}`);
 
-      // Get protagonist for this story
+      // Build card inner DOM via createElement (no innerHTML with dynamic content)
+      const inner = document.createElement('div');
+      inner.className = 'story-card-inner';
+
       const chars = CHARACTER_DATA[story.slug] || [];
       const protag = chars.find(c => c.role === 'protagonist');
-      let spriteHtml = '';
       if (protag) {
-        const url = this.portraits.getSprite(protag.name, protag.appearance);
-        const hasAI = this.portraits.hasPortrait(protag.name);
-        const cls = hasAI ? 'story-card-sprite ai-portrait' : 'story-card-sprite';
-        spriteHtml = `<img src="${url}" class="${cls}" alt="${protag.name}" loading="lazy" decoding="async" />`;
+        const img = document.createElement('img');
+        img.src = this.portraits.getSprite(protag.name, protag.appearance);
+        img.className = this.portraits.hasPortrait(protag.name)
+          ? 'story-card-sprite ai-portrait' : 'story-card-sprite';
+        img.alt = protag.name;
+        img.loading = 'lazy';
+        img.decoding = 'async';
+        inner.appendChild(img);
       }
 
-      card.innerHTML = `
-        <div class="story-card-inner">
-          ${spriteHtml}
-          <div class="story-card-text">
-            <h3>${this._escapeHtml(story.title)}</h3>
-            <p>${this._escapeHtml(story.description || '')}</p>
-          </div>
-        </div>
-      `;
+      const textDiv = document.createElement('div');
+      textDiv.className = 'story-card-text';
+      const h3 = document.createElement('h3');
+      h3.textContent = story.title;
+      const p = document.createElement('p');
+      p.textContent = story.description || '';
+      textDiv.appendChild(h3);
+      textDiv.appendChild(p);
+      inner.appendChild(textDiv);
+      card.appendChild(inner);
       frag.appendChild(card);
     });
     this.storyListEl.appendChild(frag);
@@ -224,7 +231,7 @@ class VNUI {
 
   _clearSprites() {
     this._clearEffectTimers(); // Cancel any pending sprite fade-out / effect timers
-    this.spritesEl.innerHTML = '';
+    this.spritesEl.textContent = '';
     this._activeSprites.clear();
   }
 
