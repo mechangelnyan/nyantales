@@ -247,6 +247,4 @@ class CharacterGallery {
     return OverlayMixin.isVisible(this);
   }
 
-  /** @deprecated Use `onStorySelect = cb` directly. */
-  onStoryClick(cb) { this.onStorySelect = cb; }
 }

@@ -687,29 +687,18 @@ class StatsDashboard {
 
   /** Persist lightweight dashboard UI prefs between opens/reloads. */
   _savePrefs() {
-    try {
-      localStorage.setItem(this._prefsKey, JSON.stringify({
-        storySearch: this._storySearch,
-        storySort: this._storySort
-      }));
-    } catch (err) {
-      console.warn('Failed to persist stats dashboard prefs:', err);
-    }
+    SafeStorage.setJSON(this._prefsKey, {
+      storySearch: this._storySearch,
+      storySort: this._storySort
+    });
   }
 
   /** Restore persisted dashboard UI prefs, if available. */
   _loadPrefs() {
-    try {
-      const raw = localStorage.getItem(this._prefsKey);
-      if (!raw) return;
-      const saved = JSON.parse(raw);
-      this._storySearch = typeof saved.storySearch === 'string' ? saved.storySearch : '';
-      this._storySort = typeof saved.storySort === 'string' ? saved.storySort : 'progress-desc';
-    } catch (err) {
-      console.warn('Failed to load stats dashboard prefs:', err);
-      this._storySearch = '';
-      this._storySort = 'progress-desc';
-    }
+    const saved = SafeStorage.getJSON(this._prefsKey, null);
+    if (!saved) return;
+    this._storySearch = typeof saved.storySearch === 'string' ? saved.storySearch : '';
+    this._storySort = typeof saved.storySort === 'string' ? saved.storySort : 'progress-desc';
   }
 
   // ─── Utilities ─────────────────────────────────────────────────

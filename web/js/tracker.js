@@ -214,15 +214,7 @@ class StoryTracker {
   // ── Storage ──
 
   _load() {
-    if (typeof SafeStorage !== 'undefined') {
-      return SafeStorage.getJSON(this.STORAGE_KEY, { stories: {} });
-    }
-    try {
-      const raw = localStorage.getItem(this.STORAGE_KEY);
-      return raw ? JSON.parse(raw) : { stories: {} };
-    } catch (e) {
-      return { stories: {} };
-    }
+    return SafeStorage.getJSON(this.STORAGE_KEY, { stories: {} });
   }
 
   /**
@@ -237,10 +229,6 @@ class StoryTracker {
   /** Immediately persist data to localStorage. */
   _saveNow() {
     if (this._saveTimer) { clearTimeout(this._saveTimer); this._saveTimer = null; }
-    if (typeof SafeStorage !== 'undefined') {
-      SafeStorage.setJSON(this.STORAGE_KEY, this.data);
-    } else {
-      try { localStorage.setItem(this.STORAGE_KEY, JSON.stringify(this.data)); } catch { /* noop */ }
-    }
+    SafeStorage.setJSON(this.STORAGE_KEY, this.data);
   }
 }

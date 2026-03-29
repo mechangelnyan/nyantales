@@ -27,13 +27,7 @@ class SaveManager {
 
   /** Get all save slots for a story */
   getSlots(slug) {
-    if (typeof SafeStorage !== 'undefined') {
-      return SafeStorage.getJSON(this.STORAGE_PREFIX + slug, {});
-    }
-    try {
-      const raw = localStorage.getItem(this.STORAGE_PREFIX + slug);
-      return raw ? JSON.parse(raw) : {};
-    } catch { return {}; }
+    return SafeStorage.getJSON(this.STORAGE_PREFIX + slug, {});
   }
 
   /** Save to a specific slot */
@@ -51,12 +45,7 @@ class SaveManager {
       visitedCount: engine.state.visited.size
     };
 
-    if (typeof SafeStorage !== 'undefined') {
-      SafeStorage.setJSON(this.STORAGE_PREFIX + slug, slots);
-    } else {
-      try { localStorage.setItem(this.STORAGE_PREFIX + slug, JSON.stringify(slots)); } catch { /* storage full */ }
-    }
-
+    SafeStorage.setJSON(this.STORAGE_PREFIX + slug, slots);
     this._recentCache = undefined; // invalidate
     return slots[slotName];
   }
@@ -70,11 +59,7 @@ class SaveManager {
   deleteSlot(slug, slotName) {
     const slots = this.getSlots(slug);
     delete slots[slotName];
-    if (typeof SafeStorage !== 'undefined') {
-      SafeStorage.setJSON(this.STORAGE_PREFIX + slug, slots);
-    } else {
-      try { localStorage.setItem(this.STORAGE_PREFIX + slug, JSON.stringify(slots)); } catch { /* noop */ }
-    }
+    SafeStorage.setJSON(this.STORAGE_PREFIX + slug, slots);
     this._recentCache = undefined; // invalidate
   }
 

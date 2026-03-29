@@ -142,12 +142,7 @@ class TitleBrowser {
   // ── State persistence ──
 
   _loadState() {
-    let stored = null;
-    if (typeof SafeStorage !== 'undefined') {
-      stored = SafeStorage.getJSON(TitleBrowser.STORAGE_KEY, null);
-    } else {
-      try { stored = JSON.parse(localStorage.getItem(TitleBrowser.STORAGE_KEY) || 'null'); } catch { stored = null; }
-    }
+    const stored = SafeStorage.getJSON(TitleBrowser.STORAGE_KEY, null);
     const next = { ...TitleBrowser.DEFAULTS, ...(stored || {}) };
     this._activeFilter = next.filter;
     this._activeSort = next.sort;
@@ -162,11 +157,7 @@ class TitleBrowser {
       filter: this._activeFilter,
       sort: this._activeSort
     };
-    if (typeof SafeStorage !== 'undefined') {
-      SafeStorage.setJSON(TitleBrowser.STORAGE_KEY, state);
-    } else {
-      try { localStorage.setItem(TitleBrowser.STORAGE_KEY, JSON.stringify(state)); } catch { /* noop */ }
-    }
+    SafeStorage.setJSON(TitleBrowser.STORAGE_KEY, state);
     this._updateClearButton();
   }
 
