@@ -334,16 +334,16 @@ class VNUI {
         this.spritesEl.appendChild(spriteEl);
         this._activeSprites.set(char.name, spriteEl);
 
-        // Trigger entrance animation
+        // Trigger entrance animation via CSS custom properties
         requestAnimationFrame(() => {
-          spriteEl.style.left = pos.x;
-          spriteEl.style.transform = `translateX(-50%) scale(${pos.scale})`;
+          spriteEl.style.setProperty('--sprite-x', pos.x);
+          spriteEl.style.setProperty('--sprite-scale', pos.scale);
           img.classList.add('visible');
         });
       } else {
-        // Move existing sprite
-        spriteEl.style.left = pos.x;
-        spriteEl.style.transform = `translateX(-50%) scale(${pos.scale})`;
+        // Move existing sprite via CSS custom properties
+        spriteEl.style.setProperty('--sprite-x', pos.x);
+        spriteEl.style.setProperty('--sprite-scale', pos.scale);
       }
 
       // Highlight speaker — use CSS classes instead of inline styles for theme reactivity

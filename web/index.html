@@ -219,39 +219,5 @@
   <script src="js/ui.js"></script>
   <script src="js/title-browser.js"></script>
   <script src="js/main.js"></script>
-  <script>
-    // Register service worker for PWA / offline support with update notification
-    if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.register('sw.js').then(reg => {
-        // Check for updates periodically
-        reg.addEventListener('updatefound', () => {
-          const newWorker = reg.installing;
-          if (!newWorker) return;
-          newWorker.addEventListener('statechange', () => {
-            if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
-              // New version available — show update banner (no inline handlers for CSP safety)
-              const banner = document.createElement('div');
-              banner.className = 'sw-update-banner';
-              const text = document.createElement('span');
-              text.className = 'sw-update-text';
-              text.textContent = '🐱 NyanTales updated!';
-              const reloadBtn = document.createElement('button');
-              reloadBtn.className = 'sw-update-btn';
-              reloadBtn.textContent = 'Reload';
-              reloadBtn.addEventListener('click', () => location.reload());
-              const dismissBtn = document.createElement('button');
-              dismissBtn.className = 'sw-dismiss-btn';
-              dismissBtn.setAttribute('aria-label', 'Dismiss');
-              dismissBtn.textContent = '✕';
-              dismissBtn.addEventListener('click', () => banner.remove());
-              banner.append(text, reloadBtn, dismissBtn);
-              document.body.appendChild(banner);
-              requestAnimationFrame(() => banner.classList.add('visible'));
-            }
-          });
-        });
-      }).catch(() => {});
-    }
-  </script>
 </body>
 </html>

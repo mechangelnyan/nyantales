@@ -539,6 +539,8 @@ body {
 .vn-sprite-wrap {
   position: absolute;
   top: 1rem;
+  left: var(--sprite-x, 50%);
+  transform: translateX(-50%) scale(var(--sprite-scale, 1));
   transition: left 0.5s ease, transform 0.5s ease;
   display: flex;
   flex-direction: column;
