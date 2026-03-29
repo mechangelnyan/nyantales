@@ -140,10 +140,11 @@ for line in lines:
         new_lines.append(line)
 
 result = '\n'.join(new_lines)
-# Update OG/Twitter URLs for dist subdirectory
+# Update image URLs for dist subdirectory (og:image, twitter:image, JSON-LD image)
+# Note: og:url and canonical already point to root (redirect handles routing)
 result = result.replace(
-    'https://mechangelnyan.github.io/nyantales/web/',
-    'https://mechangelnyan.github.io/nyantales/web/dist/'
+    'nyantales/web/assets/',
+    'nyantales/web/dist/assets/'
 )
 with open('$DIST/index.html', 'w') as f:
     f.write(result)
