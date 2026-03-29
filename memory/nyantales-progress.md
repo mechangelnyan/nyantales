@@ -1958,5 +1958,27 @@ cd /tmp/nyantales && python3 -m http.server 9876
 - All 34 JS files pass `node --check`, 204/204 unit tests, 50/50 Playwright tests
 - Committed & pushed
 
+## Phase 107: SafeStorage Eviction Bug Fix, Full localStorage Migration ✅
+- **CRITICAL BUG FIX:** `SafeStorage._evictOldest()` was looking for `data[3]` (numeric index) but save slots use string key `'auto'`
+  - Quota-exceeded recovery was completely broken — eviction never found any auto-save to delete
+  - Fixed to check `data.auto` and `delete data.auto` (matching actual save slot schema)
+  - Bug existed since Phase 29 when SafeStorage was introduced
+- **SaveManager.getMostRecentSave()** — `JSON.parse(localStorage.getItem())` → `SafeStorage.getJSON()`
+  - Also replaced `Object.entries(slots)` loop with `for...in` (zero allocation)
+- **SaveManager.migrateLegacy()** — raw `getItem`/`setItem`/`removeItem` → SafeStorage methods
+- **DataManager** — `exportAll()`, `importFromFile()`, `getStats()` all migrated to SafeStorage
+  - Export: `getItem + JSON.parse` → `SafeStorage.getJSON`
+  - Import: `localStorage.setItem(key, JSON.stringify())` → `SafeStorage.setJSON` (gains quota-exceeded handling)
+  - Stats: `getItem` → `SafeStorage.getRaw` / `SafeStorage.getJSON`
+- **main.js hints-shown** — raw `localStorage.getItem/setItem` → `SafeStorage.getRaw/setRaw`
+- **settings-panel campaign reset** — removed redundant `SafeStorage.setJSON(null)` before `removeItem`
+- **SafeStorage.remove(key)** — new safe wrapper for `localStorage.removeItem` with try/catch
+  - Replaces 2 manually-wrapped `try { localStorage.removeItem } catch {}` call sites
+- **Zero raw localStorage calls remain outside SafeStorage class**
+  - Only `localStorage.length` / `localStorage.key(i)` enumeration remains (expected — SafeStorage doesn't wrap iteration)
+- SW cache bumped to v90, production build regenerated (186KB bundle)
+- All 34 JS files pass `node --check`, 204/204 unit tests, 50/50 Playwright tests
+- 2 commits pushed
+
 ## Log (continued)
-- 2026-03-29 (2:27 AM): Phase 106 — Removed 11 unnecessary typeof SafeStorage guards (SafeStorage always available via script load order). Removed deprecated gallery.onStoryClick() shim. Migrated stats-dashboard prefs to SafeStorage. 80 lines removed. SW v88, 186KB bundle. All 34 JS + 204/204 unit + 50/50 Playwright pass. Committed & pushed.
+- 2026-03-29 (3:27 AM): Phase 107 — CRITICAL: SafeStorage._evictOldest() was checking data[3] instead of data.auto (save slots use string key 'auto') — quota-exceeded recovery was completely broken since Phase 29. Migrated all remaining raw localStorage to SafeStorage: SaveManager scan/migrate, DataManager export/import/stats, main.js hints, settings campaign reset. Added SafeStorage.remove() wrapper. Zero raw localStorage outside SafeStorage class. SW v90, 186KB bundle. All 34 JS + 204/204 unit + 50/50 Playwright pass. 2 commits pushed.
