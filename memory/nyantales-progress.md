@@ -2161,3 +2161,26 @@ cd /tmp/nyantales && python3 -m http.server 9876
 
 ## Log (continued)
 - 2026-03-29 (1:27 PM): Phase 116 — CSS bug fix: duplicate @keyframes continuePulse caused click indicator to get wrong animation (box-shadow instead of opacity). Renamed to clickIndicatorPulse. Extracted --panel-r/g/b CSS custom properties for 13 hardcoded rgba(20,20,40,...) panel backgrounds. Merged 2 duplicate selectors (.title-bg scroll-behavior, .story-card position:relative). SW v99, 186KB JS / 89KB CSS. All 34 JS + 204/204 unit + 50/50 Playwright pass. Committed & pushed.
+
+## Phase 117: CSS Color Variable Extraction ✅
+- **Added RGB component custom properties for all semantic colors**:
+  - `--green-r/g/b` (0, 255, 136) for `--accent-green`
+  - `--yellow-r/g/b` (255, 215, 0) for `--accent-yellow`
+  - `--red-r/g/b` (255, 68, 68) for `--accent-red`
+  - `--magenta-r/g/b` (255, 54, 171) for `--accent-magenta`
+- **Replaced 59 hardcoded `rgba()` values** with CSS custom property references:
+  - 24 `rgba(0, 255, 136, ...)` green → `rgba(var(--green-r), var(--green-g), var(--green-b), ...)`
+  - 23 `rgba(255, 215, 0, ...)` yellow → `rgba(var(--yellow-r), var(--yellow-g), var(--yellow-b), ...)`
+  - 7 `rgba(255, 68, 68, ...)` red → `rgba(var(--red-r), var(--red-g), var(--red-b), ...)`
+  - 5 `rgba(255, 54, 171, ...)` magenta → `rgba(var(--magenta-r), var(--magenta-g), var(--magenta-b), ...)`
+- **Mood variables now reference accent vars** — `--mood-tense: var(--accent-red)`, `--mood-peaceful: var(--accent-green)`, `--mood-glitch: var(--accent-cyan)`
+  - DRY: single source of truth for each color
+- **Merged duplicate `.story-info-share-btn`** selector (base + color properties combined into one block)
+- **Route map legend** uses `var(--accent-green)` instead of hardcoded `#00ff88`
+- All semantic colors now customizable via CSS custom properties (matching Phase 36's accent color pattern)
+- SW cache bumped to v100, production build regenerated (186KB JS, 91KB CSS)
+- All 34 JS files pass `node --check`, 204/204 unit tests, 50/50 Playwright tests
+- Committed & pushed
+
+## Log (continued)
+- 2026-03-29 (2:27 PM): Phase 117 — Extracted CSS RGB custom properties for green/yellow/red/magenta (59 hardcoded rgba values replaced). Mood vars now reference accent vars. Merged duplicate .story-info-share-btn. Route map legend uses var(--accent-green). SW v100, 186KB JS / 91KB CSS. All 34 JS + 204/204 unit + 50/50 Playwright pass. Committed & pushed.
