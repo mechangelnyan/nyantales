@@ -1887,3 +1887,23 @@ cd /tmp/nyantales && python3 -m http.server 9876
 
 ## Log (continued)
 - 2026-03-28 (10:27 PM): Phase 102 — Toast remove-animation timers tracked in _removeTimers Map (overflow eviction + dismiss were untracked). Chapter card refs built inline during grid construction (eliminates querySelectorAll + 3× querySelector fallback). FocusTrap _getFocusableElements reuses _focusableBuf array instead of allocating per Tab keypress. SW v84, 190KB bundle. All 33 JS + 204/204 unit + 50/50 Playwright pass. Committed & pushed.
+
+## Phase 103: OverlayMixin — DRY Show/Hide/FocusTrap ✅
+- **`OverlayMixin` utility** (`web/js/overlay-mixin.js`) — shared show/hide/isVisible helpers for modal overlays
+  - `OverlayMixin.show(host)`: sets `aria-hidden="false"`, adds `.visible` via rAF, lazily creates and activates FocusTrap
+  - `OverlayMixin.hide(host)`: removes `.visible`, sets `aria-hidden="true"`, deactivates FocusTrap
+  - `OverlayMixin.isVisible(host)`: checks `.visible` class presence
+  - Supports both `.overlay` and `._overlay` property names (auto-detected)
+  - `_focusTrapTarget` property for panels needing focus trap on inner panel (not overlay root)
+- **Integrated into 11 overlay modules** — each panel's show/hide/isVisible now delegates to OverlayMixin:
+  - `about.js`, `keyboard-help.js`, `gallery.js`, `history.js`, `save-manager.js`
+  - `scene-select.js`, `settings-panel.js`, `route-map.js`, `stats-dashboard.js`
+  - `story-info.js`, `achievement-panel.js`
+- Panels with custom hide() cleanup (settings-panel timers, route-map unbind) keep their extra logic alongside the mixin call
+- ~100 lines of boilerplate removed across 11 files (6 per module: aria-hidden toggle, classList add/remove, focusTrap create/activate/deactivate)
+- SW cache bumped to v85, production build regenerated (187KB bundle)
+- All 34 JS files pass `node --check`, 204/204 unit tests, 50/50 Playwright tests
+- Committed & pushed
+
+## Log (continued)
+- 2026-03-28 (11:27 PM): Phase 103 — Extracted OverlayMixin utility to DRY the identical show/hide/isVisible/aria-hidden/FocusTrap pattern duplicated across 11 overlay modules. Each module now delegates to OverlayMixin.show/hide/isVisible helpers. Panels with custom _focusTrapTarget (gallery, history, save-manager, scene-select, story-info) set it before calling mixin. ~100 lines removed. SW v85, 187KB bundle. All 34 JS + 204/204 unit + 50/50 Playwright pass. Committed & pushed.
