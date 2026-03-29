@@ -64,10 +64,10 @@ class AmbientAudio {
     // Stop old nodes after fade (tracked to prevent stale cleanup on rapid theme changes)
     const oldNodes = [...this.nodes];
     this._trackFadeTimer(setTimeout(() => {
-      oldNodes.forEach(n => {
+      for (const n of oldNodes) {
         try { n.stop(); } catch (e) {}
         try { n.disconnect(); } catch (e) {}
-      });
+      }
     }, 800));
     this.nodes = [];
 
@@ -90,10 +90,10 @@ class AmbientAudio {
     this._cancelFadeTimers();
     this.masterGain.gain.setTargetAtTime(0, this.ctx.currentTime, 0.3);
     this._trackFadeTimer(setTimeout(() => {
-      this.nodes.forEach(n => {
+      for (const n of this.nodes) {
         try { n.stop(); } catch (e) {}
         try { n.disconnect(); } catch (e) {}
-      });
+      }
       this.nodes = [];
       this.currentTheme = null;
     }, 500));

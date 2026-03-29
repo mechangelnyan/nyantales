@@ -229,12 +229,12 @@ class SceneSelect {
     const items = this._cachedItems || [];
     let visible = 0;
 
-    items.forEach(item => {
+    for (const item of items) {
       const text = (item.dataset.searchText || '').toLowerCase();
       const isVisible = !q || text.includes(q);
       item.classList.toggle('hidden-by-filter', !isVisible);
       if (isVisible) visible++;
-    });
+    }
 
     this._visibleCount = visible;
     this._syncCount();

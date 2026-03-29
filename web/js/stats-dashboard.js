@@ -407,9 +407,9 @@ class StatsDashboard {
       // Count total possible endings from story data
       let totalEndings = 0;
       if (story._parsed?.scenes) {
-        Object.values(story._parsed.scenes).forEach(s => {
-          if (s.ending) totalEndings++;
-        });
+        for (const id in story._parsed.scenes) {
+          if (story._parsed.scenes[id].ending) totalEndings++;
+        }
       }
 
       return {
@@ -429,20 +429,19 @@ class StatsDashboard {
       };
     });
 
-    // Sort by most played, then most progress
-    const mostPlayed = [...storyRows].sort((a, b) => b.plays - a.plays).filter(s => s.plays > 0);
-    const recentlyPlayed = [...storyRows].sort((a, b) => b.lastPlayed - a.lastPlayed).filter(s => s.lastPlayed > 0);
-
-    // Total scenes across all stories
-    const totalScenes = storyRows.reduce((sum, s) => sum + s.sceneCount, 0);
-    const totalScenesVisited = storyRows.reduce((sum, s) => sum + s.visitedCount, 0);
-
-    // Total endings possible vs found
-    const totalEndingsPossible = storyRows.reduce((sum, s) => sum + s.totalEndings, 0);
-
-    // Save count
-    let saveCount = 0;
-    storyRows.forEach(s => { if (s.hasSave) saveCount++; });
+    // Single-pass aggregation (was 3 reduce + 1 forEach = 4 array passes)
+    let totalScenes = 0, totalScenesVisited = 0, totalEndingsPossible = 0, saveCount = 0;
+    const mostPlayed = [], recentlyPlayed = [];
+    for (const s of storyRows) {
+      totalScenes += s.sceneCount;
+      totalScenesVisited += s.visitedCount;
+      totalEndingsPossible += s.totalEndings;
+      if (s.hasSave) saveCount++;
+      if (s.plays > 0) mostPlayed.push(s);
+      if (s.lastPlayed > 0) recentlyPlayed.push(s);
+    }
+    mostPlayed.sort((a, b) => b.plays - a.plays);
+    recentlyPlayed.sort((a, b) => b.lastPlayed - a.lastPlayed);
 
     // Campaign progress
     let campaignStats = null;

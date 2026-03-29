@@ -284,18 +284,18 @@ class StoryInfoModal {
     const r = this._refs;
 
     const data = this.tracker.getStory(story.slug);
-    const scenes = story._parsed?.scenes ? Object.keys(story._parsed.scenes) : [];
-    const totalScenes = scenes.length;
+    // Single pass: scene count, endings, word count (avoids Object.keys + Object.values + filter + reduce)
+    let totalScenes = 0, totalEndings = 0, wordCount = 0;
+    if (story._parsed?.scenes) {
+      for (const id in story._parsed.scenes) {
+        totalScenes++;
+        const sc = story._parsed.scenes[id];
+        if (sc.ending) totalEndings++;
+        if (sc.text) wordCount += sc.text.split(/\s+/).length;
+      }
+    }
     const visitedCount = (data.visitedScenes || []).length;
     const pct = totalScenes > 0 ? Math.round((visitedCount / totalScenes) * 100) : 0;
-    const totalEndings = story._parsed?.scenes
-      ? Object.values(story._parsed.scenes).filter(sc => sc.ending).length
-      : 0;
-
-    // Word count / reading time
-    const wordCount = story._parsed?.scenes
-      ? Object.values(story._parsed.scenes).reduce((s, sc) => s + ((sc.text || '').split(/\s+/).length), 0)
-      : 0;
     const readMins = Math.max(1, Math.ceil(wordCount / 200));
 
     // Protagonist portrait

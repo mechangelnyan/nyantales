@@ -88,7 +88,9 @@
   const _totalCharCount = (() => {
     const chars = new Set();
     if (typeof CHARACTER_DATA !== 'undefined') {
-      Object.values(CHARACTER_DATA).forEach(cs => cs.forEach(c => chars.add(c.name)));
+      for (const slug in CHARACTER_DATA) {
+        for (const c of CHARACTER_DATA[slug]) chars.add(c.name);
+      }
     }
     return chars.size;
   })();
@@ -795,12 +797,17 @@
     if (cached) return cached;
 
     const scenes = story._parsed?.scenes;
-    const sceneCount = scenes ? Object.keys(scenes).length : 0;
-    const wordCount = scenes
-      ? Object.values(scenes).reduce((sum, s) => sum + ((s.text || '').split(/\s+/).length), 0)
-      : 0;
+    let sceneCount = 0, wordCount = 0, totalEndings = 0;
+    if (scenes) {
+      for (const id in scenes) {
+        sceneCount++;
+        const s = scenes[id];
+        if (s.text) wordCount += s.text.split(/\s+/).length;
+        if (s.ending) totalEndings++;
+      }
+    }
     const readMins = Math.max(1, Math.ceil(wordCount / 200));
-    const meta = { sceneCount, readMins, wordCount };
+    const meta = { sceneCount, readMins, wordCount, totalEndings };
     _storyMetaCache.set(story.slug, meta);
     return meta;
   }
@@ -1017,10 +1024,10 @@
       _storyCardRefs.clear();
       ui.renderStoryList(storyIndex);
       const cards = titleBrowser.refreshCards();
-      storyIndex.forEach((story, idx) => {
+      for (let idx = 0; idx < storyIndex.length; idx++) {
         const card = cards[idx];
-        if (card) decorateStoryCard(card, story);
-      });
+        if (card) decorateStoryCard(card, storyIndex[idx]);
+      }
       _gridBuilt = true;
     } else {
       // Subsequent renders: update dynamic card state without rebuilding DOM
@@ -1040,9 +1047,10 @@
    */
   function _refreshStoryCards() {
     const cards = titleBrowser.refreshCards();
-    storyIndex.forEach((story, idx) => {
+    for (let idx = 0; idx < storyIndex.length; idx++) {
+      const story = storyIndex[idx];
       const card = cards[idx];
-      if (!card) return;
+      if (!card) continue;
 
       const locked = !isStoryUnlocked(story.slug);
       const wasLocked = card.dataset.locked === '1';
@@ -1053,10 +1061,10 @@
         _storyCardRefs.delete(idx);
         _resetCardForRedecorate(card, story);
         decorateStoryCard(card, story);
-        return;
+        continue;
       }
 
-      if (locked) return; // Locked cards don't need dynamic updates
+      if (locked) continue; // Locked cards don't need dynamic updates
 
       const completed = tracker.isCompleted(story.slug);
       const endings = tracker.endingCount(story.slug);
@@ -1107,7 +1115,7 @@
       card.dataset.favorite = isFav ? '1' : '0';
       card.dataset.progress = pct;
       card.dataset.lastPlayed = tracker.getStory(story.slug).lastPlayed || 0;
-    });
+    }
   }
 
   /**
@@ -1235,11 +1243,11 @@
   function buildStorySearchBlob(story) {
     const chars = (typeof CHARACTER_DATA !== 'undefined' && CHARACTER_DATA[story.slug]) || [];
     const parts = [story.slug, story.title, story.description || ''];
-    chars.forEach(char => {
+    for (const char of chars) {
       parts.push(char.name || '');
       parts.push(char.appearance || '');
       parts.push(char.role || '');
-    });
+    }
     return parts.join(' ').toLowerCase();
   }
 
@@ -1753,12 +1761,14 @@
   function rebuildCampaignSlugMap() {
     _campaignSlugMap.clear();
     if (!campaign.isLoaded) return;
-    campaign.chapters.forEach((ch, i) => {
-      _campaignSlugMap.set(ch.story, { type: 'chapter', index: i });
-    });
-    (campaign.manifest?.bonus_chapters || []).forEach(b => {
+    const chapters = campaign.chapters;
+    for (let i = 0; i < chapters.length; i++) {
+      _campaignSlugMap.set(chapters[i].story, { type: 'chapter', index: i });
+    }
+    const bonus = campaign.manifest?.bonus_chapters || [];
+    for (const b of bonus) {
       _campaignSlugMap.set(b.story, { type: 'bonus', flag: b.unlock_flag || null });
-    });
+    }
   }
 
   /**
@@ -1814,16 +1824,17 @@
 
     // Build act → chapters mapping
     const actMap = {};
-    acts.forEach(act => { actMap[act.id] = []; });
+    for (const act of acts) actMap[act.id] = [];
 
-    chapters.forEach((ch, idx) => {
+    for (let idx = 0; idx < chapters.length; idx++) {
+      const ch = chapters[idx];
       if (!actMap[ch.act]) actMap[ch.act] = [];
       actMap[ch.act].push({ ch, idx });
-    });
+    }
 
-    acts.forEach(act => {
+    for (const act of acts) {
       const items = actMap[act.id] || [];
-      if (!items.length) return;
+      if (!items.length) continue;
 
       const section = document.createElement('div');
       section.className = 'act-section';
@@ -1843,7 +1854,7 @@
       const cards = document.createElement('div');
       cards.className = 'chapter-cards';
 
-      items.forEach(({ ch, idx }) => {
+      for (const { ch, idx } of items) {
         const unlocked = isChapterUnlocked(idx);
         const completed = campaign.progress.completedChapters.includes(idx);
         const isStarted = campaign.progress.started;
@@ -1897,11 +1908,11 @@
 
         // Cache refs inline during construction (avoids querySelectorAll in _refreshChapterCards)
         _chapterCardRefs.set(idx, { card, titleEl, descEl, statusEl: status });
-      });
+      }
 
       section.appendChild(cards);
       gridFrag.appendChild(section);
-    });
+    }
     chapterGridEl.appendChild(gridFrag);
     _chapterGridBuilt = true;
   }
@@ -1922,8 +1933,8 @@
     const isStarted = campaign.progress.started;
     const currentIdx = campaign.progress.chapterIndex;
 
-    _chapterCardRefs.forEach(({ card, titleEl, descEl, statusEl }, idx) => {
-      if (!chapters[idx]) return;
+    for (const [idx, { card, titleEl, descEl, statusEl }] of _chapterCardRefs) {
+      if (!chapters[idx]) continue;
       const ch = chapters[idx];
 
       const unlocked = isChapterUnlocked(idx);
@@ -1958,7 +1969,7 @@
           statusEl.removeAttribute('aria-hidden');
         }
       }
-    });
+    }
   }
 
   // ── Chapter Grid Click Delegation ──

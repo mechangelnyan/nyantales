@@ -188,7 +188,8 @@ class VNUI {
     this.storyListEl.textContent = '';
     // Batch-append cards via DocumentFragment (1 reflow instead of 30)
     const frag = document.createDocumentFragment();
-    stories.forEach((story, idx) => {
+    for (let idx = 0; idx < stories.length; idx++) {
+      const story = stories[idx];
       const card = document.createElement('div');
       card.className = 'story-card fade-in';
       card.style.setProperty('--card-delay', `${Math.min(idx * 0.04, 1.2)}s`);
@@ -230,7 +231,7 @@ class VNUI {
       card._innerRefs = { inner, textDiv, h3, p, spriteEl };
 
       frag.appendChild(card);
-    });
+    }
     this.storyListEl.appendChild(frag);
   }
 
@@ -310,7 +311,8 @@ class VNUI {
     }
 
     // Add/update visible sprites
-    visible.forEach((char, i) => {
+    for (let i = 0; i < visible.length; i++) {
+      const char = visible[i];
       const isSpeaker = speakerFlags[i];
       let spriteEl = this._activeSprites.get(char.name);
       const pos = positions[i];
@@ -350,7 +352,7 @@ class VNUI {
       spriteEl.classList.toggle('speaking', isSpeaker);
       // Clear any ending-state classes from previous scene
       spriteEl.classList.remove('ending-good', 'ending-bad', 'ending-neutral');
-    });
+    }
   }
 
   /** Track a setTimeout so it can be cancelled on scene teardown. */
@@ -607,7 +609,7 @@ class VNUI {
 
       // Split each text node into individual spans for character-level reveal
       const charSpans = [];
-      textNodes.forEach(tn => {
+      for (const tn of textNodes) {
         const parent = tn.parentNode;
         const chars = tn.textContent;
         const frag = document.createDocumentFragment();
@@ -619,7 +621,7 @@ class VNUI {
           frag.appendChild(span);
         }
         parent.replaceChild(frag, tn);
-      });
+      }
 
       const type = () => {
         const end = Math.min(revealedLen + 2, charSpans.length);
@@ -745,7 +747,8 @@ class VNUI {
     }
 
     const frag = document.createDocumentFragment();
-    choices.forEach((choice, i) => {
+    for (let i = 0; i < choices.length; i++) {
+      const choice = choices[i];
       const btn = this._choiceBtnPool[i];
       btn.className = 'choice-btn fade-in';
       btn.style.setProperty('--choice-delay', `${i * 0.08}s`);
@@ -771,7 +774,7 @@ class VNUI {
       if (visited) btn.appendChild(btn._visitedSpan);
 
       frag.appendChild(btn);
-    });
+    }
     this.choicesEl.appendChild(frag);
 
     // One-time delegation setup

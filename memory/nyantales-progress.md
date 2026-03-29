@@ -2019,3 +2019,27 @@ cd /tmp/nyantales && python3 -m http.server 9876
 
 ## Log (continued)
 - 2026-03-29 (6:27 AM): Phase 109 — Static theme map + switch dispatch in audio.js (zero object allocation per classify/build). DocumentFragment sort in title-browser (1 reflow vs 30). forEach→for-of in 5 filter hot paths. Cached _slugToTitle in gallery. SW v92, 186KB bundle. All 34 JS + 204/204 unit + 50/50 Playwright pass. 2 commits pushed.
+
+## Phase 110: Single-Pass Stats, forEach→for Conversion, Cached totalEndings ✅
+- **`getStoryMeta()` extended with `totalEndings`** — single `for...in` loop computes sceneCount, wordCount, AND totalEndings in one pass
+  - Previously: separate `Object.keys()` + `Object.values().reduce()` calls (2 array allocations + 2 full passes)
+  - Now: single `for...in` over scenes object (zero allocation)
+  - `totalEndings` cached alongside existing sceneCount/readMins/wordCount (immutable story data → cache-forever)
+- **`StatsDashboard._computeStats()` single-pass aggregation** — replaced 3 `.reduce()` + 1 `.forEach()` + 2 `[...spread].sort().filter()` with single `for...of` loop
+  - Was: 6 separate array passes (totalScenes, totalScenesVisited, totalEndingsPossible, saveCount, mostPlayed, recentlyPlayed)
+  - Now: 1 pass accumulates all counters and builds filtered sub-arrays, then 2 sorts on pre-filtered arrays
+  - Also converted `Object.values(scenes).forEach` ending count to `for...in` (avoids Object.values allocation)
+- **`StoryInfoModal.show()` single-pass** — replaced `Object.keys()` + `Object.values().filter()` + `Object.values().reduce()` with one `for...in`
+  - Was: 3 separate Object.keys/values calls (3 array allocations + 3 full passes over scenes)
+  - Now: single `for...in` loop computing totalScenes, totalEndings, and wordCount together
+- **forEach → for/for-of conversions** (20 call sites across 5 files):
+  - `ui.js`: `renderStoryList` stories loop, `_updateSprites` visible chars, typewriter textNodes split, `showChoices` choice buttons
+  - `main.js`: 2× story card loops (initial decorate + refresh), CHARACTER_DATA iteration, buildStorySearchBlob chars, campaign slug map (chapters + bonus), chapter grid building (acts init, chapter mapping, act rendering, chapter card creation), chapter card refresh
+  - `scene-select.js`: `_applyFilter` items loop
+  - `audio.js`: 2× node cleanup (theme change + stop)
+- forEach count: 31 → 11 (65% reduction; remaining 11 are small-array cases: 2-element mode btns, 3-item lists, swatches)
+- SW cache bumped to v93, production build regenerated (186KB bundle)
+- All 34 JS files pass `node --check`, 204/204 unit tests, 50/50 Playwright tests
+
+## Log (continued)
+- 2026-03-29 (7:27 AM): Phase 110 — Extended getStoryMeta with totalEndings (single-pass for...in). Stats dashboard single-pass aggregation (6 array passes→1). StoryInfo single-pass scene stats. 20 forEach→for/for-of conversions across ui.js, main.js, scene-select.js, audio.js. forEach count 31→11 (remaining are small-array). SW v93, 186KB bundle. All 34 JS + 204/204 unit + 50/50 Playwright pass.
