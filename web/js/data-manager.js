@@ -131,7 +131,9 @@ class DataManager {
       if (key.startsWith(this.SAVE_PREFIX)) saves++;
       if (key === 'nyantales-tracker') {
         const data = SafeStorage.getJSON(key);
-        if (data) stories = Object.keys(data.stories || {}).length;
+        if (data && data.stories) {
+          for (const _k in data.stories) stories++;
+        }
       }
     }
 

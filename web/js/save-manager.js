@@ -194,7 +194,7 @@ class SaveManager {
       // Mode toggle (save/load)
       const modeBtn = e.target.closest('.save-mode-btn');
       if (modeBtn) {
-        this._modeBtns.forEach(b => b.classList.remove('active'));
+        for (const b of this._modeBtns) b.classList.remove('active');
         modeBtn.classList.add('active');
         this._currentMode = modeBtn.dataset.mode;
         this._renderSlots();
@@ -355,9 +355,9 @@ class SaveManager {
     this._currentMode = mode;
 
     // Set active mode button
-    this._modeBtns.forEach(b => {
+    for (const b of this._modeBtns) {
       b.classList.toggle('active', b.dataset.mode === mode);
-    });
+    }
 
     this._renderSlots();
     this._focusTrapTarget = this._panelEl;

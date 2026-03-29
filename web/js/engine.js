@@ -49,12 +49,12 @@ class StoryEngine {
     if (choice) {
       // Items
       if (choice.give_item) this.addItem(choice.give_item);
-      if (choice.give_items) choice.give_items.forEach(i => this.addItem(i));
+      if (choice.give_items) { for (const i of choice.give_items) this.addItem(i); }
       if (choice.remove_item) this.removeItem(choice.remove_item);
       
       // Flags
       if (choice.set_flag) this.state.flags.add(choice.set_flag);
-      if (choice.set_flags) choice.set_flags.forEach(f => this.state.flags.add(f));
+      if (choice.set_flags) { for (const f of choice.set_flags) this.state.flags.add(f); }
       if (choice.remove_flag) this.state.flags.delete(choice.remove_flag);
     }
 

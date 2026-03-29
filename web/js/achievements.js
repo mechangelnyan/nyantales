@@ -247,10 +247,11 @@ class AchievementSystem {
   /** Show all toasts for newly unlocked achievements (staggered) */
   showNewUnlocks(newlyUnlocked) {
     this.cancelPendingToasts();
-    newlyUnlocked.forEach((ach, i) => {
+    for (let i = 0; i < newlyUnlocked.length; i++) {
+      const ach = newlyUnlocked[i];
       const id = setTimeout(() => this.showToast(ach), i * 4000);
       this._toastTimers.push(id);
-    });
+    }
   }
 
   /** Cancel any pending staggered achievement toasts (e.g. on story exit) */

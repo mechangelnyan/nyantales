@@ -120,7 +120,7 @@ class AboutPanel {
 
     // Pre-build stat value elements so show() can update textContent instead of innerHTML
     this._statVals = {};
-    ['stories', 'characters', 'achievements'].forEach(key => {
+    for (const key of ['stories', 'characters', 'achievements']) {
       const div = document.createElement('div');
       div.className = 'about-stat';
       const valEl = document.createElement('span');
@@ -132,7 +132,7 @@ class AboutPanel {
       div.appendChild(lblEl);
       this._statsEl.appendChild(div);
       this._statVals[key] = valEl;
-    });
+    }
 
     // Single delegated click listener for close + backdrop
     this.overlay.addEventListener('click', (e) => {

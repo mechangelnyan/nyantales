@@ -51,7 +51,7 @@ class SettingsPanel {
       if (opts.ctrlId) ctrl.id = opts.ctrlId;
       if (opts.role) { ctrl.setAttribute('role', opts.role); ctrl.setAttribute('aria-label', opts.ariaLabel || ''); }
       if (controlContent) ctrl.appendChild(controlContent);
-      if (opts.extraChildren) opts.extraChildren.forEach(c => ctrl.appendChild(c));
+      if (opts.extraChildren) { for (const c of opts.extraChildren) ctrl.appendChild(c); }
       row.appendChild(ctrl);
       return { row, ctrl };
     };
@@ -107,7 +107,8 @@ class SettingsPanel {
     delayCtrl.appendChild(delaySlider.val);
     textGrp.appendChild(delayRow);
 
-    textGrp.appendChild(mkRow('Skip Read Scenes', mkToggle('set-skip-read')).row);
+    const skipReadBtn = mkToggle('set-skip-read');
+    textGrp.appendChild(mkRow('Skip Read Scenes', skipReadBtn).row);
     bodyEl.appendChild(textGrp);
 
     // ── Visual group ──
@@ -118,9 +119,12 @@ class SettingsPanel {
     fontCtrl.appendChild(fontSlider.val);
     visGrp.appendChild(fontRow);
 
-    visGrp.appendChild(mkRow('Screen Effects', mkToggle('set-screen-shake')).row);
-    visGrp.appendChild(mkRow('Particles', mkToggle('set-particles')).row);
-    visGrp.appendChild(mkRow('Fullscreen', mkToggle('set-fullscreen')).row);
+    const screenShakeBtn = mkToggle('set-screen-shake');
+    visGrp.appendChild(mkRow('Screen Effects', screenShakeBtn).row);
+    const particlesBtn = mkToggle('set-particles');
+    visGrp.appendChild(mkRow('Particles', particlesBtn).row);
+    const fullscreenBtn = mkToggle('set-fullscreen');
+    visGrp.appendChild(mkRow('Fullscreen', fullscreenBtn).row);
 
     // Color theme swatches
     const themeCtrl = document.createElement('div');
@@ -204,62 +208,60 @@ class SettingsPanel {
       if (e.target === this.overlay || e.target.closest('.settings-close')) this.hide();
     });
 
-    // Cache DOM refs used repeatedly (avoids getElementById on every show/sync/action)
+    // Cache DOM refs directly from build-time variables (zero getElementById calls)
     this._previewTimer = null;
     /** Tracked feedback timers for button text reset (cleared on hide to prevent orphan writes) */
     this._feedbackTimers = [];
     this._els = {
-      textSpeed:    document.getElementById('set-text-speed'),
-      textSpeedVal: document.getElementById('set-text-speed-val'),
-      preview:      document.getElementById('set-text-preview'),
-      autoDelay:    document.getElementById('set-auto-delay'),
-      autoDelayVal: document.getElementById('set-auto-delay-val'),
-      autoDelayRow: document.getElementById('row-auto-delay'),
-      fontSize:     document.getElementById('set-font-size'),
-      fontSizeVal:  document.getElementById('set-font-size-val'),
-      volume:       document.getElementById('set-volume'),
-      volumeVal:    document.getElementById('set-volume-val'),
-      exportBtn:    document.getElementById('set-export'),
-      importBtn:    document.getElementById('set-import'),
-      importFile:   document.getElementById('set-import-file'),
-      dataStats:    document.getElementById('set-data-stats'),
-      themeContainer: document.getElementById('set-color-theme')
+      textSpeed:    speedSlider.input,
+      textSpeedVal: speedSlider.val,
+      preview:      previewDiv,
+      autoDelay:    delaySlider.input,
+      autoDelayVal: delaySlider.val,
+      autoDelayRow: delayRow,
+      fontSize:     fontSlider.input,
+      fontSizeVal:  fontSlider.val,
+      volume:       volSlider.input,
+      volumeVal:    volSlider.val,
+      exportBtn:    exportBtn,
+      importBtn:    importBtn,
+      importFile:   importFile,
+      dataStats:    dataStats,
+      themeContainer: themeCtrl
     };
 
-    // Cache theme swatch elements (avoids querySelectorAll on every theme change / sync)
-    this._swatches = this._els.themeContainer
-      ? Array.from(this._els.themeContainer.querySelectorAll('.theme-swatch'))
-      : [];
+    // Cache theme swatch elements from build-time children (zero querySelectorAll)
+    this._swatches = [...themeCtrl.children];
 
-    // Cache toggle button refs (avoids getElementById on every _syncAll)
+    // Cache toggle button refs from build-time variables (zero getElementById)
     this._toggleBtns = {
-      'set-auto-play': document.getElementById('set-auto-play'),
-      'set-skip-read': document.getElementById('set-skip-read'),
-      'set-screen-shake': document.getElementById('set-screen-shake'),
-      'set-particles': document.getElementById('set-particles'),
-      'set-fullscreen': document.getElementById('set-fullscreen')
+      'set-auto-play': autoPlayBtn,
+      'set-skip-read': skipReadBtn,
+      'set-screen-shake': screenShakeBtn,
+      'set-particles': particlesBtn,
+      'set-fullscreen': fullscreenBtn
     };
 
-    // Wire up controls
-    this._wireSlider('set-text-speed', 'textSpeed', v => {
+    // Wire up controls using cached element refs (zero getElementById)
+    this._wireSlider(speedSlider.input, speedSlider.val, 'textSpeed', v => {
       this._runPreview(parseInt(v));
       return SettingsPanel._speedLabel(v);
     });
 
-    this._wireToggle('set-auto-play', 'autoPlay', (val) => {
+    this._wireToggle(autoPlayBtn, 'autoPlay', (val) => {
       this._els.autoDelayRow.classList.toggle('hidden', !val);
     });
 
-    this._wireSlider('set-auto-delay', 'autoPlayDelay', v => `${(v / 1000).toFixed(1)}s`);
-    this._wireToggle('set-skip-read', 'skipRead');
-    this._wireSlider('set-font-size', 'fontSize', v => `${v}%`);
-    this._wireToggle('set-screen-shake', 'screenShake');
-    this._wireToggle('set-particles', 'particles');
+    this._wireSlider(delaySlider.input, delaySlider.val, 'autoPlayDelay', v => `${(v / 1000).toFixed(1)}s`);
+    this._wireToggle(skipReadBtn, 'skipRead');
+    this._wireSlider(fontSlider.input, fontSlider.val, 'fontSize', v => `${v}%`);
+    this._wireToggle(screenShakeBtn, 'screenShake');
+    this._wireToggle(particlesBtn, 'particles');
 
     // Fullscreen toggle — uses settings key so F key and panel stay in sync
-    this._wireToggle('set-fullscreen', 'fullscreen');
+    this._wireToggle(fullscreenBtn, 'fullscreen');
 
-    this._wireSlider('set-volume', 'audioVolume', v => `${v}%`, {
+    this._wireSlider(volSlider.input, volSlider.val, 'audioVolume', v => `${v}%`, {
       toSetting: v => v / 100,
       fromSetting: v => Math.round(v * 100)
     });
@@ -372,9 +374,8 @@ class SettingsPanel {
     }
   }
 
-  _wireSlider(id, key, formatter, transform) {
-    const el = document.getElementById(id);
-    const valEl = document.getElementById(id + '-val');
+  /** Wire a slider using pre-cached element refs (zero getElementById). */
+  _wireSlider(el, valEl, key, formatter, transform) {
     const fromSetting = transform?.fromSetting || (v => v);
     const toSetting = transform?.toSetting || (v => parseInt(v));
 
@@ -387,8 +388,8 @@ class SettingsPanel {
     });
   }
 
-  _wireToggle(id, key, onChange) {
-    const btn = document.getElementById(id);
+  /** Wire a toggle button using pre-cached ref (zero getElementById). */
+  _wireToggle(btn, key, onChange) {
     const val = this.settings.get(key);
     btn.textContent = val ? 'ON' : 'OFF';
     btn.classList.toggle('on', val);
@@ -407,19 +408,19 @@ class SettingsPanel {
     const container = this._els.themeContainer;
     const currentTheme = this.settings.get('colorTheme');
 
-    this._swatches.forEach(btn => {
+    for (const btn of this._swatches) {
       const isActive = btn.dataset.theme === currentTheme;
       btn.classList.toggle('active', isActive);
       btn.setAttribute('aria-pressed', isActive ? 'true' : 'false');
-    });
+    }
 
     container.addEventListener('click', (e) => {
       const swatch = e.target.closest('.theme-swatch');
       if (!swatch) return;
-      this._swatches.forEach(s => {
+      for (const s of this._swatches) {
         s.classList.remove('active');
         s.setAttribute('aria-pressed', 'false');
-      });
+      }
       swatch.classList.add('active');
       swatch.setAttribute('aria-pressed', 'true');
       this.settings.set('colorTheme', swatch.dataset.theme);
@@ -456,11 +457,11 @@ class SettingsPanel {
 
     // Sync color theme swatches (uses cached _swatches array)
     const currentTheme = this.settings.get('colorTheme');
-    this._swatches.forEach(btn => {
+    for (const btn of this._swatches) {
       const isActive = btn.dataset.theme === currentTheme;
       btn.classList.toggle('active', isActive);
       btn.setAttribute('aria-pressed', isActive ? 'true' : 'false');
-    });
+    }
   }
 
   /** Update data usage stats display */

@@ -173,7 +173,7 @@ class StatsDashboard {
     d.achVal = cAch.valText;          d.achTotal = cAch.totalSpan;          d.achBar = cAch.barFill;
     d.savesVal = cSaves.valText;      cSaves.totalSpan.remove();
 
-    [cStories, cEndings, cScenes, cPlays, cReading, cAch, cSaves].forEach(c => d.summary.appendChild(c.card));
+    for (const c of [cStories, cEndings, cScenes, cPlays, cReading, cAch, cSaves]) d.summary.appendChild(c.card);
     panel.appendChild(d.summary);
 
     // ── Campaign section (hidden by default) ──
