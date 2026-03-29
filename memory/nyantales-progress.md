@@ -1887,7 +1887,33 @@ cd /tmp/nyantales && python3 -m http.server 9876
 - All 34 JS files pass `node --check`, 204/204 unit tests, 56/56 Playwright tests
 - 3 commits pushed
 
+## Phase 121: Bug Fixes, SEO, PWA Polish, Test Expansion ✅
+- **CSS BUG FIX: `--accent-purple` circular reference** — was `var(--accent-purple)` referencing itself
+  - Broke `--mood-mysterious` (used by mystery-themed scenes) and violet theme swatch
+  - Both rendered as CSS initial value (transparent/invisible) instead of purple
+  - Fixed to `#cc66ff` (the intended purple color)
+- **Gallery missing from Escape close order + `isAnyPanelOpen()`**
+  - Gallery overlay couldn't be closed with Escape key (only backdrop click worked)
+  - Auto-play timer could resume behind an open gallery (wasn't detected as "panel open")
+  - Added `gallery` to both `panelCloseOrder` array and `isAnyPanelOpen()` check
+- **Sitemap expanded with per-story deep link URLs** — 30 `/?story=<slug>` entries added
+  - Search engines can now discover and index individual stories directly
+  - Uses canonical root-level deep link format (consistent with Phase 57)
+- **manifest.json enhancements**
+  - Added `id` (unique PWA identity), `scope` (navigation scope)
+  - Expanded `description` with story count and feature highlights
+  - Icon `purpose: "any maskable"` for adaptive icons on Android
+  - `shortcuts` array: 2 featured stories (Terminal Cat + Fork Bomb) for app launcher quick actions
+- **Playwright test expansion** (56 → 60 tests)
+  - Gallery: opens, shows 30+ character cards, search filters by name, backdrop closes overlay
+  - About panel: opens, shows NyanTales info, Escape closes overlay
+  - Campaign: button visible on title screen, chapter grid shows 15+ chapters
+- SW cache bumped to v104, production build regenerated (186KB JS, 96KB CSS)
+- All 34 JS files pass `node --check`, 204/204 unit tests, 60/60 Playwright tests
+- Committed & pushed
+
 ## Log (continued)
+- 2026-03-29 (6:27 PM): Phase 121 — Fixed --accent-purple circular CSS reference (broke purple mood + violet swatch). Fixed gallery missing from Escape close order + isAnyPanelOpen (couldn't close with Escape, auto-play could resume behind it). Expanded sitemap with 30 per-story deep link URLs. Enhanced manifest.json (id, scope, shortcuts, maskable icons). Added 4 Playwright tests (gallery, about, campaign). SW v104, 186KB JS / 96KB CSS. All 34 JS + 204/204 unit + 60/60 Playwright pass. Committed & pushed.
 - 2026-03-29 (5:27 PM): Phase 120 — Merged all 12 duplicate CSS selectors into their original definitions (will-change + touch-action utility groups dissolved). Added 6 Playwright tests (save panel, rewind, deep links, color themes, keyboard help). Updated README build sizes. SW v103, 186KB JS / 96KB CSS. All 34 JS + 204/204 unit + 56/56 Playwright pass. 3 commits pushed.
 
 ## Phase 102: Toast Timer Safety, Inline Chapter Refs, FocusTrap Buffer ✅
