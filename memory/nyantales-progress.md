@@ -2006,3 +2006,16 @@ cd /tmp/nyantales && python3 -m http.server 9876
   - Now: single call, result cached in local variable
 - SW cache bumped to v91, production build regenerated (186KB bundle)
 - All 34 JS files pass `node --check`, 204/204 unit tests, 50/50 Playwright tests
+
+## Phase 109: Static Dispatch, DocumentFragment Sort, forEach Cleanup ✅
+- **AmbientAudio static theme map** — `_THEME_MAP` as static property on class (was allocating new object on every `_classifyTheme` call)
+- **AmbientAudio switch dispatch** — `_buildTheme()` uses direct `switch` instead of builder object allocation
+- **Title browser sort via DocumentFragment** — `_applySortToGrid()` now batches 30 card reorders through a DocumentFragment (1 reflow instead of 30 sequential `appendChild` calls)
+- **forEach → for-of in filter hot paths** — `TitleBrowser._applyFilter`, `TitleBrowser._syncControls`, `Gallery._applyFilters`, `Gallery` role filter, `HistoryPanel._filterEntries`
+- **Gallery cached `_slugToTitle`** — static Map cache avoids re-splitting + re-joining slug strings on every story tag (called per story tag per character)
+- SW cache bumped to v92, production build regenerated (186KB bundle)
+- All 34 JS files pass `node --check`, 204/204 unit tests, 50/50 Playwright tests
+- 2 commits pushed
+
+## Log (continued)
+- 2026-03-29 (6:27 AM): Phase 109 — Static theme map + switch dispatch in audio.js (zero object allocation per classify/build). DocumentFragment sort in title-browser (1 reflow vs 30). forEach→for-of in 5 filter hot paths. Cached _slugToTitle in gallery. SW v92, 186KB bundle. All 34 JS + 204/204 unit + 50/50 Playwright pass. 2 commits pushed.
