@@ -94,10 +94,10 @@
   })();
 
   // Wire gallery story click (one-time, not per-show)
-  gallery.onStoryClick((slug) => {
+  gallery.onStorySelect = (slug) => {
     const story = storySlugMap.get(slug);
     if (story) { ensureAudio(); startStory(story); }
-  });
+  };
 
   // Wire stats dashboard play callback (one-time, not per-show)
   statsDashboard.onPlay = (story) => { ensureAudio(); startStory(story); };

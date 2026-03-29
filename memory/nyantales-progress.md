@@ -1922,3 +1922,24 @@ cd /tmp/nyantales && python3 -m http.server 9876
 
 ## Log (continued)
 - 2026-03-29 (12:27 AM): Phase 104 — Removed dead _raw field from story index (saves ~30KB memory). Migrated AchievementSystem to SafeStorage (was last module on raw localStorage). SW v86, 187KB bundle. All 34 JS + 204/204 unit + 50/50 Playwright pass. Committed & pushed.
+
+## Phase 105: Deprecated API Cleanup, Code Quality ✅
+- **Removed deprecated `gallery.onStoryClick()` usage** — main.js now assigns `gallery.onStorySelect` directly
+  - Method was deprecated in Phase 48 but main.js still called it
+  - Fixed closing syntax artifact from old callback-style `onStoryClick((slug) => {...})` → clean assignment
+  - `onStoryClick()` shim still exists in gallery.js as backward compat but no internal callers remain
+- **Verified codebase health at Phase 105**
+  - 34 JS files, 10,555 total lines across web/js/
+  - 83 addEventListener calls (all delegated or one-time init)
+  - Zero TODO/FIXME/HACK/XXX markers
+  - Zero querySelector in warm render paths
+  - Only 5 unavoidable inline styles (canvas sizing, tooltip position, toast color)
+  - 3 remaining innerHTML uses (typewriter HTML output, _escapeHtml utility, error fallback)
+  - Content-Security-Policy enforced (script-src 'self', no unsafe-eval/unsafe-inline)
+  - All 30 stories + campaign functional
+- SW cache bumped to v87, production build regenerated (187KB bundle)
+- All 34 JS files pass `node --check`, 204/204 unit tests, 50/50 Playwright tests
+- Committed & pushed
+
+## Log (continued)
+- 2026-03-29 (1:27 AM): Phase 105 — Cleaned up deprecated gallery.onStoryClick usage (main.js now directly assigns onStorySelect), fixed closing syntax artifact. Verified full codebase health: 34 files, 10.5K lines, 83 addEventListener calls, zero TODOs, zero warm-path querySelector, CSP enforced. SW v87, 187KB bundle. All 34 JS + 204/204 unit + 50/50 Playwright pass. Committed & pushed.
