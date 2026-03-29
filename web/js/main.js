@@ -460,7 +460,7 @@
             console.warn(`[NyanTales] Invalid story data: ${slug}`);
             return null;
           }
-          return { slug, title: parsed.title || slug, description: parsed.description || '', _raw: text, _parsed: parsed };
+          return { slug, title: parsed.title || slug, description: parsed.description || '', _parsed: parsed };
         } catch (err) {
           console.warn(`[NyanTales] Failed to load story: ${slug}`, err);
           return null;

@@ -130,16 +130,12 @@ class AchievementSystem {
   }
 
   _load() {
-    try {
-      const raw = localStorage.getItem(this.storageKey);
-      return raw ? new Set(JSON.parse(raw)) : new Set();
-    } catch { return new Set(); }
+    const arr = SafeStorage.getJSON(this.storageKey, []);
+    return new Set(arr);
   }
 
   _save() {
-    try {
-      localStorage.setItem(this.storageKey, JSON.stringify([...this.unlocked]));
-    } catch { /* noop */ }
+    SafeStorage.setJSON(this.storageKey, [...this.unlocked]);
   }
 
   /**
