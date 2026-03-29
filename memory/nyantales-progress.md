@@ -2182,5 +2182,27 @@ cd /tmp/nyantales && python3 -m http.server 9876
 - All 34 JS files pass `node --check`, 204/204 unit tests, 50/50 Playwright tests
 - Committed & pushed
 
+## Phase 118: CSS Color Variable Extraction — Neutrals & Dark Shades ✅
+- **Added RGB component custom properties for neutrals and dark background shades**:
+  - `--white-r/g/b` (255, 255, 255) — for semi-transparent white borders/backgrounds
+  - `--black-r/g/b` (0, 0, 0) — for shadows, overlays, scanlines
+  - `--bg-deep-r/g/b` (5, 5, 15) — deepest dark shade
+  - `--bg-mid-r/g/b` (10, 10, 25) — mid-tone panel backgrounds
+  - `--bg-surface-r/g/b` (15, 15, 30) — surface-level dark shade
+  - `--accent-purple` (#cc66ff) + `--purple-r/g/b` (204, 102, 255) — for secret endings, mood-mysterious
+- **Replaced 91 hardcoded `rgba()` values** with CSS custom property references:
+  - 48 `rgba(255, 255, 255, ...)` white → `rgba(var(--white-r), var(--white-g), var(--white-b), ...)`
+  - 15 `rgba(0, 0, 0, ...)` black → `rgba(var(--black-r), var(--black-g), var(--black-b), ...)`  
+  - 11 `rgba(5, 5, 15, ...)` deep → `rgba(var(--bg-deep-r), var(--bg-deep-g), var(--bg-deep-b), ...)`
+  - 10 `rgba(10, 10, 25, ...)` mid → `rgba(var(--bg-mid-r), var(--bg-mid-g), var(--bg-mid-b), ...)`
+  - 7 `rgba(15, 15, 30, ...)` surface → `rgba(var(--bg-surface-r), var(--bg-surface-g), var(--bg-surface-b), ...)`
+  - 2 `rgba(204, 102, 255, ...)` purple → `rgba(var(--purple-r), var(--purple-g), var(--purple-b), ...)`
+- **`--mood-mysterious` now references `var(--accent-purple)`** instead of hardcoded `#cc66ff`
+- Remaining 12 rgba values are unique one-off dark shades (1-3 occurrences each, not worth separate vars)
+- Total custom-property-driven rgba: 150 values across Phases 36, 116, 117, and 118 (from ~357 rgba total)
+- SW cache bumped to v101, production build regenerated (186KB JS, 95KB CSS)
+- All 34 JS files pass `node --check`, 204/204 unit tests, 50/50 Playwright tests
+
 ## Log (continued)
+- 2026-03-29 (3:27 PM): Phase 118 — Extracted CSS RGB custom properties for white/black/bg-deep/bg-mid/bg-surface/purple (91 more hardcoded rgba values replaced). Added --accent-purple. --mood-mysterious uses var(--accent-purple). 150 total rgba values now driven by CSS custom properties. SW v101, 186KB JS / 95KB CSS. All 34 JS + 204/204 unit + 50/50 Playwright pass.
 - 2026-03-29 (2:27 PM): Phase 117 — Extracted CSS RGB custom properties for green/yellow/red/magenta (59 hardcoded rgba values replaced). Mood vars now reference accent vars. Merged duplicate .story-info-share-btn. Route map legend uses var(--accent-green). SW v100, 186KB JS / 91KB CSS. All 34 JS + 204/204 unit + 50/50 Playwright pass. Committed & pushed.
