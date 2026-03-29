@@ -35,7 +35,7 @@ cd web && bash build.sh
 cd dist && python3 -m http.server 9877
 ```
 
-Build output: **186KB JS** (from 360KB), **88KB CSS** (from 117KB). Gzip'd: ~50KB JS, ~14KB CSS. GitHub Pages CI runs the build automatically.
+Build output: **186KB JS** (from 361KB), **96KB CSS** (from 117KB). Gzip'd: ~50KB JS, ~15KB CSS. GitHub Pages CI runs the build automatically.
 
 **Features:**
 - 🎮 30 interactive stories with branching narratives
