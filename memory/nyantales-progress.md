@@ -2143,3 +2143,21 @@ cd /tmp/nyantales && python3 -m http.server 9876
 
 ## Log (continued)
 - 2026-03-29 (12:27 PM): Phase 115 — Eliminated all Object.keys allocations from app code: scene-select/gallery cache items inline during build loops (no post-build querySelectorAll), route-map builds sceneIds via for...in + uses O(1) nodeMap lookup for current node (was linear .find()), main.js + ui.js scene counting via for...in. Zero Object.keys in any JS file. SW v98, 186KB bundle. All 34 JS + 204/204 unit + 50/50 Playwright pass. Committed & pushed.
+
+## Phase 116: CSS Bug Fix + Consolidation ✅
+- **BUG FIX: `@keyframes continuePulse` clash** — two `@keyframes` blocks with the same name
+  - First (line 788): opacity pulse for `.vn-click-indicator` (opacity 0.85 → 1)
+  - Second (line 2247): box-shadow pulse for `.continue-btn` (green glow)
+  - CSS spec: second `@keyframes` overrides first — click indicator was getting box-shadow animation instead of opacity
+  - Fix: renamed click indicator keyframes to `clickIndicatorPulse`
+- **Panel background CSS custom properties** — `--panel-r`, `--panel-g`, `--panel-b` (20, 20, 40)
+  - 13 hardcoded `rgba(20, 20, 40, X)` values → `rgba(var(--panel-r), var(--panel-g), var(--panel-b), X)`
+  - Panel backgrounds are now theme-customizable (matching the accent color pattern)
+- **Merged duplicate `.title-bg` selector** — `scroll-behavior: smooth` (line 4601) merged into original definition (line 79)
+- **Merged duplicate `.story-card` selector** — `position: relative` (line 394) merged into original definition (line 311)
+- SW cache bumped to v99, production build regenerated (186KB JS, 89KB CSS)
+- All 34 JS files pass `node --check`, 204/204 unit tests, 50/50 Playwright tests
+- Committed & pushed
+
+## Log (continued)
+- 2026-03-29 (1:27 PM): Phase 116 — CSS bug fix: duplicate @keyframes continuePulse caused click indicator to get wrong animation (box-shadow instead of opacity). Renamed to clickIndicatorPulse. Extracted --panel-r/g/b CSS custom properties for 13 hardcoded rgba(20,20,40,...) panel backgrounds. Merged 2 duplicate selectors (.title-bg scroll-behavior, .story-card position:relative). SW v99, 186KB JS / 89KB CSS. All 34 JS + 204/204 unit + 50/50 Playwright pass. Committed & pushed.
