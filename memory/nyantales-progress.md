@@ -2041,5 +2041,21 @@ cd /tmp/nyantales && python3 -m http.server 9876
 - SW cache bumped to v93, production build regenerated (186KB bundle)
 - All 34 JS files pass `node --check`, 204/204 unit tests, 50/50 Playwright tests
 
+## Phase 111: Cached Scene Counts, hasSave O(1), Achievement Panel Allocation-Free ✅
+- **SaveManager.hasSave() O(1)** — replaced `Object.keys(slots).length > 0` with `for...in` early-return
+  - Avoids allocating a keys array just to check if any save exists
+  - Called per story card on every title screen render (30 calls)
+- **StatsDashboard pre-computed scene counts** — `_sceneCountCache` Map built once in `setStories()`
+  - `Object.keys(story._parsed.scenes).length` was called per story per `_computeStats()` invocation
+  - Now uses pre-built Map lookup (O(1) vs Object.keys allocation per story)
+  - Scene counts are immutable (story data doesn't change) → cache-forever
+- **AchievementPanel allocation-free update** — removed `filter() + filter() + [...spread]` pattern
+  - Was: `allAch.filter(unlocked)`, `allAch.filter(locked)`, `[...unlocked, ...locked]` (3 array allocations)
+  - Now: two `for...of` passes over `allAch` with `unlocked` flag check (zero allocation)
+  - Divider inserted between passes when both sections exist
+- SW cache bumped to v94, production build regenerated (186KB bundle)
+- All 34 JS files pass `node --check`, 204/204 unit tests, 50/50 Playwright tests
+
 ## Log (continued)
+- 2026-03-29 (8:27 AM): Phase 111 — SaveManager.hasSave() uses for...in early-return instead of Object.keys allocation. Stats dashboard pre-computes scene counts in setStories() (avoids Object.keys per story per show). Achievement panel update uses two-pass iteration instead of filter+spread. SW v94, 186KB bundle. All 34 JS + 204/204 unit + 50/50 Playwright pass.
 - 2026-03-29 (7:27 AM): Phase 110 — Extended getStoryMeta with totalEndings (single-pass for...in). Stats dashboard single-pass aggregation (6 array passes→1). StoryInfo single-pass scene stats. 20 forEach→for/for-of conversions across ui.js, main.js, scene-select.js, audio.js. forEach count 31→11 (remaining are small-array). SW v93, 186KB bundle. All 34 JS + 204/204 unit + 50/50 Playwright pass.

@@ -63,10 +63,11 @@ class SaveManager {
     this._recentCache = undefined; // invalidate
   }
 
-  /** Check if any save exists for a story */
+  /** Check if any save exists for a story (avoids Object.keys allocation) */
   hasSave(slug) {
     const slots = this.getSlots(slug);
-    return Object.keys(slots).length > 0;
+    for (const _ in slots) return true; // eslint-disable-line no-unused-vars
+    return false;
   }
 
   /**

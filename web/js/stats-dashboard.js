@@ -45,6 +45,14 @@ class StatsDashboard {
     this._storyIndex = stories;
     // Build slug→story Map for O(1) lookups in _playStoryBySlug
     this._storySlugMap = new Map(stories.map(s => [s.slug, s]));
+    // Pre-compute scene counts (avoids Object.keys allocation per show)
+    this._sceneCountCache = new Map();
+    for (const s of stories) {
+      let count = 0;
+      const scenes = s._parsed?.scenes;
+      if (scenes) { for (const _ in scenes) count++; } // eslint-disable-line no-unused-vars
+      this._sceneCountCache.set(s.slug, count);
+    }
   }
 
   /** Show the stats dashboard */
@@ -393,7 +401,7 @@ class StatsDashboard {
     // Per-story data
     const storyRows = stories.map(story => {
       const data = this.tracker.getStory(story.slug);
-      const sceneCount = story._parsed?.scenes ? Object.keys(story._parsed.scenes).length : 0;
+      const sceneCount = this._sceneCountCache.get(story.slug) || 0;
       const visitedCount = this.tracker.visitedSceneCount(story.slug);
       const progress = sceneCount > 0 ? this.tracker.getProgress(story.slug, sceneCount) : 0;
       const endings = this.tracker.endingCount(story.slug);

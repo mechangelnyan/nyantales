@@ -100,22 +100,23 @@ class AchievementPanel {
     const pct = achStats.total > 0 ? Math.round((achStats.unlocked / achStats.total) * 100) : 0;
     d.progressFill.style.setProperty('--bar-pct', `${pct}%`);
 
-    // Separate unlocked / locked
-    const unlocked = allAch.filter(a => a.unlocked);
-    const locked = allAch.filter(a => !a.unlocked);
-    const combined = [...unlocked, ...locked];
-
-    // Build list using pooled elements + fragment
+    // Build list in two passes (unlocked then locked) — avoids filter + spread allocation
     d.list.textContent = '';
     const frag = document.createDocumentFragment();
-    let needsDivider = unlocked.length > 0 && locked.length > 0;
+    let idx = 0;
+    let unlockedCount = 0;
 
-    for (let i = 0; i < combined.length; i++) {
-      // Insert divider between unlocked and locked sections
-      if (needsDivider && i === unlocked.length) {
-        frag.appendChild(this._divider);
-      }
-      frag.appendChild(this._getItem(i, combined[i]));
+    for (const ach of allAch) {
+      if (!ach.unlocked) continue;
+      unlockedCount++;
+      frag.appendChild(this._getItem(idx++, ach));
+    }
+    if (unlockedCount > 0 && unlockedCount < allAch.length) {
+      frag.appendChild(this._divider);
+    }
+    for (const ach of allAch) {
+      if (ach.unlocked) continue;
+      frag.appendChild(this._getItem(idx++, ach));
     }
     d.list.appendChild(frag);
   }
