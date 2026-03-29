@@ -2121,3 +2121,25 @@ cd /tmp/nyantales && python3 -m http.server 9876
 
 ## Log (continued)
 - 2026-03-29 (11:27 AM): Phase 114 — Zero getElementById in settings-panel.js (all 23 calls eliminated, using build-time variable refs). _wireSlider/_wireToggle accept element refs instead of ID strings. forEach eliminated from all app code (11→0, only js-yaml comment remains). DataManager.getStats uses for...in count instead of Object.keys. SW v97, 186KB bundle. All 34 JS + 204/204 unit + 50/50 Playwright pass. Committed & pushed.
+
+## Phase 115: Zero Object.keys, Inline Cached Items ✅
+- **Scene-select items cached inline during build** — `_cachedItems` array populated during the createElement loop
+  - Previously: `[...this._listEl.querySelectorAll('.scene-select-item')]` after appending fragment (DOM traversal over just-built nodes)
+  - Now: items pushed to array during creation (zero querySelectorAll)
+- **Scene-select `Object.keys(scenes).length` → `for...in` count** — avoids allocating keys array just to count scenes
+- **Gallery cards cached inline during build** — `_cachedCards` array populated during the createElement loop
+  - Previously: `[...this._grid.querySelectorAll('.gallery-card')]` after appending fragment
+  - Now: cards pushed to array during creation (zero querySelectorAll)
+- **Route-map `Object.keys(scenes)` → `for...in` loop + push** — builds `sceneIds` array and adjacency list in one pass
+  - Was allocating a keys array then iterating it; now iterates directly
+- **Route-map `nodes.find(n => n.current)` → `nodeMap[currentScene]`** — O(1) lookup instead of linear scan
+  - `nodeMap` already indexes nodes by scene ID (built during layout)
+- **main.js `Object.keys(parsed.scenes).length` → `for...in` count**
+- **ui.js `Object.keys(engine.scenes).length` fallback → `for...in` count**
+- **Zero `Object.keys` calls remain in app code** (only comments referencing old patterns)
+- SW cache bumped to v98, production build regenerated (186KB bundle)
+- All 34 JS files pass `node --check`, 204/204 unit tests, 50/50 Playwright tests
+- Committed & pushed
+
+## Log (continued)
+- 2026-03-29 (12:27 PM): Phase 115 — Eliminated all Object.keys allocations from app code: scene-select/gallery cache items inline during build loops (no post-build querySelectorAll), route-map builds sceneIds via for...in + uses O(1) nodeMap lookup for current node (was linear .find()), main.js + ui.js scene counting via for...in. Zero Object.keys in any JS file. SW v98, 186KB bundle. All 34 JS + 204/204 unit + 50/50 Playwright pass. Committed & pushed.
