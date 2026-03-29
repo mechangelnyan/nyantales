@@ -45,9 +45,15 @@ class CharacterGallery {
     return all;
   }
 
-  /** Format slug to nice title */
+  /** Format slug to nice title (cached — called per story tag per character) */
+  static _titleCache = new Map();
   _slugToTitle(slug) {
-    return slug.split('-').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
+    let t = CharacterGallery._titleCache.get(slug);
+    if (!t) {
+      t = slug.split('-').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
+      CharacterGallery._titleCache.set(slug, t);
+    }
+    return t;
   }
 
   /** Create the gallery overlay DOM */
