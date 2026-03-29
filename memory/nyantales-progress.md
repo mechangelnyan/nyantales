@@ -1844,6 +1844,26 @@ cd /tmp/nyantales && python3 -m http.server 9876
 - All 33 JS files pass `node --check`, 204/204 unit tests, 50/50 Playwright tests
 - Committed & pushed
 
+## Phase 101: Permanent FocusTrap, Toast Timer Tracking, Guard Cleanup ✅
+- **FocusTrap permanent keydown listener** — listener installed once in constructor, gated by `_active` flag
+  - Previously: `document.addEventListener('keydown')` on every `activate()`, `removeEventListener` on every `deactivate()`
+  - 11 panels × 2 calls per show/hide = 22 add/remove cycles per session → now 0
+  - Same proven pattern as ConfirmDialog, StoryIntro, HistoryPanel permanent handlers
+- **FocusTrap shared selector** — static `_FOCUSABLE` string built once, shared across all instances
+  - Previously: selector array joined per `_getFocusableElements()` call (allocated per Tab keypress)
+- **Toast auto-dismiss timer tracking** — `_dismissTimers` Map tracks per-toast setTimeout IDs
+  - `dismiss()` cancels pending auto-dismiss timer (prevents orphaned callback on early dismiss)
+  - Overflow eviction also cancels the evicted toast's timer
+  - Previously: `setTimeout(() => Toast.dismiss(el), duration)` was untracked
+- **Removed `typeof FocusTrap` guards** from Gallery, StatsDashboard, RouteMap
+  - FocusTrap is always loaded before these modules (script order guaranteed)
+  - StatsDashboard now lazily creates FocusTrap (was re-creating on every `show()`)
+- **Loading screen timer tracked** — `hideLoadingScreen()` uses `trackTimeout()` instead of raw `setTimeout`
+- SW cache bumped to v83, production build regenerated (190KB bundle)
+- All 33 JS files pass `node --check`, 204/204 unit tests, 50/50 Playwright tests
+- Committed & pushed
+
 ## Log (continued)
-- 2026-03-28 (7:27 PM): Phase 99 — Cached inner card refs (renderStoryList exposes _innerRefs on each card, eliminating 5+ querySelector per locked card decoration + _resetCardForRedecorate). Expanded _storyCardRefs with infoBtn + metaEl for zero-querySelector dynamic child removal. Direct choice pool lookup (number keys use ui._choiceBtnPool instead of querySelector). main.js querySelector count 30→12 (all init-only). SW v81, 189KB bundle. All 33 JS + 204/204 unit + 50/50 Playwright pass. Committed & pushed.
+- 2026-03-28 (9:27 PM): Phase 101 — Permanent FocusTrap keydown listener (installed once in constructor, gated by _active flag — eliminates 22 add/remove cycles across 11 panels). Shared static _FOCUSABLE selector string. Toast auto-dismiss timers tracked in Map (dismiss cancels pending timer, overflow eviction cancels evicted timer). Removed 3 unnecessary typeof FocusTrap guards. Loading screen timer tracked. SW v83, 190KB bundle. All 33 JS + 204/204 unit + 50/50 Playwright pass. Committed & pushed.
 - 2026-03-28 (8:27 PM): Phase 100 — CSP compliance: moved inline SW registration script from index.html to main.js (zero inline scripts in dev + prod). Sprite positioning via CSS custom properties (--sprite-x, --sprite-scale) instead of inline style.left/transform. Only 5 unavoidable inline styles remain (canvas sizing, tooltip position, toast color). SW v82, 190KB bundle. All 33 JS + 204/204 unit + 50/50 Playwright pass. Committed & pushed.
+- 2026-03-28 (7:27 PM): Phase 99 — Cached inner card refs (renderStoryList exposes _innerRefs on each card, eliminating 5+ querySelector per locked card decoration + _resetCardForRedecorate). Expanded _storyCardRefs with infoBtn + metaEl for zero-querySelector dynamic child removal. Direct choice pool lookup (number keys use ui._choiceBtnPool instead of querySelector). main.js querySelector count 30→12 (all init-only). SW v81, 189KB bundle. All 33 JS + 204/204 unit + 50/50 Playwright pass. Committed & pushed.
