@@ -2203,6 +2203,24 @@ cd /tmp/nyantales && python3 -m http.server 9876
 - SW cache bumped to v101, production build regenerated (186KB JS, 95KB CSS)
 - All 34 JS files pass `node --check`, 204/204 unit tests, 50/50 Playwright tests
 
+## Phase 119: CSS Bug Fix — Broken Selector Blocks + Final rgba Cleanup ✅
+- **CRITICAL FIX: Broken CSS selector blocks** — Phase 118 edit accidentally removed closing selectors + declaration blocks
+  - `will-change: transform, opacity` group: `.skip-indicator` selector + `{ }` block was deleted, leaving a dangling comma after `.auto-play-indicator,`
+  - Touch prevention group: `.filter-tag` selector + `{ }` block was deleted, leaving dangling comma after `.install-btn,`
+  - Both resulted in invalid CSS that broke all subsequent rules in those sections
+  - Restored both closing selectors and declaration blocks
+- **Converted last 2 hardcoded rgba to CSS vars** — toast container border/shadow
+  - `rgba(255,255,255,0.12)` → `rgba(var(--white-r), var(--white-g), var(--white-b), 0.12)`
+  - `rgba(0,0,0,0.4)` → `rgba(var(--black-r), var(--black-g), var(--black-b), 0.4)`
+  - Only 2 truly unique colors remain: warning orange `rgba(255, 140, 0, 0.9)` and info teal `rgba(0, 80, 120, 0.9)` (1 occurrence each, not worth vars)
+- **Merged story-intro reduced-motion rules** into main `@media (prefers-reduced-motion)` block
+- **Added `will-change`** to `.auto-play-indicator`
+- CSS brace balance verified: depth 0
+- SW cache bumped to v102, production build regenerated (186KB JS, 96KB CSS)
+- All 34 JS files pass `node --check`, 204/204 unit tests, 50/50 Playwright tests
+- Committed & pushed
+
 ## Log (continued)
+- 2026-03-29 (4:27 PM): Phase 119 — CRITICAL CSS fix: Phase 118 broke two selector blocks (will-change + tap-highlight groups lost their closing selectors). Converted last 2 hardcoded rgba to vars. Merged story-intro reduced-motion. SW v102, 186KB JS / 96KB CSS. All 34 JS + 204/204 unit + 50/50 Playwright pass. Committed & pushed.
 - 2026-03-29 (3:27 PM): Phase 118 — Extracted CSS RGB custom properties for white/black/bg-deep/bg-mid/bg-surface/purple (91 more hardcoded rgba values replaced). Added --accent-purple. --mood-mysterious uses var(--accent-purple). 150 total rgba values now driven by CSS custom properties. SW v101, 186KB JS / 95KB CSS. All 34 JS + 204/204 unit + 50/50 Playwright pass.
 - 2026-03-29 (2:27 PM): Phase 117 — Extracted CSS RGB custom properties for green/yellow/red/magenta (59 hardcoded rgba values replaced). Mood vars now reference accent vars. Merged duplicate .story-info-share-btn. Route map legend uses var(--accent-green). SW v100, 186KB JS / 91KB CSS. All 34 JS + 204/204 unit + 50/50 Playwright pass. Committed & pushed.
