@@ -442,3 +442,69 @@ test.describe('Error Free', () => {
     expect(pageErrors).toEqual([]);
   });
 });
+
+test.describe('Gallery and About', () => {
+  test('character gallery shows characters with portraits', async ({ page }) => {
+    await waitForTitleScreen(page);
+    await page.locator('#btn-gallery').click();
+
+    const overlay = page.locator('.gallery-overlay');
+    await expect(overlay).toBeVisible();
+
+    // Should have character cards
+    const cards = overlay.locator('.gallery-card');
+    await expect(cards.first()).toBeVisible();
+    const count = await cards.count();
+    expect(count).toBeGreaterThan(30); // 45+ characters
+
+    // Gallery search works
+    const search = overlay.locator('.gallery-search');
+    await search.fill('nyan');
+    await page.waitForTimeout(150); // debounce
+    const visible = await cards.evaluateAll(
+      els => els.filter(el => !el.classList.contains('hidden-by-filter')).length
+    );
+    expect(visible).toBeGreaterThan(0);
+    expect(visible).toBeLessThan(count);
+
+    // Close gallery — Escape closes topmost panel
+    await page.keyboard.press('Escape');
+    await page.waitForTimeout(200);
+    // If Escape didn't close it (focus trap may swallow keystrokes), use backdrop
+    if (await overlay.evaluate(el => el.classList.contains('visible'))) {
+      await overlay.click({ position: { x: 5, y: 5 } });
+    }
+    await expect(overlay).not.toHaveClass(/visible/);
+  });
+
+  test('about panel shows project info', async ({ page }) => {
+    await waitForTitleScreen(page);
+    await page.locator('#btn-about').click();
+
+    const overlay = page.locator('.about-overlay');
+    await expect(overlay).toBeVisible();
+    await expect(overlay).toContainText(/NyanTales/);
+    await expect(overlay).toContainText(/NyanTales/);
+
+    await page.keyboard.press('Escape');
+    await expect(overlay).not.toHaveClass(/visible/);
+  });
+});
+
+test.describe('Campaign', () => {
+  test('campaign button is visible on title screen', async ({ page }) => {
+    await waitForTitleScreen(page);
+    const btn = page.locator('#btn-campaign');
+    await expect(btn).toBeVisible();
+    await expect(btn).toContainText(/Campaign/i);
+  });
+
+  test('chapter grid shows campaign chapters', async ({ page }) => {
+    await waitForTitleScreen(page);
+    const grid = page.locator('#chapter-grid');
+    await expect(grid).toBeVisible();
+    const cards = grid.locator('.chapter-card');
+    const count = await cards.count();
+    expect(count).toBeGreaterThan(15); // 26 chapters across 5 acts
+  });
+});

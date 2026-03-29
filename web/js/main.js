@@ -306,7 +306,7 @@
     return settingsPanel.isVisible || historyPanel.isVisible || saveManager.isVisible
       || sceneSelect.isVisible || routeMap.isVisible || keyboardHelp.isVisible
       || aboutPanel.isVisible || statsDashboard.isVisible || storyInfo.isVisible
-      || achPanel.isVisible;
+      || achPanel.isVisible || gallery.isVisible;
   }
 
   /**
@@ -1296,7 +1296,7 @@
       // Close the topmost open panel (priority: lightweight overlays first, then core panels)
       const panelCloseOrder = [
         keyboardHelp, aboutPanel, achPanel, statsDashboard, storyInfo,
-        routeMap, saveManager, settingsPanel, historyPanel, sceneSelect
+        gallery, routeMap, saveManager, settingsPanel, historyPanel, sceneSelect
       ];
       const openPanel = panelCloseOrder.find(p => p.isVisible);
       if (openPanel) {
