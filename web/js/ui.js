@@ -202,6 +202,7 @@ class VNUI {
 
       const chars = CHARACTER_DATA[story.slug] || [];
       const protag = chars.find(c => c.role === 'protagonist');
+      let spriteEl = null;
       if (protag) {
         const img = document.createElement('img');
         img.src = this.portraits.getSprite(protag.name, protag.appearance);
@@ -211,6 +212,7 @@ class VNUI {
         img.loading = 'lazy';
         img.decoding = 'async';
         inner.appendChild(img);
+        spriteEl = img;
       }
 
       const textDiv = document.createElement('div');
@@ -223,6 +225,10 @@ class VNUI {
       textDiv.appendChild(p);
       inner.appendChild(textDiv);
       card.appendChild(inner);
+
+      // Expose inner DOM refs for main.js to avoid querySelector on lock/unlock
+      card._innerRefs = { inner, textDiv, h3, p, spriteEl };
+
       frag.appendChild(card);
     });
     this.storyListEl.appendChild(frag);

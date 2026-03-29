@@ -817,18 +817,12 @@
       card.classList.add('story-locked');
       card.setAttribute('tabindex', '-1');
       card.setAttribute('aria-label', `${story.title}: Locked — progress through the campaign to unlock`);
-      // Replace card content with locked placeholder
-      const inner = card.querySelector('.story-card-inner');
-      if (inner) {
-        const textDiv = inner.querySelector('.story-card-text');
-        if (textDiv) {
-          textDiv.querySelector('h3').textContent = '🔒 ' + story.title;
-          const desc = textDiv.querySelector('p');
-          if (desc) desc.textContent = 'Progress through the campaign to unlock';
-        }
-        // Dim the sprite
-        const sprite = inner.querySelector('.story-card-sprite');
-        if (sprite) sprite.classList.add('locked-sprite');
+      // Replace card content with locked placeholder — use cached inner refs (no querySelector)
+      const ir = card._innerRefs;
+      if (ir) {
+        if (ir.h3) ir.h3.textContent = '🔒 ' + story.title;
+        if (ir.p) ir.p.textContent = 'Progress through the campaign to unlock';
+        if (ir.spriteEl) ir.spriteEl.classList.add('locked-sprite');
       }
       card.dataset.slug = story.slug;
       card.dataset.locked = '1';
@@ -840,8 +834,8 @@
     const endings = tracker.endingCount(story.slug);
     const { sceneCount, readMins } = getStoryMeta(story);
 
-    // Ref object for caching child elements (used by _refreshStoryCards)
-    const refs = { badge: null, saveIcon: null, barFill: null, barEl: null, favBtn: null };
+    // Ref object for caching child elements (used by _refreshStoryCards and _resetCardForRedecorate)
+    const refs = { badge: null, saveIcon: null, barFill: null, barEl: null, favBtn: null, infoBtn: null, metaEl: null };
 
     // Completion badge
     const badge = document.createElement('div');
@@ -891,7 +885,7 @@
     refs.barFill = barFill;
     refs.barEl = bar;
 
-    // Meta info (reading time + scene count)
+    // Meta info (reading time + scene count) — use cached textDiv ref
     if (sceneCount > 0 || readMins > 0) {
       const metaEl = document.createElement('div');
       metaEl.className = 'story-card-meta';
@@ -901,8 +895,9 @@
       sceneSpan.textContent = `📄 ${sceneCount} scenes`;
       metaEl.appendChild(timeSpan);
       metaEl.appendChild(sceneSpan);
-      const textContainer = card.querySelector('.story-card-text');
+      const textContainer = card._innerRefs?.textDiv;
       if (textContainer) textContainer.appendChild(metaEl);
+      refs.metaEl = metaEl;
     }
 
     // Info button (ℹ) — click handled by grid delegation
@@ -912,6 +907,7 @@
     infoBtn.title = 'Story details';
     infoBtn.setAttribute('aria-label', `Details for ${story.title}`);
     card.appendChild(infoBtn);
+    refs.infoBtn = infoBtn;
 
     // Favorite button (heart) — click handled by grid delegation
     const isFav = tracker.isFavorite(story.slug);
@@ -1119,22 +1115,25 @@
    * Used when lock state changes (rare: campaign advance).
    */
   function _resetCardForRedecorate(card, story) {
-    // Remove dynamic children (badges, save icons, progress bars, meta, info/fav buttons)
-    card.querySelectorAll('.story-card-badge, .story-card-save-badge, .story-card-progress, .story-card-info-btn, .story-card-fav-btn').forEach(el => el.remove());
-    const meta = card.querySelector('.story-card-meta');
-    if (meta) meta.remove();
+    // Remove dynamic children using cached refs (zero querySelector)
+    const refs = _storyCardRefs.get(storyIndex.indexOf(story));
+    if (refs) {
+      if (refs.badge) refs.badge.remove();
+      if (refs.saveIcon) refs.saveIcon.remove();
+      if (refs.barEl) refs.barEl.remove();
+      if (refs.favBtn) refs.favBtn.remove();
+      if (refs.infoBtn) refs.infoBtn.remove();
+      if (refs.metaEl) refs.metaEl.remove();
+    }
     card.classList.remove('completed', 'story-locked');
     card.removeAttribute('data-locked');
 
-    // Restore original title/description text if it was changed by locking
-    const inner = card.querySelector('.story-card-inner');
-    if (inner) {
-      const h3 = inner.querySelector('h3');
-      if (h3) h3.textContent = story.title;
-      const p = inner.querySelector('.story-card-text p');
-      if (p) p.textContent = story.description || '';
-      const sprite = inner.querySelector('.story-card-sprite');
-      if (sprite) sprite.classList.remove('locked-sprite');
+    // Restore original title/description text using cached inner refs (no querySelector)
+    const ir = card._innerRefs;
+    if (ir) {
+      if (ir.h3) ir.h3.textContent = story.title;
+      if (ir.p) ir.p.textContent = story.description || '';
+      if (ir.spriteEl) ir.spriteEl.classList.remove('locked-sprite');
     }
     card.setAttribute('tabindex', '0');
     card.setAttribute('aria-label', `${story.title}: ${story.description || 'Interactive story'}`);
@@ -1313,9 +1312,11 @@
       }
     }
 
-    // Number keys for choices — look up by data-choice-idx to avoid querySelectorAll
+    // Number keys for choices — direct pool lookup (no querySelector)
     if (e.key >= '1' && e.key <= '9') {
-      const btn = ui.choicesEl.querySelector(`[data-choice-idx="${parseInt(e.key) - 1}"]`);
+      const idx = parseInt(e.key) - 1;
+      const pool = ui._choiceBtnPool;
+      const btn = (ui._currentChoices && idx < ui._currentChoices.length) ? pool[idx] : null;
       if (btn) btn.click();
     }
 
