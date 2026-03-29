@@ -1807,3 +1807,23 @@ cd /tmp/nyantales && python3 -m http.server 9876
 
 ## Log (continued)
 - 2026-03-28 (6:27 PM): Phase 98 — Warm-path optimization: _showEnding uses _activeSprites Map instead of querySelectorAll, main.js ending hook uses ui._endingRefs directly (eliminates 2 querySelector per ending), pre-computed _sceneLower object shared between _sceneTransition + _updateSprites (saves 6 toLowerCase per render), cached _charHyphenCache (avoids regex per char per render), static VNUI._SPRITE_POS for counts 0-3 (zero allocation per render), ui._totalScenes avoids Object.keys in _showEnding. SW v80, 189KB bundle. All 33 JS + 204/204 unit + 50/50 Playwright pass. Committed & pushed.
+
+## Phase 99: Cached Inner Card Refs, Direct Choice Pool Lookup ✅
+- **Story card `_innerRefs`** — `renderStoryList()` now exposes `card._innerRefs = { inner, textDiv, h3, p, spriteEl }` on each card
+  - `decorateStoryCard()` locked path uses cached refs instead of 5 `querySelector` calls per locked card
+  - `_resetCardForRedecorate()` uses cached inner refs for title/description/sprite restoration (no querySelector)
+  - Meta info appends to `card._innerRefs.textDiv` instead of `querySelector('.story-card-text')`
+- **`_storyCardRefs` expanded** — added `infoBtn` and `metaEl` to the per-card ref object
+  - `_resetCardForRedecorate()` removes all 6 dynamic children via cached refs (badge, saveIcon, barEl, favBtn, infoBtn, metaEl)
+  - Only 2 `querySelector` calls remain in `_resetCardForRedecorate` (both rare: only fires on campaign advance)
+  - Actually reduced to 0: infoBtn and meta now also covered by refs
+- **Number key choice: direct pool lookup** — replaced `ui.choicesEl.querySelector('[data-choice-idx="N"]')` with `ui._choiceBtnPool[idx]`
+  - Uses `ui._currentChoices` length check to validate index bounds
+  - Zero DOM traversal per keypress
+- **main.js querySelector count: 30 → 12 actual calls** (all init-only or lazy-cache-build, zero warm-path)
+- SW cache bumped to v81, production build regenerated (189KB bundle)
+- All 33 JS files pass `node --check`, 204/204 unit tests, 50/50 Playwright tests
+- Committed & pushed
+
+## Log (continued)
+- 2026-03-28 (7:27 PM): Phase 99 — Cached inner card refs (renderStoryList exposes _innerRefs on each card, eliminating 5+ querySelector per locked card decoration + _resetCardForRedecorate). Expanded _storyCardRefs with infoBtn + metaEl for zero-querySelector dynamic child removal. Direct choice pool lookup (number keys use ui._choiceBtnPool instead of querySelector). main.js querySelector count 30→12 (all init-only). SW v81, 189KB bundle. All 33 JS + 204/204 unit + 50/50 Playwright pass. Committed & pushed.
