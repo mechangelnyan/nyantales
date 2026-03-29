@@ -129,7 +129,7 @@ class SaveManager {
         };
 
         SafeStorage.setJSON(this.STORAGE_PREFIX + slug, slots);
-        try { localStorage.removeItem(key); } catch { /* noop */ }
+        SafeStorage.remove(key);
         this._recentCache = undefined; // invalidate
       }
     } catch { /* migration is best-effort */ }

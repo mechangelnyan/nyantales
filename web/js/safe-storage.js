@@ -83,6 +83,14 @@ class SafeStorage {
   }
 
   /**
+   * Remove a key from localStorage.
+   * @param {string} key
+   */
+  static remove(key) {
+    try { localStorage.removeItem(key); } catch { /* noop */ }
+  }
+
+  /**
    * Remove the oldest auto-save slot to free space.
    * Scans all `nyantales-saves-*` keys for auto-save entries (key `'auto'`)
    * and deletes the one with the oldest timestamp.
