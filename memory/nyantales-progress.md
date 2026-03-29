@@ -1867,3 +1867,23 @@ cd /tmp/nyantales && python3 -m http.server 9876
 - 2026-03-28 (9:27 PM): Phase 101 — Permanent FocusTrap keydown listener (installed once in constructor, gated by _active flag — eliminates 22 add/remove cycles across 11 panels). Shared static _FOCUSABLE selector string. Toast auto-dismiss timers tracked in Map (dismiss cancels pending timer, overflow eviction cancels evicted timer). Removed 3 unnecessary typeof FocusTrap guards. Loading screen timer tracked. SW v83, 190KB bundle. All 33 JS + 204/204 unit + 50/50 Playwright pass. Committed & pushed.
 - 2026-03-28 (8:27 PM): Phase 100 — CSP compliance: moved inline SW registration script from index.html to main.js (zero inline scripts in dev + prod). Sprite positioning via CSS custom properties (--sprite-x, --sprite-scale) instead of inline style.left/transform. Only 5 unavoidable inline styles remain (canvas sizing, tooltip position, toast color). SW v82, 190KB bundle. All 33 JS + 204/204 unit + 50/50 Playwright pass. Committed & pushed.
 - 2026-03-28 (7:27 PM): Phase 99 — Cached inner card refs (renderStoryList exposes _innerRefs on each card, eliminating 5+ querySelector per locked card decoration + _resetCardForRedecorate). Expanded _storyCardRefs with infoBtn + metaEl for zero-querySelector dynamic child removal. Direct choice pool lookup (number keys use ui._choiceBtnPool instead of querySelector). main.js querySelector count 30→12 (all init-only). SW v81, 189KB bundle. All 33 JS + 204/204 unit + 50/50 Playwright pass. Committed & pushed.
+
+## Phase 102: Toast Timer Safety, Inline Chapter Refs, FocusTrap Buffer ✅
+- **Toast remove-animation timers tracked** — overflow eviction + dismiss `setTimeout(() => el.remove())` calls now tracked in `_removeTimers` Map
+  - `dismiss()` cancels any existing remove-animation timer before scheduling new one (prevents double-remove)
+  - Overflow eviction cancels evicted toast's remove timer before scheduling replacement
+  - Previously: 2 untracked `setTimeout` calls in toast.js — `oldest.remove()` (300ms) and `el.remove()` (400ms)
+- **Chapter card refs built inline during grid construction** — eliminates `querySelectorAll` + `querySelector` fallback
+  - `_chapterCardRefs.set(idx, { card, titleEl, descEl, statusEl })` called during card creation loop
+  - Previously: first `_refreshChapterCards()` call ran `chapterGridEl.querySelectorAll('.chapter-card')` + 3× `querySelector` per card
+  - Refs now always available after grid build (no lazy fallback path)
+- **FocusTrap `_getFocusableElements()` reuses buffer** — `_focusableBuf` array reused instead of `[...spread].filter()` per Tab keypress
+  - 11 FocusTrap instances × Tab presses during panel navigation = significant allocation savings
+  - Same array cleared and repopulated per call (zero new array allocation)
+- **Gallery `onStoryClick()` marked `@deprecated`** — method confusingly sets `onStorySelect` property
+- SW cache bumped to v84, production build regenerated (190KB bundle)
+- All 33 JS files pass `node --check`, 204/204 unit tests, 50/50 Playwright tests
+- Committed & pushed
+
+## Log (continued)
+- 2026-03-28 (10:27 PM): Phase 102 — Toast remove-animation timers tracked in _removeTimers Map (overflow eviction + dismiss were untracked). Chapter card refs built inline during grid construction (eliminates querySelectorAll + 3× querySelector fallback). FocusTrap _getFocusableElements reuses _focusableBuf array instead of allocating per Tab keypress. SW v84, 190KB bundle. All 33 JS + 204/204 unit + 50/50 Playwright pass. Committed & pushed.
