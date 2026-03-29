@@ -1868,6 +1868,28 @@ cd /tmp/nyantales && python3 -m http.server 9876
 - 2026-03-28 (8:27 PM): Phase 100 — CSP compliance: moved inline SW registration script from index.html to main.js (zero inline scripts in dev + prod). Sprite positioning via CSS custom properties (--sprite-x, --sprite-scale) instead of inline style.left/transform. Only 5 unavoidable inline styles remain (canvas sizing, tooltip position, toast color). SW v82, 190KB bundle. All 33 JS + 204/204 unit + 50/50 Playwright pass. Committed & pushed.
 - 2026-03-28 (7:27 PM): Phase 99 — Cached inner card refs (renderStoryList exposes _innerRefs on each card, eliminating 5+ querySelector per locked card decoration + _resetCardForRedecorate). Expanded _storyCardRefs with infoBtn + metaEl for zero-querySelector dynamic child removal. Direct choice pool lookup (number keys use ui._choiceBtnPool instead of querySelector). main.js querySelector count 30→12 (all init-only). SW v81, 189KB bundle. All 33 JS + 204/204 unit + 50/50 Playwright pass. Committed & pushed.
 
+## Phase 120: CSS Duplicate Selector Elimination + Test Expansion ✅
+- **Merged all duplicate CSS selectors** — 12 selectors from 2 utility groups (GPU-accelerated animations + double-tap prevention) inlined into their original definitions
+  - `will-change: transform, opacity` moved into: `.scene-transition-overlay`, `.vn-sprite-wrap`, `.story-card`, `.nt-toast`, `.auto-play-indicator`
+  - `-webkit-tap-highlight-color` + `touch-action` moved into: `.hud-btn`, `.choice-btn`, `.gallery-btn`, `.achievements-btn`, `.campaign-btn`, `.chapter-card`, `.continue-btn`, `.install-btn`
+  - Removed both utility sections entirely (empty GPU-accelerated + double-tap prevention groups)
+  - Zero duplicate CSS selectors remain
+- **Expanded Playwright test suite** — 6 new tests (50 → 56):
+  - Save panel opens with slot controls, switches between save/load modes
+  - Rewind button returns to previous scene text
+  - Deep link `?story=the-terminal-cat` opens story intro directly
+  - Invalid deep link falls back to title screen with 30 cards
+  - Color theme magenta swatch updates `--accent-cyan` CSS var
+  - Keyboard help modal opens with `?` key, shows Space and Esc shortcuts
+- **README build sizes** updated (CSS now 96KB after Phase 117-119 var extraction)
+- CSS: 4625 → 4618 lines
+- SW cache bumped to v103, production build regenerated (186KB JS, 96KB CSS)
+- All 34 JS files pass `node --check`, 204/204 unit tests, 56/56 Playwright tests
+- 3 commits pushed
+
+## Log (continued)
+- 2026-03-29 (5:27 PM): Phase 120 — Merged all 12 duplicate CSS selectors into their original definitions (will-change + touch-action utility groups dissolved). Added 6 Playwright tests (save panel, rewind, deep links, color themes, keyboard help). Updated README build sizes. SW v103, 186KB JS / 96KB CSS. All 34 JS + 204/204 unit + 56/56 Playwright pass. 3 commits pushed.
+
 ## Phase 102: Toast Timer Safety, Inline Chapter Refs, FocusTrap Buffer ✅
 - **Toast remove-animation timers tracked** — overflow eviction + dismiss `setTimeout(() => el.remove())` calls now tracked in `_removeTimers` Map
   - `dismiss()` cancels any existing remove-animation timer before scheduling new one (prevents double-remove)
