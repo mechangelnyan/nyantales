@@ -2056,6 +2056,24 @@ cd /tmp/nyantales && python3 -m http.server 9876
 - SW cache bumped to v94, production build regenerated (186KB bundle)
 - All 34 JS files pass `node --check`, 204/204 unit tests, 50/50 Playwright tests
 
+## Phase 112: Cached TotalEndings, Static Comparators, Allocation-Free getAll ✅
+- **Stats dashboard cached `_totalEndingsCache`** — pre-computed alongside `_sceneCountCache` in `setStories()`
+  - `_computeStats()` was iterating all scenes per story per `show()` just to count endings
+  - Now uses pre-built Map lookup (O(1) vs `for...in` over all scenes per story)
+  - Combined with scene count computation in same single pass (zero extra iteration)
+- **Static `StatsDashboard._COMPARATORS`** — hoisted sort comparators to class-level static property
+  - Was allocating a new object with 6 comparator functions per `_getVisibleStoryRows()` call
+  - Called on every search keystroke and sort change
+- **Removed `[...storyRows]` spread** — when no search query, the `.map()` result from `_computeStats()` is already a fresh array safe to sort in-place
+- **Allocation-free `achievements.getAll()`** — stamps `.unlocked` directly on original definitions
+  - Was: `.map(ach => ({ ...ach, unlocked }))` creating 16 spread objects per call
+  - Now: `for...of` loop setting `ach.unlocked = boolean`, returns original array
+  - Achievement definitions are stable singletons — safe to mutate
+- SW cache bumped to v95, production build regenerated (187KB bundle)
+- All 34 JS files pass `node --check`, 204/204 unit tests, 50/50 Playwright tests
+- Committed & pushed
+
 ## Log (continued)
+- 2026-03-29 (9:27 AM): Phase 112 — Cached totalEndings in stats dashboard (eliminates per-show scene iteration). Static comparators (hoisted from per-call object to class property). Removed unnecessary storyRows spread. Allocation-free achievements.getAll() (stamps .unlocked on originals instead of 16 spread copies). SW v95, 187KB bundle. All 34 JS + 204/204 unit + 50/50 Playwright pass. Committed & pushed.
 - 2026-03-29 (8:27 AM): Phase 111 — SaveManager.hasSave() uses for...in early-return instead of Object.keys allocation. Stats dashboard pre-computes scene counts in setStories() (avoids Object.keys per story per show). Achievement panel update uses two-pass iteration instead of filter+spread. SW v94, 186KB bundle. All 34 JS + 204/204 unit + 50/50 Playwright pass.
 - 2026-03-29 (7:27 AM): Phase 110 — Extended getStoryMeta with totalEndings (single-pass for...in). Stats dashboard single-pass aggregation (6 array passes→1). StoryInfo single-pass scene stats. 20 forEach→for/for-of conversions across ui.js, main.js, scene-select.js, audio.js. forEach count 31→11 (remaining are small-array). SW v93, 186KB bundle. All 34 JS + 204/204 unit + 50/50 Playwright pass.
