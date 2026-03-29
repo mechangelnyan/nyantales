@@ -236,10 +236,8 @@ class CharacterGallery {
     this._buildOverlay();
     this.overlay.setAttribute('aria-hidden', 'false');
     requestAnimationFrame(() => this.overlay.classList.add('visible'));
-    if (typeof FocusTrap !== 'undefined') {
-      if (!this._focusTrap) this._focusTrap = new FocusTrap(this._panelEl);
-      this._focusTrap.activate();
-    }
+    if (!this._focusTrap) this._focusTrap = new FocusTrap(this._panelEl);
+    this._focusTrap.activate();
   }
 
   /** Hide the gallery */

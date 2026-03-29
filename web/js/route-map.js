@@ -314,9 +314,7 @@ class RouteMap {
     });
 
     // Focus trap (created once, activated/deactivated on show/hide)
-    if (typeof FocusTrap !== 'undefined') {
-      this._focusTrap = new FocusTrap(this._panelEl);
-    }
+    this._focusTrap = new FocusTrap(this._panelEl);
 
     this._built = true;
   }

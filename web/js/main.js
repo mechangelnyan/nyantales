@@ -1523,7 +1523,7 @@
     const app = document.getElementById('app');
     if (loading) {
       loading.classList.add('hidden');
-      setTimeout(() => loading.remove(), 600);
+      trackTimeout(() => loading.remove(), 600);
     }
     if (app) app.removeAttribute('aria-hidden');
   }

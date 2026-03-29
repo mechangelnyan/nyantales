@@ -12,33 +12,41 @@
 
 class FocusTrap {
   /**
+   * Focusable element selector string (shared across all instances).
+   * @type {string}
+   */
+  static _FOCUSABLE = [
+    'a[href]',
+    'button:not([disabled])',
+    'input:not([disabled])',
+    'textarea:not([disabled])',
+    'select:not([disabled])',
+    '[tabindex]:not([tabindex="-1"])',
+    '[contenteditable]'
+  ].join(', ');
+
+  /**
    * @param {HTMLElement} container - The modal/overlay element to trap focus within
    */
   constructor(container) {
     this.container = container;
+    this._active = false;
     this._previousFocus = null;
     this._onKeyDown = this._onKeyDown.bind(this);
+    // Permanent listener — gated by _active flag (no add/remove per show/hide)
+    document.addEventListener('keydown', this._onKeyDown);
   }
 
   /** Get all focusable elements within the container */
   _getFocusableElements() {
-    const selectors = [
-      'a[href]',
-      'button:not([disabled])',
-      'input:not([disabled])',
-      'textarea:not([disabled])',
-      'select:not([disabled])',
-      '[tabindex]:not([tabindex="-1"])',
-      '[contenteditable]'
-    ];
-    return [...this.container.querySelectorAll(selectors.join(', '))].filter(
+    return [...this.container.querySelectorAll(FocusTrap._FOCUSABLE)].filter(
       el => el.offsetParent !== null // visible only
     );
   }
 
   /** Handle Tab key to cycle focus within container */
   _onKeyDown(e) {
-    if (e.key !== 'Tab') return;
+    if (!this._active || e.key !== 'Tab') return;
 
     const focusable = this._getFocusableElements();
     if (focusable.length === 0) {
@@ -67,7 +75,7 @@ class FocusTrap {
   /** Activate the focus trap */
   activate() {
     this._previousFocus = document.activeElement;
-    document.addEventListener('keydown', this._onKeyDown);
+    this._active = true;
 
     // Focus the first focusable element (or the close button)
     requestAnimationFrame(() => {
@@ -80,7 +88,7 @@ class FocusTrap {
 
   /** Deactivate the focus trap and restore previous focus */
   deactivate() {
-    document.removeEventListener('keydown', this._onKeyDown);
+    this._active = false;
     if (this._previousFocus && this._previousFocus.focus) {
       this._previousFocus.focus();
     }

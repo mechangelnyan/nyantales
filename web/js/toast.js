@@ -15,6 +15,8 @@ class Toast {
   static _container = null;
   static _topContainer = null;
   static _activeToasts = [];
+  /** @type {Map<HTMLElement, number>} — tracks auto-dismiss timers per toast element */
+  static _dismissTimers = new Map();
   static MAX_VISIBLE = 3;
 
   /**
@@ -42,6 +44,9 @@ class Toast {
     // Enforce max visible toasts — dismiss oldest if at capacity
     while (Toast._activeToasts.length >= Toast.MAX_VISIBLE) {
       const oldest = Toast._activeToasts.shift();
+      // Cancel its auto-dismiss timer (prevents orphaned callback)
+      const oldTimer = Toast._dismissTimers.get(oldest);
+      if (oldTimer) { clearTimeout(oldTimer); Toast._dismissTimers.delete(oldest); }
       if (oldest && oldest.parentNode) {
         oldest.classList.remove('visible');
         oldest.classList.add('dismissing');
@@ -66,9 +71,10 @@ class Toast {
     // Animate in via CSS class
     requestAnimationFrame(() => el.classList.add('visible'));
 
-    // Auto dismiss
+    // Auto dismiss (tracked so early dismiss cancels the timer)
     if (duration > 0) {
-      setTimeout(() => Toast.dismiss(el), duration);
+      const tid = setTimeout(() => Toast.dismiss(el), duration);
+      Toast._dismissTimers.set(el, tid);
     }
 
     return el;
@@ -80,6 +86,9 @@ class Toast {
    */
   static dismiss(el) {
     if (!el || !el.parentNode) return;
+    // Cancel auto-dismiss timer if still pending
+    const tid = Toast._dismissTimers.get(el);
+    if (tid) { clearTimeout(tid); Toast._dismissTimers.delete(el); }
     // Remove from active tracking
     const idx = Toast._activeToasts.indexOf(el);
     if (idx !== -1) Toast._activeToasts.splice(idx, 1);

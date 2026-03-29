@@ -70,10 +70,8 @@ class StatsDashboard {
     this._overlay.setAttribute('aria-hidden', 'false');
     requestAnimationFrame(() => this._overlay.classList.add('visible'));
 
-    if (typeof FocusTrap !== 'undefined') {
-      this._focusTrap = new FocusTrap(this._overlay);
-      this._focusTrap.activate();
-    }
+    if (!this._focusTrap) this._focusTrap = new FocusTrap(this._overlay);
+    this._focusTrap.activate();
   }
 
   /** Hide the stats dashboard */
