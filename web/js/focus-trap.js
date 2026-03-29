@@ -37,11 +37,18 @@ class FocusTrap {
     document.addEventListener('keydown', this._onKeyDown);
   }
 
-  /** Get all focusable elements within the container */
+  /**
+   * Get all focusable elements within the container.
+   * Reuses `_focusableBuf` array to avoid allocation per Tab keypress.
+   */
   _getFocusableElements() {
-    return [...this.container.querySelectorAll(FocusTrap._FOCUSABLE)].filter(
-      el => el.offsetParent !== null // visible only
-    );
+    const buf = this._focusableBuf || (this._focusableBuf = []);
+    buf.length = 0;
+    const nodes = this.container.querySelectorAll(FocusTrap._FOCUSABLE);
+    for (let i = 0, n = nodes.length; i < n; i++) {
+      if (nodes[i].offsetParent !== null) buf.push(nodes[i]);
+    }
+    return buf;
   }
 
   /** Handle Tab key to cycle focus within container */

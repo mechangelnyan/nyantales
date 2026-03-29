@@ -253,7 +253,7 @@ class CharacterGallery {
     return this.overlay?.classList.contains('visible') || false;
   }
 
-  /** Set callback for when a story tag is clicked */
+  /** @deprecated Use `onStorySelect = cb` directly. Kept for backward compat. */
   onStoryClick(cb) {
     this.onStorySelect = cb;
   }

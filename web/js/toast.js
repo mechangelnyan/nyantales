@@ -17,6 +17,8 @@ class Toast {
   static _activeToasts = [];
   /** @type {Map<HTMLElement, number>} — tracks auto-dismiss timers per toast element */
   static _dismissTimers = new Map();
+  /** @type {Map<HTMLElement, number>} — tracks remove-animation timers (post-dismiss fade-out) */
+  static _removeTimers = new Map();
   static MAX_VISIBLE = 3;
 
   /**
@@ -47,10 +49,14 @@ class Toast {
       // Cancel its auto-dismiss timer (prevents orphaned callback)
       const oldTimer = Toast._dismissTimers.get(oldest);
       if (oldTimer) { clearTimeout(oldTimer); Toast._dismissTimers.delete(oldest); }
+      // Cancel any pending remove-animation timer for evicted toast
+      const oldRemove = Toast._removeTimers.get(oldest);
+      if (oldRemove) { clearTimeout(oldRemove); Toast._removeTimers.delete(oldest); }
       if (oldest && oldest.parentNode) {
         oldest.classList.remove('visible');
         oldest.classList.add('dismissing');
-        setTimeout(() => oldest.remove(), 300);
+        const rid = setTimeout(() => { Toast._removeTimers.delete(oldest); oldest.remove(); }, 300);
+        Toast._removeTimers.set(oldest, rid);
       }
     }
 
@@ -89,12 +95,16 @@ class Toast {
     // Cancel auto-dismiss timer if still pending
     const tid = Toast._dismissTimers.get(el);
     if (tid) { clearTimeout(tid); Toast._dismissTimers.delete(el); }
+    // Cancel any existing remove-animation timer (prevents double-remove)
+    const rid = Toast._removeTimers.get(el);
+    if (rid) { clearTimeout(rid); Toast._removeTimers.delete(el); }
     // Remove from active tracking
     const idx = Toast._activeToasts.indexOf(el);
     if (idx !== -1) Toast._activeToasts.splice(idx, 1);
     el.classList.remove('visible');
     el.classList.add('dismissing');
-    setTimeout(() => el.remove(), 400);
+    const newRid = setTimeout(() => { Toast._removeTimers.delete(el); el.remove(); }, 400);
+    Toast._removeTimers.set(el, newRid);
   }
 
   /**

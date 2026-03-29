@@ -1894,6 +1894,9 @@
         card.appendChild(body);
         card.appendChild(status);
         cards.appendChild(card);
+
+        // Cache refs inline during construction (avoids querySelectorAll in _refreshChapterCards)
+        _chapterCardRefs.set(idx, { card, titleEl, descEl, statusEl: status });
       });
 
       section.appendChild(cards);
@@ -1918,21 +1921,6 @@
     const chapters = campaign.chapters;
     const isStarted = campaign.progress.started;
     const currentIdx = campaign.progress.chapterIndex;
-
-    // Build refs cache on first refresh (chapter cards are stable after grid build)
-    if (_chapterCardRefs.size === 0) {
-      chapterGridEl.querySelectorAll('.chapter-card').forEach(card => {
-        const idx = parseInt(card.dataset.chapterIndex, 10);
-        if (!isNaN(idx)) {
-          _chapterCardRefs.set(idx, {
-            card,
-            titleEl: card.querySelector('.chapter-title'),
-            descEl: card.querySelector('.chapter-desc'),
-            statusEl: card.querySelector('.chapter-status')
-          });
-        }
-      });
-    }
 
     _chapterCardRefs.forEach(({ card, titleEl, descEl, statusEl }, idx) => {
       if (!chapters[idx]) return;
