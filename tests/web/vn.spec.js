@@ -324,6 +324,88 @@ test.describe('Statistics Dashboard', () => {
   });
 });
 
+test.describe('Save, Rewind, and Deep Links', () => {
+  test('save panel opens and shows slot controls', async ({ page }) => {
+    await startStory(page);
+    await ensureFullTextVisible(page);
+
+    // Open save panel
+    await page.locator('#btn-save').click();
+    const saveOverlay = page.locator('.save-overlay');
+    await expect(saveOverlay).toBeVisible();
+
+    // Should show save mode by default with slot buttons
+    await expect(saveOverlay.locator('[data-action="save"]').first()).toBeVisible();
+
+    // Switch to load mode
+    await saveOverlay.locator('[data-mode="load"]').click();
+    await expect(saveOverlay.locator('[data-action="load"]').first()).toBeVisible();
+
+    // Close with Escape
+    await page.keyboard.press('Escape');
+    await expect(saveOverlay).not.toHaveClass(/visible/);
+  });
+
+  test('rewind button goes back to previous scene', async ({ page }) => {
+    const { text, choices } = await startStory(page);
+    await ensureFullTextVisible(page);
+    const firstText = await text.textContent();
+
+    await choices.first().click();
+    await ensureFullTextVisible(page);
+
+    // Click rewind
+    await page.locator('#btn-rewind').click();
+    await expect(text).toContainText(firstText || '');
+  });
+
+  test('deep link ?story=slug opens story directly', async ({ page }) => {
+    await page.goto('/?story=the-terminal-cat');
+    const intro = page.locator('.story-intro-overlay');
+    await expect(intro).toBeVisible({ timeout: 15000 });
+    await expect(intro).toContainText(/Terminal Cat/i);
+  });
+
+  test('invalid deep link shows error and returns to menu', async ({ page }) => {
+    await page.goto('/?story=nonexistent-story-xyz');
+    // Should fall back to title screen
+    await expect(page.locator('#title-screen')).toHaveClass(/active/, { timeout: 15000 });
+    await expect(page.locator('.story-card')).toHaveCount(30);
+  });
+});
+
+test.describe('Color Themes and Keyboard Help', () => {
+  test('color theme changes accent color via settings', async ({ page }) => {
+    await startStory(page);
+    await ensureFullTextVisible(page);
+
+    await page.locator('#btn-settings').click();
+    const overlay = page.locator('.settings-overlay');
+    await expect(overlay).toBeVisible();
+
+    // Click the magenta theme swatch
+    const magentaSwatch = overlay.locator('.theme-swatch[data-theme="magenta"]');
+    await magentaSwatch.click();
+
+    // Verify the CSS custom property changed
+    const accentColor = await page.evaluate(() =>
+      getComputedStyle(document.documentElement).getPropertyValue('--accent-cyan').trim()
+    );
+    expect(accentColor).toBe('#ff36ab');
+  });
+
+  test('keyboard help modal opens with ? key', async ({ page }) => {
+    await startStory(page);
+    await ensureFullTextVisible(page);
+
+    await page.keyboard.press('?');
+    const overlay = page.locator('.keyboard-help-overlay');
+    await expect(overlay).toBeVisible();
+    await expect(overlay).toContainText(/Space/);
+    await expect(overlay).toContainText(/Esc/);
+  });
+});
+
 test.describe('Story Assets', () => {
   for (const slug of STORY_SLUGS) {
     test(`story YAML loads: ${slug}`, async ({ page }) => {
