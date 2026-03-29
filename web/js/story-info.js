@@ -387,23 +387,16 @@ class StoryInfoModal {
     const hasSave = this.saves.hasSave(story.slug);
     r.continueBtn.classList.toggle('hidden', !hasSave);
 
-    this.overlay.setAttribute('aria-hidden', 'false');
-    requestAnimationFrame(() => this.overlay.classList.add('visible'));
-
-    if (!this._focusTrap) this._focusTrap = new FocusTrap(r.panel);
-    this._focusTrap.activate();
+    this._focusTrapTarget = r.panel;
+    OverlayMixin.show(this);
   }
 
   hide() {
-    if (this.overlay) {
-      this.overlay.classList.remove('visible');
-      this.overlay.setAttribute('aria-hidden', 'true');
-    }
-    if (this._focusTrap) this._focusTrap.deactivate();
+    OverlayMixin.hide(this);
     this._currentStory = null;
   }
 
   get isVisible() {
-    return this.overlay?.classList.contains('visible') || false;
+    return OverlayMixin.isVisible(this);
   }
 }

@@ -201,9 +201,7 @@ class RouteMap {
     this._bindEvents();
     this._render();
 
-    this.overlay.setAttribute('aria-hidden', 'false');
-    requestAnimationFrame(() => this.overlay.classList.add('visible'));
-    if (this._focusTrap) this._focusTrap.activate();
+    OverlayMixin.show(this);
   }
 
   /** Hide the route map overlay */
@@ -212,12 +210,8 @@ class RouteMap {
     this.isVisible = false;
     this._unbindEvents();
     if (this._animFrame) cancelAnimationFrame(this._animFrame);
-    if (this.overlay) {
-      this.overlay.classList.remove('visible');
-      this.overlay.setAttribute('aria-hidden', 'true');
-    }
+    OverlayMixin.hide(this);
     if (this._tooltip) this._tooltip.classList.add('hidden');
-    if (this._focusTrap) this._focusTrap.deactivate();
     this._hoveredNode = null;
   }
 

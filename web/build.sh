@@ -18,6 +18,7 @@ echo "━━━━━━━━━━━━━━━━━━━━━━━━�
 # ── 1. Bundle all JS files in dependency order ──
 # Order matters: dependencies first, main.js last
 JS_FILES=(
+  "js/overlay-mixin.js"
   "js/toast.js"
   "js/share.js"
   "js/safe-storage.js"

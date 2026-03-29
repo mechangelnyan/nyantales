@@ -207,13 +207,8 @@ class SceneSelect {
     if (this._searchEl) this._searchEl.value = '';
     this._applyFilter('');
 
-    this.overlay.setAttribute('aria-hidden', 'false');
-    requestAnimationFrame(() => this.overlay.classList.add('visible'));
-
-    if (!this._focusTrap) {
-      this._focusTrap = new FocusTrap(this._panelEl);
-    }
-    this._focusTrap.activate();
+    this._focusTrapTarget = this._panelEl;
+    OverlayMixin.show(this);
   }
 
   _syncCount() {
@@ -259,15 +254,11 @@ class SceneSelect {
   }
 
   hide() {
-    if (this.overlay) {
-      this.overlay.classList.remove('visible');
-      this.overlay.setAttribute('aria-hidden', 'true');
-    }
-    if (this._focusTrap) this._focusTrap.deactivate();
+    OverlayMixin.hide(this);
   }
 
   get isVisible() {
-    return this.overlay?.classList.contains('visible') || false;
+    return OverlayMixin.isVisible(this);
   }
 
 }

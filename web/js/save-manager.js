@@ -372,24 +372,17 @@ class SaveManager {
     });
 
     this._renderSlots();
-    this.overlay.setAttribute('aria-hidden', 'false');
-    requestAnimationFrame(() => this.overlay.classList.add('visible'));
-    // _panelEl cached in _buildOverlay()
-    if (!this._focusTrap) this._focusTrap = new FocusTrap(this._panelEl);
-    this._focusTrap.activate();
+    this._focusTrapTarget = this._panelEl;
+    OverlayMixin.show(this);
   }
 
   /** Hide the panel */
   hide() {
-    if (this.overlay) {
-      this.overlay.classList.remove('visible');
-      this.overlay.setAttribute('aria-hidden', 'true');
-    }
-    if (this._focusTrap) this._focusTrap.deactivate();
+    OverlayMixin.hide(this);
   }
 
   get isVisible() {
-    return this.overlay?.classList.contains('visible') || false;
+    return OverlayMixin.isVisible(this);
   }
 
 }

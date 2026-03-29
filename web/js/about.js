@@ -155,22 +155,14 @@ class AboutPanel {
       this._statVals.achievements.textContent = stats.achievements;
     }
 
-    this.overlay.setAttribute('aria-hidden', 'false');
-    requestAnimationFrame(() => this.overlay.classList.add('visible'));
-    if (!this._focusTrap) {
-      this._focusTrap = new FocusTrap(this.overlay.firstElementChild);
-    }
-    this._focusTrap.activate();
+    OverlayMixin.show(this);
   }
 
   hide() {
-    if (!this.overlay) return;
-    this.overlay.classList.remove('visible');
-    this.overlay.setAttribute('aria-hidden', 'true');
-    if (this._focusTrap) this._focusTrap.deactivate();
+    OverlayMixin.hide(this);
   }
 
   get isVisible() {
-    return this.overlay?.classList.contains('visible') || false;
+    return OverlayMixin.isVisible(this);
   }
 }

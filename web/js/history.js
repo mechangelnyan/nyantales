@@ -168,10 +168,8 @@ class HistoryPanel {
       requestAnimationFrame(() => { this._listEl.scrollTop = this._listEl.scrollHeight; });
     }
 
-    this.overlay.setAttribute('aria-hidden', 'false');
-    requestAnimationFrame(() => this.overlay.classList.add('visible'));
-    if (!this._focusTrap) this._focusTrap = new FocusTrap(this._panelEl);
-    this._focusTrap.activate();
+    this._focusTrapTarget = this._panelEl;
+    OverlayMixin.show(this);
   }
 
   /**
@@ -243,13 +241,11 @@ class HistoryPanel {
   }
 
   hide() {
-    this.overlay.classList.remove('visible');
-    this.overlay.setAttribute('aria-hidden', 'true');
-    if (this._focusTrap) this._focusTrap.deactivate();
+    OverlayMixin.hide(this);
   }
 
   get isVisible() {
-    return this.overlay.classList.contains('visible');
+    return OverlayMixin.isVisible(this);
   }
 
   /** Export text history as a downloadable .txt file */

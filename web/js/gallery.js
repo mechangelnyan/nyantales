@@ -234,23 +234,17 @@ class CharacterGallery {
   /** Show the gallery */
   show() {
     this._buildOverlay();
-    this.overlay.setAttribute('aria-hidden', 'false');
-    requestAnimationFrame(() => this.overlay.classList.add('visible'));
-    if (!this._focusTrap) this._focusTrap = new FocusTrap(this._panelEl);
-    this._focusTrap.activate();
+    this._focusTrapTarget = this._panelEl;
+    OverlayMixin.show(this);
   }
 
   /** Hide the gallery */
   hide() {
-    if (this.overlay) {
-      this.overlay.classList.remove('visible');
-      this.overlay.setAttribute('aria-hidden', 'true');
-    }
-    if (this._focusTrap) this._focusTrap.deactivate();
+    OverlayMixin.hide(this);
   }
 
   get isVisible() {
-    return this.overlay?.classList.contains('visible') || false;
+    return OverlayMixin.isVisible(this);
   }
 
   /** @deprecated Use `onStorySelect = cb` directly. Kept for backward compat. */

@@ -87,11 +87,7 @@ class AchievementPanel {
     this._update();
 
     this.isVisible = true;
-    this._overlay.setAttribute('aria-hidden', 'false');
-    requestAnimationFrame(() => {
-      this._overlay.classList.add('visible');
-      this._focusTrap.activate();
-    });
+    OverlayMixin.show(this);
   }
 
   /** Update all panel content using pre-built DOM elements. Zero innerHTML. */
@@ -158,10 +154,7 @@ class AchievementPanel {
 
   /** Hide the achievement panel */
   hide() {
-    if (!this._overlay) return;
-    this._overlay.classList.remove('visible');
-    this._overlay.setAttribute('aria-hidden', 'true');
+    OverlayMixin.hide(this);
     this.isVisible = false;
-    if (this._focusTrap) this._focusTrap.deactivate();
   }
 }

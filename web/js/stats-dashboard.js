@@ -67,23 +67,14 @@ class StatsDashboard {
     }
 
     this._update();
-    this._overlay.setAttribute('aria-hidden', 'false');
-    requestAnimationFrame(() => this._overlay.classList.add('visible'));
-
-    if (!this._focusTrap) this._focusTrap = new FocusTrap(this._overlay);
-    this._focusTrap.activate();
+    OverlayMixin.show(this);
   }
 
   /** Hide the stats dashboard */
   hide() {
     if (!this.isVisible) return;
     this.isVisible = false;
-    this._overlay.classList.remove('visible');
-    this._overlay.setAttribute('aria-hidden', 'true');
-    if (this._focusTrap) {
-      this._focusTrap.deactivate();
-      this._focusTrap = null;
-    }
+    OverlayMixin.hide(this);
   }
 
   // ─── DOM Construction (called once) ────────────────────────────

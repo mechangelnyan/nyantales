@@ -501,16 +501,11 @@ class SettingsPanel {
     this._syncAll();
     this._updateDataStats();
     this._runPreview(this.settings.get('textSpeed'));
-    this.overlay.setAttribute('aria-hidden', 'false');
-    requestAnimationFrame(() => this.overlay.classList.add('visible'));
-    if (!this._focusTrap) this._focusTrap = new FocusTrap(this.overlay.firstElementChild);
-    this._focusTrap.activate();
+    OverlayMixin.show(this);
   }
 
   hide() {
-    this.overlay.classList.remove('visible');
-    this.overlay.setAttribute('aria-hidden', 'true');
-    if (this._focusTrap) this._focusTrap.deactivate();
+    OverlayMixin.hide(this);
     if (this._previewTimer) { clearTimeout(this._previewTimer); this._previewTimer = null; }
     // Cancel pending feedback timers (prevents orphan writes to detached/hidden button refs)
     for (const id of this._feedbackTimers) clearTimeout(id);
@@ -518,6 +513,6 @@ class SettingsPanel {
   }
 
   get isVisible() {
-    return this.overlay.classList.contains('visible');
+    return OverlayMixin.isVisible(this);
   }
 }
