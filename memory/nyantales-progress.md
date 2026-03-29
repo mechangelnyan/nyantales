@@ -1808,6 +1808,25 @@ cd /tmp/nyantales && python3 -m http.server 9876
 ## Log (continued)
 - 2026-03-28 (6:27 PM): Phase 98 — Warm-path optimization: _showEnding uses _activeSprites Map instead of querySelectorAll, main.js ending hook uses ui._endingRefs directly (eliminates 2 querySelector per ending), pre-computed _sceneLower object shared between _sceneTransition + _updateSprites (saves 6 toLowerCase per render), cached _charHyphenCache (avoids regex per char per render), static VNUI._SPRITE_POS for counts 0-3 (zero allocation per render), ui._totalScenes avoids Object.keys in _showEnding. SW v80, 189KB bundle. All 33 JS + 204/204 unit + 50/50 Playwright pass. Committed & pushed.
 
+## Phase 100: CSP Compliance, Sprite CSS Custom Properties ✅
+- **Inline script eliminated** — SW registration moved from `<script>` block in `index.html` to `main.js`
+  - The last remaining inline script block is now gone
+  - `script-src 'self'` CSP directive enforced without any violations
+  - Zero inline `<script>` tags in both dev and production builds (only `<script type="application/ld+json">` for SEO, which is not executable)
+  - Previously: SW registration was an inline script that technically violated the CSP meta tag added in Phase 96
+- **Sprite positioning via CSS custom properties** — `style.left`/`style.transform` replaced with `--sprite-x`/`--sprite-scale`
+  - `.vn-sprite-wrap` CSS rule: `left: var(--sprite-x, 50%); transform: translateX(-50%) scale(var(--sprite-scale, 1));`
+  - JS uses `setProperty('--sprite-x', pos.x)` and `setProperty('--sprite-scale', pos.scale)`
+  - Consistent with Phase 72+ pattern of CSS-driven dynamic values
+  - Zero `style.left` / `style.transform` in any JS file now
+- **Remaining inline styles** (5 total, all unavoidable):
+  - `route-map.js` canvas width/height (must match container rect dynamically)
+  - `route-map.js` tooltip left/top (follows mouse cursor position)
+  - `toast.js` background (per-toast custom color override)
+- SW cache bumped to v82, production build regenerated (190KB bundle)
+- All 33 JS files pass `node --check`, 204/204 unit tests, 50/50 Playwright tests
+- Committed & pushed
+
 ## Phase 99: Cached Inner Card Refs, Direct Choice Pool Lookup ✅
 - **Story card `_innerRefs`** — `renderStoryList()` now exposes `card._innerRefs = { inner, textDiv, h3, p, spriteEl }` on each card
   - `decorateStoryCard()` locked path uses cached refs instead of 5 `querySelector` calls per locked card
@@ -1827,3 +1846,4 @@ cd /tmp/nyantales && python3 -m http.server 9876
 
 ## Log (continued)
 - 2026-03-28 (7:27 PM): Phase 99 — Cached inner card refs (renderStoryList exposes _innerRefs on each card, eliminating 5+ querySelector per locked card decoration + _resetCardForRedecorate). Expanded _storyCardRefs with infoBtn + metaEl for zero-querySelector dynamic child removal. Direct choice pool lookup (number keys use ui._choiceBtnPool instead of querySelector). main.js querySelector count 30→12 (all init-only). SW v81, 189KB bundle. All 33 JS + 204/204 unit + 50/50 Playwright pass. Committed & pushed.
+- 2026-03-28 (8:27 PM): Phase 100 — CSP compliance: moved inline SW registration script from index.html to main.js (zero inline scripts in dev + prod). Sprite positioning via CSS custom properties (--sprite-x, --sprite-scale) instead of inline style.left/transform. Only 5 unavoidable inline styles remain (canvas sizing, tooltip position, toast color). SW v82, 190KB bundle. All 33 JS + 204/204 unit + 50/50 Playwright pass. Committed & pushed.
