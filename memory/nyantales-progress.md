@@ -2077,3 +2077,20 @@ cd /tmp/nyantales && python3 -m http.server 9876
 - 2026-03-29 (9:27 AM): Phase 112 — Cached totalEndings in stats dashboard (eliminates per-show scene iteration). Static comparators (hoisted from per-call object to class property). Removed unnecessary storyRows spread. Allocation-free achievements.getAll() (stamps .unlocked on originals instead of 16 spread copies). SW v95, 187KB bundle. All 34 JS + 204/204 unit + 50/50 Playwright pass. Committed & pushed.
 - 2026-03-29 (8:27 AM): Phase 111 — SaveManager.hasSave() uses for...in early-return instead of Object.keys allocation. Stats dashboard pre-computes scene counts in setStories() (avoids Object.keys per story per show). Achievement panel update uses two-pass iteration instead of filter+spread. SW v94, 186KB bundle. All 34 JS + 204/204 unit + 50/50 Playwright pass.
 - 2026-03-29 (7:27 AM): Phase 110 — Extended getStoryMeta with totalEndings (single-pass for...in). Stats dashboard single-pass aggregation (6 array passes→1). StoryInfo single-pass scene stats. 20 forEach→for/for-of conversions across ui.js, main.js, scene-select.js, audio.js. forEach count 31→11 (remaining are small-array). SW v93, 186KB bundle. All 34 JS + 204/204 unit + 50/50 Playwright pass.
+
+## Phase 113: SEO/Meta Fix, Resource Hint Optimization ✅
+- **OG/canonical URLs fixed** — both now point to root (`https://mechangelnyan.github.io/nyantales/`) instead of `/web/`
+  - Root `index.html` already redirects to `/web/dist/` — having og:url/canonical on `/web/` was incorrect (that's not what Pages serves)
+  - Build script updated: only rewrites image URLs for dist path, no longer blindly replaces all `/web/` → `/web/dist/`
+- **Removed redundant `dns-prefetch`** for `fonts.googleapis.com`
+  - Was duplicating the `preconnect` hint already present (preconnect subsumes dns-prefetch)
+- **Resource hint reordering** — `preconnect` + `preload` now precede `stylesheet` in `<head>`
+  - Previously: stylesheet loaded before preconnect hints were established (suboptimal — browser fetches stylesheet CSS, then discovers font cross-origin connection needed)
+  - Now: preconnect to Google Fonts established before CSS blocks rendering, preload for js-yaml fires early
+- **README** — updated build output sizes (187KB JS)
+- SW cache bumped to v96, production build regenerated (187KB bundle)
+- All 34 JS files pass `node --check`, 204/204 unit tests, 50/50 Playwright tests
+- Committed & pushed
+
+## Log (continued)
+- 2026-03-29 (10:27 AM): Phase 113 — Fixed OG/canonical URLs to use root instead of /web/ (root redirects to dist). Removed redundant dns-prefetch. Reordered resource hints (preconnect/preload before stylesheet). Updated build script to only rewrite image URLs for dist. README sizes updated. SW v96, 187KB bundle. All 34 JS + 204/204 unit + 50/50 Playwright pass. Committed & pushed.
