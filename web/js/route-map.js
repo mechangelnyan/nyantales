@@ -26,6 +26,7 @@ class RouteMap {
     this._panStart = { x: 0, y: 0 };
     this._hoveredNode = null;
     this._tooltip = null;
+    this._tooltipRefs = null; // pre-built tooltip child elements
     this._animFrame = null;
     this._boundHandlers = {};
     this._built = false;
@@ -55,10 +56,8 @@ class RouteMap {
 
     // Build adjacency list
     const adj = {};
-    const inDeg = {};
-    sceneIds.forEach(id => { adj[id] = []; inDeg[id] = 0; });
-
-    sceneIds.forEach(id => {
+    for (const id of sceneIds) {
+      adj[id] = [];
       const scene = scenes[id];
       // Direct next
       if (scene.next && scenes[scene.next]) {
@@ -66,19 +65,14 @@ class RouteMap {
       }
       // Choices
       if (scene.choices) {
-        scene.choices.forEach(c => {
+        for (const c of scene.choices) {
           const target = c.goto || c.next;
           if (target && scenes[target]) {
             adj[id].push({ to: target, label: c.label || c.text || '' });
           }
-        });
+        }
       }
-    });
-
-    // Calculate in-degrees
-    sceneIds.forEach(id => {
-      adj[id].forEach(e => { inDeg[e.to] = (inDeg[e.to] || 0) + 1; });
-    });
+    }
 
     // Topological layer assignment using BFS from start
     const layers = {};
@@ -99,18 +93,14 @@ class RouteMap {
       }
     }
 
-    // Assign unreachable nodes to layer 0
-    sceneIds.forEach(id => {
-      if (layers[id] === undefined) layers[id] = 0;
-    });
-
-    // Group by layer
+    // Assign unreachable nodes to layer 0 + group by layer
     const layerGroups = {};
-    sceneIds.forEach(id => {
+    for (const id of sceneIds) {
+      if (layers[id] === undefined) layers[id] = 0;
       const l = layers[id];
       if (!layerGroups[l]) layerGroups[l] = [];
       layerGroups[l].push(id);
-    });
+    }
 
     // Position nodes
     const NODE_W = 160;
@@ -118,15 +108,15 @@ class RouteMap {
     const nodes = [];
     const nodeMap = {};
 
-    const maxLayer = Math.max(...Object.keys(layerGroups).map(Number));
-
-    Object.entries(layerGroups).forEach(([layer, ids]) => {
-      const l = parseInt(layer);
+    for (const layer in layerGroups) {
+      const ids = layerGroups[layer];
+      const l = +layer;
       const count = ids.length;
       const totalWidth = count * NODE_W;
       const startX = -totalWidth / 2 + NODE_W / 2;
 
-      ids.forEach((id, idx) => {
+      for (let idx = 0; idx < ids.length; idx++) {
+        const id = ids[idx];
         const scene = scenes[id];
         const isEnding = !!scene.ending;
         const hasChoices = scene.choices && scene.choices.length > 0;
@@ -146,13 +136,13 @@ class RouteMap {
         };
         nodes.push(node);
         nodeMap[id] = node;
-      });
-    });
+      }
+    }
 
     // Build edges
     const edges = [];
-    sceneIds.forEach(id => {
-      if (!nodeMap[id]) return;
+    for (const id of sceneIds) {
+      if (!nodeMap[id]) continue;
       for (const edge of (adj[id] || [])) {
         if (nodeMap[edge.to]) {
           edges.push({
@@ -163,7 +153,7 @@ class RouteMap {
           });
         }
       }
-    });
+    }
 
     this._nodes = nodes;
     this._edges = edges;
@@ -183,6 +173,56 @@ class RouteMap {
   _truncate(str, max) {
     if (!str) return '';
     return str.length > max ? str.slice(0, max - 1) + '…' : str;
+  }
+
+  /** Build reusable tooltip child elements (called once lazily). */
+  _ensureTooltipRefs() {
+    if (this._tooltipRefs) return;
+    const mkLine = () => {
+      const br = document.createElement('br');
+      const text = document.createTextNode('');
+      return { br, text };
+    };
+    const strong = document.createElement('strong');
+    this._tooltipRefs = {
+      strong,
+      speaker: mkLine(),
+      ending: mkLine(),
+      current: mkLine(),
+      notVisited: mkLine()
+    };
+  }
+
+  /** Update pre-built tooltip elements with hovered node data (zero createElement). */
+  _updateTooltip(node) {
+    this._ensureTooltipRefs();
+    const t = this._tooltipRefs;
+    const tip = this._tooltip;
+    tip.textContent = '';
+
+    t.strong.textContent = node.id;
+    tip.appendChild(t.strong);
+
+    if (node.speaker) {
+      t.speaker.text.textContent = `Speaker: ${node.speaker}`;
+      tip.appendChild(t.speaker.br);
+      tip.appendChild(t.speaker.text);
+    }
+    if (node.type === 'ending') {
+      t.ending.text.textContent = `🏁 Ending (${node.endingType})`;
+      tip.appendChild(t.ending.br);
+      tip.appendChild(t.ending.text);
+    }
+    if (node.current) {
+      t.current.text.textContent = '📍 You are here';
+      tip.appendChild(t.current.br);
+      tip.appendChild(t.current.text);
+    }
+    if (!node.visited) {
+      t.notVisited.text.textContent = '❓ Not yet visited';
+      tip.appendChild(t.notVisited.br);
+      tip.appendChild(t.notVisited.text);
+    }
   }
 
   /** Show the route map overlay */
@@ -330,12 +370,14 @@ class RouteMap {
   _fitToView() {
     if (this._nodes.length === 0) return;
 
-    const xs = this._nodes.map(n => n.x);
-    const ys = this._nodes.map(n => n.y);
-    const minX = Math.min(...xs) - 80;
-    const maxX = Math.max(...xs) + 80;
-    const minY = Math.min(...ys) - 50;
-    const maxY = Math.max(...ys) + 50;
+    let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
+    for (const n of this._nodes) {
+      if (n.x < minX) minX = n.x;
+      if (n.x > maxX) maxX = n.x;
+      if (n.y < minY) minY = n.y;
+      if (n.y > maxY) maxY = n.y;
+    }
+    minX -= 80; maxX += 80; minY -= 50; maxY += 50;
 
     const graphW = maxX - minX || 1;
     const graphH = maxY - minY || 1;
@@ -456,17 +498,11 @@ class RouteMap {
     if (hovered !== this._hoveredNode) {
       this._hoveredNode = hovered;
       if (hovered && this._tooltip) {
-        this._tooltip.textContent = '';
-        const strong = document.createElement('strong');
-        strong.textContent = hovered.id;
-        this._tooltip.appendChild(strong);
-        if (hovered.speaker) { this._tooltip.appendChild(document.createElement('br')); this._tooltip.appendChild(document.createTextNode(`Speaker: ${hovered.speaker}`)); }
-        if (hovered.type === 'ending') { this._tooltip.appendChild(document.createElement('br')); this._tooltip.appendChild(document.createTextNode(`🏁 Ending (${hovered.endingType})`)); }
-        if (hovered.current) { this._tooltip.appendChild(document.createElement('br')); this._tooltip.appendChild(document.createTextNode('📍 You are here')); }
-        if (!hovered.visited) { this._tooltip.appendChild(document.createElement('br')); this._tooltip.appendChild(document.createTextNode('❓ Not yet visited')); }
+        this._updateTooltip(hovered);
         this._tooltip.classList.remove('hidden');
-        this._tooltip.style.left = `${e.clientX - this.overlay.getBoundingClientRect().left + 12}px`;
-        this._tooltip.style.top = `${e.clientY - this.overlay.getBoundingClientRect().top - 10}px`;
+        const overlayRect = this.overlay.getBoundingClientRect();
+        this._tooltip.style.left = `${e.clientX - overlayRect.left + 12}px`;
+        this._tooltip.style.top = `${e.clientY - overlayRect.top - 10}px`;
       } else if (this._tooltip) {
         this._tooltip.classList.add('hidden');
       }

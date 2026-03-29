@@ -1983,3 +1983,26 @@ cd /tmp/nyantales && python3 -m http.server 9876
 ## Log (continued)
 - 2026-03-29 (3:27 AM): Phase 107 — CRITICAL: SafeStorage._evictOldest() was checking data[3] instead of data.auto (save slots use string key 'auto') — quota-exceeded recovery was completely broken since Phase 29. Migrated all remaining raw localStorage to SafeStorage: SaveManager scan/migrate, DataManager export/import/stats, main.js hints, settings campaign reset. Added SafeStorage.remove() wrapper. Zero raw localStorage outside SafeStorage class. SW v90, 186KB bundle. All 34 JS + 204/204 unit + 50/50 Playwright pass. 2 commits pushed.
 - 2026-03-29 (4:27 AM): Health check session — Full codebase audit at Phase 107. 34 JS files, 10,462 total lines. 83 addEventListener calls (all delegated/one-time), zero warm-path querySelector, zero innerHTML in hot paths, zero TODOs/FIXMEs, CSP enforced (script-src 'self'), 5 unavoidable inline styles only (canvas/tooltip/toast). Build: 186KB minified JS (~50KB gzip), 88KB CSS (~14KB gzip). 204/204 unit tests, 50/50 Playwright tests, all 34 JS pass node --check. Updated README build sizes with gzip transfer sizes. Committed & pushed.
+
+## Phase 108: Route Map Cleanup — Dead Code, Allocations, Reusable Tooltip ✅
+- **Removed dead `inDeg` computation** — in-degree map was built from adjacency list but never read anywhere
+  - Was iterating all edges to populate `inDeg` counts that were immediately discarded
+  - ~5 lines of wasted computation per `_buildGraph()` call
+- **Removed dead `maxLayer` variable** — `Math.max(...Object.keys(layerGroups).map(Number))` was computed but never used
+  - Was also a spread-into-Math.max anti-pattern (allocates array + risks stack overflow for large graphs)
+- **`_fitToView()` allocation-free min/max** — replaced `Math.min(...xs)` spread pattern with simple loop
+  - Previously: allocated 2 arrays via `.map()` then spread into Math.min/max (4 array allocations + 4 spreads)
+  - Now: single `for...of` loop tracking min/max directly (zero allocation)
+- **`_buildGraph()` forEach → for-of/for-in** — consistent with rest of codebase
+  - Combined "assign unreachable to layer 0" + "group by layer" into one loop (was 2 separate forEach passes)
+  - Inner `.forEach((id, idx) =>` → `for (let idx = 0; ...)` for node positioning
+  - `Object.entries(layerGroups).forEach` → `for (const layer in layerGroups)` (avoids entries allocation)
+  - Edge building `sceneIds.forEach` → `for...of`
+- **Reusable tooltip elements** — `_ensureTooltipRefs()` builds `<strong>`, `<br>`, and `TextNode` children once
+  - `_updateTooltip(node)` reuses pre-built elements via `textContent` update + conditional `appendChild`
+  - Previously: `document.createElement('br')` + `document.createTextNode()` created fresh on every hover change
+  - Zero DOM element allocation per tooltip update
+- **Cached `getBoundingClientRect()`** — tooltip positioning was calling `this.overlay.getBoundingClientRect()` twice per hover
+  - Now: single call, result cached in local variable
+- SW cache bumped to v91, production build regenerated (186KB bundle)
+- All 34 JS files pass `node --check`, 204/204 unit tests, 50/50 Playwright tests
