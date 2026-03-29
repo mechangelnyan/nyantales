@@ -263,12 +263,16 @@ class AchievementSystem {
     }
   }
 
-  /** Get all achievements with unlock status */
+  /**
+   * Get all achievements with current unlock status stamped on each object.
+   * Mutates `.unlocked` on the original definitions (safe — they're stable singletons).
+   * Avoids creating 16 spread-copy objects per call (called on every panel open).
+   */
   getAll() {
-    return this.achievements.map(ach => ({
-      ...ach,
-      unlocked: this.unlocked.has(ach.id)
-    }));
+    for (const ach of this.achievements) {
+      ach.unlocked = this.unlocked.has(ach.id);
+    }
+    return this.achievements;
   }
 
   /** Get count stats */

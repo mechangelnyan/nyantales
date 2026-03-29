@@ -45,13 +45,20 @@ class StatsDashboard {
     this._storyIndex = stories;
     // Build slug→story Map for O(1) lookups in _playStoryBySlug
     this._storySlugMap = new Map(stories.map(s => [s.slug, s]));
-    // Pre-compute scene counts (avoids Object.keys allocation per show)
+    // Pre-compute scene counts + total endings (avoids Object.keys + per-show iteration)
     this._sceneCountCache = new Map();
+    this._totalEndingsCache = new Map();
     for (const s of stories) {
-      let count = 0;
+      let count = 0, endings = 0;
       const scenes = s._parsed?.scenes;
-      if (scenes) { for (const _ in scenes) count++; } // eslint-disable-line no-unused-vars
+      if (scenes) {
+        for (const id in scenes) {
+          count++;
+          if (scenes[id].ending) endings++;
+        }
+      }
       this._sceneCountCache.set(s.slug, count);
+      this._totalEndingsCache.set(s.slug, endings);
     }
   }
 
@@ -412,13 +419,7 @@ class StatsDashboard {
       const readingMs = data.totalReadingMs || 0;
       const hasSave = this.saveManager.hasSave(story.slug);
 
-      // Count total possible endings from story data
-      let totalEndings = 0;
-      if (story._parsed?.scenes) {
-        for (const id in story._parsed.scenes) {
-          if (story._parsed.scenes[id].ending) totalEndings++;
-        }
-      }
+      const totalEndings = this._totalEndingsCache.get(story.slug) || 0;
 
       return {
         slug: story.slug,
@@ -487,23 +488,11 @@ class StatsDashboard {
   /** Filter + sort the per-story table rows for the breakdown section. */
   _getVisibleStoryRows(storyRows) {
     const query = this._storySearch.trim().toLowerCase();
-    const filtered = query
-      ? storyRows.filter(s => {
-          const haystack = `${s.title} ${s.slug}`.toLowerCase();
-          return haystack.includes(query);
-        })
-      : [...storyRows];
-
-    const comparators = {
-      'progress-desc': (a, b) => b.progress - a.progress || b.visitedCount - a.visitedCount || a.title.localeCompare(b.title),
-      'recent-desc': (a, b) => b.lastPlayed - a.lastPlayed || a.title.localeCompare(b.title),
-      'plays-desc': (a, b) => b.plays - a.plays || b.progress - a.progress || a.title.localeCompare(b.title),
-      'reading-desc': (a, b) => b.readingMs - a.readingMs || b.progress - a.progress || a.title.localeCompare(b.title),
-      'endings-desc': (a, b) => b.endings - a.endings || b.totalEndings - a.totalEndings || a.title.localeCompare(b.title),
-      'title-asc': (a, b) => a.title.localeCompare(b.title)
-    };
-
-    return filtered.sort(comparators[this._storySort] || comparators['progress-desc']);
+    // .sort() mutates in-place; storyRows is a fresh .map() result from _computeStats, safe to sort
+    const arr = query
+      ? storyRows.filter(s => `${s.title} ${s.slug}`.toLowerCase().includes(query))
+      : storyRows;
+    return arr.sort(StatsDashboard._COMPARATORS[this._storySort] || StatsDashboard._COMPARATORS['progress-desc']);
   }
 
   /**
@@ -724,3 +713,13 @@ class StatsDashboard {
     return new Date(ts).toLocaleDateString();
   }
 }
+
+/** Pre-built sort comparators — avoids object allocation per _getVisibleStoryRows call */
+StatsDashboard._COMPARATORS = {
+  'progress-desc': (a, b) => b.progress - a.progress || b.visitedCount - a.visitedCount || a.title.localeCompare(b.title),
+  'recent-desc': (a, b) => b.lastPlayed - a.lastPlayed || a.title.localeCompare(b.title),
+  'plays-desc': (a, b) => b.plays - a.plays || b.progress - a.progress || a.title.localeCompare(b.title),
+  'reading-desc': (a, b) => b.readingMs - a.readingMs || b.progress - a.progress || a.title.localeCompare(b.title),
+  'endings-desc': (a, b) => b.endings - a.endings || b.totalEndings - a.totalEndings || a.title.localeCompare(b.title),
+  'title-asc': (a, b) => a.title.localeCompare(b.title)
+};
