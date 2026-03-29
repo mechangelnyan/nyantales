@@ -1943,3 +1943,20 @@ cd /tmp/nyantales && python3 -m http.server 9876
 
 ## Log (continued)
 - 2026-03-29 (1:27 AM): Phase 105 — Cleaned up deprecated gallery.onStoryClick usage (main.js now directly assigns onStorySelect), fixed closing syntax artifact. Verified full codebase health: 34 files, 10.5K lines, 83 addEventListener calls, zero TODOs, zero warm-path querySelector, CSP enforced. SW v87, 187KB bundle. All 34 JS + 204/204 unit + 50/50 Playwright pass. Committed & pushed.
+
+## Phase 106: SafeStorage Consistency, Dead Code Removal ✅
+- **Removed all `typeof SafeStorage !== 'undefined'` guards** — SafeStorage loads at position 4 in script chain, all consumers load after
+  - Same cleanup pattern as Phase 101's `typeof FocusTrap` guard removal
+  - 11 guard sites removed across: settings.js, tracker.js, save-manager.js, stats-dashboard.js, title-browser.js
+  - Each module now calls `SafeStorage.getJSON/setJSON` directly (no raw localStorage fallback branches)
+  - ~60 lines of dead fallback code removed
+- **Removed deprecated `gallery.onStoryClick()` shim** — was a backward-compat wrapper deprecated in Phase 48
+  - No callers remained since Phase 105 cleaned up main.js
+- **stats-dashboard.js migrated to SafeStorage** — `_savePrefs()` and `_loadPrefs()` were still using raw localStorage
+- Net: 80 lines removed, 19 lines simplified
+- SW cache bumped to v88, production build regenerated (186KB bundle)
+- All 34 JS files pass `node --check`, 204/204 unit tests, 50/50 Playwright tests
+- Committed & pushed
+
+## Log (continued)
+- 2026-03-29 (2:27 AM): Phase 106 — Removed 11 unnecessary typeof SafeStorage guards (SafeStorage always available via script load order). Removed deprecated gallery.onStoryClick() shim. Migrated stats-dashboard prefs to SafeStorage. 80 lines removed. SW v88, 186KB bundle. All 34 JS + 204/204 unit + 50/50 Playwright pass. Committed & pushed.
