@@ -1907,3 +1907,18 @@ cd /tmp/nyantales && python3 -m http.server 9876
 
 ## Log (continued)
 - 2026-03-28 (11:27 PM): Phase 103 — Extracted OverlayMixin utility to DRY the identical show/hide/isVisible/aria-hidden/FocusTrap pattern duplicated across 11 overlay modules. Each module now delegates to OverlayMixin.show/hide/isVisible helpers. Panels with custom _focusTrapTarget (gallery, history, save-manager, scene-select, story-info) set it before calling mixin. ~100 lines removed. SW v85, 187KB bundle. All 34 JS + 204/204 unit + 50/50 Playwright pass. Committed & pushed.
+
+## Phase 104: Dead Data Removal, SafeStorage Consistency ✅
+- **Removed dead `_raw` field** from story index entries — raw YAML text was stored but never read after parsing
+  - Each story's full YAML source (~1KB each × 30 stories ≈ 30KB) was kept in memory needlessly
+  - `loadStoryIndex()` now returns `{ slug, title, description, _parsed }` only
+- **AchievementSystem migrated to SafeStorage** — `_load()` and `_save()` now use `SafeStorage.getJSON/setJSON`
+  - Was the last module still using raw `localStorage.getItem/setItem` with manual try/catch
+  - Gains: quota-exceeded resilience with auto-eviction, consistent error handling
+  - All persistent modules now use SafeStorage: tracker, settings, save-manager, achievements
+- SW cache bumped to v86, production build regenerated (187KB bundle)
+- All 34 JS files pass `node --check`, 204/204 unit tests, 50/50 Playwright tests
+- Committed & pushed
+
+## Log (continued)
+- 2026-03-29 (12:27 AM): Phase 104 — Removed dead _raw field from story index (saves ~30KB memory). Migrated AchievementSystem to SafeStorage (was last module on raw localStorage). SW v86, 187KB bundle. All 34 JS + 204/204 unit + 50/50 Playwright pass. Committed & pushed.
