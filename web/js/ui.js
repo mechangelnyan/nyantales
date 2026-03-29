@@ -969,7 +969,8 @@ class VNUI {
     }
 
     // Use cached scene count if available (avoids Object.keys allocation per ending)
-    const totalScenes = this._totalScenes || Object.keys(engine.scenes).length;
+    let totalScenes = this._totalScenes;
+    if (!totalScenes) { totalScenes = 0; for (const _ in engine.scenes) totalScenes++; }
     const visitPct = totalScenes > 0 ? Math.round((engine.state.visited.size / totalScenes) * 100) : 0;
 
     // Store share data for delegation handler

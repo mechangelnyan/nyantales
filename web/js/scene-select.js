@@ -119,10 +119,16 @@ class SceneSelect {
     const visitedArr = [...visited].filter(id => scenes[id]);
 
     this._visitedCount = visitedArr.length;
-    this._sceneCount = Object.keys(scenes).length;
+    // Count scenes without Object.keys allocation
+    let sceneCount = 0;
+    for (const _k in scenes) sceneCount++;
+    this._sceneCount = sceneCount;
     this._visibleCount = visitedArr.length;
 
     listEl.textContent = '';
+
+    // Build items inline and cache refs (avoids querySelectorAll after build)
+    this._cachedItems = [];
 
     if (visitedArr.length === 0) {
       if (!this._emptyEl) {
@@ -195,13 +201,11 @@ class SceneSelect {
         }
 
         frag.appendChild(item);
+        this._cachedItems.push(item);
       }
       listEl.appendChild(frag);
       this._syncCount();
     }
-
-    // Cache scene item NodeList for filter reuse (avoids querySelectorAll per keystroke)
-    this._cachedItems = [...this._listEl.querySelectorAll('.scene-select-item')];
 
     // Reset search + visible state
     if (this._searchEl) this._searchEl.value = '';

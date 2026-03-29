@@ -116,6 +116,8 @@ class CharacterGallery {
     this._grid = grid;
 
     // Build character cards (batch via DocumentFragment — 1 reflow instead of per-card)
+    // Cache refs inline to avoid querySelectorAll after build
+    this._cachedCards = [];
     const cardFrag = document.createDocumentFragment();
     for (const ch of characters) {
       const hasAI = this.portraits && this.portraits.hasPortrait(ch.name);
@@ -174,6 +176,7 @@ class CharacterGallery {
       card.appendChild(info);
 
       cardFrag.appendChild(card);
+      this._cachedCards.push(card);
     }
     this._grid.appendChild(cardFrag);
 
@@ -181,9 +184,6 @@ class CharacterGallery {
     overlay.addEventListener('click', (e) => {
       if (e.target === overlay || e.target.closest('.gallery-close')) this.hide();
     });
-
-    // Cache card NodeList after all cards are built
-    this._cachedCards = [...this._grid.querySelectorAll('.gallery-card')];
 
     // Search (debounced at 80ms for smooth typing performance)
     let _searchTimer = null;

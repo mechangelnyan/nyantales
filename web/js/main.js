@@ -636,7 +636,9 @@
   function initEngine(parsed) {
     _currentParsed = parsed;
     currentEngine = new StoryEngine(parsed);
-    _currentTotalScenes = Object.keys(parsed.scenes).length;
+    // Count scenes without Object.keys allocation
+    let _sc = 0; for (const _ in parsed.scenes) _sc++;
+    _currentTotalScenes = _sc;
     ui._totalScenes = _currentTotalScenes; // share with UI to avoid re-computing in _showEnding
     textHistory.clear();
     ui.typewriterSpeed = settings.get('textSpeed');

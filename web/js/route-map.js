@@ -52,11 +52,11 @@ class RouteMap {
     const scenes = engine.scenes;
     const visited = engine.state.visited;
     const currentScene = engine.state.currentScene;
-    const sceneIds = Object.keys(scenes);
-
-    // Build adjacency list
+    // Build adjacency list (avoids Object.keys allocation)
     const adj = {};
-    for (const id of sceneIds) {
+    const sceneIds = [];
+    for (const id in scenes) {
+      sceneIds.push(id);
       adj[id] = [];
       const scene = scenes[id];
       // Direct next
@@ -158,8 +158,8 @@ class RouteMap {
     this._nodes = nodes;
     this._edges = edges;
 
-    // Center pan on current scene
-    const currentNode = nodes.find(n => n.current);
+    // Center pan on current scene (use nodeMap for O(1) lookup, no .find())
+    const currentNode = nodeMap[currentScene] || null;
     if (currentNode) {
       this._pan.x = -currentNode.x;
       this._pan.y = -currentNode.y + 100;
