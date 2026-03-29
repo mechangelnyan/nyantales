@@ -163,11 +163,11 @@ class TitleBrowser {
 
   _syncControls() {
     if (this._sortSelect) this._sortSelect.value = this._activeSort;
-    this._tags.forEach(tag => {
+    for (const tag of this._tags) {
       const isActive = tag.dataset.filter === this._activeFilter;
       tag.classList.toggle('active', isActive);
       tag.setAttribute('aria-selected', isActive ? 'true' : 'false');
-    });
+    }
     this._updateClearButton();
   }
 
@@ -227,7 +227,7 @@ class TitleBrowser {
     const cards = this._getCards();
 
     let visibleCount = 0;
-    cards.forEach(card => {
+    for (const card of cards) {
       let show = true;
 
       if (query && !card.dataset.search?.includes(query)) {
@@ -244,7 +244,7 @@ class TitleBrowser {
 
       card.classList.toggle('hidden-by-filter', !show);
       if (show) visibleCount++;
-    });
+    }
 
     // Count indicator
     if (query || this._activeFilter !== 'all') {
@@ -317,7 +317,9 @@ class TitleBrowser {
       }
     });
 
-    // Reorder DOM elements
-    cards.forEach(card => this._grid.appendChild(card));
+    // Reorder DOM elements via DocumentFragment (1 reflow instead of 30 appendChild calls)
+    const frag = document.createDocumentFragment();
+    for (const card of cards) frag.appendChild(card);
+    this._grid.appendChild(frag);
   }
 }

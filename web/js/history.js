@@ -222,7 +222,7 @@ class HistoryPanel {
     const entries = this._cachedEntries || [];
     let visible = 0;
 
-    entries.forEach(el => {
+    for (const el of entries) {
       if (!query) {
         el.classList.remove('hidden');
         visible++;
@@ -232,7 +232,7 @@ class HistoryPanel {
         el.classList.toggle('hidden', !match);
         if (match) visible++;
       }
-    });
+    }
 
     const total = entries.length;
     this._countEl.textContent = query

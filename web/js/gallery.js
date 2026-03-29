@@ -194,7 +194,7 @@ class CharacterGallery {
     filterRow.addEventListener('click', (e) => {
       const btn = e.target.closest('.gallery-filter-btn');
       if (!btn) return;
-      filterBtns.forEach(b => b.classList.remove('active'));
+      for (const b of filterBtns) b.classList.remove('active');
       btn.classList.add('active');
       const q = search.value.toLowerCase().trim();
       this._applyFilters(q, btn.dataset.role);
@@ -217,7 +217,7 @@ class CharacterGallery {
 
   _applyFilters(query, role) {
     const cards = this._cachedCards || [];
-    cards.forEach(card => {
+    for (const card of cards) {
       let show = true;
       if (query) {
         const name = card.dataset.name || '';
@@ -228,7 +228,7 @@ class CharacterGallery {
         if (card.dataset.role !== role) show = false;
       }
       card.classList.toggle('hidden-by-filter', !show);
-    });
+    }
   }
 
   /** Show the gallery */

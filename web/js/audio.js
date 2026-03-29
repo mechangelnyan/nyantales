@@ -116,39 +116,41 @@ class AmbientAudio {
 
   // ── Theme Classification ──
 
+  /** Static lookup — avoids allocating a new object on every classify call. */
+  static _THEME_MAP = {
+    'bg-terminal': 'digital',
+    'bg-filesystem': 'digital',
+    'bg-server-room': 'server',
+    'bg-network': 'network',
+    'bg-memory': 'memory',
+    'bg-database': 'database',
+    'bg-cafe': 'cafe',
+    'bg-warm': 'warm',
+    'bg-danger': 'danger',
+    'bg-void': 'void'
+  };
+
   _classifyTheme(bgClass) {
     if (!bgClass) return 'default';
-    const map = {
-      'bg-terminal': 'digital',
-      'bg-filesystem': 'digital',
-      'bg-server-room': 'server',
-      'bg-network': 'network',
-      'bg-memory': 'memory',
-      'bg-database': 'database',
-      'bg-cafe': 'cafe',
-      'bg-warm': 'warm',
-      'bg-danger': 'danger',
-      'bg-void': 'void'
-    };
-    return map[bgClass] || 'default';
+    return AmbientAudio._THEME_MAP[bgClass] || 'default';
   }
 
   // ── Theme Builders ──
 
+  /** Direct switch dispatch — avoids allocating a builder object per theme change. */
   _buildTheme(theme) {
-    const builders = {
-      digital: () => this._buildDigital(),
-      server: () => this._buildServer(),
-      network: () => this._buildNetwork(),
-      memory: () => this._buildMemory(),
-      database: () => this._buildDatabase(),
-      cafe: () => this._buildCafe(),
-      warm: () => this._buildWarm(),
-      danger: () => this._buildDanger(),
-      void: () => this._buildVoid(),
-      default: () => this._buildDigital()
-    };
-    (builders[theme] || builders.default)();
+    switch (theme) {
+      case 'digital': this._buildDigital(); break;
+      case 'server':  this._buildServer();  break;
+      case 'network': this._buildNetwork(); break;
+      case 'memory':  this._buildMemory();  break;
+      case 'database':this._buildDatabase();break;
+      case 'cafe':    this._buildCafe();    break;
+      case 'warm':    this._buildWarm();    break;
+      case 'danger':  this._buildDanger();  break;
+      case 'void':    this._buildVoid();    break;
+      default:        this._buildDigital(); break;
+    }
   }
 
   /** Get or create a shared white noise buffer (reused across all themes). */
