@@ -355,6 +355,7 @@ body {
   contain: content;
   content-visibility: auto;
   contain-intrinsic-size: auto 120px;
+  will-change: transform, opacity;
 }
 .story-card:hover {
   border-color: var(--accent-cyan);
@@ -561,6 +562,7 @@ body {
   transition: opacity 0.3s ease;
   z-index: 5;
   pointer-events: none;
+  will-change: transform, opacity;
 }
 .scene-transition-overlay.active {
   opacity: 1;
@@ -583,6 +585,7 @@ body {
   display: flex;
   flex-direction: column;
   align-items: center;
+  will-change: transform, opacity;
 }
 
 .vn-sprite {
@@ -860,6 +863,8 @@ body {
   display: flex;
   align-items: center;
   gap: 0.6rem;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
 }
 .choice-btn:hover {
   border-color: var(--accent-cyan);
@@ -1057,6 +1062,8 @@ body {
   cursor: pointer;
   transition: all 0.2s ease;
   backdrop-filter: blur(4px);
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
 }
 .hud-btn:hover {
   border-color: var(--accent-cyan);
@@ -1260,6 +1267,8 @@ body {
   font-size: 0.75rem;
   cursor: pointer;
   transition: all 0.2s;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
 }
 .achievements-btn:hover {
   background: rgba(var(--yellow-r), var(--yellow-g), var(--yellow-b), 0.15);
@@ -1410,6 +1419,8 @@ body {
   font-size: 0.75rem;
   cursor: pointer;
   transition: all 0.2s;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
 }
 .gallery-btn:hover {
   background: rgba(var(--accent-r), var(--accent-g), var(--accent-b), 0.15);
@@ -1721,6 +1732,8 @@ body {
   gap: 0.75rem;
   align-items: flex-start;
   text-align: left;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
 }
 .chapter-card.unlocked:hover {
   border-color: var(--accent-cyan);
@@ -2136,6 +2149,7 @@ body {
   align-items: center;
   gap: 0.3rem;
   opacity: 0.7;
+  will-change: transform, opacity;
 }
 .auto-play-dot {
   width: 6px;
@@ -2224,6 +2238,8 @@ body {
   cursor: pointer;
   transition: all 0.25s ease;
   animation: campaignGlow 3s ease-in-out infinite;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
 }
 .campaign-btn:hover {
   background: rgba(var(--yellow-r), var(--yellow-g), var(--yellow-b), 0.22);
@@ -2258,6 +2274,8 @@ body {
   cursor: pointer;
   transition: all 0.25s ease;
   animation: continuePulse 2.5s ease-in-out infinite;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
 }
 .continue-btn:hover {
   background: rgba(var(--green-r), var(--green-g), var(--green-b), 0.2);
@@ -2276,6 +2294,8 @@ body {
   font-weight: 700;
   cursor: pointer;
   transition: all 0.25s ease;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
 }
 .install-btn:hover {
   background: rgba(var(--accent-r), var(--accent-g), var(--accent-b), 0.18);
@@ -4254,10 +4274,6 @@ body {
 }
 
 /* ═══════════════════════════════════════
-   Performance: GPU-accelerated animations
-   ═══════════════════════════════════════ */
-
-/* ═══════════════════════════════════════
    Toast Notifications
    ═══════════════════════════════════════ */
 
@@ -4275,6 +4291,7 @@ body {
   pointer-events: auto;
   max-width: 360px;
   text-align: center;
+  will-change: transform, opacity;
   box-shadow: 0 4px 16px rgba(var(--black-r), var(--black-g), var(--black-b), 0.4);
 }
 
@@ -4318,31 +4335,7 @@ body {
   flex-direction: column;
 }
 
-.scene-transition-overlay,
-.vn-sprite-wrap,
-.story-card,
-.nt-toast,
-.auto-play-indicator,
-.skip-indicator {
-  will-change: transform, opacity;
-}
-
-/* ═══════════════════════════════════════
-   Double-tap prevention for touch devices
-   ═══════════════════════════════════════ */
-
-.hud-btn,
-.choice-btn,
-.gallery-btn,
-.achievements-btn,
-.campaign-btn,
-.chapter-card,
-.continue-btn,
-.install-btn,
-.filter-tag {
-  -webkit-tap-highlight-color: transparent;
-  touch-action: manipulation;
-}
+/* will-change + touch-action properties merged into their respective original definitions */
 
 /* ═══════════════════════════════════════
    Route Map Overlay
