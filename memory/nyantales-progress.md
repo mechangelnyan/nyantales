@@ -2094,3 +2094,30 @@ cd /tmp/nyantales && python3 -m http.server 9876
 
 ## Log (continued)
 - 2026-03-29 (10:27 AM): Phase 113 — Fixed OG/canonical URLs to use root instead of /web/ (root redirects to dist). Removed redundant dns-prefetch. Reordered resource hints (preconnect/preload before stylesheet). Updated build script to only rewrite image URLs for dist. README sizes updated. SW v96, 187KB bundle. All 34 JS + 204/204 unit + 50/50 Playwright pass. Committed & pushed.
+
+## Phase 114: Zero getElementById in Settings, forEach Elimination ✅
+- **Settings panel: zero `document.getElementById`** — all 23 calls eliminated
+  - `_els` object now references build-time variables directly (speedSlider.input, delaySlider.val, previewDiv, etc.)
+  - `_toggleBtns` references build-time toggle button variables (autoPlayBtn, skipReadBtn, screenShakeBtn, particlesBtn, fullscreenBtn)
+  - `_swatches` built from `themeCtrl.children` spread (no querySelectorAll)
+  - Toggle buttons for skip-read, screen-shake, particles, fullscreen saved to named variables at creation time
+- **`_wireSlider()` and `_wireToggle()` accept element refs** — no longer take ID strings + query DOM
+  - `_wireSlider(el, valEl, key, formatter, transform)` — receives pre-cached input + value span
+  - `_wireToggle(btn, key, onChange)` — receives pre-cached button element
+  - Eliminates 4+5=9 `document.getElementById` calls from wire-up methods
+- **forEach → for/for-of** (11 remaining call sites → 0 in app code):
+  - `about.js`: stat builder loop
+  - `achievements.js`: staggered toast scheduling (indexed for-loop for delay calc)
+  - `engine.js`: give_items + set_flags processing
+  - `save-manager.js`: mode button active state (2 sites)
+  - `settings-panel.js`: swatch init, swatch click, swatch sync, extraChildren append (4 sites)
+  - `stats-dashboard.js`: summary card appending
+- **DataManager.getStats()** — `Object.keys(data.stories).length` → `for...in` count (zero allocation)
+- forEach count: 11 → 0 in app code (only js-yaml.min.js has forEach, in a comment reference)
+- addEventListener count: 83 → 81
+- SW cache bumped to v97, production build regenerated (186KB bundle)
+- All 34 JS files pass `node --check`, 204/204 unit tests, 50/50 Playwright tests
+- Committed & pushed
+
+## Log (continued)
+- 2026-03-29 (11:27 AM): Phase 114 — Zero getElementById in settings-panel.js (all 23 calls eliminated, using build-time variable refs). _wireSlider/_wireToggle accept element refs instead of ID strings. forEach eliminated from all app code (11→0, only js-yaml comment remains). DataManager.getStats uses for...in count instead of Object.keys. SW v97, 186KB bundle. All 34 JS + 204/204 unit + 50/50 Playwright pass. Committed & pushed.
