@@ -84,7 +84,7 @@ class SafeStorage {
 
   /**
    * Remove the oldest auto-save slot to free space.
-   * Scans all `nyantales-saves-*` keys for auto-save entries (slot 3)
+   * Scans all `nyantales-saves-*` keys for auto-save entries (key `'auto'`)
    * and deletes the one with the oldest timestamp.
    * @private
    */
@@ -98,9 +98,8 @@ class SafeStorage {
       if (!key || !key.startsWith(prefix)) continue;
       try {
         const data = JSON.parse(localStorage.getItem(key));
-        // Look for auto-save slot (slot index 3)
-        if (data && data[3] && data[3].timestamp < oldestTime) {
-          oldestTime = data[3].timestamp;
+        if (data && data.auto && data.auto.timestamp < oldestTime) {
+          oldestTime = data.auto.timestamp;
           oldestKey = key;
         }
       } catch { /* skip corrupt */ }
@@ -109,7 +108,7 @@ class SafeStorage {
     if (oldestKey) {
       try {
         const data = JSON.parse(localStorage.getItem(oldestKey));
-        delete data[3]; // Remove auto-save slot
+        delete data.auto;
         localStorage.setItem(oldestKey, JSON.stringify(data));
         console.info(`[SafeStorage] Evicted oldest auto-save from ${oldestKey}`);
       } catch { /* best effort */ }

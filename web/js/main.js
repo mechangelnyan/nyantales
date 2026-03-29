@@ -1530,8 +1530,8 @@
 
   /** Show keyboard shortcut hints on first visit to story screen */
   function showKeyboardHints() {
-    if (localStorage.getItem('nyantales-hints-shown')) return;
-    localStorage.setItem('nyantales-hints-shown', '1');
+    if (SafeStorage.getRaw('nyantales-hints-shown')) return;
+    SafeStorage.setRaw('nyantales-hints-shown', '1');
     // Brief toast pointing to full help
     Toast.show('Press ? for keyboard shortcuts', { icon: '⌨️', duration: 4000 });
   }

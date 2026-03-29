@@ -31,17 +31,16 @@ class DataManager {
 
     // Fixed keys
     for (const key of this.DATA_KEYS) {
-      const raw = localStorage.getItem(key);
-      if (raw !== null) {
-        try { data[key] = JSON.parse(raw); } catch { data[key] = raw; }
-      }
+      const val = SafeStorage.getJSON(key);
+      if (val !== null) data[key] = val;
     }
 
     // Per-story saves
     for (let i = 0; i < localStorage.length; i++) {
       const key = localStorage.key(i);
       if (key && key.startsWith(this.SAVE_PREFIX)) {
-        try { data[key] = JSON.parse(localStorage.getItem(key)); } catch { /* skip corrupt */ }
+        const val = SafeStorage.getJSON(key);
+        if (val !== null) data[key] = val;
       }
     }
 
@@ -94,12 +93,11 @@ class DataManager {
               errors.push(`Skipped unrecognized key: ${key}`);
               continue;
             }
-            try {
-              const serialized = typeof value === 'string' ? value : JSON.stringify(value);
-              localStorage.setItem(key, serialized);
+            const ok = SafeStorage.setJSON(key, value);
+            if (ok) {
               imported++;
-            } catch (e) {
-              errors.push(`Failed to import ${key}: ${e.message}`);
+            } else {
+              errors.push(`Failed to import ${key}: storage write failed`);
             }
           }
 
@@ -127,15 +125,13 @@ class DataManager {
       const key = localStorage.key(i);
       if (!key || !key.startsWith('nyantales')) continue;
       totalKeys++;
-      const val = localStorage.getItem(key) || '';
+      const val = SafeStorage.getRaw(key) || '';
       estimatedBytes += key.length + val.length;
 
       if (key.startsWith(this.SAVE_PREFIX)) saves++;
       if (key === 'nyantales-tracker') {
-        try {
-          const data = JSON.parse(val);
-          stories = Object.keys(data.stories || {}).length;
-        } catch { /* noop */ }
+        const data = SafeStorage.getJSON(key);
+        if (data) stories = Object.keys(data.stories || {}).length;
       }
     }
 

@@ -85,9 +85,11 @@ class SaveManager {
         const key = localStorage.key(i);
         if (!key || !key.startsWith(this.STORAGE_PREFIX)) continue;
         const slug = key.slice(this.STORAGE_PREFIX.length);
-        const slots = JSON.parse(localStorage.getItem(key));
+        const slots = SafeStorage.getJSON(key, null);
+        if (!slots) continue;
 
-        for (const [name, slot] of Object.entries(slots)) {
+        for (const name in slots) {
+          const slot = slots[name];
           if (slot && slot.timestamp && (!best || slot.timestamp > best.timestamp)) {
             best = slot;
             bestSlug = slug;
@@ -108,9 +110,9 @@ class SaveManager {
         if (!key || !key.startsWith('nyantales-save-')) continue;
         const slug = key.slice('nyantales-save-'.length);
         // Skip if already migrated
-        if (localStorage.getItem(this.STORAGE_PREFIX + slug)) continue;
+        if (SafeStorage.getRaw(this.STORAGE_PREFIX + slug)) continue;
 
-        const stateJson = localStorage.getItem(key);
+        const stateJson = SafeStorage.getRaw(key);
         if (!stateJson) continue;
 
         const state = JSON.parse(stateJson);
@@ -126,8 +128,8 @@ class SaveManager {
           }
         };
 
-        localStorage.setItem(this.STORAGE_PREFIX + slug, JSON.stringify(slots));
-        localStorage.removeItem(key); // Clean up old format
+        SafeStorage.setJSON(this.STORAGE_PREFIX + slug, slots);
+        try { localStorage.removeItem(key); } catch { /* noop */ }
         this._recentCache = undefined; // invalidate
       }
     } catch { /* migration is best-effort */ }

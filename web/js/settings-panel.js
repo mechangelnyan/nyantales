@@ -353,8 +353,7 @@ class SettingsPanel {
       danger: true
     });
     if (confirmed) {
-      SafeStorage.setJSON('nyantales-campaign', null);
-      localStorage.removeItem('nyantales-campaign');
+      try { localStorage.removeItem('nyantales-campaign'); } catch { /* noop */ }
       Toast.show('Campaign progress reset', { icon: '📖' });
     }
   }
