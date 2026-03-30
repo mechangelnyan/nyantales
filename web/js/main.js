@@ -122,10 +122,25 @@
   theme.applyAll();
   // Reactivity wired after autoPlayHUD helpers are defined (see below)
 
+  // ── Panel Manager ──
+  // Centralized panel orchestration: toggle, close topmost (Escape), isAnyOpen, touch suspension sync.
+  const panels = new PanelManager();
+  // Register all 11 overlay panels (priority 0 = closes first on Escape)
+  panels.register(keyboardHelp, 0);
+  panels.register(aboutPanel, 1);
+  panels.register(achPanel, 2);
+  panels.register(statsDashboard, 3);
+  panels.register(storyInfo, 4);
+  panels.register(gallery, 5);
+  panels.register(routeMap, 6);
+  panels.register(saveManager, 7);
+  panels.register(settingsPanel, 8);
+  panels.register(historyPanel, 9);
+  panels.register(sceneSelect, 10);
+
   /** Toggle a panel's visibility. For panels with custom show args, pass them in showArgs. */
   function togglePanel(panel, ...showArgs) {
-    panel.isVisible ? panel.hide() : panel.show(...showArgs);
-    syncTouchSuspension();
+    panels.toggle(panel, ...showArgs);
   }
 
   // ── Story Index ──
@@ -167,12 +182,7 @@
   function advanceScene() { return playback.advanceScene(); }
 
   /** Check if any overlay panel is currently visible */
-  function isAnyPanelOpen() {
-    return settingsPanel.isVisible || historyPanel.isVisible || saveManager.isVisible
-      || sceneSelect.isVisible || routeMap.isVisible || keyboardHelp.isVisible
-      || aboutPanel.isVisible || statsDashboard.isVisible || storyInfo.isVisible
-      || achPanel.isVisible || gallery.isVisible;
-  }
+  function isAnyPanelOpen() { return panels.isAnyOpen(); }
 
   // Wire panel-open check into playback controller
   playback.isAnyPanelOpen = isAnyPanelOpen;
@@ -183,8 +193,10 @@
    * from triggering behind open overlays.
    */
   function syncTouchSuspension() {
-    touch.suspend(isAnyPanelOpen());
+    touch.suspend(panels.isAnyOpen());
   }
+  // Wire panel change listener for touch suspension sync
+  panels.onPanelChange = syncTouchSuspension;
 
   function scheduleAutoAdvance() { playback.scheduleAutoAdvance(); }
 
@@ -805,17 +817,10 @@
     const isSearchFocused = titleBrowser.isSearchFocused;
 
     if (e.key === 'Escape') {
-      // Close the topmost open panel (priority: lightweight overlays first, then core panels)
-      const panelCloseOrder = [
-        keyboardHelp, aboutPanel, achPanel, statsDashboard, storyInfo,
-        gallery, routeMap, saveManager, settingsPanel, historyPanel, sceneSelect
-      ];
-      const openPanel = panelCloseOrder.find(p => p.isVisible);
-      if (openPanel) {
-        openPanel.hide();
-        syncTouchSuspension();
+      // Close the topmost open panel (priority order managed by PanelManager)
+      if (panels.closeTopmost()) {
         // Resume auto-play if no panels remain open
-        if (settings.get('autoPlay') && playback.engine && !isAnyPanelOpen()) {
+        if (settings.get('autoPlay') && playback.engine && !panels.isAnyOpen()) {
           scheduleAutoAdvance();
         }
         return;

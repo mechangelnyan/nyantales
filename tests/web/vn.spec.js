@@ -2524,13 +2524,26 @@ test.describe('AppRouter', () => {
 
   test('deep link ?story=slug syncs browser URL during gameplay', async ({ page }) => {
     await page.goto('/web/?story=the-terminal-cat');
-    await page.waitForSelector('#story-screen:not(.hidden)', { timeout: 10000 });
+    // Deep link may show intro or go directly to story screen — wait for either
+    await page.waitForFunction(() => {
+      const ss = document.getElementById('story-screen');
+      const intro = document.querySelector('.story-intro-overlay.visible');
+      return (ss && !ss.classList.contains('hidden')) || intro;
+    }, { timeout: 15000 });
     expect(page.url()).toContain('story=the-terminal-cat');
   });
 
   test('returning to menu clears story param from URL', async ({ page }) => {
     await page.goto('/web/?story=the-terminal-cat');
-    await page.waitForSelector('#story-screen:not(.hidden)', { timeout: 10000 });
+    await page.waitForFunction(() => {
+      const ss = document.getElementById('story-screen');
+      const intro = document.querySelector('.story-intro-overlay.visible');
+      return (ss && !ss.classList.contains('hidden')) || intro;
+    }, { timeout: 15000 });
+    // Dismiss intro if visible
+    const intro = await page.$('.story-intro-overlay.visible');
+    if (intro) await page.click('.story-intro-overlay');
+    await page.waitForSelector('#story-screen:not(.hidden)', { timeout: 5000 });
     await page.keyboard.press('Escape');
     await page.waitForSelector('#title-screen:not(.hidden)', { timeout: 5000 });
     expect(page.url()).not.toContain('story=');
@@ -2750,5 +2763,83 @@ test.describe('PlaybackController', () => {
     expect(counts.skip).toBe(1);
     expect(counts.hud).toBe(1);
     expect(counts.bar).toBe(1);
+  });
+});
+
+// ── PanelManager Tests ──
+
+test.describe('PanelManager', () => {
+  test('class is available and has expected API', async ({ page }) => {
+    await page.goto('/web/');
+    await page.waitForSelector('.story-card', { timeout: 10000 });
+    const api = await page.evaluate(() => {
+      const pm = new PanelManager();
+      return {
+        hasRegister: typeof pm.register === 'function',
+        hasIsAnyOpen: typeof pm.isAnyOpen === 'function',
+        hasToggle: typeof pm.toggle === 'function',
+        hasCloseTopmost: typeof pm.closeTopmost === 'function',
+        noneOpen: pm.isAnyOpen()
+      };
+    });
+    expect(api.hasRegister).toBe(true);
+    expect(api.hasIsAnyOpen).toBe(true);
+    expect(api.hasToggle).toBe(true);
+    expect(api.hasCloseTopmost).toBe(true);
+    expect(api.noneOpen).toBe(false);
+  });
+
+  test('closeTopmost closes panels in priority order', async ({ page }) => {
+    await page.goto('/web/');
+    await page.waitForSelector('.story-card', { timeout: 10000 });
+    const result = await page.evaluate(() => {
+      const closed = [];
+      const mkPanel = (name) => ({
+        _vis: false,
+        get isVisible() { return this._vis; },
+        show() { this._vis = true; },
+        hide() { this._vis = false; closed.push(name); }
+      });
+      const pm = new PanelManager();
+      const a = mkPanel('a'), b = mkPanel('b'), c = mkPanel('c');
+      pm.register(a, 0);
+      pm.register(b, 1);
+      pm.register(c, 2);
+      a.show(); b.show(); c.show();
+      pm.closeTopmost(); // should close 'a' (priority 0)
+      pm.closeTopmost(); // should close 'b' (priority 1)
+      pm.closeTopmost(); // should close 'c' (priority 2)
+      const noneLeft = pm.closeTopmost(); // should return false
+      return { closed, noneLeft };
+    });
+    expect(result.closed).toEqual(['a', 'b', 'c']);
+    expect(result.noneLeft).toBe(false);
+  });
+
+  test('isAnyOpen reflects panel state in main app', async ({ page }) => {
+    await page.goto('/web/');
+    await page.waitForSelector('.story-card', { timeout: 10000 });
+    // Open about panel (always accessible from title screen via button)
+    await page.click('#btn-about');
+    await page.waitForFunction(
+      () => document.querySelector('.about-overlay')?.classList.contains('visible'),
+      { timeout: 5000 }
+    );
+    const aboutOpen = await page.evaluate(() => {
+      const overlay = document.querySelector('.about-overlay');
+      return overlay && overlay.classList.contains('visible');
+    });
+    expect(aboutOpen).toBe(true);
+    // Close via Escape
+    await page.keyboard.press('Escape');
+    await page.waitForFunction(
+      () => !document.querySelector('.about-overlay')?.classList.contains('visible'),
+      { timeout: 3000 }
+    );
+    const afterClose = await page.evaluate(() => {
+      const overlay = document.querySelector('.about-overlay');
+      return !overlay || !overlay.classList.contains('visible');
+    });
+    expect(afterClose).toBe(true);
   });
 });

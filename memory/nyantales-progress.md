@@ -2701,7 +2701,34 @@ cd /tmp/nyantales && python3 -m http.server 9876
   - Production build: 193KB JS + 96KB CSS
 - Committed & pushed
 
+## Phase 142: PanelManager Extraction, Deep Link Test Fix ✅
+- **`PanelManager` class** (`web/js/panel-manager.js`) — centralized overlay panel orchestration
+  - `register(panel, priority)` — registers panels with close priority (lower = closes first on Escape)
+  - `isAnyOpen()` — replaces 11-expression OR chain in `isAnyPanelOpen()`
+  - `toggle(panel, ...showArgs)` — unified toggle with `onPanelChange` callback
+  - `closeTopmost()` — priority-ordered close for Escape handler, returns boolean
+  - `onPanelChange` callback — wired to `syncTouchSuspension()` for automatic gesture suspension sync
+  - All 11 overlay panels registered with explicit priority order (0-10)
+- **main.js cleanup**
+  - Replaced hardcoded `panelCloseOrder` array in Escape handler with `panels.closeTopmost()`
+  - Replaced 11-condition `isAnyPanelOpen()` body with `panels.isAnyOpen()` delegation
+  - `togglePanel()` now delegates to `panels.toggle()` (auto-triggers `onPanelChange`)
+  - `syncTouchSuspension()` wired as `panels.onPanelChange` (no manual calls needed after toggle/close)
+- **Deep link Playwright test fix** — 2 flaky tests (`?story=slug syncs URL`, `returning to menu clears URL`)
+  - Tests now wait for either story screen or story intro overlay (lazy loading + intro can appear in either order)
+  - Dismiss intro overlay if present before testing Escape→menu return
+- **3 new Playwright tests** for PanelManager:
+  - Class API availability (register, isAnyOpen, toggle, closeTopmost)
+  - Priority-ordered close (mock panels closed in 0→1→2 order)
+  - Live app integration (about panel opens via button, closes via Escape)
+- **Playwright test count: 186 → 189**
+- Added to: index.html script chain, sw.js pre-cache, build.sh bundle
+- SW cache bumped to v123, production build regenerated (194KB JS, 96KB CSS)
+- All 39 JS files pass `node --check`, 204/204 unit tests, 189/189 Playwright tests
+- Committed & pushed
+
 ## Log (continued)
+- 2026-03-30 (3:27 PM): Phase 142 — Extracted PanelManager class (centralized panel toggle/escape/isAnyOpen/touch-suspension). Fixed 2 flaky deep link Playwright tests (wait for intro or story screen). 3 new PanelManager tests. SW v123, 194KB bundle. All 39 JS + 204/204 unit + 189/189 Playwright pass. Committed & pushed.
 - 2026-03-30 (2:27 PM): Phase 141 — Fixed flaky Playwright tests (workers: 1 for localStorage isolation), updated README (193KB JS / 96KB CSS / 186 Playwright tests / 38 app files), corrected build.sh request count. Codebase: 39 JS files, 10.9K lines, main.js 1321 lines. All tests pass. Committed & pushed.
 - 2026-03-30 (1:27 PM): Phase 140 — Extracted PlaybackController class from main.js: scene playback pipeline, auto-play timer, skip-read, rewind, HUD indicators, misc timer tracking, cleanup. main.js 1554→1321 lines (15% reduction). 5 new Playwright tests. SW v122, 193KB bundle. All 36 JS + 204/204 unit + 186/186 Playwright pass. Committed & pushed.
 - 2026-03-30 (12:27 PM): Phase 139 — Extracted StoryCardManager class from main.js: card decoration, refresh, reset, metadata, and search blob. main.js 1830→1554 lines (15% reduction). 6 new Playwright tests. SW v121, 190KB bundle. All 38 JS + 204/204 unit + 181/181 Playwright pass. Committed & pushed.

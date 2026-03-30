@@ -19,6 +19,7 @@ echo "━━━━━━━━━━━━━━━━━━━━━━━━�
 # Order matters: dependencies first, main.js last
 JS_FILES=(
   "js/overlay-mixin.js"
+  "js/panel-manager.js"
   "js/toast.js"
   "js/share.js"
   "js/safe-storage.js"
