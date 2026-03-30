@@ -758,7 +758,7 @@
       e.stopPropagation();
       const card = infoBtn.closest('.story-card');
       const story = storyFromCard(card);
-      if (story) storyInfo.show(story, CHARACTER_DATA[story.slug] || []);
+      if (story) storyInfo.show(story, CHARACTER_DATA[story.slug] || [], getStoryMeta(story));
       return;
     }
 

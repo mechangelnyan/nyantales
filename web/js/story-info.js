@@ -195,6 +195,11 @@ class StoryInfoModal {
     unknownCast.className = 'story-info-none';
     unknownCast.textContent = 'Unknown cast';
 
+    // Pre-built endings-found value elements (reused on every show)
+    const endingsCountText = document.createTextNode('0');
+    const endingsTotalSpan = document.createElement('span');
+    endingsTotalSpan.className = 'story-info-stat-total';
+
     document.body.appendChild(this.overlay);
 
     // ─── Cache refs ───
@@ -204,6 +209,7 @@ class StoryInfoModal {
       exploredVal: exploredCard.valEl, exploredBar: exploredCard.barFillEl, exploredSub: exploredCard.subEl,
       playsVal: playsCard.valEl, bestVal: bestCard.valEl,
       endingsVal: endingsCard.valEl, readTimeVal: readTimeCard.valEl,
+      endingsCountText, endingsTotalSpan,
       castContainer, endingsContainer, lastPlayedEl,
       continueBtn, nonePlaceholder, unknownCast
     };
@@ -223,7 +229,8 @@ class StoryInfoModal {
         if (!this._currentStory) return;
         const slots = this.saves.getSlots(this._currentStory.slug);
         let best = null;
-        for (const slot of Object.values(slots)) {
+        for (const k in slots) {
+          const slot = slots[k];
           if (slot && (!best || slot.timestamp > best.timestamp)) best = slot;
         }
         if (best && this.onLoad) {
@@ -277,26 +284,34 @@ class StoryInfoModal {
    * Updates pre-built DOM refs with new data — zero innerHTML.
    * @param {Object} story — { slug, title, description, _parsed }
    * @param {Object[]} characters — CHARACTER_DATA[slug] array
+   * @param {Object} [meta] — optional pre-computed { sceneCount, readMins, totalEndings } from getStoryMeta()
    */
-  show(story, characters) {
+  show(story, characters, meta) {
     this._build();
     this._currentStory = story;
     const r = this._refs;
 
     const data = this.tracker.getStory(story.slug);
-    // Single pass: scene count, endings, word count (avoids Object.keys + Object.values + filter + reduce)
-    let totalScenes = 0, totalEndings = 0, wordCount = 0;
-    if (story._parsed?.scenes) {
-      for (const id in story._parsed.scenes) {
-        totalScenes++;
-        const sc = story._parsed.scenes[id];
-        if (sc.ending) totalEndings++;
-        if (sc.text) wordCount += sc.text.split(/\s+/).length;
+    let totalScenes, totalEndings, readMins;
+    if (meta) {
+      totalScenes = meta.sceneCount;
+      totalEndings = meta.totalEndings;
+      readMins = meta.readMins;
+    } else {
+      // Fallback: compute inline (single pass)
+      totalScenes = 0; totalEndings = 0; let wordCount = 0;
+      if (story._parsed?.scenes) {
+        for (const id in story._parsed.scenes) {
+          totalScenes++;
+          const sc = story._parsed.scenes[id];
+          if (sc.ending) totalEndings++;
+          if (sc.text) wordCount += sc.text.split(/\s+/).length;
+        }
       }
+      readMins = Math.max(1, Math.ceil(wordCount / 200));
     }
     const visitedCount = (data.visitedScenes || []).length;
     const pct = totalScenes > 0 ? Math.round((visitedCount / totalScenes) * 100) : 0;
-    const readMins = Math.max(1, Math.ceil(wordCount / 200));
 
     // Protagonist portrait
     const chars = characters || [];
@@ -331,15 +346,14 @@ class StoryInfoModal {
     r.playsVal.textContent = data.totalPlays || 0;
     r.bestVal.textContent = data.bestTurns ?? '—';
 
-    // Endings found value (with /total suffix)
+    // Endings found value (with /total suffix) — reuses pre-built elements
     const endings = data.endingsFound || [];
     r.endingsVal.textContent = '';
-    r.endingsVal.appendChild(document.createTextNode(String(endings.length)));
+    r.endingsCountText.textContent = String(endings.length);
+    r.endingsVal.appendChild(r.endingsCountText);
     if (totalEndings) {
-      const totalSpan = document.createElement('span');
-      totalSpan.className = 'story-info-stat-total';
-      totalSpan.textContent = `/${totalEndings}`;
-      r.endingsVal.appendChild(totalSpan);
+      r.endingsTotalSpan.textContent = `/${totalEndings}`;
+      r.endingsVal.appendChild(r.endingsTotalSpan);
     }
 
     const totalReadingMs = data.totalReadingMs || 0;

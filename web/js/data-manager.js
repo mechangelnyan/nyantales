@@ -86,7 +86,8 @@ class DataManager {
           let imported = 0;
           const errors = [];
 
-          for (const [key, value] of Object.entries(payload.data)) {
+          for (const key in payload.data) {
+            const value = payload.data[key];
             // Only import recognized keys
             const isValid = this.DATA_KEYS.includes(key) || key.startsWith(this.SAVE_PREFIX);
             if (!isValid) {
