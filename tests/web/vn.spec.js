@@ -197,7 +197,7 @@ test.describe('Title Screen', () => {
     await modal.getByRole('button', { name: /share/i }).click();
 
     const copiedText = await page.evaluate(() => window.__copiedStoryLink);
-    expect(copiedText).toContain('NyanTales — The Terminal Cat');
+    expect(copiedText).toContain('NyanTales - The Terminal Cat');
     expect(copiedText).toContain('/?story=the-terminal-cat');
   });
 });
@@ -2540,9 +2540,15 @@ test.describe('AppRouter', () => {
       const intro = document.querySelector('.story-intro-overlay.visible');
       return (ss && !ss.classList.contains('hidden')) || intro;
     }, { timeout: 15000 });
-    // Dismiss intro if visible
-    const intro = await page.$('.story-intro-overlay.visible');
-    if (intro) await page.click('.story-intro-overlay');
+    // Dismiss intro if visible, then wait for story screen
+    const introEl = await page.$('.story-intro-overlay.visible');
+    if (introEl) {
+      await page.click('.story-intro-overlay');
+      await page.waitForFunction(() => {
+        const o = document.querySelector('.story-intro-overlay');
+        return !o || !o.classList.contains('visible');
+      }, { timeout: 5000 });
+    }
     await page.waitForSelector('#story-screen:not(.hidden)', { timeout: 5000 });
     await page.keyboard.press('Escape');
     await page.waitForSelector('#title-screen:not(.hidden)', { timeout: 5000 });

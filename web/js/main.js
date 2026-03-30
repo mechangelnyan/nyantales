@@ -41,9 +41,10 @@
   // Wire chapter grid click → startCampaignChapter (set after startCampaignChapter is defined below)
   const statsDashboard = new StatsDashboard(tracker, achievements, saveManager, ui.portraits, campaign);
   const routeMap      = new RouteMap();
+  const vnContainer    = document.querySelector('.vn-container');
   const playback      = new PlaybackController({
     ui, settings, textHistory, audio, saveManager, tracker,
-    vnContainer: document.querySelector('.vn-container')
+    vnContainer
   });
   const campaignFlow = new CampaignFlow(campaign, campaignUI, saveManager, achievements, playback);
   const achPanel      = new AchievementPanel(achievements);
@@ -163,9 +164,9 @@
 
   let storyIndex   = [];
   /** @type {Map<string, Object>} slug → story for O(1) lookups */
-  let storySlugMap  = new Map();
+  const storySlugMap  = new Map();
   /** @type {Map<Object, number>} story object → storyIndex position for O(1) indexOf */
-  let storyIdxMap   = new Map();
+  const storyIdxMap   = new Map();
   // Game state aliases (delegated to PlaybackController)
   // Access via playback.engine, playback.currentSlug, playback.campaignMode, etc.
   // storyStartTime, _endingTimeBox, _endingNewBadge managed by PlaybackController
@@ -205,7 +206,6 @@
   // ── Cached DOM refs ──
   // HUD indicators are now managed by PlaybackController (autoPlay, skip, progress, bar)
 
-  const vnContainer    = document.querySelector('.vn-container');
   const btnAutoEl      = document.getElementById('btn-auto');
   const btnInstallEl   = document.getElementById('btn-install');
   const statsEl        = document.getElementById('title-stats');
@@ -235,8 +235,8 @@
         const manifest = await resp.json();
         if (Array.isArray(manifest) && manifest.length > 0) {
           storyIndex = [];
-          storySlugMap = new Map();
-          storyIdxMap = new Map();
+          storySlugMap.clear();
+          storyIdxMap.clear();
           for (let i = 0; i < manifest.length; i++) {
             const m = manifest[i];
             const entry = {
@@ -275,8 +275,8 @@
       })
     );
     storyIndex = [];
-    storySlugMap = new Map();
-    storyIdxMap = new Map();
+    storySlugMap.clear();
+    storyIdxMap.clear();
     for (const r of results) {
       if (r.status === 'fulfilled' && r.value) {
         const entry = r.value;
@@ -1037,12 +1037,24 @@
       console.error('Failed to boot NyanTales:', err);
       hideLoadingScreen();
       const errTarget = storyGrid || document.getElementById('story-list');
-      if (errTarget) errTarget.innerHTML =
-        `<p class="boot-error" role="alert">
-          Error loading stories. Make sure you're serving this from a web server.<br>
-          <code>cd /tmp/nyantales && python3 -m http.server 8080</code><br>
-          Then open <a href="http://localhost:8080/web/">http://localhost:8080/web/</a>
-        </p>`;
+      if (errTarget) {
+        errTarget.textContent = '';
+        const p = document.createElement('p');
+        p.className = 'boot-error';
+        p.setAttribute('role', 'alert');
+        p.appendChild(document.createTextNode('Error loading stories. Make sure you\'re serving this from a web server.'));
+        p.appendChild(document.createElement('br'));
+        const code = document.createElement('code');
+        code.textContent = 'cd /tmp/nyantales && python3 -m http.server 8080';
+        p.appendChild(code);
+        p.appendChild(document.createElement('br'));
+        p.appendChild(document.createTextNode('Then open '));
+        const a = document.createElement('a');
+        a.href = 'http://localhost:8080/web/';
+        a.textContent = 'http://localhost:8080/web/';
+        p.appendChild(a);
+        errTarget.appendChild(p);
+      }
     }
   }
 
