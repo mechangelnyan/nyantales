@@ -150,7 +150,44 @@ with open('$DIST/index.html', 'w') as f:
     f.write(result)
 "
 
-# ── 5. Copy static assets (only referenced portraits, not legacy/unused) ──
+# ── 5. Generate story manifest (8KB JSON replaces 1.6MB of YAML boot parsing) ──
+echo "📝 Generating story manifest..."
+node -e "
+const yaml = require('js-yaml');
+const fs = require('fs');
+const path = require('path');
+const storyDir = path.resolve(__dirname, '..', 'stories');
+const slugs = fs.readdirSync(storyDir).filter(d => {
+  const p = path.join(storyDir, d, 'story.yaml');
+  return fs.existsSync(p);
+}).sort();
+const manifest = [];
+for (const slug of slugs) {
+  const text = fs.readFileSync(path.join(storyDir, slug, 'story.yaml'), 'utf8');
+  const parsed = yaml.load(text);
+  if (!parsed || !parsed.scenes) continue;
+  let sc = 0, wc = 0, te = 0;
+  for (const id in parsed.scenes) {
+    sc++;
+    const s = parsed.scenes[id];
+    if (s.text) wc += s.text.split(/\s+/).length;
+    if (s.is_ending || s.ending) te++;
+  }
+  manifest.push({
+    slug,
+    title: parsed.title || slug,
+    description: parsed.description || '',
+    sceneCount: sc,
+    wordCount: wc,
+    totalEndings: te,
+    readMins: Math.max(1, Math.ceil(wc / 200))
+  });
+}
+fs.writeFileSync('$DIST/story-manifest.json', JSON.stringify(manifest));
+console.log('   Manifest: ' + manifest.length + ' stories, ' + fs.statSync('$DIST/story-manifest.json').size + ' bytes');
+"
+
+# ── 6. Copy static assets (only referenced portraits, not legacy/unused) ──
 echo "📁 Copying assets..."
 # Copy non-character assets (icons, etc.)
 for f in assets/*; do
@@ -169,7 +206,7 @@ CHAR_SIZE=$(du -sh "$DIST/assets/characters/" 2>/dev/null | cut -f1)
 echo "   Characters: $CHAR_COUNT portraits ($CHAR_SIZE)"
 cp manifest.json "$DIST/"
 
-# ── 6. Generate production service worker ──
+# ── 7. Generate production service worker ──
 # Extract dev SW version to keep prod in sync automatically
 SW_VERSION=$(grep -oE 'nyantales-v([0-9]+)' sw.js | head -1 | grep -oE '[0-9]+')
 SW_VERSION=${SW_VERSION:-0}
@@ -188,7 +225,8 @@ const SHELL_FILES = [
   './css/style.min.css',
   './js/js-yaml.min.js',
   './js/nyantales.bundle.min.js',
-  './manifest.json'
+  './manifest.json',
+  './story-manifest.json'
 ];
 
 self.addEventListener('install', (event) => {
@@ -238,7 +276,7 @@ self.addEventListener('fetch', (event) => {
 });
 SWEOF
 
-# ── 7. Summary ──
+# ── 8. Summary ──
 echo ""
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 echo "✅ Build complete!"

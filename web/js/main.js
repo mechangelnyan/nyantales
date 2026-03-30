@@ -451,8 +451,39 @@
 
   // ── Load Stories ──
 
+  /**
+   * Load the story index — tries a pre-built manifest first (production),
+   * falls back to fetching all 30 YAML files (dev).
+   * Manifest mode: 8KB JSON vs 1.6MB of YAML, zero js-yaml parsing on boot.
+   */
   async function loadStoryIndex() {
     const base = storyBasePath();
+
+    // Try manifest first (generated at build time, ~8KB vs ~1.6MB of YAML)
+    try {
+      const manifestUrl = base.replace(/\/stories$/, '/story-manifest.json')
+        .replace(/^\.\.\/\.\.\/stories$/, '../../story-manifest.json')
+        .replace(/^\.\.\/stories$/, '../story-manifest.json')
+        .replace(/^stories$/, 'story-manifest.json');
+      const resp = await fetch(manifestUrl);
+      if (resp.ok) {
+        const manifest = await resp.json();
+        if (Array.isArray(manifest) && manifest.length > 0) {
+          storyIndex = manifest.map(m => ({
+            slug: m.slug,
+            title: m.title || m.slug,
+            description: m.description || '',
+            _parsed: null, // lazy-loaded on play
+            _meta: { sceneCount: m.sceneCount, wordCount: m.wordCount, totalEndings: m.totalEndings, readMins: m.readMins }
+          }));
+          storySlugMap = new Map(storyIndex.map(s => [s.slug, s]));
+          storyIdxMap = new Map(storyIndex.map((s, i) => [s, i]));
+          return storyIndex;
+        }
+      }
+    } catch (_) { /* manifest not available, fall through to YAML loading */ }
+
+    // Fallback: fetch and parse all YAML files (dev mode)
     const results = await Promise.allSettled(
       STORY_SLUGS.map(async slug => {
         try {
@@ -464,7 +495,7 @@
             console.warn(`[NyanTales] Invalid story data: ${slug}`);
             return null;
           }
-          return { slug, title: parsed.title || slug, description: parsed.description || '', _parsed: parsed };
+          return { slug, title: parsed.title || slug, description: parsed.description || '', _parsed: parsed, _meta: null };
         } catch (err) {
           console.warn(`[NyanTales] Failed to load story: ${slug}`, err);
           return null;
@@ -475,6 +506,40 @@
     storySlugMap = new Map(storyIndex.map(s => [s.slug, s]));
     storyIdxMap = new Map(storyIndex.map((s, i) => [s, i]));
     return storyIndex;
+  }
+
+  /**
+   * Lazy-load and parse a story's full YAML data. Returns the parsed object.
+   * Caches the result on story._parsed for subsequent plays.
+   * @param {Object} story — story index entry
+   * @returns {Promise<Object|null>} parsed YAML data (scenes, title, start, etc.)
+   */
+  async function loadFullStory(story) {
+    if (story._parsed) return story._parsed;
+    const base = storyBasePath();
+    try {
+      const resp = await fetch(`${base}/${story.slug}/story.yaml`);
+      if (!resp.ok) return null;
+      const text = await resp.text();
+      const parsed = YAMLParser.parse(text);
+      if (!parsed || !parsed.scenes) return null;
+      story._parsed = parsed;
+      // Backfill _meta if it wasn't from the manifest
+      if (!story._meta) {
+        let sc = 0, wc = 0, te = 0;
+        for (const id in parsed.scenes) {
+          sc++;
+          const sc_ = parsed.scenes[id];
+          if (sc_.text) wc += sc_.text.split(/\s+/).length;
+          if (sc_.is_ending || sc_.ending) te++;
+        }
+        story._meta = { sceneCount: sc, wordCount: wc, totalEndings: te, readMins: Math.max(1, Math.ceil(wc / 200)) };
+      }
+      return parsed;
+    } catch (err) {
+      console.warn(`[NyanTales] Failed to lazy-load story: ${story.slug}`, err);
+      return null;
+    }
   }
 
   // ── Core Scene Playback ──
@@ -662,6 +727,17 @@
     ui.setStorySlug(story.slug);
     if (story.slug && syncRoute) syncStoryUrl(story.slug, historyMode);
 
+    // Lazy-load full YAML if not yet parsed (manifest-boot mode)
+    if (!story._parsed) {
+      const parsed = await loadFullStory(story);
+      if (!parsed) {
+        Toast.show(`Failed to load story: ${story.title}`, { icon: '⚠️', duration: 3000 });
+        returnToMenu();
+        return;
+      }
+      if (navId !== routeChangeSerial) return; // Route changed during load
+    }
+
     initEngine(story._parsed);
 
     // If loading a saved state, restore it
@@ -801,6 +877,12 @@
     const cached = _storyMetaCache.get(story.slug);
     if (cached) return cached;
 
+    // Use pre-computed manifest meta if available (avoids needing _parsed)
+    if (story._meta) {
+      _storyMetaCache.set(story.slug, story._meta);
+      return story._meta;
+    }
+
     const scenes = story._parsed?.scenes;
     let sceneCount = 0, wordCount = 0, totalEndings = 0;
     if (scenes) {
@@ -808,7 +890,7 @@
         sceneCount++;
         const s = scenes[id];
         if (s.text) wordCount += s.text.split(/\s+/).length;
-        if (s.ending) totalEndings++;
+        if (s.is_ending || s.ending) totalEndings++;
       }
     }
     const readMins = Math.max(1, Math.ceil(wordCount / 200));

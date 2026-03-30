@@ -45,20 +45,25 @@ class StatsDashboard {
     this._storyIndex = stories;
     // Build slug→story Map for O(1) lookups in _playStoryBySlug
     this._storySlugMap = new Map(stories.map(s => [s.slug, s]));
-    // Pre-compute scene counts + total endings (avoids Object.keys + per-show iteration)
+    // Pre-compute scene counts + total endings (uses _meta from manifest or _parsed fallback)
     this._sceneCountCache = new Map();
     this._totalEndingsCache = new Map();
     for (const s of stories) {
-      let count = 0, endings = 0;
-      const scenes = s._parsed?.scenes;
-      if (scenes) {
-        for (const id in scenes) {
-          count++;
-          if (scenes[id].ending) endings++;
+      if (s._meta) {
+        this._sceneCountCache.set(s.slug, s._meta.sceneCount);
+        this._totalEndingsCache.set(s.slug, s._meta.totalEndings);
+      } else {
+        let count = 0, endings = 0;
+        const scenes = s._parsed?.scenes;
+        if (scenes) {
+          for (const id in scenes) {
+            count++;
+            if (scenes[id].is_ending || scenes[id].ending) endings++;
+          }
         }
+        this._sceneCountCache.set(s.slug, count);
+        this._totalEndingsCache.set(s.slug, endings);
       }
-      this._sceneCountCache.set(s.slug, count);
-      this._totalEndingsCache.set(s.slug, endings);
     }
   }
 

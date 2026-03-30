@@ -297,14 +297,19 @@ class StoryInfoModal {
       totalScenes = meta.sceneCount;
       totalEndings = meta.totalEndings;
       readMins = meta.readMins;
+    } else if (story._meta) {
+      // Use manifest metadata (no _parsed needed)
+      totalScenes = story._meta.sceneCount;
+      totalEndings = story._meta.totalEndings;
+      readMins = story._meta.readMins;
     } else {
-      // Fallback: compute inline (single pass)
+      // Fallback: compute inline from _parsed (single pass)
       totalScenes = 0; totalEndings = 0; let wordCount = 0;
       if (story._parsed?.scenes) {
         for (const id in story._parsed.scenes) {
           totalScenes++;
           const sc = story._parsed.scenes[id];
-          if (sc.ending) totalEndings++;
+          if (sc.is_ending || sc.ending) totalEndings++;
           if (sc.text) wordCount += sc.text.split(/\s+/).length;
         }
       }

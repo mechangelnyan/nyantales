@@ -4,7 +4,7 @@
  * Strategy: cache-first for static assets, network-first for stories.
  */
 
-const CACHE_NAME = 'nyantales-v115';
+const CACHE_NAME = 'nyantales-v116';
 
 // Core shell files to pre-cache on install
 const SHELL_FILES = [
@@ -45,7 +45,8 @@ const SHELL_FILES = [
   './js/stats-dashboard.js',
   './js/keyboard-help.js',
   './js/about.js',
-  './manifest.json'
+  './manifest.json',
+  './story-manifest.json'
 ];
 
 self.addEventListener('install', (event) => {
