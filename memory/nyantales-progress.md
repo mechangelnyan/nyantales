@@ -2617,3 +2617,25 @@ cd /tmp/nyantales && python3 -m http.server 9876
 ## Log (continued)
 - 2026-03-30 (10:27 AM): Phase 137 — Extracted ThemeManager class from main.js (COLOR_THEMES, applyColorTheme/Particles/FontSize/Fullscreen, settings reactivity wiring). Fixed skip-read recursive playScene → iterative loop (prevents stack overflow on long visited-scene chains). main.js 1910→1875 lines. SW v119, 189KB bundle. All 36 JS + 204/204 unit + 169/169 Playwright pass. Committed & pushed.
 - 2026-03-30 (9:27 AM): Phase 136 — Extracted CampaignUI class from main.js: chapter grid rendering, campaign button management, slug map for O(1) lock lookups, ending button, grid delegation. main.js 2186→1910 lines (13% reduction). Campaign flow logic stays in main.js (needs engine refs). SW v118, 188KB bundle. All 35 JS + 204/204 unit + 169/169 Playwright pass. Committed & pushed.
+
+## Phase 138: AppRouter Extraction + DRY playScene ✅
+- **Extracted `AppRouter` class** (`web/js/app-router.js`) — URL/routing logic pulled out of main.js
+  - `storyBasePath()`, `buildStoryUrl()`, `syncStoryUrl()`, `getRequestedSlug()` — route management
+  - `bump()` / `isCurrent(navId)` — route change serial for stale async detection
+  - `isStandaloneMode()`, `isIOSInstallable()` — PWA install detection
+  - `APP_TITLE` property for document title management
+  - Eliminates 7 standalone functions from main.js IIFE scope
+- **DRY `playScene()` skip-read duplication** — extracted `_renderOneScene(scene, skipMode)`
+  - Previously: 15-line scene processing block duplicated between main playScene body and skip-read while loop
+  - Now: single shared function handles history recording, effect override, skip-fast mode, render, audio, auto-save, progress HUD
+  - Extracted `_isCampaignTransient(slug)` — checks if slug is campaign intro/connector (was duplicated inline)
+  - Extracted `_effectOverride(scene)` — computes shake/glitch suppression (was duplicated inline)
+- **main.js: 1875 → 1830 lines** (45 lines removed)
+- **6 new Playwright tests** for AppRouter (class availability, storyBasePath, serial bump/isCurrent, deep link URL sync, menu URL cleanup)
+- **Playwright test count: 169 → 175**
+- SW cache bumped to v120, production build regenerated (189KB JS, 96KB CSS)
+- All 37 JS files pass `node --check`, 204/204 unit tests, 175/175 Playwright tests
+- 2 commits pushed
+
+## Log (continued)
+- 2026-03-30 (11:27 AM): Phase 138 — Extracted AppRouter class from main.js (URL sync, storyBasePath, route serial, PWA detection). DRYed playScene skip-read duplication (_renderOneScene shared function, _isCampaignTransient + _effectOverride helpers). main.js 1875→1830 lines. 6 new AppRouter Playwright tests. SW v120, 189KB bundle. All 37 JS + 204/204 unit + 175/175 Playwright pass. 2 commits pushed.
