@@ -2657,6 +2657,33 @@ cd /tmp/nyantales && python3 -m http.server 9876
 - All 38 JS files pass `node --check`, 204/204 unit tests, 181/181 Playwright tests
 - Committed & pushed
 
+## Phase 140: PlaybackController Extraction from main.js ✅
+- **Extracted `PlaybackController` class** (`web/js/playback-controller.js`) — game loop and playback state machine pulled out of main.js
+  - Scene playback pipeline: `playScene()`, `_renderOneScene()`, skip-read iterative loop
+  - Auto-play timer management: `scheduleAutoAdvance()`, `clearAutoPlay()`, `suppressNextAutoAdvance()`
+  - Misc timer tracking: `trackTimeout()`, `clearMiscTimers()` (achievement toasts, campaign pacing)
+  - HUD indicator creation + update: auto-play indicator, skip indicator, progress HUD, progress bar
+  - All 4 HUD elements built once in constructor (pre-created, toggled via `.hidden`)
+  - Scene advance helper: `advanceScene()` — checks next/choices/ending before proceeding
+  - Rewind: `rewindOneScene()`, `updateRewindButton()` — accept button element ref
+  - Skip-read logic: `shouldSkip()` — queries settings + engine visited set
+  - Effect override: `_effectOverride()` — suppresses glitch/shake when disabled in settings
+  - Campaign transient detection: `_isCampaignTransient()` — checks intro/connector slugs
+  - Full cleanup: `cleanup()` — clears engine, slug, timers, HUD indicators on menu return
+  - `isAnyPanelOpen` callback set by main.js (avoids circular dependency with panel refs)
+- **main.js: 1554 → 1321 lines** (233 lines removed, 15% reduction)
+  - All playback state delegated to `playback.*` properties: `engine`, `currentSlug`, `campaignMode`, `totalScenes`
+  - Thin convenience aliases (`playScene`, `advanceScene`, `clearAutoPlayTimer`, etc.) for minimal call-site changes
+  - `initEngine()` sets `playback.engine` and `playback.totalScenes` instead of local vars
+  - `returnToMenu()` calls `playback.cleanup()` (replaces 10+ individual reset lines)
+- **5 new Playwright tests** for PlaybackController (class API, timer tracking/clearing, cleanup state reset, HUD indicator DOM verification)
+- **Playwright test count: 181 → 186**
+- Added to: index.html script chain, sw.js pre-cache, build.sh bundle
+- SW cache bumped to v122, production build regenerated (193KB JS, 96KB CSS)
+- All 36 JS files pass `node --check`, 204/204 unit tests, 186/186 Playwright tests
+- Committed & pushed
+
 ## Log (continued)
+- 2026-03-30 (1:27 PM): Phase 140 — Extracted PlaybackController class from main.js: scene playback pipeline, auto-play timer, skip-read, rewind, HUD indicators, misc timer tracking, cleanup. main.js 1554→1321 lines (15% reduction). 5 new Playwright tests. SW v122, 193KB bundle. All 36 JS + 204/204 unit + 186/186 Playwright pass. Committed & pushed.
 - 2026-03-30 (12:27 PM): Phase 139 — Extracted StoryCardManager class from main.js: card decoration, refresh, reset, metadata, and search blob. main.js 1830→1554 lines (15% reduction). 6 new Playwright tests. SW v121, 190KB bundle. All 38 JS + 204/204 unit + 181/181 Playwright pass. Committed & pushed.
 - 2026-03-30 (11:27 AM): Phase 138 — Extracted AppRouter class from main.js (URL sync, storyBasePath, route serial, PWA detection). DRYed playScene skip-read duplication (_renderOneScene shared function, _isCampaignTransient + _effectOverride helpers). main.js 1875→1830 lines. 6 new AppRouter Playwright tests. SW v120, 189KB bundle. All 37 JS + 204/204 unit + 175/175 Playwright pass. 2 commits pushed.
