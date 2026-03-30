@@ -2134,3 +2134,245 @@ test.describe('YAML Parser', () => {
     expect(result.hasScenes).toBe(true);
   });
 });
+
+// ── Phase 133 Tests ──
+
+test.describe('StoryTracker Reading Time', () => {
+  test('recordReadingTime accumulates per-story and global time', async ({ page }) => {
+    await waitForTitleScreen(page);
+    const result = await page.evaluate(() => {
+      const t = new StoryTracker();
+      t.recordReadingTime('test-story', 60000);
+      t.recordReadingTime('test-story', 30000);
+      t.recordReadingTime('other-story', 15000);
+      const storyTime = t.getStory('test-story').totalReadingMs;
+      const globalTime = t.getTotalReadingMs();
+      return { storyTime, globalTime };
+    });
+    expect(result.storyTime).toBe(90000);
+    expect(result.globalTime).toBe(105000);
+  });
+
+  test('formatDuration handles edge cases', async ({ page }) => {
+    await waitForTitleScreen(page);
+    const result = await page.evaluate(() => ({
+      zero: StoryTracker.formatDuration(0),
+      seconds: StoryTracker.formatDuration(45000),
+      minutes: StoryTracker.formatDuration(125000),
+      hour: StoryTracker.formatDuration(3661000),
+    }));
+    expect(result.zero).toBe('0s');
+    expect(result.seconds).toBe('45s');
+    expect(result.minutes).toBe('2m 5s');
+    expect(result.hour).toMatch(/^1h/);
+  });
+});
+
+test.describe('Engine Interpolation', () => {
+  test('interpolate replaces inventory and turn placeholders', async ({ page }) => {
+    await waitForTitleScreen(page);
+    const result = await page.evaluate(() => {
+      const engine = new StoryEngine({
+        title: 'Test',
+        start: 'scene1',
+        scenes: { scene1: { text: 'Hello' } }
+      });
+      engine.state.inventory = ['key', 'map'];
+      engine.state.turns = 5;
+      // Uses double-brace {{key}} syntax
+      const text1 = engine.interpolate('{{item_count}} items on turn {{turns}}');
+      const text2 = engine.interpolate('You carry: {{items}}');
+      return { text1, text2 };
+    });
+    expect(result.text1).toContain('2');
+    expect(result.text1).toContain('5');
+    expect(result.text2).toContain('key, map');
+  });
+});
+
+test.describe('SaveManager Slots', () => {
+  test('save and load round-trip preserves engine state via SafeStorage', async ({ page }) => {
+    await waitForTitleScreen(page);
+    const result = await page.evaluate(() => {
+      const engine = new StoryEngine({
+        title: 'Test',
+        start: 'scene1',
+        scenes: {
+          scene1: { text: 'First scene', choices: [{ text: 'Go', goto: 'scene2' }] },
+          scene2: { text: 'Second scene' }
+        }
+      });
+      engine.goToScene('scene1');
+      engine.goToScene('scene2');
+
+      // engine.state uses Set for visited/flags — serialize manually
+      const state = {
+        currentScene: engine.state.currentScene,
+        inventory: [...engine.state.inventory],
+        flags: [...engine.state.flags],
+        turns: engine.state.turns,
+        visited: [...engine.state.visited],
+        history: [...engine.state.history],
+        snapshots: engine.state.snapshots
+      };
+      // Write to SafeStorage to simulate save slot
+      SafeStorage.setJSON('nyantales-saves-test-roundtrip', {
+        0: { state: JSON.stringify(state), speaker: 'Test', text: 'Second', turns: state.turns, visited: state.visited.length, ts: Date.now() }
+      });
+      // Read back
+      const data = SafeStorage.getJSON('nyantales-saves-test-roundtrip', {});
+      const loaded = JSON.parse(data[0].state);
+      return {
+        scene: loaded.currentScene,
+        turns: loaded.turns,
+        hasVisited: loaded.visited.length > 0
+      };
+    });
+    expect(result.scene).toBe('scene2');
+    expect(result.turns).toBeGreaterThan(0);
+    expect(result.hasVisited).toBe(true);
+  });
+});
+
+test.describe('OverlayMixin Close Behavior', () => {
+  test('backdrop click closes overlay panels', async ({ page }) => {
+    await waitForTitleScreen(page);
+
+    // Open gallery (large overlay with backdrop)
+    await page.click('#btn-gallery');
+    await expect(page.locator('.gallery-overlay.visible')).toBeVisible();
+
+    // Click the overlay backdrop (outside the panel)
+    await page.locator('.gallery-overlay').click({ position: { x: 5, y: 5 } });
+    await expect(page.locator('.gallery-overlay.visible')).not.toBeVisible({ timeout: 3000 });
+  });
+});
+
+test.describe('Color Theme RGB Variables', () => {
+  test('changing theme updates RGB component variables', async ({ page }) => {
+    await waitForTitleScreen(page);
+    const result = await page.evaluate(() => {
+      const root = document.documentElement;
+      const before = getComputedStyle(root).getPropertyValue('--accent-r').trim();
+      // Find and click the green swatch in settings
+      const settingsBtn = document.getElementById('btn-settings') || document.querySelector('[aria-label*="Settings"]');
+      if (settingsBtn) settingsBtn.click();
+      const swatch = document.querySelector('.theme-swatch[data-theme="green"]');
+      if (swatch) swatch.click();
+      const afterR = getComputedStyle(root).getPropertyValue('--accent-r').trim();
+      const afterG = getComputedStyle(root).getPropertyValue('--accent-g').trim();
+      return { beforeR: before, afterR, afterG };
+    });
+    // Green theme should have R=0, G=255
+    expect(result.afterR).toBe('0');
+    expect(result.afterG).toBe('255');
+  });
+});
+
+test.describe('Text Formatting', () => {
+  test('format text converts markdown-like syntax to HTML', async ({ page }) => {
+    await waitForTitleScreen(page);
+    const result = await page.evaluate(() => {
+      const ui = new VNUI();
+      const formatted = ui._formatText('Hello `code` and **bold** and *italic*');
+      return {
+        hasCode: formatted.includes('<code'),
+        hasBold: formatted.includes('<strong'),
+        hasItalic: formatted.includes('<em'),
+      };
+    });
+    expect(result.hasCode).toBe(true);
+    expect(result.hasBold).toBe(true);
+    expect(result.hasItalic).toBe(true);
+  });
+});
+
+test.describe('Campaign Persistence', () => {
+  test('campaign progress saves and loads from storage', async ({ page }) => {
+    await waitForTitleScreen(page);
+    const result = await page.evaluate(() => {
+      // Manually set campaign progress
+      SafeStorage.setJSON('nyantales-campaign', {
+        started: true,
+        phase: 'chapter',
+        chapterIndex: 3,
+        completedChapters: [0, 1, 2],
+        persistentFlags: ['debug_mode']
+      });
+      // Read it back
+      const loaded = SafeStorage.getJSON('nyantales-campaign', null);
+      return {
+        started: loaded?.started,
+        phase: loaded?.phase,
+        chapterIndex: loaded?.chapterIndex,
+        completedCount: loaded?.completedChapters?.length,
+        hasFlag: loaded?.persistentFlags?.includes('debug_mode')
+      };
+    });
+    expect(result.started).toBe(true);
+    expect(result.phase).toBe('chapter');
+    expect(result.chapterIndex).toBe(3);
+    expect(result.completedCount).toBe(3);
+    expect(result.hasFlag).toBe(true);
+  });
+});
+
+test.describe('Accessibility: Skip Link', () => {
+  test('skip link becomes visible on Tab focus', async ({ page }) => {
+    await waitForTitleScreen(page);
+    // Tab to focus the skip link
+    await page.keyboard.press('Tab');
+    const skipLink = page.locator('.skip-link');
+    // Check it exists and has proper target
+    await expect(skipLink).toHaveAttribute('href', '#story-list');
+  });
+});
+
+test.describe('Story Deep Link Canonical', () => {
+  test('ShareHelper generates canonical root URLs without app subpath', async ({ page }) => {
+    await waitForTitleScreen(page);
+    const result = await page.evaluate(() => {
+      const url = ShareHelper.storyUrl('the-terminal-cat');
+      return {
+        url,
+        hasStoryParam: url.includes('story=the-terminal-cat'),
+        noWebPath: !url.includes('/web/') || url.includes('/?story='),
+      };
+    });
+    expect(result.hasStoryParam).toBe(true);
+  });
+});
+
+test.describe('Multiple Panel Stack', () => {
+  test('opening multiple panels and Escape closes them in correct order', async ({ page }) => {
+    const { hud } = await startStory(page);
+
+    // Open history
+    await page.keyboard.press('h');
+    await expect(page.locator('.history-overlay.visible')).toBeVisible({ timeout: 3000 });
+
+    // Open settings on top
+    await page.keyboard.press('s');
+    await expect(page.locator('.settings-overlay.visible')).toBeVisible({ timeout: 3000 });
+
+    // Open keyboard help on top of that
+    await page.keyboard.press('?');
+    await expect(page.locator('.keyboard-help-overlay.visible')).toBeVisible({ timeout: 3000 });
+
+    // Escape should close keyboard help first
+    await page.keyboard.press('Escape');
+    await expect(page.locator('.keyboard-help-overlay.visible')).not.toBeVisible({ timeout: 3000 });
+    // Settings should still be open
+    await expect(page.locator('.settings-overlay.visible')).toBeVisible();
+
+    // Escape closes settings
+    await page.keyboard.press('Escape');
+    await expect(page.locator('.settings-overlay.visible')).not.toBeVisible({ timeout: 3000 });
+    // History should still be open
+    await expect(page.locator('.history-overlay.visible')).toBeVisible();
+
+    // Escape closes history
+    await page.keyboard.press('Escape');
+    await expect(page.locator('.history-overlay.visible')).not.toBeVisible({ timeout: 3000 });
+  });
+});

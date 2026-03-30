@@ -2480,6 +2480,22 @@ cd /tmp/nyantales && python3 -m http.server 9876
 ## Log (continued)
 - 2026-03-30 (4:27 AM): Phase 131 — Eliminated last Object.entries/values from app code (data-manager importFromFile + story-info save scan). StoryInfo accepts cached meta from getStoryMeta() (avoids re-computing word count per info click). Pre-built endings value elements (TextNode + span reused per show). 8 new Playwright tests (progress bars, export integrity, touch API, escape priority, backgrounds, favorites sort, CSP, stats bar). Test count 119→127. SW v113, 185KB bundle. All 34 JS + 204/204 unit + 127/127 Playwright pass. Committed & pushed.
 
+## Phase 133: Extended Test Coverage — Interpolation, Persistence, Accessibility, Panel Stack ✅
+- **11 new Playwright tests** (150 → 161):
+  - **StoryTracker reading time**: `recordReadingTime` accumulates per-story + global totals correctly
+  - **StoryTracker formatDuration**: edge cases (0ms, seconds, minutes, hours)
+  - **Engine interpolation**: `{{item_count}}`, `{{turns}}`, `{{items}}` replacement with double-brace syntax
+  - **SaveManager round-trip**: serialize engine state (with Set→Array conversion for visited/flags), write to SafeStorage, read back and verify scene/turns/visited
+  - **Overlay backdrop close**: gallery overlay closes on backdrop click (OverlayMixin behavior)
+  - **Color theme RGB variables**: green swatch updates `--accent-r` to 0 and `--accent-g` to 255
+  - **Text formatting**: `_formatText()` converts backtick/double-asterisk/single-asterisk to `<code>`/`<strong>`/`<em>`
+  - **Campaign persistence**: SafeStorage round-trip of campaign progress (started, phase, chapterIndex, completedChapters, persistentFlags)
+  - **Skip link accessibility**: `.skip-link` element has `href="#story-list"` target
+  - **ShareHelper canonical URLs**: `storyUrl()` generates URLs with `story=slug` param
+  - **Multiple panel stack**: opens history → settings → keyboard help, Escape closes them in correct priority order (keyboard help first, settings second, history last)
+- SW cache bumped to v115, production build regenerated (185KB JS, 96KB CSS)
+- All 34 JS files pass `node --check`, 204/204 unit tests, 161/161 Playwright tests
+
 ## Phase 132: Expanded Test Suite — Engine, SafeStorage, Panels, Sprites, Themes ✅
 - **23 new Playwright tests** (127 → 150):
   - **Toast system**: toast appears and auto-dismisses, max 3 visible enforcement
@@ -2506,4 +2522,5 @@ cd /tmp/nyantales && python3 -m http.server 9876
 - README updated with test count
 
 ## Log (continued)
+- 2026-03-30 (6:27 AM): Phase 133 — Added 11 Playwright tests: StoryTracker reading time accumulation + formatDuration edge cases, engine interpolation ({{items}}/{{turns}}/{{item_count}}), SaveManager round-trip via SafeStorage (state with Set serialization), overlay backdrop close, color theme RGB variable updates, text formatting (code/bold/italic→HTML), campaign persistence round-trip, skip link accessibility, ShareHelper canonical URLs, multi-panel Escape close order (3-deep stack). Test count 150→161. SW v115. 185KB bundle. All 34 JS + 204/204 unit + 161/161 Playwright pass.
 - 2026-03-30 (5:27 AM): Phase 132 — Added 23 Playwright tests covering: toast system (appear + max cap), confirm dialog, engine state (choices/items/flags/rewind), SafeStorage (fallback + round-trip), FocusTrap (Tab containment), OverlayMixin (aria-hidden), story intro details, ShareHelper URL generation, sprite determinism, tracker favorites, stats dashboard search+sort, typewriter effect, ambient audio, color themes, reading time tracking, DataManager keys, compound conditions, YAML parsing, campaign button. Test count 127→150. SW v114, 185KB bundle. All 34 JS + 204/204 unit + 150/150 Playwright pass. Committed & pushed.
