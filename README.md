@@ -27,7 +27,7 @@ cd nyantales && python3 -m http.server 8080
 
 ### Production Build
 
-The build script bundles 38 app JS files into a single minified file, minifies CSS, and generates an optimized service worker — reducing HTTP requests from 39 to 4:
+The build script bundles 39 app JS files into a single minified file, minifies CSS, and generates an optimized service worker — reducing HTTP requests from 40 to 4:
 
 ```bash
 cd web && bash build.sh
@@ -35,9 +35,9 @@ cd web && bash build.sh
 cd dist && python3 -m http.server 9877
 ```
 
-Build output: **193KB JS** (from 372KB), **96KB CSS** (from 125KB). Gzip'd: ~53KB JS, ~15KB CSS. GitHub Pages CI runs the build automatically. A **story manifest** (8KB JSON) replaces 30 individual YAML fetches on boot — title screen loads instantly without parsing 1.6MB of YAML.
+Build output: **194KB JS** (from 374KB), **96KB CSS** (from 125KB). Gzip'd: ~53KB JS, ~15KB CSS. GitHub Pages CI runs the build automatically. A **story manifest** (8KB JSON) replaces 30 individual YAML fetches on boot — title screen loads instantly without parsing 1.6MB of YAML.
 
-**Testing:** 204 unit tests (Node.js) + 186 Playwright browser tests covering UI, a11y, persistence, deep links, campaign flow, engine logic, manifest/lazy-loading, and production builds. Run `npm test` and `npx playwright test`.
+**Testing:** 204 unit tests (Node.js) + 189 Playwright browser tests covering UI, a11y, persistence, deep links, campaign flow, engine logic, manifest/lazy-loading, and production builds. Run `npm test` and `npx playwright test`.
 
 **Features:**
 - 🎮 30 interactive stories with branching narratives
