@@ -2398,6 +2398,28 @@ cd /tmp/nyantales && python3 -m http.server 9876
 - All 34 JS files pass `node --check`, 204/204 unit tests, 107/107 Playwright tests
 - Committed & pushed
 
+## Phase 129: AbortController Touch, Static Comparators, Gallery Cache, Test Expansion ✅
+- **TouchHandler AbortController** — replaced 2 `removeEventListener` calls with single `_evtCtrl.abort()` in `destroy()`
+  - Same pattern as RouteMap (Phase 128) for consistent event lifecycle management
+  - removeEventListener count across codebase: 4 → 3 (1 remaining is a comment reference)
+- **TitleBrowser static `_COMPARATORS`** — hoisted sort comparator functions to class-level static property
+  - Was allocating a new comparator closure via inline `switch` on every sort call
+  - Now uses pre-defined static comparators with direct property lookup (same pattern as `StatsDashboard._COMPARATORS`)
+- **Gallery cached `_activeRoleBtn`** — tracks the currently active filter button reference
+  - Was calling `filterBtns.find(b => b.classList.contains('active'))` on every debounced search keystroke
+  - Now reads cached ref directly (O(1) vs O(n) scan of 3 buttons)
+- **6 new Playwright tests** (107 → 113):
+  - Sort dropdown changes card order (longest first)
+  - Sort by A-Z produces alphabetical title order
+  - Gallery hero filter shows only protagonist cards
+  - Touch handler lifecycle (VN container active during gameplay)
+  - OverlayMixin aria-hidden toggles correctly on show/hide
+  - Loading screen disappears after boot
+- SW cache bumped to v111, production build regenerated (185KB JS, 96KB CSS)
+- All 34 JS files pass `node --check`, 204/204 unit tests, 113/113 Playwright tests
+- Committed & pushed
+
 ## Log (continued)
+- 2026-03-30 (2:27 AM): Phase 129 — TouchHandler AbortController (2 removeEventListener → 1 abort). TitleBrowser static _COMPARATORS (sort closures hoisted). Gallery cached _activeRoleBtn (eliminates .find per search). 6 new Playwright tests (sort controls, gallery filter, overlay aria-hidden, loading screen). SW v111, 185KB bundle. All 34 JS + 204/204 unit + 113/113 Playwright pass. Committed & pushed.
 - 2026-03-30 (1:27 AM): Phase 128 — Route map AbortController (9 removeEventListener calls → single _evtCtrl.abort()). README test count updated. SW v110, 185KB bundle. All 34 JS + 204/204 unit + 107/107 Playwright pass. Committed & pushed.
 - 2026-03-30 (12:27 AM): Phase 127 — CSS mood color variables (--mood-warm/sad/spooky added to :root, 3 hardcoded hex values→vars). Replaced 3 more hardcoded colors with CSS vars (sort option bg, loading screen, high-contrast text, toast text). Added 7 Playwright tests (touch gesture, mood vars, auto-save, campaign flow+structure, SW cache, SafeStorage error handling). Test count 100→107. SW v109. All 107 Playwright + 204/204 unit pass. Committed & pushed.
