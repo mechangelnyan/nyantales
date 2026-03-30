@@ -2273,6 +2273,22 @@ cd /tmp/nyantales && python3 -m http.server 9876
 - 2026-03-29 (3:27 PM): Phase 118 — Extracted CSS RGB custom properties for white/black/bg-deep/bg-mid/bg-surface/purple (91 more hardcoded rgba values replaced). Added --accent-purple. --mood-mysterious uses var(--accent-purple). 150 total rgba values now driven by CSS custom properties. SW v101, 186KB JS / 95KB CSS. All 34 JS + 204/204 unit + 50/50 Playwright pass.
 - 2026-03-29 (2:27 PM): Phase 117 — Extracted CSS RGB custom properties for green/yellow/red/magenta (59 hardcoded rgba values replaced). Mood vars now reference accent vars. Merged duplicate .story-info-share-btn. Route map legend uses var(--accent-green). SW v100, 186KB JS / 91KB CSS. All 34 JS + 204/204 unit + 50/50 Playwright pass. Committed & pushed.
 
+## Phase 124: Extended Test Suite — Save/Load, A11y, PWA, Reduced Motion, Escape, Persistence ✅
+- **9 new Playwright tests** covering previously untested features:
+  - **Save and Load** — saves to slot 1, returns to menu, re-enters story, loads from slot, verifies restored scene text matches
+  - **Accessibility: Modal Overlays** — opens gallery and about panels, verifies `role="dialog"` and `aria-label` attributes on visible overlays
+  - **Accessibility: Story Grid ARIA** — verifies `#story-list` has `role="list"`, unlocked cards have `role="listitem"` + `tabindex="0"`
+  - **Accessibility: Textbox** — verifies `#vn-textbox` has `role="log"` + `aria-live="polite"` for screen reader narration
+  - **PWA Manifest** — fetches `manifest.json`, validates required fields (name, short_name, icons, start_url, display)
+  - **Reduced Motion** — emulates `prefers-reduced-motion: reduce`, verifies media query matches and animation/transition durations are ≤0.01ms
+  - **Escape Key: Panel Priority** — opens settings during gameplay, verifies Escape closes settings but doesn't exit story
+  - **Escape Key: Menu Return** — verifies Escape during gameplay (no panels open) returns to title screen
+  - **Settings Persistence** — changes text speed slider via native value setter, verifies localStorage save, reloads page, confirms value persisted
+- **Test count: 75 → 84** (12% increase in Playwright coverage)
+- SW cache bumped to v106, production build regenerated (186KB JS, 96KB CSS)
+- All 34 JS files pass `node --check`, 204/204 unit tests, 84/84 Playwright tests
+- Committed & pushed
+
 ## Phase 123: Extended Test Suite — History, Auto-Play, Progress, CSP, Endings ✅
 - **8 new Playwright tests** covering previously untested features:
   - **Text History** — history panel records dialogue after scene play, history search filters entries (fills nonexistent term → 0 visible entries)
@@ -2304,5 +2320,6 @@ cd /tmp/nyantales && python3 -m http.server 9876
 - No new stories added
 
 ## Log (continued)
+- 2026-03-29 (9:27 PM): Phase 124 — Added 9 Playwright tests: save/load persistence (round-trip save→menu→load→verify text), a11y (dialog roles, grid roles, textbox aria-live), PWA manifest validation, reduced motion (emulated media query + duration check), escape key priority (panel close without story exit + menu return), settings persistence across reload. Test count 75→84. SW v106. All 84 Playwright + 204/204 unit pass. Committed & pushed.
 - 2026-03-29 (8:27 PM): Phase 123 — Added 8 Playwright tests: text history (records dialogue + search filter), auto-play indicator toggle, progress HUD during gameplay, top progress bar visibility, CSP compliance (no script-src violations), service worker registration, ending screen (plays through story to completion). Test count 67→75. SW v105. All 75 Playwright + 204/204 unit pass. Committed & pushed.
 - 2026-03-29 (7:27 PM): Phase 122 — Added 7 new Playwright test categories: favorites toggle+filter, sort-by-longest, route map open/close, font size slider, data export download, achievements panel (16 items), scene select panel. Made about panel close more robust (backdrop fallback). Test count 60→67. All 67 Playwright + 204/204 unit pass. Production build regenerated. Committed & pushed.
