@@ -2767,3 +2767,17 @@ cd /tmp/nyantales && python3 -m http.server 9876
 - 2026-03-30 (5:27 PM): Phase 145 — Moved storyStartTime + _endingTimeBox + _endingNewBadge to PlaybackController. New getSessionElapsed/injectReadingTime/showNewEndingBadge methods. main.js ending hook 30→10 lines. main.js 1170→1140 lines. SW v127, 195KB bundle. All 42 JS + 204/204 unit + 191/191 Playwright pass. Committed & pushed.
 - 2026-03-30 (4:27 PM): Phase 144 — Extracted SWRegister class from main.js (SW registration + update banner). main.js 1201→1170 lines. SW v126. All 42 JS + 204/204 unit + 191/191 Playwright pass. Committed & pushed.
 - 2026-03-30 (3:27 PM): Phase 143 — Extracted CampaignFlow class from main.js (campaign state machine: start/phase/ending/chapter). main.js 1326→1201 lines. 2 new Playwright tests. SW v124, 194KB bundle. All 40 JS + 204/204 unit + 191/191 Playwright pass. Committed & pushed.
+
+## Phase 146: InstallManager Extraction ✅
+- **InstallManager class** (`web/js/install-manager.js`) — PWA install prompt handling
+  - `updateButton()` — show/hide + label based on platform and prompt availability
+  - `handleAction()` — trigger native install prompt or show iOS guidance toast
+  - Wires `beforeinstallprompt`, `appinstalled`, and standalone-mode media query events in constructor
+  - Replaces 3 functions + 1 variable + 4 event listeners from main.js
+- main.js: 1140 → 1079 lines (61 lines removed)
+- SW cache bumped to v128, production build regenerated (195KB JS)
+- All 43 JS files pass `node --check`, 204/204 unit tests, 194/194 Playwright tests
+
+## Log (continued)
+- 2026-03-30 (5:27 PM): Phase 146 — Extracted InstallManager from main.js (PWA install prompt, button state, iOS fallback, all browser events). main.js 1140→1079 lines. SW v128. 195KB bundle. All 43 JS + 204/204 unit + 194/194 Playwright pass. Committed & pushed.
+- 2026-03-30 (5:27 PM): Phase 145 — Moved storyStartTime + _endingTimeBox + _endingNewBadge to PlaybackController. New getSessionElapsed/injectReadingTime/showNewEndingBadge methods. main.js ending hook 30→10 lines. main.js 1170→1140 lines. 3 new Playwright tests. SW v127, 195KB bundle. All 42 JS + 204/204 unit + 194/194 Playwright pass. Committed & pushed.
