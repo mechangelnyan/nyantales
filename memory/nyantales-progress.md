@@ -2683,7 +2683,26 @@ cd /tmp/nyantales && python3 -m http.server 9876
 - All 36 JS files pass `node --check`, 204/204 unit tests, 186/186 Playwright tests
 - Committed & pushed
 
+## Phase 141: Test Stability, Build Stats, Docs ✅
+- **Playwright `workers: 1`** — fixed flaky parallel test failures
+  - 2 tests (achievements panel, deep link URL sync) failed intermittently under parallel workers
+  - Root cause: shared localStorage origin + parallel page instances → state collisions
+  - Serial execution: 186 tests in 3.2 minutes (acceptable tradeoff for reliability)
+  - Both tests pass 100% with `workers: 1`
+- **README updated** — accurate build output sizes (193KB JS / 96KB CSS), test count (186 Playwright), module count (38 app files)
+- **build.sh** — corrected HTTP request count from 31 → 39
+- **Codebase health at Phase 141:**
+  - 39 JS files (38 app + js-yaml), 10,910 total lines
+  - main.js: 1,321 lines (down from ~2,800 pre-extraction phases)
+  - 204/204 unit tests, 186/186 Playwright tests
+  - Zero TODO/FIXME/HACK markers
+  - Zero warm-path querySelector, zero innerHTML in hot paths
+  - CSP enforced (script-src 'self')
+  - Production build: 193KB JS + 96KB CSS
+- Committed & pushed
+
 ## Log (continued)
+- 2026-03-30 (2:27 PM): Phase 141 — Fixed flaky Playwright tests (workers: 1 for localStorage isolation), updated README (193KB JS / 96KB CSS / 186 Playwright tests / 38 app files), corrected build.sh request count. Codebase: 39 JS files, 10.9K lines, main.js 1321 lines. All tests pass. Committed & pushed.
 - 2026-03-30 (1:27 PM): Phase 140 — Extracted PlaybackController class from main.js: scene playback pipeline, auto-play timer, skip-read, rewind, HUD indicators, misc timer tracking, cleanup. main.js 1554→1321 lines (15% reduction). 5 new Playwright tests. SW v122, 193KB bundle. All 36 JS + 204/204 unit + 186/186 Playwright pass. Committed & pushed.
 - 2026-03-30 (12:27 PM): Phase 139 — Extracted StoryCardManager class from main.js: card decoration, refresh, reset, metadata, and search blob. main.js 1830→1554 lines (15% reduction). 6 new Playwright tests. SW v121, 190KB bundle. All 38 JS + 204/204 unit + 181/181 Playwright pass. Committed & pushed.
 - 2026-03-30 (11:27 AM): Phase 138 — Extracted AppRouter class from main.js (URL sync, storyBasePath, route serial, PWA detection). DRYed playScene skip-read duplication (_renderOneScene shared function, _isCampaignTransient + _effectOverride helpers). main.js 1875→1830 lines. 6 new AppRouter Playwright tests. SW v120, 189KB bundle. All 37 JS + 204/204 unit + 175/175 Playwright pass. 2 commits pushed.
