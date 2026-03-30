@@ -811,3 +811,220 @@ test.describe('Campaign', () => {
     expect(count).toBeGreaterThan(15); // 26 chapters across 5 acts
   });
 });
+
+test.describe('Save and Load', () => {
+  test('saving creates a slot that can be loaded', async ({ page }) => {
+    const { text, choices } = await startStory(page);
+    await ensureFullTextVisible(page);
+    const firstSceneText = await text.textContent();
+
+    // Advance one choice
+    await choices.first().click();
+    await ensureFullTextVisible(page);
+    const secondSceneText = await text.textContent();
+
+    // Open save panel and save to slot 1
+    await page.locator('#btn-save').click();
+    const overlay = page.locator('.save-overlay');
+    await expect(overlay).toBeVisible();
+    const saveBtn = overlay.locator('[data-action="save"]').first();
+    await saveBtn.click();
+    await page.waitForTimeout(300);
+
+    // Close save panel
+    await page.keyboard.press('Escape');
+
+    // Go back to menu
+    await page.locator('#btn-back').click();
+    await page.waitForTimeout(500);
+
+    // Re-enter the story
+    const card = page.locator('.story-card:not(.story-locked)').filter({ hasText: /Terminal Cat/i }).first();
+    await card.click();
+    const intro = page.locator('.story-intro-overlay');
+    await expect(intro).toBeVisible({ timeout: 10000 });
+    await intro.getByRole('button', { name: /continue/i }).click();
+    await expect(text).not.toHaveText(/^\s*$/, { timeout: 15000 });
+
+    // Open save panel in load mode
+    await page.locator('#btn-save').click();
+    await expect(overlay).toBeVisible();
+    await overlay.locator('[data-mode="load"]').click();
+    const loadBtn = overlay.locator('[data-action="load"]').first();
+    await loadBtn.click();
+    await page.waitForTimeout(500);
+
+    // Should restore to the saved scene text
+    const restoredText = await text.textContent();
+    expect(restoredText).toBe(secondSceneText);
+  });
+});
+
+test.describe('Accessibility', () => {
+  test('modal overlays have role=dialog and aria-label', async ({ page }) => {
+    await waitForTitleScreen(page);
+
+    // Open and check gallery
+    await page.locator('#btn-gallery').click();
+    const gallery = page.locator('.gallery-overlay');
+    await expect(gallery).toHaveClass(/visible/, { timeout: 5000 });
+    await expect(gallery).toHaveAttribute('role', 'dialog');
+    const galleryLabel = await gallery.getAttribute('aria-label');
+    expect(galleryLabel).toBeTruthy();
+    await page.keyboard.press('Escape');
+    await page.waitForTimeout(200);
+    // Fallback to backdrop click if Escape was swallowed
+    if (await gallery.evaluate(el => el.classList.contains('visible'))) {
+      await gallery.click({ position: { x: 5, y: 5 } });
+    }
+
+    // Open and check about
+    await page.locator('#btn-about').click();
+    const about = page.locator('.about-overlay');
+    await expect(about).toHaveClass(/visible/, { timeout: 5000 });
+    await expect(about).toHaveAttribute('role', 'dialog');
+    const aboutLabel = await about.getAttribute('aria-label');
+    expect(aboutLabel).toBeTruthy();
+  });
+
+  test('story grid has correct ARIA roles', async ({ page }) => {
+    await waitForTitleScreen(page);
+
+    const grid = page.locator('#story-list');
+    await expect(grid).toHaveAttribute('role', 'list');
+
+    // Use an unlocked card (locked cards may not have tabindex)
+    const unlockedCard = page.locator('.story-card:not(.story-locked)').first();
+    await expect(unlockedCard).toHaveAttribute('role', 'listitem');
+    await expect(unlockedCard).toHaveAttribute('tabindex', '0');
+  });
+
+  test('textbox has aria-live for screen reader narration', async ({ page }) => {
+    await startStory(page);
+    await ensureFullTextVisible(page);
+
+    const textbox = page.locator('#vn-textbox');
+    await expect(textbox).toHaveAttribute('role', 'log');
+    await expect(textbox).toHaveAttribute('aria-live', 'polite');
+  });
+});
+
+test.describe('PWA', () => {
+  test('manifest.json is valid and accessible', async ({ page }) => {
+    // manifest.json is in web/ directory (same as the app)
+    const resp = await page.request.get('/web/manifest.json');
+    expect(resp.status()).toBe(200);
+    const manifest = await resp.json();
+    expect(manifest.name).toBeTruthy();
+    expect(manifest.short_name).toBeTruthy();
+    expect(manifest.icons.length).toBeGreaterThan(0);
+    expect(manifest.start_url).toBeTruthy();
+    expect(manifest.display).toBe('standalone');
+  });
+});
+
+test.describe('Reduced Motion', () => {
+  test('prefers-reduced-motion disables animations', async ({ page }) => {
+    await page.emulateMedia({ reducedMotion: 'reduce' });
+    await waitForTitleScreen(page);
+
+    // Check that the reduced motion media query matches
+    const hasReducedMotion = await page.evaluate(() => {
+      const mq = window.matchMedia('(prefers-reduced-motion: reduce)');
+      return mq.matches;
+    });
+    expect(hasReducedMotion).toBe(true);
+
+    // CSS rule: animation-duration: 0.01ms !important, transition-duration: 0.01ms !important
+    const card = page.locator('.story-card').first();
+    const durations = await card.evaluate(el => {
+      const s = getComputedStyle(el);
+      return {
+        anim: s.animationDuration,
+        trans: s.transitionDuration
+      };
+    });
+    // 0.01ms rounds to essentially zero — verify it's not a normal duration
+    expect(parseFloat(durations.anim)).toBeLessThanOrEqual(0.01);
+    expect(parseFloat(durations.trans)).toBeLessThanOrEqual(0.01);
+  });
+});
+
+test.describe('Escape Key Priority', () => {
+  test('Escape closes the topmost panel without affecting underlying panels', async ({ page }) => {
+    await startStory(page);
+    await ensureFullTextVisible(page);
+
+    // Open settings
+    await page.keyboard.press('s');
+    const settings = page.locator('.settings-overlay');
+    await expect(settings).toHaveClass(/visible/);
+
+    // Escape closes settings
+    await page.keyboard.press('Escape');
+    await expect(settings).not.toHaveClass(/visible/);
+
+    // We should still be in the story (not back at menu)
+    const text = page.locator('#vn-text');
+    await expect(text).toBeVisible();
+  });
+
+  test('Escape returns to menu when no panels are open', async ({ page }) => {
+    await startStory(page);
+    await ensureFullTextVisible(page);
+
+    await page.keyboard.press('Escape');
+    await page.waitForTimeout(500);
+
+    // Should be back at title screen
+    const titleScreen = page.locator('#title-screen');
+    await expect(titleScreen).toHaveClass(/active/, { timeout: 5000 });
+  });
+});
+
+test.describe('Settings Persistence', () => {
+  test('text speed setting persists across page reloads', async ({ page }) => {
+    await startStory(page);
+    await ensureFullTextVisible(page);
+
+    // Open settings and change text speed programmatically (fill + dispatchEvent)
+    await page.keyboard.press('s');
+    const overlay = page.locator('.settings-overlay');
+    await expect(overlay).toBeVisible();
+
+    // Set value and fire native input event (ensures listener fires)
+    const targetSpeed = await page.evaluate(() => {
+      const slider = document.getElementById('set-text-speed');
+      const nativeInputValueSetter = Object.getOwnPropertyDescriptor(
+        window.HTMLInputElement.prototype, 'value'
+      ).set;
+      nativeInputValueSetter.call(slider, 35);
+      slider.dispatchEvent(new Event('input', { bubbles: true }));
+      // Return the actual value the slider accepted (may snap to step)
+      return parseInt(slider.value);
+    });
+    await page.waitForTimeout(600); // debounced save
+
+    // Verify saved
+    const savedBefore = await page.evaluate(() => {
+      const raw = localStorage.getItem('nyantales-settings');
+      if (!raw) return null;
+      return JSON.parse(raw).textSpeed;
+    });
+    expect(savedBefore).toBe(targetSpeed);
+    // Confirm it's different from default (18)
+    expect(targetSpeed).not.toBe(18);
+
+    // Reload and verify persistence
+    await page.keyboard.press('Escape');
+    await page.reload();
+    await waitForTitleScreen(page);
+
+    const speed = await page.evaluate(() => {
+      const raw = localStorage.getItem('nyantales-settings');
+      if (!raw) return null;
+      return JSON.parse(raw).textSpeed;
+    });
+    expect(speed).toBe(targetSpeed);
+  });
+});
