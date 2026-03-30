@@ -2485,3 +2485,54 @@ test.describe('Production Build', () => {
     expect(body.length).toBeGreaterThan(1000);
   });
 });
+
+// ── AppRouter & Route Management ──
+
+test.describe('AppRouter', () => {
+  test('AppRouter class is available', async ({ page }) => {
+    await page.goto('/web/');
+    const hasRouter = await page.evaluate(() => typeof AppRouter === 'function');
+    expect(hasRouter).toBe(true);
+  });
+
+  test('storyBasePath returns correct relative path', async ({ page }) => {
+    await page.goto('/web/');
+    const basePath = await page.evaluate(() => new AppRouter().storyBasePath());
+    expect(basePath).toBe('../stories');
+  });
+
+  test('bump increments serial monotonically', async ({ page }) => {
+    await page.goto('/web/');
+    const serials = await page.evaluate(() => {
+      const r = new AppRouter();
+      return [r.bump(), r.bump(), r.bump()];
+    });
+    expect(serials).toEqual([1, 2, 3]);
+  });
+
+  test('isCurrent checks against latest serial', async ({ page }) => {
+    await page.goto('/web/');
+    const result = await page.evaluate(() => {
+      const r = new AppRouter();
+      const id1 = r.bump();
+      const id2 = r.bump();
+      return { id1Current: r.isCurrent(id1), id2Current: r.isCurrent(id2) };
+    });
+    expect(result.id1Current).toBe(false);
+    expect(result.id2Current).toBe(true);
+  });
+
+  test('deep link ?story=slug syncs browser URL during gameplay', async ({ page }) => {
+    await page.goto('/web/?story=the-terminal-cat');
+    await page.waitForSelector('#story-screen:not(.hidden)', { timeout: 10000 });
+    expect(page.url()).toContain('story=the-terminal-cat');
+  });
+
+  test('returning to menu clears story param from URL', async ({ page }) => {
+    await page.goto('/web/?story=the-terminal-cat');
+    await page.waitForSelector('#story-screen:not(.hidden)', { timeout: 10000 });
+    await page.keyboard.press('Escape');
+    await page.waitForSelector('#title-screen:not(.hidden)', { timeout: 5000 });
+    expect(page.url()).not.toContain('story=');
+  });
+});
