@@ -2423,3 +2423,31 @@ cd /tmp/nyantales && python3 -m http.server 9876
 - 2026-03-30 (2:27 AM): Phase 129 — TouchHandler AbortController (2 removeEventListener → 1 abort). TitleBrowser static _COMPARATORS (sort closures hoisted). Gallery cached _activeRoleBtn (eliminates .find per search). 6 new Playwright tests (sort controls, gallery filter, overlay aria-hidden, loading screen). SW v111, 185KB bundle. All 34 JS + 204/204 unit + 113/113 Playwright pass. Committed & pushed.
 - 2026-03-30 (1:27 AM): Phase 128 — Route map AbortController (9 removeEventListener calls → single _evtCtrl.abort()). README test count updated. SW v110, 185KB bundle. All 34 JS + 204/204 unit + 107/107 Playwright pass. Committed & pushed.
 - 2026-03-30 (12:27 AM): Phase 127 — CSS mood color variables (--mood-warm/sad/spooky added to :root, 3 hardcoded hex values→vars). Replaced 3 more hardcoded colors with CSS vars (sort option bg, loading screen, high-contrast text, toast text). Added 7 Playwright tests (touch gesture, mood vars, auto-save, campaign flow+structure, SW cache, SafeStorage error handling). Test count 100→107. SW v109. All 107 Playwright + 204/204 unit pass. Committed & pushed.
+
+## Phase 130: O(1) Story Index Lookups, Allocation-Free Random, Object.entries Cleanup, Test Expansion ✅
+- **`storyIdxMap` (Map<Object, number>)** — O(1) replacement for `storyIndex.indexOf(story)` linear scans
+  - Built alongside `storySlugMap` during story loading
+  - Used in `decorateStoryCard()` and `_resetCardForRedecorate()` for `_storyCardRefs` Map keying
+  - Previously: linear scan over 30-element array on every card decoration
+- **Reservoir sampling for random story** — replaces `storyIndex.filter()` array allocation
+  - Single-pass O(n) scan with weighted random selection for unplayed stories
+  - Zero intermediate array allocation (was creating 30-element filtered copy)
+- **Object.entries → for...in conversions** (4 files):
+  - `engine.js`: `_normalizeScenes()` — scene normalization during story load
+  - `gallery.js`: `_buildCharacterList()` — CHARACTER_DATA iteration
+  - `portraits.js`: `preloadAll()` — PORTRAIT_MAP iteration (also converted `Array.from().map()` to for...of loop)
+  - `settings.js`: `reset()` — settings notification loop
+- **portraits.preloadAll() allocation reduction** — `Array.from(fileToNames.entries()).map(...)` → simple `for...of` push loop + manual count (avoids intermediate array + .filter(Boolean))
+- **6 new Playwright tests** (113 → 119):
+  - Story info share button visibility
+  - Inventory element exists during gameplay
+  - Location bar element exists during gameplay
+  - Save panel mode toggle buttons
+  - F key fullscreen doesn't crash app
+  - Speaker element attached during gameplay
+- SW cache bumped to v112, production build regenerated (185KB bundle)
+- All 34 JS files pass `node --check`, 204/204 unit tests, 119/119 Playwright tests
+- Committed & pushed
+
+## Log (continued)
+- 2026-03-30 (3:27 AM): Phase 130 — O(1) story index lookups (storyIdxMap replaces storyIndex.indexOf linear scans), reservoir sampling for random story (zero filter array allocation), Object.entries→for...in in 4 files (engine, gallery, portraits, settings), portraits.preloadAll loop optimization. 6 new Playwright tests (info share, inventory, location, save panel, fullscreen, speaker). SW v112, 185KB bundle. All 34 JS + 204/204 unit + 119/119 Playwright pass. Committed & pushed.
