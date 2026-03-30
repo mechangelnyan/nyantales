@@ -1163,39 +1163,8 @@
     }
   });
 
-  // ── Service Worker Registration ──
-  // Moved from inline <script> to main.js for CSP compliance (script-src 'self')
-
-  if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.register('sw.js').then(reg => {
-      reg.addEventListener('updatefound', () => {
-        const newWorker = reg.installing;
-        if (!newWorker) return;
-        newWorker.addEventListener('statechange', () => {
-          if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
-            // New version available — show update banner
-            const banner = document.createElement('div');
-            banner.className = 'sw-update-banner';
-            const text = document.createElement('span');
-            text.className = 'sw-update-text';
-            text.textContent = '🐱 NyanTales updated!';
-            const reloadBtn = document.createElement('button');
-            reloadBtn.className = 'sw-update-btn';
-            reloadBtn.textContent = 'Reload';
-            reloadBtn.addEventListener('click', () => location.reload());
-            const dismissBtn = document.createElement('button');
-            dismissBtn.className = 'sw-dismiss-btn';
-            dismissBtn.setAttribute('aria-label', 'Dismiss');
-            dismissBtn.textContent = '✕';
-            dismissBtn.addEventListener('click', () => banner.remove());
-            banner.append(text, reloadBtn, dismissBtn);
-            document.body.appendChild(banner);
-            requestAnimationFrame(() => banner.classList.add('visible'));
-          }
-        });
-      });
-    }).catch(() => {});
-  }
+  // ── Service Worker Registration (delegated to SWRegister) ──
+  SWRegister.init();
 
   boot();
 })();
