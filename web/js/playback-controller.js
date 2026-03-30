@@ -29,6 +29,11 @@ class PlaybackController {
     this.currentSlug  = null;
     this.totalScenes  = 0;
     this.campaignMode = false;
+    this.storyStartTime = null;
+
+    // Reusable ending DOM elements (avoids createElement per ending)
+    this._endingTimeBox  = null;
+    this._endingNewBadge = null;
 
     // Auto-play
     this._autoTimer   = null;
@@ -298,6 +303,46 @@ class PlaybackController {
   /** Cache a reference to the rewind button for auto-update after playScene. */
   setRewindButton(el) { this._rewindBtnEl = el; }
 
+  // ── Ending Helpers ──
+
+  /** Get elapsed reading time for the current session and reset the timer. */
+  getSessionElapsed() {
+    const elapsed = this.storyStartTime ? Date.now() - this.storyStartTime : 0;
+    if (elapsed > 0) this.storyStartTime = null; // prevent double-counting
+    return elapsed;
+  }
+
+  /** Inject reading time stat into the ending stats grid (reusable element). */
+  injectReadingTime(statsGrid, elapsedMs) {
+    if (!elapsedMs || !statsGrid) return;
+    if (!this._endingTimeBox) {
+      const box = document.createElement('div');
+      box.className = 'ending-stat-box';
+      const valSpan = document.createElement('span');
+      valSpan.className = 'ending-stat-value';
+      const lblSpan = document.createElement('span');
+      lblSpan.className = 'ending-stat-label';
+      lblSpan.textContent = 'Reading Time';
+      box.appendChild(valSpan);
+      box.appendChild(lblSpan);
+      box._valSpan = valSpan;
+      this._endingTimeBox = box;
+    }
+    this._endingTimeBox._valSpan.textContent = `⏱ ${StoryTracker.formatDuration(elapsedMs)}`;
+    statsGrid.insertBefore(this._endingTimeBox, statsGrid.firstChild);
+  }
+
+  /** Append "New Ending Discovered!" badge to ending overlay (reusable element). */
+  showNewEndingBadge(endingEl) {
+    if (!endingEl) return;
+    if (!this._endingNewBadge) {
+      this._endingNewBadge = document.createElement('div');
+      this._endingNewBadge.className = 'new-ending-badge';
+      this._endingNewBadge.textContent = '✨ New Ending Discovered!';
+    }
+    endingEl.appendChild(this._endingNewBadge);
+  }
+
   // ── Cleanup (called on menu return) ──
 
   /** Hide all HUD indicators and reset state. */
@@ -317,6 +362,7 @@ class PlaybackController {
     this.engine = null;
     this.currentSlug = null;
     this.totalScenes = 0;
+    this.storyStartTime = null;
     this.hideIndicators();
     this.updateSkipIndicator(false);
   }

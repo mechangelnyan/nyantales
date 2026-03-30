@@ -168,12 +168,7 @@
   let storyIdxMap   = new Map();
   // Game state aliases (delegated to PlaybackController)
   // Access via playback.engine, playback.currentSlug, playback.campaignMode, etc.
-  let storyStartTime = null; // timestamp when current story session began
-
-  // Reusable DOM elements for ending overlays (avoids createElement per ending)
-  let _endingTimeBox      = null;
-  let _endingNewBadge     = null;
-  // _endingCampaignBtn managed by campaignUI
+  // storyStartTime, _endingTimeBox, _endingNewBadge managed by PlaybackController
 
   // Convenience aliases (used heavily throughout main.js)
   function clearAutoPlayTimer() { playback.clearAutoPlay(); }
@@ -354,43 +349,18 @@
     updateSkipIndicator(false);
 
     // Record reading time to tracker for persistent stats
-    const sessionElapsed = storyStartTime ? Date.now() - storyStartTime : 0;
+    const sessionElapsed = playback.getSessionElapsed();
     if (playback.currentSlug && sessionElapsed > 0) {
       tracker.recordReadingTime(playback.currentSlug, sessionElapsed);
-      storyStartTime = null; // prevent double-counting on menu return
     }
 
     // Inject reading time into ending stats grid (reusable element)
-    if (sessionElapsed > 0) {
-      const timeStr = StoryTracker.formatDuration(sessionElapsed);
-      const statsGrid = ui._endingRefs.statsGrid;
-      if (statsGrid) {
-        if (!_endingTimeBox) {
-          _endingTimeBox = document.createElement('div');
-          _endingTimeBox.className = 'ending-stat-box';
-          const valSpan = document.createElement('span');
-          valSpan.className = 'ending-stat-value';
-          const lblSpan = document.createElement('span');
-          lblSpan.className = 'ending-stat-label';
-          lblSpan.textContent = 'Reading Time';
-          _endingTimeBox.appendChild(valSpan);
-          _endingTimeBox.appendChild(lblSpan);
-          _endingTimeBox._valSpan = valSpan;
-        }
-        _endingTimeBox._valSpan.textContent = `⏱ ${timeStr}`;
-        statsGrid.insertBefore(_endingTimeBox, statsGrid.firstChild);
-      }
-    }
+    playback.injectReadingTime(ui._endingRefs.statsGrid, sessionElapsed);
 
     const result = tracker.recordEnding(playback.currentSlug, scene.ending, engine.state.turns);
 
-    if (result.isNewEnding && ui.endingEl) {
-      if (!_endingNewBadge) {
-        _endingNewBadge = document.createElement('div');
-        _endingNewBadge.className = 'new-ending-badge';
-        _endingNewBadge.textContent = '✨ New Ending Discovered!';
-      }
-      ui.endingEl.appendChild(_endingNewBadge);
+    if (result.isNewEnding) {
+      playback.showNewEndingBadge(ui.endingEl);
     }
 
     const newAch = achievements.checkAll();
@@ -447,7 +417,7 @@
     const navId = router.bump();
 
     playback.currentSlug = story.slug;
-    storyStartTime = Date.now();
+    playback.storyStartTime = Date.now();
     document.title = `${story.title} — NyanTales`;
     ui.setStorySlug(story.slug);
     if (story.slug && syncRoute) router.syncStoryUrl(story.slug, historyMode);
@@ -500,12 +470,12 @@
     const { syncRoute = true, historyMode = 'replace' } = options;
     router.bump();
     // Record reading time before clearing state
-    if (playback.currentSlug && storyStartTime) {
-      tracker.recordReadingTime(playback.currentSlug, Date.now() - storyStartTime);
+    const menuElapsed = playback.getSessionElapsed();
+    if (playback.currentSlug && menuElapsed > 0) {
+      tracker.recordReadingTime(playback.currentSlug, menuElapsed);
     }
 
     achievements.cancelPendingToasts();
-    storyStartTime = null;
     document.title = router.APP_TITLE;
     ui.setStorySlug(null);
     if (syncRoute) router.syncStoryUrl(null, historyMode);
