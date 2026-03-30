@@ -32,6 +32,7 @@ JS_FILES=(
   "js/campaign-ui.js"
   "js/campaign-flow.js"
   "js/sw-register.js"
+  "js/install-manager.js"
   "js/story-card-manager.js"
   "js/playback-controller.js"
   "js/app-router.js"

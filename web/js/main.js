@@ -1,5 +1,5 @@
 /**
- * NyanTales Visual Novel — Main Application
+ * NyanTales Visual Novel - Main Application
  *
  * Orchestrates all subsystems: engine, UI, tracker, audio, achievements,
  * gallery, settings, history, save manager, and touch gestures.
@@ -76,13 +76,13 @@
   storyInfo.onShare = (story) => {
     const shareUrl = ShareHelper.storyUrl(story.slug);
     const shareText = [
-      `🐱 NyanTales — ${story.title}`,
+      `🐱 NyanTales - ${story.title}`,
       story.description || '',
       '',
       `🎮 Play this story: ${shareUrl}`
     ].filter(Boolean).join('\n');
     ShareHelper.share({
-      title: `NyanTales — ${story.title}`,
+      title: `NyanTales - ${story.title}`,
       text: shareText,
       url: shareUrl,
       successMessage: 'Story link copied!',
@@ -159,7 +159,7 @@
 
   const router = new AppRouter();
 
-  let deferredInstallPrompt = null;
+  // deferredInstallPrompt managed by InstallManager
 
   let storyIndex   = [];
   /** @type {Map<string, Object>} slug → story for O(1) lookups */
@@ -219,7 +219,7 @@
   // ── Load Stories ──
 
   /**
-   * Load the story index — tries a pre-built manifest first (production),
+   * Load the story index - tries a pre-built manifest first (production),
    * falls back to fetching all 30 YAML files (dev).
    * Manifest mode: 8KB JSON vs 1.6MB of YAML, zero js-yaml parsing on boot.
    */
@@ -291,7 +291,7 @@
   /**
    * Lazy-load and parse a story's full YAML data. Returns the parsed object.
    * Caches the result on story._parsed for subsequent plays.
-   * @param {Object} story — story index entry
+   * @param {Object} story - story index entry
    * @returns {Promise<Object|null>} parsed YAML data (scenes, title, start, etc.)
    */
   async function loadFullStory(story) {
@@ -331,7 +331,7 @@
 
   // ── Engine Callbacks (wired once, reference playback.engine dynamically) ──
 
-  // Campaign ending callback — wired once on ui, invoked via ending delegation (data-action="campaign-next")
+  // Campaign ending callback - wired once on ui, invoked via ending delegation (data-action="campaign-next")
   ui._onCampaignEnding = () => campaignFlow.onEnding();
 
   /** @type {Object|null} The most recently parsed story data (for restart). */
@@ -418,7 +418,7 @@
 
     playback.currentSlug = story.slug;
     playback.storyStartTime = Date.now();
-    document.title = `${story.title} — NyanTales`;
+    document.title = `${story.title} - NyanTales`;
     ui.setStorySlug(story.slug);
     if (story.slug && syncRoute) router.syncStoryUrl(story.slug, historyMode);
 
@@ -540,7 +540,7 @@
       return;
     }
 
-    // Card click — start story (only if the card itself was clicked, not a child button)
+    // Card click - start story (only if the card itself was clicked, not a child button)
     const card = e.target.closest('.story-card');
     if (card) selectStoryCard(card);
   });
@@ -569,7 +569,7 @@
   /**
    * Render (or re-render) the title screen.
    * First call: builds the full story grid from scratch.
-   * Subsequent calls: partial refresh — only updates stats, badges, progress, and
+   * Subsequent calls: partial refresh - only updates stats, badges, progress, and
    * dynamic card state without destroying/rebuilding 30 DOM cards.
    * Safe to call multiple times.
    */
@@ -644,7 +644,7 @@
       cardManager.refresh(storyIndex, titleBrowser.refreshCards());
     }
 
-    // "Continue" button — shows if there's a recent save
+    // "Continue" button - shows if there's a recent save
     updateContinueButton();
 
     titleBrowser.apply();
@@ -669,7 +669,7 @@
     const btn = btnContinueEl;
     let recent = saveManager.getMostRecentSave();
 
-    // Skip campaign transient saves — they shouldn't drive the Continue button
+    // Skip campaign transient saves - they shouldn't drive the Continue button
     if (recent && (recent.slug === 'campaign-intro' || recent.slug?.startsWith('campaign-connector-'))) {
       recent = null;
     }
@@ -684,51 +684,8 @@
     }
   }
 
-  function updateInstallButton() {
-    if (!btnInstallEl) return;
-
-    const showButton = !router.isStandaloneMode() && (Boolean(deferredInstallPrompt) || router.isIOSInstallable());
-    btnInstallEl.classList.toggle('hidden', !showButton);
-
-    if (!showButton) return;
-
-    if (deferredInstallPrompt) {
-      btnInstallEl.textContent = '📲 Install App';
-      btnInstallEl.title = 'Install NyanTales for offline play';
-      btnInstallEl.setAttribute('aria-label', 'Install NyanTales as an app');
-    } else {
-      btnInstallEl.textContent = '📲 Install';
-      btnInstallEl.title = 'Show iPhone/iPad install instructions';
-      btnInstallEl.setAttribute('aria-label', 'Show install instructions for iPhone or iPad');
-    }
-  }
-
-  async function handleInstallAction() {
-    if (deferredInstallPrompt) {
-      const promptEvent = deferredInstallPrompt;
-      deferredInstallPrompt = null;
-      updateInstallButton();
-
-      try {
-        await promptEvent.prompt();
-        const result = await promptEvent.userChoice;
-        if (result?.outcome === 'accepted') {
-          Toast.show('NyanTales is installing… offline cat adventures unlocked.', { icon: '📲', duration: 3500 });
-        }
-      } catch (err) {
-        console.warn('Install prompt failed:', err);
-        Toast.show('Could not open the install prompt right now.', { icon: '⚠️', duration: 3000 });
-      }
-      return;
-    }
-
-    if (router.isIOSInstallable()) {
-      Toast.show('On iPhone/iPad: tap Share, then choose “Add to Home Screen”.', { icon: '📲', duration: 5000 });
-      return;
-    }
-
-    Toast.show('Install is not available in this browser right now.', { icon: 'ℹ️', duration: 3000 });
-  }
+  // Install button logic managed by InstallManager (Phase 146)
+  const installMgr = new InstallManager(btnInstallEl, router);
 
   // btn-continue click is handled by title-actions event delegation above
 
@@ -809,7 +766,7 @@
       }
     }
 
-    // Number keys for choices — direct pool lookup (no querySelector)
+    // Number keys for choices - direct pool lookup (no querySelector)
     if (e.key >= '1' && e.key <= '9') {
       const idx = parseInt(e.key) - 1;
       const pool = ui._choiceBtnPool;
@@ -957,7 +914,7 @@
         break;
       }
       case 'btn-install': {
-        void handleInstallAction();
+        void installMgr.handleAction();
         break;
       }
       case 'btn-gallery': gallery.show(); break;
@@ -979,25 +936,7 @@
 
   achievements.checkAll();
 
-  // Surface app install when the browser says the PWA is installable.
-  window.addEventListener('beforeinstallprompt', (e) => {
-    e.preventDefault();
-    deferredInstallPrompt = e;
-    updateInstallButton();
-  });
-
-  window.addEventListener('appinstalled', () => {
-    deferredInstallPrompt = null;
-    updateInstallButton();
-    Toast.show('NyanTales installed — the cat terminal now lives on your home screen.', { icon: '✨', duration: 4000 });
-  });
-
-  const standaloneMedia = window.matchMedia?.('(display-mode: standalone)');
-  if (standaloneMedia?.addEventListener) {
-    standaloneMedia.addEventListener('change', () => updateInstallButton());
-  } else if (standaloneMedia?.addListener) {
-    standaloneMedia.addListener(() => updateInstallButton());
-  }
+  // Install prompt events handled by InstallManager (constructor wires them)
 
   // Respect browser Back/Forward for ?story=slug deep links.
   window.addEventListener('popstate', () => {
@@ -1086,7 +1025,7 @@
       ]);
       updateLoadingProgress(80, 'Rendering...');
       renderTitleScreen();
-      updateInstallButton();
+      installMgr.updateButton();
       updateLoadingProgress(100, 'Ready!');
 
       // Brief pause for visual satisfaction
@@ -1122,7 +1061,7 @@
   // ── Online/Offline Toasts ──
 
   window.addEventListener('online', () => Toast.show('Back online', { icon: '📶', className: 'nt-toast-success' }));
-  window.addEventListener('offline', () => Toast.show('Offline — saves still work!', { icon: '📴', className: 'nt-toast-error' }));
+  window.addEventListener('offline', () => Toast.show('Offline - saves still work!', { icon: '📴', className: 'nt-toast-error' }));
 
   // Pause auto-play when tab is hidden (saves CPU / prevents unexpected advances)
   document.addEventListener('visibilitychange', () => {
