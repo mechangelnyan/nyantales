@@ -2781,3 +2781,23 @@ cd /tmp/nyantales && python3 -m http.server 9876
 ## Log (continued)
 - 2026-03-30 (5:27 PM): Phase 146 — Extracted InstallManager from main.js (PWA install prompt, button state, iOS fallback, all browser events). main.js 1140→1079 lines. SW v128. 195KB bundle. All 43 JS + 204/204 unit + 194/194 Playwright pass. Committed & pushed.
 - 2026-03-30 (5:27 PM): Phase 145 — Moved storyStartTime + _endingTimeBox + _endingNewBadge to PlaybackController. New getSessionElapsed/injectReadingTime/showNewEndingBadge methods. main.js ending hook 30→10 lines. main.js 1170→1140 lines. 3 new Playwright tests. SW v127, 195KB bundle. All 42 JS + 204/204 unit + 194/194 Playwright pass. Committed & pushed.
+
+## Phase 147: Zero innerHTML in main.js, Const Maps, Test Fixes ✅
+- **Eliminated last innerHTML in main.js** — boot error fallback converted from template literal to DOM API
+  - `createElement('p')` + `createElement('code')` + `createElement('a')` + TextNodes
+  - Zero innerHTML remaining in main.js (only comments referencing old patterns)
+- **Deduplicated `vnContainer` querySelector** — was queried twice at init (line 46 for PlaybackController and line 208 for local ref)
+  - Now queried once, shared between PlaybackController constructor and local `vnContainer` ref
+- **`storySlugMap` / `storyIdxMap`: `let` → `const`** + `.clear()` instead of `new Map()` reassignment
+  - Both Maps are never reassigned after init (only cleared and repopulated in loadStoryIndex)
+  - `const` communicates intent: reference is stable, contents change
+- **Test fixes**
+  - Share test: assertion expected em-dash `—` but code uses hyphen `-` (fixed test)
+  - Deep link "returning to menu" test: flaky due to intro overlay timing — added explicit wait for intro dismiss before pressing Escape
+  - Both tests now pass 5/5 on repeat-each
+- SW cache bumped to v129, production build regenerated (196KB JS, 96KB CSS)
+- All 42 JS files pass `node --check`, 204/204 unit tests, 194/194 Playwright tests
+- Committed & pushed
+
+## Log (continued)
+- 2026-03-30 (6:27 PM): Phase 147 — Zero innerHTML in main.js (boot error → DOM API), deduplicated vnContainer query, storySlugMap/storyIdxMap let→const with .clear(), fixed share test assertion (em-dash→hyphen), fixed flaky deep link menu-return test (explicit intro dismiss wait). SW v129, 196KB bundle. All 42 JS + 204/204 unit + 194/194 Playwright pass. Committed & pushed.
