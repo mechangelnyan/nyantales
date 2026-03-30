@@ -2363,3 +2363,28 @@ cd /tmp/nyantales && python3 -m http.server 9876
 
 ## Log (continued)
 - 2026-03-29 (11:27 PM): Phase 126 — Added 8 Playwright tests: visited choice hints (rewind + verify badge), font scale CSS var, data export structure, story locking, skip-to-content link, color theme persistence across reload, empty filter state, high contrast mode. Milestone: 100 Playwright tests. SW v108. All 100 Playwright + 204/204 unit pass. Committed & pushed.
+
+## Phase 127: CSS Mood Variables, Color Cleanup, Test Expansion ✅
+- **CSS mood color variables** — 3 hardcoded mood colors elevated to CSS custom properties
+  - Added `--mood-warm: #ffcc88`, `--mood-sad: #8899bb`, `--mood-spooky: #bb88cc` to `:root`
+  - `.vn-text.mood-warm/sad/spooky` now use `var(--mood-*)` instead of hardcoded hex
+  - All 8 mood colors now theme-customizable via CSS custom properties
+- **Hardcoded color cleanup** — replaced 3 more hardcoded values with existing CSS vars
+  - `.sort-select option` background: `#0a0a1a` → `var(--bg-dark)`
+  - Loading/noscript screen: `#0a0a0f` → `var(--bg-dark)`, `#e0e0e0` → `var(--text-main)`, `monospace` → `var(--font-mono)`
+  - High-contrast `.vn-text` color: `#ffffff` → `var(--text-bright)`
+  - Toast text color: `#fff` → `var(--text-bright)`
+- **7 new Playwright tests** (100 → 107):
+  - **Touch Gesture Registration**: VN container present and active during gameplay
+  - **Mood CSS Variables**: all 5 mood color classes resolve to non-default colors
+  - **Auto-Save Tracking**: playing a story creates save slot in localStorage
+  - **Campaign Flow**: campaign button starts campaign mode (intro/story screen appears)
+  - **Campaign Chapter Structure**: act headers visible with "Act" groupings
+  - **SW Cache**: service worker creates nyantales-* cache on boot
+  - **Error Boundary**: SafeStorage returns fallback for corrupt JSON in localStorage
+- SW cache bumped to v109, production build regenerated (186KB JS, 96KB CSS)
+- All 34 JS files pass `node --check`, 204/204 unit tests, 107/107 Playwright tests
+- Committed & pushed
+
+## Log (continued)
+- 2026-03-30 (12:27 AM): Phase 127 — CSS mood color variables (--mood-warm/sad/spooky added to :root, 3 hardcoded hex values→vars). Replaced 3 more hardcoded colors with CSS vars (sort option bg, loading screen, high-contrast text, toast text). Added 7 Playwright tests (touch gesture, mood vars, auto-save, campaign flow+structure, SW cache, SafeStorage error handling). Test count 100→107. SW v109. All 107 Playwright + 204/204 unit pass. Committed & pushed.
