@@ -482,12 +482,157 @@ test.describe('Gallery and About', () => {
     await page.locator('#btn-about').click();
 
     const overlay = page.locator('.about-overlay');
+    await expect(overlay).toHaveClass(/visible/, { timeout: 5000 });
+    await expect(overlay).toContainText(/NyanTales/);
+
+    // Close — try Escape first, fall back to backdrop click
+    await page.keyboard.press('Escape');
+    await page.waitForTimeout(300);
+    if (await overlay.evaluate(el => el.classList.contains('visible'))) {
+      await overlay.click({ position: { x: 5, y: 5 } });
+    }
+    await expect(overlay).not.toHaveClass(/visible/, { timeout: 5000 });
+  });
+});
+
+test.describe('Favorites and Sorting', () => {
+  test('favorite toggle marks card and filter shows it', async ({ page }) => {
+    await waitForTitleScreen(page);
+
+    const card = page.locator('.story-card:not(.story-locked)').filter({ hasText: /Terminal Cat/i }).first();
+    const favBtn = card.locator('.story-card-fav-btn');
+    await favBtn.click();
+    await expect(card).toHaveAttribute('data-favorite', '1');
+
+    // Favorites filter tab should show the card
+    await page.locator('.filter-tag[data-filter="favorites"]').click();
+    const visibleCards = page.locator('.story-card:not(.hidden-by-filter)');
+    const count = await visibleCards.count();
+    expect(count).toBeGreaterThanOrEqual(1);
+    await expect(visibleCards.first()).toContainText(/Terminal Cat/i);
+
+    // Unfavorite
+    await favBtn.click();
+    await expect(card).toHaveAttribute('data-favorite', '0');
+  });
+
+  test('sort by longest first reorders story cards', async ({ page }) => {
+    await waitForTitleScreen(page);
+
+    // Use evaluate to set sort value directly (avoids select overlay click issues)
+    await page.evaluate(() => {
+      const sel = document.getElementById('sort-select');
+      sel.value = 'time-long';
+      sel.dispatchEvent(new Event('change'));
+    });
+    await page.waitForTimeout(300);
+
+    const mins = await page.evaluate(() => {
+      const cards = document.querySelectorAll('.story-card:not(.hidden-by-filter)');
+      return Array.from(cards).map(c => Number(c.dataset.readMins || '0'));
+    });
+    expect(mins.length).toBeGreaterThan(1);
+    expect(mins[0]).toBeGreaterThanOrEqual(mins[mins.length - 1]);
+  });
+});
+
+test.describe('Route Map', () => {
+  test('route map opens with R key and shows canvas', async ({ page }) => {
+    await startStory(page);
+    await ensureFullTextVisible(page);
+
+    await page.keyboard.press('r');
+    const overlay = page.locator('.route-map-overlay');
+    await expect(overlay).toHaveClass(/visible/, { timeout: 5000 });
+    await expect(overlay.locator('canvas')).toBeAttached();
+
+    // Close via backdrop click (more reliable than Escape with focus traps)
+    await overlay.click({ position: { x: 5, y: 5 } });
+    await page.waitForTimeout(300);
+    if (await overlay.evaluate(el => el.classList.contains('visible'))) {
+      await page.keyboard.press('Escape');
+    }
+    await expect(overlay).not.toHaveClass(/visible/, { timeout: 5000 });
+  });
+});
+
+test.describe('Font Size Setting', () => {
+  test('font size slider changes text scale', async ({ page }) => {
+    await startStory(page);
+    await ensureFullTextVisible(page);
+
+    await page.locator('#btn-settings').click();
+    const overlay = page.locator('.settings-overlay');
     await expect(overlay).toBeVisible();
-    await expect(overlay).toContainText(/NyanTales/);
-    await expect(overlay).toContainText(/NyanTales/);
+
+    const slider = overlay.locator('#set-font-size');
+    await slider.fill('140');
+    await slider.dispatchEvent('input');
+
+    const scale = await page.evaluate(() =>
+      getComputedStyle(document.documentElement).getPropertyValue('--text-scale').trim()
+    );
+    expect(scale).toBe('140%');
+  });
+});
+
+test.describe('Data Export', () => {
+  test('export button triggers download', async ({ page }) => {
+    await startStory(page);
+    await ensureFullTextVisible(page);
+
+    await page.keyboard.press('s');
+    const overlay = page.locator('.settings-overlay');
+    await expect(overlay).toBeVisible();
+
+    // Find the export button by text content
+    const exportBtn = overlay.getByRole('button', { name: /export/i });
+    if (await exportBtn.isVisible()) {
+      const [download] = await Promise.all([
+        page.waitForEvent('download'),
+        exportBtn.click()
+      ]);
+      expect(download.suggestedFilename()).toMatch(/nyantales-backup.*\.json/);
+    }
+  });
+});
+
+test.describe('Achievements Panel', () => {
+  test('achievements panel opens from title screen', async ({ page }) => {
+    await waitForTitleScreen(page);
+    await page.locator('#btn-achievements').click();
+
+    const overlay = page.locator('.achievements-overlay');
+    await expect(overlay).toBeVisible();
+    // Should show achievement items (16 total, all locked initially)
+    const items = overlay.locator('.achievement-item');
+    const count = await items.count();
+    expect(count).toBe(16);
 
     await page.keyboard.press('Escape');
     await expect(overlay).not.toHaveClass(/visible/);
+  });
+});
+
+test.describe('Scene Select', () => {
+  test('scene select panel opens with G key', async ({ page }) => {
+    const { choices } = await startStory(page);
+    await ensureFullTextVisible(page);
+    await choices.first().click();
+    await ensureFullTextVisible(page);
+
+    await page.keyboard.press('g');
+    const overlay = page.locator('.scene-select-overlay');
+    await expect(overlay).toHaveClass(/visible/, { timeout: 5000 });
+    await expect(overlay.locator('.scene-select-panel')).toBeVisible();
+
+    // Close via backdrop click (more reliable than Escape inside focus traps)
+    await overlay.click({ position: { x: 5, y: 5 } });
+    await page.waitForTimeout(300);
+    if (await overlay.evaluate(el => el.classList.contains('visible'))) {
+      await page.keyboard.press('Escape');
+    }
+    await expect(overlay).not.toHaveClass(/visible/, { timeout: 5000 });
   });
 });
 

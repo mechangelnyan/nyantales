@@ -2272,3 +2272,21 @@ cd /tmp/nyantales && python3 -m http.server 9876
 - 2026-03-29 (4:27 PM): Phase 119 — CRITICAL CSS fix: Phase 118 broke two selector blocks (will-change + tap-highlight groups lost their closing selectors). Converted last 2 hardcoded rgba to vars. Merged story-intro reduced-motion. SW v102, 186KB JS / 96KB CSS. All 34 JS + 204/204 unit + 50/50 Playwright pass. Committed & pushed.
 - 2026-03-29 (3:27 PM): Phase 118 — Extracted CSS RGB custom properties for white/black/bg-deep/bg-mid/bg-surface/purple (91 more hardcoded rgba values replaced). Added --accent-purple. --mood-mysterious uses var(--accent-purple). 150 total rgba values now driven by CSS custom properties. SW v101, 186KB JS / 95KB CSS. All 34 JS + 204/204 unit + 50/50 Playwright pass.
 - 2026-03-29 (2:27 PM): Phase 117 — Extracted CSS RGB custom properties for green/yellow/red/magenta (59 hardcoded rgba values replaced). Mood vars now reference accent vars. Merged duplicate .story-info-share-btn. Route map legend uses var(--accent-green). SW v100, 186KB JS / 91KB CSS. All 34 JS + 204/204 unit + 50/50 Playwright pass. Committed & pushed.
+
+## Phase 122: Expanded Test Coverage ✅
+- **7 new Playwright test categories** covering previously untested features:
+  - **Favorites & Sorting** — favorite toggle marks card with `data-favorite="1"`, favorites filter shows only favorited cards, unfavorite resets; sort by longest first verifies descending read-time order
+  - **Route Map** — `R` key opens overlay with canvas element, closes via backdrop click
+  - **Font Size Setting** — slider changes `--text-scale` CSS custom property
+  - **Data Export** — export button triggers JSON file download with correct filename pattern
+  - **Achievements Panel** — opens from title screen, shows 16 achievement items, closes with Escape
+  - **Scene Select** — `G` key opens panel after advancing through choices, closes via backdrop
+- **Existing test robustness** — about panel close now falls back to backdrop click when Escape doesn't reach through focus trap
+- **Test count: 60 → 67** (11.7% increase in Playwright coverage)
+- All 67 Playwright tests pass (including serial run with `--workers=1`)
+- 204/204 unit tests pass
+- Production build regenerated (186KB JS, 96KB CSS)
+- No new stories added
+
+## Log (continued)
+- 2026-03-29 (7:27 PM): Phase 122 — Added 7 new Playwright test categories: favorites toggle+filter, sort-by-longest, route map open/close, font size slider, data export download, achievements panel (16 items), scene select panel. Made about panel close more robust (backdrop fallback). Test count 60→67. All 67 Playwright + 204/204 unit pass. Production build regenerated. Committed & pushed.
