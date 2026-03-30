@@ -35,7 +35,9 @@ cd web && bash build.sh
 cd dist && python3 -m http.server 9877
 ```
 
-Build output: **186KB JS** (from 361KB), **96KB CSS** (from 117KB). Gzip'd: ~50KB JS, ~15KB CSS. GitHub Pages CI runs the build automatically.
+Build output: **186KB JS** (from 361KB), **96KB CSS** (from 125KB). Gzip'd: ~50KB JS, ~15KB CSS. GitHub Pages CI runs the build automatically.
+
+**Testing:** 204 unit tests (Node.js) + 100 Playwright browser tests covering UI, a11y, persistence, deep links, and more. Run `npm test` and `npx playwright test`.
 
 **Features:**
 - 🎮 30 interactive stories with branching narratives
@@ -574,7 +576,9 @@ nyantales/
 │   ├── scaffold.test.js    Story scaffolding tests
 │   ├── validator.test.js   Validator tests
 │   ├── mapper.test.js      Story map/graph tests
-│   └── achievements.test.js Achievement system tests
+│   ├── achievements.test.js Achievement system tests
+│   └── web/
+│       └── vn.spec.js      100 Playwright browser tests for the web VN
 ├── package.json
 └── README.md
 ```
