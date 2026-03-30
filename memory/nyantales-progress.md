@@ -2578,3 +2578,24 @@ cd /tmp/nyantales && python3 -m http.server 9876
 ## Log (continued)
 - 2026-03-30 (8:27 AM): Phase 135 — Simplified manifest URL (4 chained replace → 1 regex). Zero .map() intermediate arrays in boot path (manifest + YAML fallback both build storyIndex/slugMap/idxMap in single loop). Stats dashboard setStories Map built via for...of. 8 new Playwright tests (manifest validation, production build checks). SW v117, 186KB bundle. All 34 JS + 204/204 unit + 169/169 Playwright pass. Committed & pushed.
 - 2026-03-30 (7:27 AM): Phase 134 — Lazy story loading via build-time manifest: 8KB JSON replaces 30 YAML fetches on production boot (200x data reduction). Stories lazy-loaded on first play via loadFullStory(). BUG FIX: totalEndings was always 0 (raw YAML uses is_ending not ending — fixed in getStoryMeta, stats-dashboard, story-info, and build script; correctly reports 183 endings now). _meta property on story entries used by title screen, stats, and story info without needing _parsed. SW v116, 186KB JS. All 34 JS + 204/204 unit pass. Committed & pushed.
+
+## Phase 136: CampaignUI Extraction from main.js ✅
+- **Extracted `CampaignUI` class** (`web/js/campaign-ui.js`) — campaign-specific UI logic pulled out of main.js
+  - Chapter grid rendering: full build (DocumentFragment) + partial refresh (cached card refs)
+  - Campaign button pre-built children (`updateButton()` — textContent swap, no innerHTML)
+  - Slug map management: `rebuildSlugMap()` + `isStoryUnlocked()` for O(1) lock lookups
+  - Ending "Next Chapter" button: reusable element via `getEndingButton(isComplete)`
+  - Chapter grid click/keydown delegation (with `onChapterSelect` callback for app wiring)
+  - `_isChapterUnlocked()`, `_applyStatusIcon()` helper methods
+- **main.js: 2186 → 1910 lines** (276 lines removed, 13% reduction)
+  - Campaign flow logic (startCampaign, playCampaignPhase, onCampaignEnding, startCampaignChapter) stays in main.js — needs engine/story refs
+  - All references updated to use `campaignUI.` methods
+  - Removed 3 cached DOM refs (chapterGridEl, sectionDivider, campaignBtnEl) — now managed by CampaignUI
+  - Removed `_chapterGridBuilt`, `_chapterCardRefs`, `_campaignSlugMap`, `_campaignBtnText/Meta`, `_endingCampaignBtn`
+- Added to: index.html script chain, sw.js pre-cache, build.sh bundle
+- SW cache bumped to v118, production build regenerated (188KB JS, 96KB CSS)
+- All 35 JS files pass `node --check`, 204/204 unit tests, 169/169 Playwright tests
+- Committed & pushed
+
+## Log (continued)
+- 2026-03-30 (9:27 AM): Phase 136 — Extracted CampaignUI class from main.js: chapter grid rendering, campaign button management, slug map for O(1) lock lookups, ending button, grid delegation. main.js 2186→1910 lines (13% reduction). Campaign flow logic stays in main.js (needs engine refs). SW v118, 188KB bundle. All 35 JS + 204/204 unit + 169/169 Playwright pass. Committed & pushed.
