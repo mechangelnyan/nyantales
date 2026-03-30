@@ -2733,3 +2733,37 @@ cd /tmp/nyantales && python3 -m http.server 9876
 - 2026-03-30 (1:27 PM): Phase 140 — Extracted PlaybackController class from main.js: scene playback pipeline, auto-play timer, skip-read, rewind, HUD indicators, misc timer tracking, cleanup. main.js 1554→1321 lines (15% reduction). 5 new Playwright tests. SW v122, 193KB bundle. All 36 JS + 204/204 unit + 186/186 Playwright pass. Committed & pushed.
 - 2026-03-30 (12:27 PM): Phase 139 — Extracted StoryCardManager class from main.js: card decoration, refresh, reset, metadata, and search blob. main.js 1830→1554 lines (15% reduction). 6 new Playwright tests. SW v121, 190KB bundle. All 38 JS + 204/204 unit + 181/181 Playwright pass. Committed & pushed.
 - 2026-03-30 (11:27 AM): Phase 138 — Extracted AppRouter class from main.js (URL sync, storyBasePath, route serial, PWA detection). DRYed playScene skip-read duplication (_renderOneScene shared function, _isCampaignTransient + _effectOverride helpers). main.js 1875→1830 lines. 6 new AppRouter Playwright tests. SW v120, 189KB bundle. All 37 JS + 204/204 unit + 175/175 Playwright pass. 2 commits pushed.
+
+## Phase 143: CampaignFlow Extraction ✅
+- **CampaignFlow class** (`web/js/campaign-flow.js`) — campaign state machine extracted from main.js
+  - `start()`, `_playPhase()`, `onEnding()`, `startChapter()` methods
+  - Callbacks (startStory, returnToMenu, storySlugMap) wired via properties to avoid circular deps
+  - pendingAchievementUnlocks moved to `campaignFlow.pendingUnlocks`
+- main.js: 1326 → 1201 lines (125 lines removed, 9.4% reduction)
+- 2 new Playwright tests for CampaignFlow
+- SW cache bumped to v124, production build regenerated (194KB JS)
+- All 40 JS files pass `node --check`, 204/204 unit tests, 191/191 Playwright tests
+
+## Phase 144: SWRegister Extraction ✅
+- **SWRegister class** (`web/js/sw-register.js`) — service worker registration + update banner
+  - `SWRegister.init()` called from main.js (replaces 34-line inline block)
+  - `_showUpdateBanner()` creates update notification via DOM API (zero innerHTML)
+- main.js: 1201 → 1170 lines (31 lines removed)
+- SW cache bumped to v126
+- All 42 JS files pass `node --check`, 204/204 unit tests, 191/191 Playwright tests
+
+## Phase 145: Ending State to PlaybackController ✅
+- **Moved ending state** from main.js to PlaybackController
+  - `storyStartTime`, `_endingTimeBox`, `_endingNewBadge` now on PlaybackController
+  - New methods: `getSessionElapsed()`, `injectReadingTime()`, `showNewEndingBadge()`
+  - Reusable ending DOM elements co-located with other playback state
+  - `cleanup()` resets `storyStartTime`
+- main.js ending hook simplified from 30 lines to 10
+- main.js: 1170 → 1140 lines (30 lines removed)
+- SW cache bumped to v127, production build regenerated (195KB JS)
+- All 42 JS files pass `node --check`, 204/204 unit tests, 191/191 Playwright tests
+
+## Log (continued)
+- 2026-03-30 (5:27 PM): Phase 145 — Moved storyStartTime + _endingTimeBox + _endingNewBadge to PlaybackController. New getSessionElapsed/injectReadingTime/showNewEndingBadge methods. main.js ending hook 30→10 lines. main.js 1170→1140 lines. SW v127, 195KB bundle. All 42 JS + 204/204 unit + 191/191 Playwright pass. Committed & pushed.
+- 2026-03-30 (4:27 PM): Phase 144 — Extracted SWRegister class from main.js (SW registration + update banner). main.js 1201→1170 lines. SW v126. All 42 JS + 204/204 unit + 191/191 Playwright pass. Committed & pushed.
+- 2026-03-30 (3:27 PM): Phase 143 — Extracted CampaignFlow class from main.js (campaign state machine: start/phase/ending/chapter). main.js 1326→1201 lines. 2 new Playwright tests. SW v124, 194KB bundle. All 40 JS + 204/204 unit + 191/191 Playwright pass. Committed & pushed.
