@@ -44,7 +44,8 @@ class StatsDashboard {
   setStories(stories) {
     this._storyIndex = stories;
     // Build slug→story Map for O(1) lookups in _playStoryBySlug
-    this._storySlugMap = new Map(stories.map(s => [s.slug, s]));
+    this._storySlugMap = new Map();
+    for (const s of stories) this._storySlugMap.set(s.slug, s);
     // Pre-compute scene counts + total endings (uses _meta from manifest or _parsed fallback)
     this._sceneCountCache = new Map();
     this._totalEndingsCache = new Map();

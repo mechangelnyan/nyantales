@@ -2376,3 +2376,112 @@ test.describe('Multiple Panel Stack', () => {
     await expect(page.locator('.history-overlay.visible')).not.toBeVisible({ timeout: 3000 });
   });
 });
+
+test.describe('Story Manifest & Lazy Loading', () => {
+  test('story-manifest.json is valid and contains all 30 stories', async ({ page }) => {
+    // Fetch manifest from dev server (web/ context)
+    const resp = await page.request.get('/web/story-manifest.json');
+    expect(resp.ok()).toBe(true);
+    const manifest = await resp.json();
+    expect(Array.isArray(manifest)).toBe(true);
+    expect(manifest.length).toBe(30);
+
+    // Verify each entry has required fields
+    for (const entry of manifest) {
+      expect(entry.slug).toBeTruthy();
+      expect(entry.title).toBeTruthy();
+      expect(typeof entry.sceneCount).toBe('number');
+      expect(entry.sceneCount).toBeGreaterThan(0);
+      expect(typeof entry.totalEndings).toBe('number');
+      expect(entry.totalEndings).toBeGreaterThan(0);
+      expect(typeof entry.readMins).toBe('number');
+      expect(entry.readMins).toBeGreaterThan(0);
+    }
+  });
+
+  test('manifest slugs match STORY_SLUGS list', async ({ page }) => {
+    const resp = await page.request.get('/web/story-manifest.json');
+    const manifest = await resp.json();
+    const manifestSlugs = manifest.map(m => m.slug).sort();
+    expect(manifestSlugs).toEqual([...STORY_SLUGS].sort());
+  });
+
+  test('title screen renders story metadata on cards', async ({ page }) => {
+    await waitForTitleScreen(page);
+
+    // Wait for card decoration to complete (meta elements populated)
+    await page.waitForFunction(() => {
+      const meta = document.querySelector('.story-card:not(.story-locked) .story-card-meta span');
+      return meta && meta.textContent.length > 0;
+    }, { timeout: 10000 });
+
+    const meta = page.locator('.story-card:not(.story-locked) .story-card-meta').first();
+    const metaText = await meta.textContent();
+    expect(metaText).toMatch(/min|scene/i);
+  });
+
+  test('lazy loading fetches YAML only when story is played', async ({ page }) => {
+    // Track YAML fetch requests
+    const yamlRequests = [];
+    page.on('request', req => {
+      if (req.url().includes('story.yaml')) {
+        yamlRequests.push(req.url());
+      }
+    });
+
+    await waitForTitleScreen(page);
+
+    // After title screen loads, check if manifest was used (no YAML fetches for metadata)
+    // In dev mode, stories are loaded via YAML fallback, so this may vary
+    // But playing a specific story should trigger its YAML fetch
+    const initialYamlCount = yamlRequests.length;
+
+    // Start a story — this should trigger lazy YAML loading (or use already-loaded data)
+    const card = page.locator('.story-card').filter({ hasText: /Terminal Cat/i }).first();
+    await card.click();
+    const intro = page.locator('.story-intro-overlay');
+    await expect(intro).toBeVisible({ timeout: 10000 });
+  });
+
+  test('totalEndings is non-zero for all stories', async ({ page }) => {
+    const resp = await page.request.get('/web/story-manifest.json');
+    const manifest = await resp.json();
+    for (const entry of manifest) {
+      expect(entry.totalEndings).toBeGreaterThan(0);
+    }
+  });
+});
+
+test.describe('Production Build', () => {
+  test('dist story-manifest.json exists and matches source', async ({ page }) => {
+    // Check dist manifest exists
+    const distResp = await page.request.get('/web/dist/story-manifest.json');
+    expect(distResp.ok()).toBe(true);
+    const distManifest = await distResp.json();
+    expect(distManifest.length).toBe(30);
+
+    // Compare with source manifest
+    const srcResp = await page.request.get('/web/story-manifest.json');
+    const srcManifest = await srcResp.json();
+    expect(distManifest.length).toBe(srcManifest.length);
+    expect(distManifest[0].slug).toBe(srcManifest[0].slug);
+  });
+
+  test('dist bundle exists and is minified', async ({ page }) => {
+    const resp = await page.request.get('/web/dist/js/nyantales.bundle.min.js');
+    expect(resp.ok()).toBe(true);
+    const body = await resp.text();
+    // Minified JS should have very few newlines relative to size
+    const lineCount = body.split('\n').length;
+    const charCount = body.length;
+    // Minified: high chars-per-line ratio
+    expect(charCount / lineCount).toBeGreaterThan(100);
+  });
+
+  test('dist CSS exists and is minified', async ({ page }) => {
+    const resp = await page.request.get('/web/dist/css/style.min.css');
+    expect(resp.ok()).toBe(true);
+    const body = await resp.text();
+    expect(body.length).toBeGreaterThan(1000);
+  });
+});

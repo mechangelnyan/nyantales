@@ -461,23 +461,28 @@
 
     // Try manifest first (generated at build time, ~8KB vs ~1.6MB of YAML)
     try {
-      const manifestUrl = base.replace(/\/stories$/, '/story-manifest.json')
-        .replace(/^\.\.\/\.\.\/stories$/, '../../story-manifest.json')
-        .replace(/^\.\.\/stories$/, '../story-manifest.json')
-        .replace(/^stories$/, 'story-manifest.json');
+      // Replace trailing 'stories' segment with 'story-manifest.json'
+      const manifestUrl = base.replace(/stories$/, 'story-manifest.json');
       const resp = await fetch(manifestUrl);
       if (resp.ok) {
         const manifest = await resp.json();
         if (Array.isArray(manifest) && manifest.length > 0) {
-          storyIndex = manifest.map(m => ({
-            slug: m.slug,
-            title: m.title || m.slug,
-            description: m.description || '',
-            _parsed: null, // lazy-loaded on play
-            _meta: { sceneCount: m.sceneCount, wordCount: m.wordCount, totalEndings: m.totalEndings, readMins: m.readMins }
-          }));
-          storySlugMap = new Map(storyIndex.map(s => [s.slug, s]));
-          storyIdxMap = new Map(storyIndex.map((s, i) => [s, i]));
+          storyIndex = [];
+          storySlugMap = new Map();
+          storyIdxMap = new Map();
+          for (let i = 0; i < manifest.length; i++) {
+            const m = manifest[i];
+            const entry = {
+              slug: m.slug,
+              title: m.title || m.slug,
+              description: m.description || '',
+              _parsed: null, // lazy-loaded on play
+              _meta: { sceneCount: m.sceneCount, wordCount: m.wordCount, totalEndings: m.totalEndings, readMins: m.readMins }
+            };
+            storyIndex.push(entry);
+            storySlugMap.set(m.slug, entry);
+            storyIdxMap.set(entry, i);
+          }
           return storyIndex;
         }
       }
@@ -502,9 +507,17 @@
         }
       })
     );
-    storyIndex = results.filter(r => r.status === 'fulfilled' && r.value).map(r => r.value);
-    storySlugMap = new Map(storyIndex.map(s => [s.slug, s]));
-    storyIdxMap = new Map(storyIndex.map((s, i) => [s, i]));
+    storyIndex = [];
+    storySlugMap = new Map();
+    storyIdxMap = new Map();
+    for (const r of results) {
+      if (r.status === 'fulfilled' && r.value) {
+        const entry = r.value;
+        storyIdxMap.set(entry, storyIndex.length);
+        storyIndex.push(entry);
+        storySlugMap.set(entry.slug, entry);
+      }
+    }
     return storyIndex;
   }
 

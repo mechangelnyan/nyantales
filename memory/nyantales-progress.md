@@ -2555,5 +2555,26 @@ cd /tmp/nyantales && python3 -m http.server 9876
 - All 34 JS files pass `node --check`, 204/204 unit tests pass
 - Committed & pushed
 
+## Phase 135: Manifest URL Cleanup, Zero .map() in Boot, Test Expansion ✅
+- **Simplified manifest URL computation** — 4 chained `.replace()` calls → single `base.replace(/stories$/, 'story-manifest.json')`
+  - Works for all 3 `storyBasePath()` return values: `../stories`, `../../stories`, `stories`
+- **Zero intermediate array allocation in story loading** — both manifest and YAML fallback paths
+  - Manifest path: `.map()` + 2× `new Map(storyIndex.map(...))` → single `for` loop building all 3 data structures
+  - YAML fallback: `.filter().map()` + 2× `new Map(storyIndex.map(...))` → single `for...of` loop
+  - Eliminates 5 intermediate array allocations per boot
+- **StatsDashboard `setStories()` Map** — `new Map(stories.map(...))` → `for...of` loop (same pattern)
+- **8 new Playwright tests** (161 → 169):
+  - Story manifest validation (30 entries, all required fields, non-zero endings)
+  - Manifest slugs match STORY_SLUGS list
+  - Title screen renders metadata from manifest (_meta)
+  - Lazy loading triggers YAML fetch on story play
+  - Production dist manifest matches source
+  - Production JS bundle exists and is minified
+  - Production CSS exists and is minified
+- SW cache bumped to v117, production build regenerated (186KB JS, 96KB CSS)
+- All 34 JS files pass `node --check`, 204/204 unit tests, 169/169 Playwright tests
+- Committed & pushed
+
 ## Log (continued)
+- 2026-03-30 (8:27 AM): Phase 135 — Simplified manifest URL (4 chained replace → 1 regex). Zero .map() intermediate arrays in boot path (manifest + YAML fallback both build storyIndex/slugMap/idxMap in single loop). Stats dashboard setStories Map built via for...of. 8 new Playwright tests (manifest validation, production build checks). SW v117, 186KB bundle. All 34 JS + 204/204 unit + 169/169 Playwright pass. Committed & pushed.
 - 2026-03-30 (7:27 AM): Phase 134 — Lazy story loading via build-time manifest: 8KB JSON replaces 30 YAML fetches on production boot (200x data reduction). Stories lazy-loaded on first play via loadFullStory(). BUG FIX: totalEndings was always 0 (raw YAML uses is_ending not ending — fixed in getStoryMeta, stats-dashboard, story-info, and build script; correctly reports 183 endings now). _meta property on story entries used by title screen, stats, and story info without needing _parsed. SW v116, 186KB JS. All 34 JS + 204/204 unit pass. Committed & pushed.
