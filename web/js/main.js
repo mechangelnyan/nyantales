@@ -245,6 +245,8 @@
   let storyIndex   = [];
   /** @type {Map<string, Object>} slug → story for O(1) lookups */
   let storySlugMap  = new Map();
+  /** @type {Map<Object, number>} story object → storyIndex position for O(1) indexOf */
+  let storyIdxMap   = new Map();
   let currentEngine = null;
   let _currentTotalScenes = 0; // cached Object.keys(engine.scenes).length
   let currentSlug   = null;
@@ -471,6 +473,7 @@
     );
     storyIndex = results.filter(r => r.status === 'fulfilled' && r.value).map(r => r.value);
     storySlugMap = new Map(storyIndex.map(s => [s.slug, s]));
+    storyIdxMap = new Map(storyIndex.map((s, i) => [s, i]));
     return storyIndex;
   }
 
@@ -930,8 +933,8 @@
     refs.favBtn = favBtn;
 
     // Cache refs for this card index
-    const cardIdx = storyIndex.indexOf(story);
-    if (cardIdx >= 0) _storyCardRefs.set(cardIdx, refs);
+    const cardIdx = storyIdxMap.get(story);
+    if (cardIdx !== undefined) _storyCardRefs.set(cardIdx, refs);
 
     // Data attributes for filtering/sorting
     card.dataset.slug = story.slug;
@@ -1126,7 +1129,7 @@
    */
   function _resetCardForRedecorate(card, story) {
     // Remove dynamic children using cached refs (zero querySelector)
-    const refs = _storyCardRefs.get(storyIndex.indexOf(story));
+    const refs = _storyCardRefs.get(storyIdxMap.get(story));
     if (refs) {
       if (refs.badge) refs.badge.remove();
       if (refs.saveIcon) refs.saveIcon.remove();
@@ -1463,9 +1466,17 @@
       }
       case 'btn-random': {
         if (storyIndex.length === 0) return;
-        const unplayed = storyIndex.filter(s => !tracker.isCompleted(s.slug));
-        const pool = unplayed.length > 0 ? unplayed : storyIndex;
-        const pick = pool[Math.floor(Math.random() * pool.length)];
+        // Reservoir sampling: pick a random unplayed story without allocating filtered array.
+        // Falls back to any story if all are completed.
+        let pick = null;
+        let count = 0;
+        for (const s of storyIndex) {
+          if (!tracker.isCompleted(s.slug)) {
+            count++;
+            if (Math.random() * count < 1) pick = s;
+          }
+        }
+        if (!pick) pick = storyIndex[Math.floor(Math.random() * storyIndex.length)];
         ensureAudio();
         startStory(pick);
         break;

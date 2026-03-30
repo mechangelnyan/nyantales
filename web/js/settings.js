@@ -47,7 +47,7 @@ class SettingsManager {
   reset() {
     this.data = { ...this.defaults };
     this._save();
-    for (const [k, v] of Object.entries(this.data)) this._notify(k, v);
+    for (const k in this.data) this._notify(k, this.data[k]);
   }
 
   _load() {

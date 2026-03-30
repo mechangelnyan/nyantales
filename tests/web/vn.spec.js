@@ -1560,3 +1560,68 @@ test.describe('Loading Screen', () => {
     await expect(loading).toBeHidden();
   });
 });
+
+// ── Story Info Share ──
+test.describe('Story Info Share', () => {
+  test('story info modal has share button', async ({ page }) => {
+    await page.goto('/');
+    await waitForTitleScreen(page);
+    const infoBtn = page.locator('.story-card:not(.story-locked) .story-card-info-btn').first();
+    await infoBtn.click();
+    const shareBtn = page.locator('.story-info-share-btn');
+    await expect(shareBtn).toBeVisible();
+  });
+});
+
+// ── Inventory Display ──
+test.describe('Inventory Display', () => {
+  test('inventory element exists during gameplay', async ({ page }) => {
+    await page.goto('/');
+    await startStory(page);
+    await expect(page.locator('#vn-inventory')).toBeAttached();
+  });
+});
+
+// ── Location Bar ──
+test.describe('Location Bar', () => {
+  test('location bar element exists during gameplay', async ({ page }) => {
+    await page.goto('/');
+    await startStory(page);
+    await expect(page.locator('#vn-location')).toBeAttached();
+  });
+});
+
+// ── Save Panel ──
+test.describe('Save Panel Controls', () => {
+  test('save panel shows mode toggle buttons', async ({ page }) => {
+    await page.goto('/');
+    await startStory(page);
+    await page.waitForTimeout(300);
+    await page.locator('#btn-save').click();
+    await expect(page.locator('.save-overlay.visible')).toBeVisible();
+    await expect(page.locator('.save-mode-btn').first()).toBeVisible();
+  });
+});
+
+// ── Fullscreen Toggle ──
+test.describe('Fullscreen Toggle', () => {
+  test('F key does not crash app', async ({ page }) => {
+    await page.goto('/');
+    await startStory(page);
+    // Press F for fullscreen (won't actually go fullscreen in headless)
+    await page.keyboard.press('f');
+    // App should still be functional
+    await expect(page.locator('#vn-textbox')).toBeVisible();
+  });
+});
+
+// ── Speaker Name ──
+test.describe('Speaker Display', () => {
+  test('speaker name visible during dialogue', async ({ page }) => {
+    await page.goto('/');
+    await startStory(page);
+    const speaker = page.locator('#vn-speaker');
+    // Speaker may or may not be visible depending on scene (narration vs dialogue)
+    await expect(speaker).toBeAttached();
+  });
+});

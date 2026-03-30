@@ -115,13 +115,15 @@ class PortraitManager {
   async preloadAll() {
     // Build file → [names] map to deduplicate
     const fileToNames = new Map();
-    for (const [name, file] of Object.entries(PORTRAIT_MAP)) {
+    for (const name in PORTRAIT_MAP) {
+      const file = PORTRAIT_MAP[name];
       if (!fileToNames.has(file)) fileToNames.set(file, []);
       fileToNames.get(file).push(name);
     }
 
-    const promises = Array.from(fileToNames.entries()).map(([file, names]) => {
-      return new Promise((resolve) => {
+    const promises = [];
+    for (const [file, names] of fileToNames) {
+      promises.push(new Promise((resolve) => {
         const img = new Image();
         img.onload = () => {
           for (const n of names) this.preloaded.set(n, true);
@@ -132,11 +134,12 @@ class PortraitManager {
           resolve(false);
         };
         img.src = this.basePath + file;
-      });
-    });
+      }));
+    }
 
     const results = await Promise.all(promises);
-    const loaded = results.filter(Boolean).length;
+    let loaded = 0;
+    for (const r of results) if (r) loaded++;
     return loaded;
   }
 }

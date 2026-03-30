@@ -139,7 +139,8 @@ class StoryEngine {
    */
   static _normalizeScenes(rawScenes) {
     const out = {};
-    for (const [id, scene] of Object.entries(rawScenes)) {
+    for (const id in rawScenes) {
+      const scene = rawScenes[id];
       if (!scene.is_ending) {
         out[id] = scene;
         continue;
