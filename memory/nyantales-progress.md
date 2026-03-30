@@ -2273,6 +2273,21 @@ cd /tmp/nyantales && python3 -m http.server 9876
 - 2026-03-29 (3:27 PM): Phase 118 — Extracted CSS RGB custom properties for white/black/bg-deep/bg-mid/bg-surface/purple (91 more hardcoded rgba values replaced). Added --accent-purple. --mood-mysterious uses var(--accent-purple). 150 total rgba values now driven by CSS custom properties. SW v101, 186KB JS / 95KB CSS. All 34 JS + 204/204 unit + 50/50 Playwright pass.
 - 2026-03-29 (2:27 PM): Phase 117 — Extracted CSS RGB custom properties for green/yellow/red/magenta (59 hardcoded rgba values replaced). Mood vars now reference accent vars. Merged duplicate .story-info-share-btn. Route map legend uses var(--accent-green). SW v100, 186KB JS / 91KB CSS. All 34 JS + 204/204 unit + 50/50 Playwright pass. Committed & pushed.
 
+## Phase 123: Extended Test Suite — History, Auto-Play, Progress, CSP, Endings ✅
+- **8 new Playwright tests** covering previously untested features:
+  - **Text History** — history panel records dialogue after scene play, history search filters entries (fills nonexistent term → 0 visible entries)
+  - **Auto-Play** — indicator appears/disappears when toggled via `A` key
+  - **Progress HUD** — visible during gameplay with "Turn" text after advancing
+  - **Top Progress Bar** — exploration bar visible during play
+  - **CSP Compliance** — no `script-src` CSP violations on page load
+  - **Service Worker** — verifies SW registers successfully
+  - **Ending Screen** — plays through Terminal Cat by clicking choices until reaching ending overlay with `.ending-type` visible
+- **Test count: 67 → 75** (12% increase in Playwright coverage)
+- All 75 Playwright tests pass
+- 204/204 unit tests pass
+- SW cache bumped to v105, production build regenerated (186KB JS, 96KB CSS)
+- No new stories added
+
 ## Phase 122: Expanded Test Coverage ✅
 - **7 new Playwright test categories** covering previously untested features:
   - **Favorites & Sorting** — favorite toggle marks card with `data-favorite="1"`, favorites filter shows only favorited cards, unfavorite resets; sort by longest first verifies descending read-time order
@@ -2289,4 +2304,5 @@ cd /tmp/nyantales && python3 -m http.server 9876
 - No new stories added
 
 ## Log (continued)
+- 2026-03-29 (8:27 PM): Phase 123 — Added 8 Playwright tests: text history (records dialogue + search filter), auto-play indicator toggle, progress HUD during gameplay, top progress bar visibility, CSP compliance (no script-src violations), service worker registration, ending screen (plays through story to completion). Test count 67→75. SW v105. All 75 Playwright + 204/204 unit pass. Committed & pushed.
 - 2026-03-29 (7:27 PM): Phase 122 — Added 7 new Playwright test categories: favorites toggle+filter, sort-by-longest, route map open/close, font size slider, data export download, achievements panel (16 items), scene select panel. Made about panel close more robust (backdrop fallback). Test count 60→67. All 67 Playwright + 204/204 unit pass. Production build regenerated. Committed & pushed.
