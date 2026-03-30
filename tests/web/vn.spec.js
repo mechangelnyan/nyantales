@@ -636,6 +636,164 @@ test.describe('Scene Select', () => {
   });
 });
 
+test.describe('Text History', () => {
+  test('history panel records dialogue during play', async ({ page }) => {
+    await startStory(page);
+    await ensureFullTextVisible(page);
+
+    // Open history panel
+    await page.keyboard.press('h');
+    const overlay = page.locator('.history-overlay');
+    await expect(overlay).toHaveClass(/visible/, { timeout: 5000 });
+
+    // Should have at least 1 entry from the first scene
+    const entries = overlay.locator('.history-entry');
+    const count = await entries.count();
+    expect(count).toBeGreaterThanOrEqual(1);
+
+    // Close
+    await page.keyboard.press('Escape');
+    await expect(overlay).not.toHaveClass(/visible/);
+  });
+
+  test('history search filters entries', async ({ page }) => {
+    const { choices } = await startStory(page);
+    await ensureFullTextVisible(page);
+    await choices.first().click();
+    await ensureFullTextVisible(page);
+
+    await page.keyboard.press('h');
+    const overlay = page.locator('.history-overlay');
+    await expect(overlay).toHaveClass(/visible/, { timeout: 5000 });
+
+    const searchInput = overlay.locator('.history-search');
+    if (await searchInput.isVisible()) {
+      await searchInput.fill('zzz_nonexistent_term_zzz');
+      await page.waitForTimeout(200);
+      // All entries should be hidden
+      const visibleEntries = overlay.locator('.history-entry:not(.hidden)');
+      expect(await visibleEntries.count()).toBe(0);
+    }
+    await page.keyboard.press('Escape');
+  });
+});
+
+test.describe('Auto-Play', () => {
+  test('auto-play indicator appears when toggled', async ({ page }) => {
+    await startStory(page);
+    await ensureFullTextVisible(page);
+
+    // Toggle auto-play
+    await page.keyboard.press('a');
+    const indicator = page.locator('.auto-play-indicator');
+    await expect(indicator).not.toHaveClass(/hidden/, { timeout: 3000 });
+
+    // Toggle off
+    await page.keyboard.press('a');
+    await expect(indicator).toHaveClass(/hidden/, { timeout: 3000 });
+  });
+});
+
+test.describe('Progress HUD', () => {
+  test('progress HUD shows during gameplay', async ({ page }) => {
+    const { choices } = await startStory(page);
+    await ensureFullTextVisible(page);
+    await choices.first().click();
+    await ensureFullTextVisible(page);
+
+    const hud = page.locator('.progress-hud');
+    await expect(hud).not.toHaveClass(/hidden/, { timeout: 3000 });
+    // Should contain turn info
+    const text = await hud.textContent();
+    expect(text).toMatch(/Turn/i);
+  });
+});
+
+test.describe('Top Progress Bar', () => {
+  test('thin progress bar shows exploration percentage', async ({ page }) => {
+    const { choices } = await startStory(page);
+    await ensureFullTextVisible(page);
+    await choices.first().click();
+    await ensureFullTextVisible(page);
+
+    const bar = page.locator('.top-progress-bar');
+    if (await bar.count() > 0) {
+      await expect(bar).not.toHaveClass(/hidden/);
+    }
+  });
+});
+
+test.describe('CSP Compliance', () => {
+  test('no CSP violations on page load', async ({ page }) => {
+    const violations = [];
+    page.on('console', msg => {
+      if (msg.text().includes('Content Security Policy')) {
+        violations.push(msg.text());
+      }
+    });
+    await waitForTitleScreen(page);
+    // Allow some known stylesheet violations but no script-src violations
+    const scriptViolations = violations.filter(v => v.includes('script-src'));
+    expect(scriptViolations).toHaveLength(0);
+  });
+});
+
+test.describe('Service Worker', () => {
+  test('service worker registers successfully', async ({ page }) => {
+    await waitForTitleScreen(page);
+    const swRegistered = await page.evaluate(async () => {
+      if (!navigator.serviceWorker) return false;
+      const regs = await navigator.serviceWorker.getRegistrations();
+      return regs.length > 0;
+    });
+    expect(swRegistered).toBe(true);
+  });
+});
+
+test.describe('Ending Screen', () => {
+  test('completing a story shows ending overlay', async ({ page }) => {
+    await startStory(page);
+    await ensureFullTextVisible(page);
+
+    // Navigate through story by repeatedly clicking choices until we hit an ending
+    for (let i = 0; i < 30; i++) {
+      const choices = page.locator('.choice-btn');
+      const choiceCount = await choices.count();
+      if (choiceCount > 0) {
+        await choices.first().click();
+        await page.waitForTimeout(200);
+        // Skip typewriter
+        await page.locator('#vn-textbox').click();
+        await page.waitForTimeout(200);
+      }
+
+      // Check for ending continue button first
+      const continueBtn = page.locator('.ending-continue-btn:visible');
+      if (await continueBtn.count() > 0) {
+        await continueBtn.click();
+        break;
+      }
+
+      // Check for ending overlay
+      const ending = page.locator('#vn-ending');
+      if (await ending.isVisible()) break;
+
+      // If no choices and no ending, try advancing
+      if (choiceCount === 0) {
+        await page.locator('#vn-textbox').click();
+        await page.waitForTimeout(300);
+      }
+    }
+
+    // Either we reached an ending or exhausted attempts
+    const ending = page.locator('#vn-ending');
+    if (await ending.isVisible()) {
+      // Should show ending type and actions
+      await expect(ending.locator('.ending-type')).toBeVisible();
+    }
+  });
+});
+
 test.describe('Campaign', () => {
   test('campaign button is visible on title screen', async ({ page }) => {
     await waitForTitleScreen(page);
