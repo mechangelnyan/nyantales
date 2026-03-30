@@ -4,6 +4,7 @@ export default defineConfig({
   testDir: './tests/web',
   timeout: 60000,
   retries: 0,
+  workers: 1,       // Serial execution — tests share localStorage via same origin
   use: {
     baseURL: 'http://localhost:9876/web/',
     headless: true,
