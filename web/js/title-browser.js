@@ -277,45 +277,26 @@ class TitleBrowser {
 
   // ── Sort logic ──
 
+  /** Static comparators — hoisted to avoid allocating new closures per sort call. */
+  static _COMPARATORS = {
+    'title-asc':  (a, b) => (a.dataset.title || '').localeCompare(b.dataset.title || ''),
+    'title-desc': (a, b) => (b.dataset.title || '').localeCompare(a.dataset.title || ''),
+    'recent':     (a, b) => parseFloat(b.dataset.lastPlayed || '0') - parseFloat(a.dataset.lastPlayed || '0'),
+    'progress':   (a, b) => parseFloat(b.dataset.progress || '0') - parseFloat(a.dataset.progress || '0'),
+    'time-short': (a, b) => parseInt(a.dataset.readMins || '0') - parseInt(b.dataset.readMins || '0'),
+    'time-long':  (a, b) => parseInt(b.dataset.readMins || '0') - parseInt(a.dataset.readMins || '0'),
+    'favorites':  (a, b) => {
+      const aFav = a.dataset.favorite === '1' ? 1 : 0;
+      const bFav = b.dataset.favorite === '1' ? 1 : 0;
+      if (bFav !== aFav) return bFav - aFav;
+      return (a.dataset.title || '').localeCompare(b.dataset.title || '');
+    }
+  };
+
   _applySortToGrid() {
     const cards = [...this._getCards()];
-
-    cards.sort((a, b) => {
-      switch (this._activeSort) {
-        case 'title-asc':
-          return (a.dataset.title || '').localeCompare(b.dataset.title || '');
-        case 'title-desc':
-          return (b.dataset.title || '').localeCompare(a.dataset.title || '');
-        case 'recent': {
-          const aTime = parseFloat(a.dataset.lastPlayed || '0');
-          const bTime = parseFloat(b.dataset.lastPlayed || '0');
-          return bTime - aTime;
-        }
-        case 'progress': {
-          const aPct = parseFloat(a.dataset.progress || '0');
-          const bPct = parseFloat(b.dataset.progress || '0');
-          return bPct - aPct;
-        }
-        case 'time-short': {
-          const aMin = parseInt(a.dataset.readMins || '0');
-          const bMin = parseInt(b.dataset.readMins || '0');
-          return aMin - bMin;
-        }
-        case 'time-long': {
-          const aMin = parseInt(a.dataset.readMins || '0');
-          const bMin = parseInt(b.dataset.readMins || '0');
-          return bMin - aMin;
-        }
-        case 'favorites': {
-          const aFav = a.dataset.favorite === '1' ? 1 : 0;
-          const bFav = b.dataset.favorite === '1' ? 1 : 0;
-          if (bFav !== aFav) return bFav - aFav;
-          return (a.dataset.title || '').localeCompare(b.dataset.title || '');
-        }
-        default:
-          return 0;
-      }
-    });
+    const cmp = TitleBrowser._COMPARATORS[this._activeSort];
+    if (cmp) cards.sort(cmp);
 
     // Reorder DOM elements via DocumentFragment (1 reflow instead of 30 appendChild calls)
     const frag = document.createDocumentFragment();

@@ -97,6 +97,7 @@ class CharacterGallery {
     filterRow.appendChild(search);
     const filterData = [['all', 'All'], ['protagonist', '⭐ Heroes'], ['npc', '👥 NPCs']];
     const filterBtns = [];
+    let _activeRoleBtn = null;
     for (const [role, label] of filterData) {
       const btn = document.createElement('button');
       btn.className = 'gallery-filter-btn' + (role === 'all' ? ' active' : '');
@@ -104,6 +105,7 @@ class CharacterGallery {
       btn.textContent = label;
       filterRow.appendChild(btn);
       filterBtns.push(btn);
+      if (role === 'all') _activeRoleBtn = btn;
     }
     panelEl.appendChild(filterRow);
 
@@ -191,8 +193,7 @@ class CharacterGallery {
       if (_searchTimer) clearTimeout(_searchTimer);
       _searchTimer = setTimeout(() => {
         const q = search.value.toLowerCase().trim();
-        const activeRole = filterBtns.find(b => b.classList.contains('active'))?.dataset.role || 'all';
-        this._applyFilters(q, activeRole);
+        this._applyFilters(q, _activeRoleBtn?.dataset.role || 'all');
       }, 80);
     });
 
@@ -202,6 +203,7 @@ class CharacterGallery {
       if (!btn) return;
       for (const b of filterBtns) b.classList.remove('active');
       btn.classList.add('active');
+      _activeRoleBtn = btn;
       const q = search.value.toLowerCase().trim();
       this._applyFilters(q, btn.dataset.role);
     });

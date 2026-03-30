@@ -27,8 +27,11 @@ class TouchHandler {
     this._onTouchStart = this._onTouchStart.bind(this);
     this._onTouchEnd = this._onTouchEnd.bind(this);
 
-    container.addEventListener('touchstart', this._onTouchStart, { passive: true });
-    container.addEventListener('touchend', this._onTouchEnd, { passive: false });
+    // AbortController for clean bulk unbind on destroy()
+    this._evtCtrl = new AbortController();
+    const sig = { signal: this._evtCtrl.signal };
+    container.addEventListener('touchstart', this._onTouchStart, { passive: true, ...sig });
+    container.addEventListener('touchend', this._onTouchEnd, { passive: false, ...sig });
   }
 
   _onTouchStart(e) {
@@ -92,9 +95,8 @@ class TouchHandler {
    */
   suspend(on) { this.suspended = !!on; }
 
-  /** Remove listeners */
+  /** Remove listeners (single abort replaces 2 removeEventListener calls) */
   destroy() {
-    this.container.removeEventListener('touchstart', this._onTouchStart);
-    this.container.removeEventListener('touchend', this._onTouchEnd);
+    this._evtCtrl.abort();
   }
 }
