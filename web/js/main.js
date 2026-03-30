@@ -37,6 +37,8 @@
   const keyboardHelp  = new KeyboardHelp();
   const aboutPanel    = new AboutPanel();
   const campaign    = new CampaignManager();
+  const campaignUI  = new CampaignUI(campaign, saveManager);
+  // Wire chapter grid click → startCampaignChapter (set after startCampaignChapter is defined below)
   const statsDashboard = new StatsDashboard(tracker, achievements, saveManager, ui.portraits, campaign);
   const routeMap      = new RouteMap();
   const achPanel      = new AchievementPanel(achievements);
@@ -265,7 +267,7 @@
   // Reusable DOM elements for ending overlays (avoids createElement per ending)
   let _endingTimeBox      = null;
   let _endingNewBadge     = null;
-  let _endingCampaignBtn  = null;
+  // _endingCampaignBtn managed by campaignUI
 
   function clearAutoPlayTimer() {
     if (autoPlayTimer) { clearTimeout(autoPlayTimer); autoPlayTimer = null; }
@@ -355,9 +357,7 @@
   const btnInstallEl   = document.getElementById('btn-install');
   const statsEl        = document.getElementById('title-stats');
   const textboxEl      = document.getElementById('vn-textbox');
-  const chapterGridEl  = document.getElementById('chapter-grid');
-  const sectionDivider = document.querySelector('.section-divider');
-  const campaignBtnEl  = document.getElementById('btn-campaign');
+  // chapterGridEl, sectionDivider, campaignBtnEl now managed by CampaignUI
 
   // ── Pre-created overlay indicators ──
   // Built once at init, toggled via .hidden class. Avoids createElement in hot paths.
@@ -686,17 +686,12 @@
       }
     }
 
-    // In campaign mode, add a "Next Chapter" button to the ending overlay (reusable element)
+    // In campaign mode, add a "Next Chapter" button to the ending overlay
     if (campaignMode && ui.endingEl) {
-      if (!_endingCampaignBtn) {
-        _endingCampaignBtn = document.createElement('button');
-        _endingCampaignBtn.className = 'campaign-btn campaign-btn-ending';
-        _endingCampaignBtn.dataset.action = 'campaign-next'; // handled by ending delegation
-      }
-      _endingCampaignBtn.textContent = campaign.isComplete() ? '🏠 Return Home' : '▶ Next Chapter';
+      const nextBtn = campaignUI.getEndingButton(campaign.isComplete());
       const actionsRow = ui._endingRefs.actionsRow;
-      actionsRow.insertBefore(_endingCampaignBtn, actionsRow.firstChild);
-      requestAnimationFrame(() => _endingCampaignBtn.focus());
+      actionsRow.insertBefore(nextBtn, actionsRow.firstChild);
+      requestAnimationFrame(() => nextBtn.focus());
     }
   };
 
@@ -919,7 +914,7 @@
    * @param {Object} story - Story index entry
    */
   function decorateStoryCard(card, story) {
-    const locked = !isStoryUnlocked(story.slug);
+    const locked = !campaignUI.isStoryUnlocked(story.slug);
     if (locked) {
       card.classList.add('story-locked');
       card.setAttribute('tabindex', '-1');
@@ -1045,8 +1040,7 @@
 
   /** Whether the story grid has been built at least once (for partial refresh). */
   let _gridBuilt = false;
-  /** Whether the chapter grid has been built at least once (for partial refresh). */
-  let _chapterGridBuilt = false;
+  // _chapterGridBuilt managed by CampaignUI
 
   /**
    * Cached story card child refs to avoid querySelector per card on every refresh.
@@ -1116,8 +1110,8 @@
     _updateStatsBar(stats, achStats, totalTime);
 
     // Campaign section
-    updateCampaignButton();
-    renderChapterGrid();
+    campaignUI.updateButton();
+    campaignUI.renderGrid();
 
     if (!_gridBuilt) {
       // First render: build full story grid from scratch
@@ -1152,7 +1146,7 @@
       const card = cards[idx];
       if (!card) continue;
 
-      const locked = !isStoryUnlocked(story.slug);
+      const locked = !campaignUI.isStoryUnlocked(story.slug);
       const wasLocked = card.dataset.locked === '1';
 
       // If lock state changed, we need a full card rebuild for this card
@@ -1698,7 +1692,7 @@
         loadStoryIndex(),
         campaign.load(storyBasePath()).then(() => {
           campaign.loadProgress();
-          rebuildCampaignSlugMap();
+          campaignUI.rebuildSlugMap();
         }).catch(e => {
           console.warn('Campaign data not available:', e);
         }),
@@ -1811,7 +1805,7 @@
       saveManager.deleteSlot(currentSlug, 'auto');
     }
     campaign.advance(currentEngine);
-    rebuildCampaignSlugMap(); // Refresh unlock state after advancing
+    campaignUI.rebuildSlugMap(); // Refresh unlock state after advancing
     const queuedUnlocks = pendingAchievementUnlocks.splice(0, pendingAchievementUnlocks.length);
     // Small delay before advancing to next phase for pacing
     trackTimeout(() => {
@@ -1822,286 +1816,16 @@
     }, 500);
   }
 
-  /** Pre-built campaign button children for textContent updates instead of innerHTML. */
-  let _campaignBtnText = null;
-  let _campaignBtnMeta = null;
-  if (campaignBtnEl) {
-    campaignBtnEl.textContent = '';
-    _campaignBtnText = document.createTextNode('📖 Campaign');
-    _campaignBtnMeta = document.createElement('span');
-    _campaignBtnMeta.className = 'campaign-meta';
-    campaignBtnEl.appendChild(_campaignBtnText);
-    campaignBtnEl.appendChild(_campaignBtnMeta);
-  }
+  // Campaign UI (button, grid, slug map, chapter delegation) managed by CampaignUI class
 
-  /** Update campaign button text on title screen. */
-  function updateCampaignButton() {
-    if (!campaignBtnEl || !campaign.isLoaded) return;
-    const label = campaign.getProgressLabel();
-    if (campaign.isComplete()) {
-      _campaignBtnText.textContent = '📖 Campaign ';
-      _campaignBtnMeta.textContent = 'Complete! ✨';
-    } else if (label) {
-      _campaignBtnText.textContent = '📖 Continue Campaign';
-      _campaignBtnMeta.textContent = label;
-    } else {
-      _campaignBtnText.textContent = '📖 Campaign';
-      _campaignBtnMeta.textContent = '';
-    }
-  }
+  /** Whether the chapter grid has been built at least once (for partial refresh). */
+  // _chapterGridBuilt managed by CampaignUI
 
-  // ── Chapter Grid ──
-
-  /** Determine if a chapter index is unlocked (reachable) */
-  function isChapterUnlocked(chapterIndex) {
-    if (!campaign.isLoaded || !campaign.progress.started) return chapterIndex === 0;
-    return chapterIndex <= campaign.progress.chapterIndex ||
-      campaign.progress.completedChapters.includes(chapterIndex);
-  }
-
-  /**
-   * Pre-built slug → chapter-index / bonus-entry map for O(1) campaign lock lookups.
-   * Rebuilt when campaign data loads or changes.
-   * @type {Map<string, {type: 'chapter', index: number} | {type: 'bonus', flag: string|null}>}
-   */
-  let _campaignSlugMap = new Map();
-
-  function rebuildCampaignSlugMap() {
-    _campaignSlugMap.clear();
-    if (!campaign.isLoaded) return;
-    const chapters = campaign.chapters;
-    for (let i = 0; i < chapters.length; i++) {
-      _campaignSlugMap.set(chapters[i].story, { type: 'chapter', index: i });
-    }
-    const bonus = campaign.manifest?.bonus_chapters || [];
-    for (const b of bonus) {
-      _campaignSlugMap.set(b.story, { type: 'bonus', flag: b.unlock_flag || null });
-    }
-  }
-
-  /**
-   * Determine if a story slug is unlocked for standalone play.
-   * Campaign chapter stories are locked until the player reaches them.
-   * Non-campaign stories are always unlocked.
-   */
-  function isStoryUnlocked(slug) {
-    if (!campaign.isLoaded) return true;
-    const entry = _campaignSlugMap.get(slug);
-    if (!entry) return true; // Not part of campaign
-    if (entry.type === 'chapter') return isChapterUnlocked(entry.index);
-    // Bonus chapter
-    if (!entry.flag) return true;
-    return campaign.progress.persistentFlags?.includes(entry.flag) || false;
-  }
-
-  /**
-   * Render the campaign chapter grid grouped by act.
-   * First call: builds the full grid from scratch.
-   * Subsequent calls: partial refresh — only updates classes, text, and aria on existing cards.
-   */
-  function renderChapterGrid() {
-    if (!chapterGridEl) return;
-
-    // Hide campaign section + divider when campaign data isn't loaded
-    if (!campaign.isLoaded) {
-      chapterGridEl.classList.add('hidden');
-      if (sectionDivider) sectionDivider.classList.add('hidden');
-      if (campaignBtnEl) campaignBtnEl.classList.add('hidden');
-      _chapterGridBuilt = false;
-      _chapterCardRefs.clear();
-      return;
-    }
-    chapterGridEl.classList.remove('hidden');
-    if (sectionDivider) sectionDivider.classList.remove('hidden');
-    if (campaignBtnEl) campaignBtnEl.classList.remove('hidden');
-
-    if (_chapterGridBuilt) {
-      // Partial refresh: update state of existing chapter cards
-      _refreshChapterCards();
-      return;
-    }
-
-    // First render: build full grid from scratch
-    _chapterCardRefs.clear();
-    chapterGridEl.textContent = '';
-
-    // Batch-append act sections via DocumentFragment (1 reflow instead of per-act)
-    const gridFrag = document.createDocumentFragment();
-    const chapters = campaign.chapters;
-    const acts = campaign.manifest?.acts || [];
-
-    // Build act → chapters mapping
-    const actMap = {};
-    for (const act of acts) actMap[act.id] = [];
-
-    for (let idx = 0; idx < chapters.length; idx++) {
-      const ch = chapters[idx];
-      if (!actMap[ch.act]) actMap[ch.act] = [];
-      actMap[ch.act].push({ ch, idx });
-    }
-
-    for (const act of acts) {
-      const items = actMap[act.id] || [];
-      if (!items.length) continue;
-
-      const section = document.createElement('div');
-      section.className = 'act-section';
-
-      const header = document.createElement('div');
-      header.className = 'act-header';
-      const actTitle = document.createElement('span');
-      actTitle.className = 'act-title';
-      actTitle.textContent = act.title;
-      const actSub = document.createElement('span');
-      actSub.className = 'act-subtitle';
-      actSub.textContent = act.subtitle || '';
-      header.appendChild(actTitle);
-      header.appendChild(actSub);
-      section.appendChild(header);
-
-      const cards = document.createElement('div');
-      cards.className = 'chapter-cards';
-
-      for (const { ch, idx } of items) {
-        const unlocked = isChapterUnlocked(idx);
-        const completed = campaign.progress.completedChapters.includes(idx);
-        const isStarted = campaign.progress.started;
-        const isCurrent = isStarted && idx === campaign.progress.chapterIndex && campaign.progress.phase === 'chapter';
-
-        const card = document.createElement('div');
-        card.className = 'chapter-card' +
-          (unlocked ? ' unlocked' : ' locked') +
-          (completed ? ' completed' : '') +
-          (isCurrent ? ' current' : '');
-        card.dataset.chapterIndex = idx;
-        card.setAttribute('role', 'listitem');
-        card.setAttribute('tabindex', unlocked ? '0' : '-1');
-        card.setAttribute('aria-label', unlocked ? `Chapter ${ch.chapter}: ${ch.title}` : `Chapter ${ch.chapter}: Locked`);
-
-        const numEl = document.createElement('div');
-        numEl.className = 'chapter-num';
-        numEl.textContent = `CH ${ch.chapter}`;
-
-        const body = document.createElement('div');
-        body.className = 'chapter-body';
-
-        const titleEl = document.createElement('div');
-        titleEl.className = 'chapter-title';
-        titleEl.textContent = unlocked ? ch.title : '???';
-
-        const descEl = document.createElement('div');
-        descEl.className = 'chapter-desc';
-        descEl.textContent = unlocked ? (ch.description || '') : '';
-
-        body.appendChild(titleEl);
-        body.appendChild(descEl);
-
-        const status = document.createElement('div');
-        status.className = 'chapter-status';
-        if (!unlocked) {
-          status.textContent = '🔒';
-          status.setAttribute('aria-hidden', 'true');
-        } else if (isCurrent) {
-          status.textContent = '▶';
-        } else if (completed) {
-          status.textContent = '✅';
-        } else {
-          status.textContent = '○';
-        }
-
-        card.appendChild(numEl);
-        card.appendChild(body);
-        card.appendChild(status);
-        cards.appendChild(card);
-
-        // Cache refs inline during construction (avoids querySelectorAll in _refreshChapterCards)
-        _chapterCardRefs.set(idx, { card, titleEl, descEl, statusEl: status });
-      }
-
-      section.appendChild(cards);
-      gridFrag.appendChild(section);
-    }
-    chapterGridEl.appendChild(gridFrag);
-    _chapterGridBuilt = true;
-  }
-
-  /**
-   * Cached chapter card child refs to avoid querySelector per card on every refresh.
-   * Built once during first grid render, maps chapter index → { titleEl, descEl, statusEl }.
-   * @type {Map<number, { card: HTMLElement, titleEl: HTMLElement, descEl: HTMLElement, statusEl: HTMLElement }>}
-   */
-  const _chapterCardRefs = new Map();
-
-  /**
-   * Partial refresh of chapter cards: updates lock/complete/current state
-   * without destroying and rebuilding the grid DOM.
-   */
-  function _refreshChapterCards() {
-    const chapters = campaign.chapters;
-    const isStarted = campaign.progress.started;
-    const currentIdx = campaign.progress.chapterIndex;
-
-    for (const [idx, { card, titleEl, descEl, statusEl }] of _chapterCardRefs) {
-      if (!chapters[idx]) continue;
-      const ch = chapters[idx];
-
-      const unlocked = isChapterUnlocked(idx);
-      const completed = campaign.progress.completedChapters.includes(idx);
-      const isCurrent = isStarted && idx === currentIdx && campaign.progress.phase === 'chapter';
-
-      // Update classes
-      card.classList.toggle('unlocked', unlocked);
-      card.classList.toggle('locked', !unlocked);
-      card.classList.toggle('completed', completed);
-      card.classList.toggle('current', isCurrent);
-      card.setAttribute('tabindex', unlocked ? '0' : '-1');
-      card.setAttribute('aria-label', unlocked ? `Chapter ${ch.chapter}: ${ch.title}` : `Chapter ${ch.chapter}: Locked`);
-
-      // Update title/desc
-      if (titleEl) titleEl.textContent = unlocked ? ch.title : '???';
-      if (descEl) descEl.textContent = unlocked ? (ch.description || '') : '';
-
-      // Update status icon
-      if (statusEl) {
-        if (!unlocked) {
-          statusEl.textContent = '🔒';
-          statusEl.setAttribute('aria-hidden', 'true');
-        } else if (isCurrent) {
-          statusEl.textContent = '▶';
-          statusEl.removeAttribute('aria-hidden');
-        } else if (completed) {
-          statusEl.textContent = '✅';
-          statusEl.removeAttribute('aria-hidden');
-        } else {
-          statusEl.textContent = '○';
-          statusEl.removeAttribute('aria-hidden');
-        }
-      }
-    }
-  }
-
-  // ── Chapter Grid Click Delegation ──
-
-  if (chapterGridEl) {
-    chapterGridEl.addEventListener('click', (e) => {
-      const card = e.target.closest('.chapter-card');
-      if (!card || card.classList.contains('locked')) return;
-      const idx = parseInt(card.dataset.chapterIndex, 10);
-      if (isNaN(idx)) return;
-      ensureAudio();
-      startCampaignChapter(idx);
-    });
-    chapterGridEl.addEventListener('keydown', (e) => {
-      if (e.key !== 'Enter' && e.key !== ' ') return;
-      const card = e.target.closest('.chapter-card');
-      if (!card || card.classList.contains('locked')) return;
-      e.preventDefault();
-      const idx = parseInt(card.dataset.chapterIndex, 10);
-      if (isNaN(idx)) return;
-      ensureAudio();
-      startCampaignChapter(idx);
-    });
-  }
+  // Wire campaignUI chapter grid click
+  campaignUI.onChapterSelect = (idx) => {
+    ensureAudio();
+    startCampaignChapter(idx);
+  };
 
   /**
    * Start a specific campaign chapter by index.

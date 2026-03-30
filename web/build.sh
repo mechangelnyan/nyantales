@@ -28,6 +28,7 @@ JS_FILES=(
   "js/yaml-parser.js"
   "js/engine.js"
   "js/campaign.js"
+  "js/campaign-ui.js"
   "js/sprites.js"
   "js/portraits.js"
   "js/tracker.js"
