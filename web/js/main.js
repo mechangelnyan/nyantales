@@ -137,50 +137,9 @@
     'the-terminal-cat', 'tls-pawshake', 'vim-escape', 'zombie-process'
   ];
 
-  function storyBasePath() {
-    const path = window.location.pathname;
-    // Running from web/dist/ (production build) — stories are two levels up
-    if (path.includes('/web/dist')) return '../../stories';
-    // Running from web/ (dev) — stories are one level up
-    if (path.includes('/web/') || path.endsWith('/web')) return '../stories';
-    return 'stories';
-  }
-
-  const APP_TITLE = 'NyanTales — Visual Novel';
+  const router = new AppRouter();
 
   let deferredInstallPrompt = null;
-
-  function isStandaloneMode() {
-    return window.matchMedia?.('(display-mode: standalone)').matches || window.navigator.standalone === true;
-  }
-
-  function isIOSInstallable() {
-    const ua = window.navigator.userAgent || '';
-    const isIOS = /iphone|ipad|ipod/i.test(ua);
-    const isSafari = /safari/i.test(ua) && !/crios|fxios|edgios/i.test(ua);
-    return isIOS && isSafari && !isStandaloneMode();
-  }
-
-  function getRouteParams() {
-    return new URLSearchParams(window.location.search);
-  }
-
-  /** Build a shareable URL on the current app path (works for /web/ and /web/dist/). */
-  function buildStoryUrl(slug) {
-    const url = new URL(window.location.href);
-    url.hash = '';
-    url.search = '';
-    if (slug) url.searchParams.set('story', slug);
-    return url.toString();
-  }
-
-  /** Keep the browser URL synced to the currently open story without navigating. */
-  function syncStoryUrl(slug, mode = 'replace') {
-    const nextUrl = slug ? buildStoryUrl(slug) : `${window.location.pathname}${window.location.hash || ''}`;
-    const state = slug ? { view: 'story', slug } : { view: 'menu' };
-    const method = mode === 'push' ? 'pushState' : 'replaceState';
-    window.history[method](state, '', nextUrl);
-  }
 
   let storyIndex   = [];
   /** @type {Map<string, Object>} slug → story for O(1) lookups */
@@ -194,7 +153,7 @@
   let campaignMode  = false; // true when playing the connected campaign
   let pendingAchievementUnlocks = [];
   let suppressNextAutoAdvance = false;
-  let routeChangeSerial = 0;
+  // Route change serial managed by router.serial / router.bump() / router.isCurrent()
 
   // ── Auto-play State ──
 
@@ -398,7 +357,7 @@
    * Manifest mode: 8KB JSON vs 1.6MB of YAML, zero js-yaml parsing on boot.
    */
   async function loadStoryIndex() {
-    const base = storyBasePath();
+    const base = router.storyBasePath();
 
     // Try manifest first (generated at build time, ~8KB vs ~1.6MB of YAML)
     try {
@@ -470,7 +429,7 @@
    */
   async function loadFullStory(story) {
     if (story._parsed) return story._parsed;
-    const base = storyBasePath();
+    const base = router.storyBasePath();
     try {
       const resp = await fetch(`${base}/${story.slug}/story.yaml`);
       if (!resp.ok) return null;
@@ -498,6 +457,46 @@
 
   // ── Core Scene Playback ──
 
+  /** Check if a slug is a campaign transient (intro/connector) that shouldn't be auto-saved. */
+  function _isCampaignTransient(slug) {
+    return campaignMode && (slug === 'campaign-intro' || slug?.startsWith('campaign-connector-'));
+  }
+
+  /** Compute effect override for a scene (suppress shake/glitch when disabled). */
+  function _effectOverride(scene) {
+    return (!settings.get('screenShake') && (scene.effect === 'glitch' || scene.effect === 'shake'))
+      ? null : undefined;
+  }
+
+  /**
+   * Render one scene: record history, apply effects, render UI, auto-save, update HUD.
+   * Shared between normal play and skip-read loop to eliminate duplication.
+   * @param {Object} scene — current scene data
+   * @param {boolean} skipMode — true if this is part of skip-read fast-forward
+   */
+  async function _renderOneScene(scene, skipMode) {
+    const sceneId = currentEngine.state.currentScene;
+    textHistory.add(sceneId, scene.speaker, scene.text);
+
+    const wasInFastMode = ui.fastMode;
+    const skipActive = skipMode && !scene.ending;
+    if (skipActive) ui.fastMode = true;
+    if (!skipMode) updateSkipIndicator(skipActive);
+
+    const effOvr = _effectOverride(scene);
+    const renderScene = effOvr !== undefined ? { ...scene, effect: effOvr } : scene;
+    await ui.renderScene(renderScene, currentEngine);
+
+    if (audio.enabled) audio.setTheme(ui._lastBgClass);
+    if (skipActive) ui.fastMode = wasInFastMode;
+
+    if (currentSlug && !_isCampaignTransient(currentSlug)) {
+      saveManager.autoSave(currentSlug, currentEngine, scene);
+    }
+    if (currentSlug) tracker.recordVisitedScenes(currentSlug, currentEngine.state.visited);
+    updateProgressHUD();
+  }
+
   /**
    * Play a scene: record history, apply skip/fast mode, render, auto-save, schedule next.
    * This is the central heartbeat of the game loop.
@@ -506,41 +505,10 @@
     if (!scene || !currentEngine) return;
 
     const sceneId = currentEngine.state.currentScene;
-    textHistory.add(sceneId, scene.speaker, scene.text);
-
-    // Suppress shake/glitch if disabled in settings (pass to render without mutating parsed data)
-    const effectOverride = (!settings.get('screenShake') && (scene.effect === 'glitch' || scene.effect === 'shake'))
-      ? null : undefined;
-
-    // Skip-read: temporarily enable fast mode for visited scenes
     const skipActive = shouldSkipScene(sceneId) && !scene.ending;
-    const wasInFastMode = ui.fastMode;
-    if (skipActive) ui.fastMode = true;
     updateSkipIndicator(skipActive);
 
-    // Render with optional effect override (avoids mutating the original scene object)
-    const renderScene = effectOverride !== undefined ? { ...scene, effect: effectOverride } : scene;
-    await ui.renderScene(renderScene, currentEngine);
-
-    // Update audio theme to match background
-    if (audio.enabled) audio.setTheme(ui._lastBgClass);
-
-    // Restore fast mode if we forced it for skip-read
-    if (skipActive) ui.fastMode = wasInFastMode;
-
-    // Auto-save after each scene and record visited scenes for progress tracking
-    if (currentSlug) {
-      // Don't autosave campaign intro/connectors — they're transient and shouldn't
-      // appear in "Continue" or be restored from save
-      const isCampaignTransient = campaignMode && (currentSlug === 'campaign-intro' || currentSlug.startsWith('campaign-connector-'));
-      if (!isCampaignTransient) {
-        saveManager.autoSave(currentSlug, currentEngine, scene);
-      }
-      tracker.recordVisitedScenes(currentSlug, currentEngine.state.visited);
-    }
-
-    // Update in-game progress HUD
-    updateProgressHUD();
+    await _renderOneScene(scene, skipActive);
 
     // Handle endings
     if (scene.ending) return;
@@ -550,28 +518,15 @@
     if (choices.length === 0 && scene.next && shouldSkipScene(sceneId)) {
       await new Promise(r => setTimeout(r, 50));
       let nextScene = currentEngine.goToScene(scene.next);
-      // Loop instead of recursion — long linear chains of visited scenes could exhaust the call stack
       while (nextScene && !nextScene.ending && currentEngine) {
         const nId = currentEngine.state.currentScene;
-        textHistory.add(nId, nextScene.speaker, nextScene.text);
-        const nEffOvr = (!settings.get('screenShake') && (nextScene.effect === 'glitch' || nextScene.effect === 'shake')) ? null : undefined;
-        const nRender = nEffOvr !== undefined ? { ...nextScene, effect: nEffOvr } : nextScene;
-        await ui.renderScene(nRender, currentEngine);
-        if (audio.enabled) audio.setTheme(ui._lastBgClass);
-        if (currentSlug) {
-          const isCT = campaignMode && (currentSlug === 'campaign-intro' || currentSlug.startsWith('campaign-connector-'));
-          if (!isCT) saveManager.autoSave(currentSlug, currentEngine, nextScene);
-          tracker.recordVisitedScenes(currentSlug, currentEngine.state.visited);
-        }
-        updateProgressHUD();
+        await _renderOneScene(nextScene, true);
         const nc = currentEngine.getAvailableChoices();
         if (nc.length > 0 || !nextScene.next || !shouldSkipScene(nId)) break;
         await new Promise(r => setTimeout(r, 50));
         nextScene = currentEngine.goToScene(nextScene.next);
       }
-      // If we broke out onto an ending or non-skip scene, let normal playScene handle it
       if (nextScene && currentEngine) {
-        // Re-enter for the final scene (endings, choices, or first unseen scene)
         return playScene(nextScene);
       }
       return;
@@ -692,13 +647,13 @@
       showIntro = !savedState
     } = options;
 
-    const navId = ++routeChangeSerial;
+    const navId = router.bump();
 
     currentSlug = story.slug;
     storyStartTime = Date.now();
     document.title = `${story.title} — NyanTales`;
     ui.setStorySlug(story.slug);
-    if (story.slug && syncRoute) syncStoryUrl(story.slug, historyMode);
+    if (story.slug && syncRoute) router.syncStoryUrl(story.slug, historyMode);
 
     // Lazy-load full YAML if not yet parsed (manifest-boot mode)
     if (!story._parsed) {
@@ -708,7 +663,7 @@
         returnToMenu();
         return;
       }
-      if (navId !== routeChangeSerial) return; // Route changed during load
+      if (!router.isCurrent(navId)) return; // Route changed during load
     }
 
     initEngine(story._parsed);
@@ -721,7 +676,7 @@
     // Show story intro splash (skip for loaded saves / history-driven route changes)
     if (showIntro) {
       await StoryIntro.show(story, ui.portraits);
-      if (navId !== routeChangeSerial) return;
+      if (!router.isCurrent(navId)) return;
       suppressNextAutoAdvance = true;
     }
 
@@ -731,7 +686,7 @@
 
     const firstScene = currentEngine.getCurrentScene();
     await playScene(firstScene);
-    if (navId !== routeChangeSerial) return;
+    if (!router.isCurrent(navId)) return;
 
     // Check achievements on story start
     const startAch = achievements.checkAll();
@@ -746,7 +701,7 @@
 
   function returnToMenu(options = {}) {
     const { syncRoute = true, historyMode = 'replace' } = options;
-    routeChangeSerial++;
+    router.bump();
     // Record reading time before clearing state
     if (currentSlug && storyStartTime) {
       tracker.recordReadingTime(currentSlug, Date.now() - storyStartTime);
@@ -760,9 +715,9 @@
     storyStartTime = null;
     _lastProgressPct = -1;
     _lastProgressTurns = -1;
-    document.title = APP_TITLE;
+    document.title = router.APP_TITLE;
     ui.setStorySlug(null);
-    if (syncRoute) syncStoryUrl(null, historyMode);
+    if (syncRoute) router.syncStoryUrl(null, historyMode);
     audio.stop();
     textHistory.clear();
     updateSkipIndicator(false);
@@ -1241,7 +1196,7 @@
   function updateInstallButton() {
     if (!btnInstallEl) return;
 
-    const showButton = !isStandaloneMode() && (Boolean(deferredInstallPrompt) || isIOSInstallable());
+    const showButton = !router.isStandaloneMode() && (Boolean(deferredInstallPrompt) || router.isIOSInstallable());
     btnInstallEl.classList.toggle('hidden', !showButton);
 
     if (!showButton) return;
@@ -1276,7 +1231,7 @@
       return;
     }
 
-    if (isIOSInstallable()) {
+    if (router.isIOSInstallable()) {
       Toast.show('On iPhone/iPad: tap Share, then choose “Add to Home Screen”.', { icon: '📲', duration: 5000 });
       return;
     }
@@ -1618,12 +1573,12 @@
       showIntro = !fromHistory
     } = options;
 
-    const requestedSlug = getRouteParams().get('story');
+    const requestedSlug = router.getRequestedSlug();
     if (!requestedSlug) {
       if (currentSlug) {
         returnToMenu({ syncRoute: !fromHistory, historyMode: defaultHistoryMode });
       } else if (!fromHistory) {
-        syncStoryUrl(null, defaultHistoryMode);
+        router.syncStoryUrl(null, defaultHistoryMode);
       }
       return;
     }
@@ -1634,7 +1589,7 @@
       if (currentSlug) {
         returnToMenu({ syncRoute: !fromHistory, historyMode: 'replace' });
       } else {
-        syncStoryUrl(null, 'replace');
+        router.syncStoryUrl(null, 'replace');
       }
       return;
     }
@@ -1655,7 +1610,7 @@
       // Parallelize story index, campaign, and portrait preloads
       const [,] = await Promise.all([
         loadStoryIndex(),
-        campaign.load(storyBasePath()).then(() => {
+        campaign.load(router.storyBasePath()).then(() => {
           campaign.loadProgress();
           campaignUI.rebuildSlugMap();
         }).catch(e => {
