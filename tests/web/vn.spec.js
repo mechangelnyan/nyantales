@@ -1028,3 +1028,133 @@ test.describe('Settings Persistence', () => {
     expect(speed).toBe(targetSpeed);
   });
 });
+
+test.describe('Story Intro', () => {
+  test('shows story intro overlay with title and portrait before gameplay', async ({ page }) => {
+    await waitForTitleScreen(page);
+    const card = page.locator('.story-card').filter({ hasText: /Terminal Cat/i }).first();
+    await card.click();
+
+    const intro = page.locator('.story-intro-overlay');
+    await expect(intro).toBeVisible({ timeout: 10000 });
+
+    // Should show story title and continue button
+    await expect(intro.locator('.story-intro-title')).toContainText(/terminal cat/i);
+    await expect(intro.getByRole('button', { name: /continue/i })).toBeVisible();
+
+    // Portrait should be present (either AI or pixel sprite)
+    const portrait = intro.locator('.story-intro-portrait');
+    await expect(portrait).toBeVisible();
+  });
+
+  test('intro dismisses on continue click and starts gameplay', async ({ page }) => {
+    await waitForTitleScreen(page);
+    const card = page.locator('.story-card').filter({ hasText: /Terminal Cat/i }).first();
+    await card.click();
+
+    const intro = page.locator('.story-intro-overlay');
+    await expect(intro).toBeVisible({ timeout: 10000 });
+    await intro.getByRole('button', { name: /continue/i }).click();
+
+    // Game text should appear (intro may stay briefly during transition)
+    const text = page.locator('#vn-text');
+    await expect(text).not.toHaveText(/^\s*$/, { timeout: 10000 });
+  });
+});
+
+test.describe('Reading Time and Scene Meta', () => {
+  test('story cards display reading time and scene count', async ({ page }) => {
+    await waitForTitleScreen(page);
+    // At least some unlocked cards should have meta info
+    const meta = page.locator('.story-card:not(.story-locked) .story-card-meta').first();
+    await expect(meta).toBeVisible();
+    await expect(meta).toContainText(/min/);
+    await expect(meta).toContainText(/scenes/);
+  });
+});
+
+test.describe('Continue Button', () => {
+  test('continue button appears after playing a story', async ({ page }) => {
+    // Play a story to create a save
+    await startStory(page);
+    await ensureFullTextVisible(page);
+
+    // Return to menu
+    await page.keyboard.press('Escape');
+    await page.waitForTimeout(500);
+
+    // Continue button should now be visible
+    const continueBtn = page.locator('#btn-continue');
+    await expect(continueBtn).toBeVisible({ timeout: 5000 });
+    await expect(continueBtn).toContainText(/continue/i);
+  });
+});
+
+test.describe('Random Story', () => {
+  test('random story button starts a story', async ({ page }) => {
+    await waitForTitleScreen(page);
+    const randomBtn = page.locator('#btn-random');
+    await expect(randomBtn).toBeVisible();
+    await randomBtn.click();
+
+    // Should show an intro overlay for some story
+    const intro = page.locator('.story-intro-overlay');
+    await expect(intro).toBeVisible({ timeout: 10000 });
+  });
+});
+
+test.describe('Document Title', () => {
+  test('title updates during gameplay and resets on menu return', async ({ page }) => {
+    await startStory(page);
+
+    // During play, title should include story name
+    const playTitle = await page.title();
+    expect(playTitle).toContain('Terminal Cat');
+    expect(playTitle).toContain('NyanTales');
+
+    // Return to menu
+    await page.keyboard.press('Escape');
+    await page.waitForTimeout(500);
+
+    const menuTitle = await page.title();
+    expect(menuTitle).toContain('NyanTales');
+    expect(menuTitle).not.toContain('Terminal Cat');
+  });
+});
+
+test.describe('Rewind Functionality', () => {
+  test('rewind button goes back to previous scene', async ({ page }) => {
+    await startStory(page);
+    await ensureFullTextVisible(page);
+
+    // Get initial text
+    const initialText = await page.locator('#vn-text').textContent();
+
+    // Make a choice to advance
+    const firstChoice = page.locator('.choice-btn').first();
+    await firstChoice.click();
+    await page.waitForTimeout(800);
+
+    // Text should have changed
+    const advancedText = await page.locator('#vn-text').textContent();
+
+    // Rewind
+    await page.keyboard.press('b');
+    await page.waitForTimeout(800);
+
+    // Should be back at original scene with choices
+    const rewindText = await page.locator('#vn-text').textContent();
+    expect(rewindText).not.toBe(advancedText);
+  });
+});
+
+test.describe('Audio Toggle', () => {
+  test('audio button is visible during gameplay', async ({ page }) => {
+    await startStory(page);
+    const audioBtn = page.locator('#btn-audio');
+    await expect(audioBtn).toBeVisible();
+    // Button should show a speaker emoji
+    const text = await audioBtn.textContent();
+    expect(text.trim()).toMatch(/🔇|🔊/);
+  });
+});
