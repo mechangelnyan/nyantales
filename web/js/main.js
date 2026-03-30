@@ -795,180 +795,18 @@
     selectStoryCard(card);
   });
 
-  /**
-   * Compute reading-time estimate and scene count for a story (cached per slug).
-   * @param {Object} story - Story index entry with _parsed data
-   * @returns {{ sceneCount: number, readMins: number, wordCount: number }}
-   */
-  const _storyMetaCache = new Map();
-  function getStoryMeta(story) {
-    const cached = _storyMetaCache.get(story.slug);
-    if (cached) return cached;
+  // ── Story Card Manager ──
+  // Manages card decoration, refresh, reset, and metadata (extracted from main.js Phase 139)
+  const cardManager = new StoryCardManager({
+    tracker, saveManager, campaignUI, storySlugMap, storyIdxMap
+  });
 
-    // Use pre-computed manifest meta if available (avoids needing _parsed)
-    if (story._meta) {
-      _storyMetaCache.set(story.slug, story._meta);
-      return story._meta;
-    }
-
-    const scenes = story._parsed?.scenes;
-    let sceneCount = 0, wordCount = 0, totalEndings = 0;
-    if (scenes) {
-      for (const id in scenes) {
-        sceneCount++;
-        const s = scenes[id];
-        if (s.text) wordCount += s.text.split(/\s+/).length;
-        if (s.is_ending || s.ending) totalEndings++;
-      }
-    }
-    const readMins = Math.max(1, Math.ceil(wordCount / 200));
-    const meta = { sceneCount, readMins, wordCount, totalEndings };
-    _storyMetaCache.set(story.slug, meta);
-    return meta;
-  }
-
-  /**
-   * Decorate a freshly-created story card with badges, progress, meta, and buttons.
-   * Separated from renderTitleScreen for clarity — called once per card.
-   * @param {HTMLElement} card - The story card DOM element
-   * @param {Object} story - Story index entry
-   */
-  function decorateStoryCard(card, story) {
-    const locked = !campaignUI.isStoryUnlocked(story.slug);
-    if (locked) {
-      card.classList.add('story-locked');
-      card.setAttribute('tabindex', '-1');
-      card.setAttribute('aria-label', `${story.title}: Locked — progress through the campaign to unlock`);
-      // Replace card content with locked placeholder — use cached inner refs (no querySelector)
-      const ir = card._innerRefs;
-      if (ir) {
-        if (ir.h3) ir.h3.textContent = '🔒 ' + story.title;
-        if (ir.p) ir.p.textContent = 'Progress through the campaign to unlock';
-        if (ir.spriteEl) ir.spriteEl.classList.add('locked-sprite');
-      }
-      card.dataset.slug = story.slug;
-      card.dataset.locked = '1';
-      return; // Don't add badges/progress/buttons for locked stories
-    }
-
-    card.dataset.locked = '0';
-    const completed = tracker.isCompleted(story.slug);
-    const endings = tracker.endingCount(story.slug);
-    const { sceneCount, readMins } = getStoryMeta(story);
-
-    // Ref object for caching child elements (used by _refreshStoryCards and _resetCardForRedecorate)
-    const refs = { badge: null, saveIcon: null, barFill: null, barEl: null, favBtn: null, infoBtn: null, metaEl: null };
-
-    // Completion badge
-    const badge = document.createElement('div');
-    badge.className = 'story-card-badge';
-    if (completed) {
-      card.classList.add('completed');
-      badge.textContent = `✅ ${endings} ending${endings !== 1 ? 's' : ''}`;
-    } else {
-      badge.classList.add('hidden');
-    }
-    card.appendChild(badge);
-    refs.badge = badge;
-
-    // Save indicator (always created, hidden when no save)
-    const saveIcon = document.createElement('div');
-    saveIcon.textContent = '💾';
-    if (saveManager.hasSave(story.slug)) {
-      saveIcon.className = completed
-        ? 'story-card-badge story-card-save-badge save-badge-bottom'
-        : 'story-card-badge story-card-save-badge';
-    } else {
-      saveIcon.className = 'story-card-badge story-card-save-badge hidden';
-    }
-    card.appendChild(saveIcon);
-    refs.saveIcon = saveIcon;
-
-    // Progress bar (always created for consistent ref caching)
-    const bar = document.createElement('div');
-    bar.className = 'story-card-progress';
-    bar.setAttribute('role', 'progressbar');
-    bar.setAttribute('aria-valuemin', '0');
-    bar.setAttribute('aria-valuemax', '100');
-    const barFill = document.createElement('div');
-    barFill.className = 'story-card-progress-fill';
-    if (sceneCount > 0) {
-      const pct = tracker.getProgress(story.slug, sceneCount);
-      barFill.style.setProperty('--bar-pct', `${pct}%`);
-      bar.setAttribute('aria-valuenow', pct);
-      bar.setAttribute('aria-label', `${pct}% explored`);
-    } else {
-      barFill.style.setProperty('--bar-pct', '0%');
-      bar.setAttribute('aria-valuenow', 0);
-      bar.setAttribute('aria-label', '0% explored');
-    }
-    bar.appendChild(barFill);
-    card.appendChild(bar);
-    refs.barFill = barFill;
-    refs.barEl = bar;
-
-    // Meta info (reading time + scene count) — use cached textDiv ref
-    if (sceneCount > 0 || readMins > 0) {
-      const metaEl = document.createElement('div');
-      metaEl.className = 'story-card-meta';
-      const timeSpan = document.createElement('span');
-      timeSpan.textContent = `⏱ ~${readMins} min`;
-      const sceneSpan = document.createElement('span');
-      sceneSpan.textContent = `📄 ${sceneCount} scenes`;
-      metaEl.appendChild(timeSpan);
-      metaEl.appendChild(sceneSpan);
-      const textContainer = card._innerRefs?.textDiv;
-      if (textContainer) textContainer.appendChild(metaEl);
-      refs.metaEl = metaEl;
-    }
-
-    // Info button (ℹ) — click handled by grid delegation
-    const infoBtn = document.createElement('button');
-    infoBtn.className = 'story-card-info-btn';
-    infoBtn.textContent = 'ℹ';
-    infoBtn.title = 'Story details';
-    infoBtn.setAttribute('aria-label', `Details for ${story.title}`);
-    card.appendChild(infoBtn);
-    refs.infoBtn = infoBtn;
-
-    // Favorite button (heart) — click handled by grid delegation
-    const isFav = tracker.isFavorite(story.slug);
-    const favBtn = document.createElement('button');
-    favBtn.className = 'story-card-fav-btn';
-    favBtn.textContent = isFav ? '❤️' : '🤍';
-    favBtn.title = isFav ? 'Remove from favorites' : 'Add to favorites';
-    favBtn.setAttribute('aria-label', isFav ? `Remove ${story.title} from favorites` : `Add ${story.title} to favorites`);
-    favBtn.setAttribute('aria-pressed', isFav ? 'true' : 'false');
-    card.appendChild(favBtn);
-    refs.favBtn = favBtn;
-
-    // Cache refs for this card index
-    const cardIdx = storyIdxMap.get(story);
-    if (cardIdx !== undefined) _storyCardRefs.set(cardIdx, refs);
-
-    // Data attributes for filtering/sorting
-    card.dataset.slug = story.slug;
-    card.dataset.title = story.title.toLowerCase();
-    card.dataset.desc = (story.description || '').toLowerCase();
-    card.dataset.search = buildStorySearchBlob(story);
-    card.dataset.completed = completed ? '1' : '0';
-    card.dataset.favorite = isFav ? '1' : '0';
-    card.dataset.readMins = readMins;
-    card.dataset.progress = sceneCount > 0 ? tracker.getProgress(story.slug, sceneCount) : 0;
-    card.dataset.lastPlayed = tracker.getStory(story.slug).lastPlayed || 0;
-  }
+  /** Shorthand for card manager getMeta (used by storyInfo and statsDashboard). */
+  function getStoryMeta(story) { return cardManager.getMeta(story); }
 
   /** Whether the story grid has been built at least once (for partial refresh). */
   let _gridBuilt = false;
   // _chapterGridBuilt managed by CampaignUI
-
-  /**
-   * Cached story card child refs to avoid querySelector per card on every refresh.
-   * Maps card index → { badge, saveIcon, barFill, barEl, favBtn }.
-   * Built lazily on first _refreshStoryCards() call.
-   * @type {Map<number, Object>}
-   */
-  const _storyCardRefs = new Map();
 
   /**
    * Render (or re-render) the title screen.
@@ -1035,17 +873,17 @@
 
     if (!_gridBuilt) {
       // First render: build full story grid from scratch
-      _storyCardRefs.clear();
+      cardManager.clearRefs();
       ui.renderStoryList(storyIndex);
       const cards = titleBrowser.refreshCards();
       for (let idx = 0; idx < storyIndex.length; idx++) {
         const card = cards[idx];
-        if (card) decorateStoryCard(card, storyIndex[idx]);
+        if (card) cardManager.decorate(card, storyIndex[idx]);
       }
       _gridBuilt = true;
     } else {
       // Subsequent renders: update dynamic card state without rebuilding DOM
-      _refreshStoryCards();
+      cardManager.refresh(storyIndex, titleBrowser.refreshCards());
     }
 
     // "Continue" button — shows if there's a recent save
@@ -1054,112 +892,7 @@
     titleBrowser.apply();
   }
 
-  /**
-   * Partial refresh of story cards: updates badges, progress bars, favorites,
-   * and data attributes without destroying/recreating DOM elements.
-   * Avoids the cost of rebuilding 30 cards + re-attaching sprites on every menu return.
-   */
-  function _refreshStoryCards() {
-    const cards = titleBrowser.refreshCards();
-    for (let idx = 0; idx < storyIndex.length; idx++) {
-      const story = storyIndex[idx];
-      const card = cards[idx];
-      if (!card) continue;
-
-      const locked = !campaignUI.isStoryUnlocked(story.slug);
-      const wasLocked = card.dataset.locked === '1';
-
-      // If lock state changed, we need a full card rebuild for this card
-      if (locked !== wasLocked) {
-        // Re-render this single card via full decoration (rare: only on campaign advance)
-        _storyCardRefs.delete(idx);
-        _resetCardForRedecorate(card, story);
-        decorateStoryCard(card, story);
-        continue;
-      }
-
-      if (locked) continue; // Locked cards don't need dynamic updates
-
-      const completed = tracker.isCompleted(story.slug);
-      const endings = tracker.endingCount(story.slug);
-      const { sceneCount } = getStoryMeta(story);
-      const isFav = tracker.isFavorite(story.slug);
-      const hasSave = saveManager.hasSave(story.slug);
-      const pct = sceneCount > 0 ? tracker.getProgress(story.slug, sceneCount) : 0;
-
-      // Use cached refs (built in decorateStoryCard) — avoids 5+ querySelector per card
-      const refs = _storyCardRefs.get(idx);
-
-      // Update completion badge
-      card.classList.toggle('completed', completed);
-      if (refs?.badge) {
-        if (completed) {
-          refs.badge.classList.remove('hidden');
-          refs.badge.textContent = `✅ ${endings} ending${endings !== 1 ? 's' : ''}`;
-        } else {
-          refs.badge.classList.add('hidden');
-        }
-      }
-
-      // Update save indicator
-      if (refs?.saveIcon) {
-        if (hasSave) {
-          refs.saveIcon.classList.remove('hidden');
-          refs.saveIcon.classList.toggle('save-badge-bottom', completed);
-        } else {
-          refs.saveIcon.classList.add('hidden');
-        }
-      }
-
-      // Update progress bar
-      if (refs?.barFill) {
-        refs.barFill.style.setProperty('--bar-pct', `${pct}%`);
-        if (refs.barEl) refs.barEl.setAttribute('aria-valuenow', pct);
-      }
-
-      // Update favorite button
-      if (refs?.favBtn) {
-        refs.favBtn.textContent = isFav ? '❤️' : '🤍';
-        refs.favBtn.title = isFav ? 'Remove from favorites' : 'Add to favorites';
-        refs.favBtn.setAttribute('aria-pressed', isFav ? 'true' : 'false');
-      }
-
-      // Update data attributes for filtering/sorting
-      card.dataset.completed = completed ? '1' : '0';
-      card.dataset.favorite = isFav ? '1' : '0';
-      card.dataset.progress = pct;
-      card.dataset.lastPlayed = tracker.getStory(story.slug).lastPlayed || 0;
-    }
-  }
-
-  /**
-   * Strip dynamic decorations from a card so it can be re-decorated from scratch.
-   * Used when lock state changes (rare: campaign advance).
-   */
-  function _resetCardForRedecorate(card, story) {
-    // Remove dynamic children using cached refs (zero querySelector)
-    const refs = _storyCardRefs.get(storyIdxMap.get(story));
-    if (refs) {
-      if (refs.badge) refs.badge.remove();
-      if (refs.saveIcon) refs.saveIcon.remove();
-      if (refs.barEl) refs.barEl.remove();
-      if (refs.favBtn) refs.favBtn.remove();
-      if (refs.infoBtn) refs.infoBtn.remove();
-      if (refs.metaEl) refs.metaEl.remove();
-    }
-    card.classList.remove('completed', 'story-locked');
-    card.removeAttribute('data-locked');
-
-    // Restore original title/description text using cached inner refs (no querySelector)
-    const ir = card._innerRefs;
-    if (ir) {
-      if (ir.h3) ir.h3.textContent = story.title;
-      if (ir.p) ir.p.textContent = story.description || '';
-      if (ir.spriteEl) ir.spriteEl.classList.remove('locked-sprite');
-    }
-    card.setAttribute('tabindex', '0');
-    card.setAttribute('aria-label', `${story.title}: ${story.description || 'Interactive story'}`);
-  }
+  // _refreshStoryCards and _resetCardForRedecorate moved to StoryCardManager (Phase 139)
 
   // ── Continue Button ──
 
@@ -1254,16 +987,7 @@
     titleBg
   });
 
-  function buildStorySearchBlob(story) {
-    const chars = (typeof CHARACTER_DATA !== 'undefined' && CHARACTER_DATA[story.slug]) || [];
-    const parts = [story.slug, story.title, story.description || ''];
-    for (const char of chars) {
-      parts.push(char.name || '');
-      parts.push(char.appearance || '');
-      parts.push(char.role || '');
-    }
-    return parts.join(' ').toLowerCase();
-  }
+  // buildStorySearchBlob moved to StoryCardManager (Phase 139)
 
   // ── Click/Tap to Advance ──
 

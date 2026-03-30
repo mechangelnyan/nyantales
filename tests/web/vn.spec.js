@@ -2536,3 +2536,107 @@ test.describe('AppRouter', () => {
     expect(page.url()).not.toContain('story=');
   });
 });
+
+// ── StoryCardManager Tests ──
+
+test.describe('StoryCardManager', () => {
+  test('class is available and constructible', async ({ page }) => {
+    await page.goto('/web/');
+    await page.waitForSelector('.story-card', { timeout: 10000 });
+    const available = await page.evaluate(() => typeof StoryCardManager === 'function');
+    expect(available).toBe(true);
+  });
+
+  test('getMeta returns scene count and reading time', async ({ page }) => {
+    await page.goto('/web/');
+    await page.waitForSelector('.story-card', { timeout: 10000 });
+    const meta = await page.evaluate(() => {
+      const tracker = new StoryTracker();
+      const sm = new SaveManager();
+      const mgr = new StoryCardManager({
+        tracker, saveManager: sm,
+        campaignUI: { isStoryUnlocked: () => true },
+        storySlugMap: new Map(), storyIdxMap: new Map()
+      });
+      return mgr.getMeta({ slug: 'test', _meta: { sceneCount: 10, readMins: 3, wordCount: 600, totalEndings: 2 } });
+    });
+    expect(meta.sceneCount).toBe(10);
+    expect(meta.readMins).toBe(3);
+    expect(meta.totalEndings).toBe(2);
+  });
+
+  test('getMeta caches results per slug', async ({ page }) => {
+    await page.goto('/web/');
+    await page.waitForSelector('.story-card', { timeout: 10000 });
+    const same = await page.evaluate(() => {
+      const mgr = new StoryCardManager({
+        tracker: new StoryTracker(), saveManager: new SaveManager(),
+        campaignUI: { isStoryUnlocked: () => true },
+        storySlugMap: new Map(), storyIdxMap: new Map()
+      });
+      const story = { slug: 'test2', _meta: { sceneCount: 5, readMins: 1, wordCount: 200, totalEndings: 1 } };
+      const a = mgr.getMeta(story);
+      const b = mgr.getMeta(story);
+      return a === b;
+    });
+    expect(same).toBe(true);
+  });
+
+  test('buildSearchBlob includes character names', async ({ page }) => {
+    await page.goto('/web/');
+    await page.waitForSelector('.story-card', { timeout: 10000 });
+    const blob = await page.evaluate(() => {
+      const mgr = new StoryCardManager({
+        tracker: new StoryTracker(), saveManager: new SaveManager(),
+        campaignUI: { isStoryUnlocked: () => true },
+        storySlugMap: new Map(), storyIdxMap: new Map()
+      });
+      return mgr.buildSearchBlob({ slug: 'the-terminal-cat', title: 'The Terminal Cat', description: 'A story' });
+    });
+    expect(blob).toContain('the-terminal-cat');
+    expect(blob).toContain('the terminal cat');
+    // Should include character names from CHARACTER_DATA if available
+    expect(blob.toLowerCase()).toContain('nyan');
+  });
+
+  test('decorate adds badges and data attributes to card', async ({ page }) => {
+    await page.goto('/web/');
+    await page.waitForSelector('.story-card:not(.story-locked)', { timeout: 10000 });
+    const cardData = await page.evaluate(() => {
+      const card = document.querySelector('.story-card:not(.story-locked)');
+      return {
+        hasSlug: !!card.dataset.slug,
+        hasSearch: !!card.dataset.search,
+        hasReadMins: !!card.dataset.readMins,
+        hasBadge: !!card.querySelector('.story-card-badge'),
+        hasFavBtn: !!card.querySelector('.story-card-fav-btn'),
+        hasInfoBtn: !!card.querySelector('.story-card-info-btn'),
+        hasProgressBar: !!card.querySelector('.story-card-progress'),
+      };
+    });
+    expect(cardData.hasSlug).toBe(true);
+    expect(cardData.hasSearch).toBe(true);
+    expect(cardData.hasReadMins).toBe(true);
+    expect(cardData.hasBadge).toBe(true);
+    expect(cardData.hasFavBtn).toBe(true);
+    expect(cardData.hasInfoBtn).toBe(true);
+    expect(cardData.hasProgressBar).toBe(true);
+  });
+
+  test('clearRefs empties the internal ref cache', async ({ page }) => {
+    await page.goto('/web/');
+    await page.waitForSelector('.story-card', { timeout: 10000 });
+    const size = await page.evaluate(() => {
+      const mgr = new StoryCardManager({
+        tracker: new StoryTracker(), saveManager: new SaveManager(),
+        campaignUI: { isStoryUnlocked: () => true },
+        storySlugMap: new Map(), storyIdxMap: new Map()
+      });
+      mgr._cardRefs.set(0, { badge: null });
+      mgr._cardRefs.set(1, { badge: null });
+      mgr.clearRefs();
+      return mgr._cardRefs.size;
+    });
+    expect(size).toBe(0);
+  });
+});
