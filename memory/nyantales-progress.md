@@ -2451,3 +2451,31 @@ cd /tmp/nyantales && python3 -m http.server 9876
 
 ## Log (continued)
 - 2026-03-30 (3:27 AM): Phase 130 — O(1) story index lookups (storyIdxMap replaces storyIndex.indexOf linear scans), reservoir sampling for random story (zero filter array allocation), Object.entries→for...in in 4 files (engine, gallery, portraits, settings), portraits.preloadAll loop optimization. 6 new Playwright tests (info share, inventory, location, save panel, fullscreen, speaker). SW v112, 185KB bundle. All 34 JS + 204/204 unit + 119/119 Playwright pass. Committed & pushed.
+
+## Phase 131: Zero Object.entries/values, Cached StoryInfo Meta, Test Expansion ✅
+- **Eliminated last `Object.entries` and `Object.values` calls** from app code
+  - `data-manager.js`: `Object.entries(payload.data)` → `for...in` in `importFromFile()`
+  - `story-info.js`: `Object.values(slots)` → `for...in` in save slot scan
+  - Zero `Object.entries/keys/values` calls remain in any app JS file
+- **StoryInfoModal accepts cached meta** — `show(story, characters, meta)` now takes optional pre-computed `{ sceneCount, readMins, totalEndings }` from `getStoryMeta()`
+  - Avoids re-computing word count across all scenes per info button click (was iterating + `split(/\s+/)` per scene)
+  - main.js passes `getStoryMeta(story)` at call site (cached in `_storyMetaCache` Map — immutable data)
+  - Fallback inline computation retained when meta not provided
+- **Pre-built endings value elements** — `endingsCountText` (TextNode) + `endingsTotalSpan` (span) created once in `_build()`
+  - `show()` was creating `document.createTextNode()` + `document.createElement('span')` per click
+  - Now reuses pre-built elements via `textContent` update + `appendChild`
+- **8 new Playwright tests** (119 → 127):
+  - Story card progress bar after visiting scenes
+  - Data export JSON structure (version + data fields)
+  - Touch handler suspend API
+  - Panel escape priority chain (history → settings, Escape closes topmost)
+  - Background element has theme class during gameplay
+  - Favorites-first sort puts favorited cards at top
+  - CSP meta tag contains `script-src 'self'`
+  - Stats bar shows story count + achievement icon
+- SW cache bumped to v113, production build regenerated (185KB JS, 96KB CSS)
+- All 34 JS files pass `node --check`, 204/204 unit tests, 127/127 Playwright tests
+- Committed & pushed
+
+## Log (continued)
+- 2026-03-30 (4:27 AM): Phase 131 — Eliminated last Object.entries/values from app code (data-manager importFromFile + story-info save scan). StoryInfo accepts cached meta from getStoryMeta() (avoids re-computing word count per info click). Pre-built endings value elements (TextNode + span reused per show). 8 new Playwright tests (progress bars, export integrity, touch API, escape priority, backgrounds, favorites sort, CSP, stats bar). Test count 119→127. SW v113, 185KB bundle. All 34 JS + 204/204 unit + 127/127 Playwright pass. Committed & pushed.
