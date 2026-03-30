@@ -29,6 +29,7 @@ JS_FILES=(
   "js/engine.js"
   "js/campaign.js"
   "js/campaign-ui.js"
+  "js/theme-manager.js"
   "js/sprites.js"
   "js/portraits.js"
   "js/tracker.js"

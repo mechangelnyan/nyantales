@@ -111,80 +111,18 @@
 
   // AI portraits preloaded in parallel with story/campaign loading during boot (see boot())
 
-  // ── Color Themes (must be before initial settings) ──
+  // ── Theme & Settings ──
 
-  const COLOR_THEMES = {
-    cyan:    { accent: '#00d4ff', rgb: [0, 212, 255] },
-    magenta: { accent: '#ff36ab', rgb: [255, 54, 171] },
-    green:   { accent: '#00ff88', rgb: [0, 255, 136] },
-    amber:   { accent: '#ffd700', rgb: [255, 215, 0] },
-    violet:  { accent: '#cc66ff', rgb: [204, 102, 255] }
-  };
-
-  function applyParticlesSetting(on) {
-    document.body.classList.toggle('no-particles', !on);
-  }
-
-  function applyFontSize(pct) {
-    document.documentElement.style.setProperty('--text-scale', `${pct}%`);
-  }
-
-  const themeColorMeta = document.querySelector('meta[name="theme-color"]');
-
-  function applyColorTheme(themeName) {
-    const theme = COLOR_THEMES[themeName] || COLOR_THEMES.cyan;
-    const root = document.documentElement;
-    root.style.setProperty('--accent-cyan', theme.accent);
-    // Set RGB components for rgba() usage throughout CSS
-    const [r, g, b] = theme.rgb;
-    root.style.setProperty('--accent-r', r);
-    root.style.setProperty('--accent-g', g);
-    root.style.setProperty('--accent-b', b);
-    if (themeColorMeta) themeColorMeta.setAttribute('content', theme.accent);
-  }
-
-  // Apply initial settings
+  const theme = new ThemeManager(settings);
   ui.typewriterSpeed = settings.get('textSpeed');
-  applyParticlesSetting(settings.get('particles'));
-  applyColorTheme(settings.get('colorTheme'));
-  applyFontSize(settings.get('fontSize'));
-
-  // ── Settings Reactivity ──
-
-  settings.onChange((key, value) => {
-    if (key === 'textSpeed')   ui.typewriterSpeed = value;
-    if (key === 'autoPlay')  { updateAutoPlayHUD(value); if (!value) clearAutoPlayTimer(); }
-    if (key === 'particles')   applyParticlesSetting(value);
-    if (key === 'audioVolume' && audio.masterGain) {
-      audio.masterGain.gain.setTargetAtTime(value, audio.ctx.currentTime, 0.1);
-    }
-    if (key === 'colorTheme') applyColorTheme(value);
-    if (key === 'fontSize')   applyFontSize(value);
-    if (key === 'fullscreen') toggleFullscreen(value);
-  });
-
-  /** Toggle fullscreen mode */
-  function toggleFullscreen(on) {
-    if (on && !document.fullscreenElement) {
-      document.documentElement.requestFullscreen?.().catch(() => {});
-    } else if (!on && document.fullscreenElement) {
-      document.exitFullscreen?.().catch(() => {});
-    }
-  }
-  // Sync setting when user exits fullscreen via Escape/browser UI
-  document.addEventListener('fullscreenchange', () => {
-    if (!document.fullscreenElement && settings.get('fullscreen')) {
-      settings.set('fullscreen', false);
-    }
-  });
+  theme.applyAll();
+  // Reactivity wired after autoPlayHUD helpers are defined (see below)
 
   /** Toggle a panel's visibility. For panels with custom show args, pass them in showArgs. */
   function togglePanel(panel, ...showArgs) {
     panel.isVisible ? panel.hide() : panel.show(...showArgs);
     syncTouchSuspension();
   }
-
-  // (COLOR_THEMES, applyParticlesSetting, applyFontSize, applyColorTheme moved above initial settings)
 
   // ── Story Index ──
 
@@ -349,6 +287,9 @@
     btnAutoEl.setAttribute('aria-pressed', on ? 'true' : 'false');
     autoPlayIndicator.classList.toggle('hidden', !on);
   }
+
+  // Wire theme settings reactivity (needs updateAutoPlayHUD + clearAutoPlayTimer defined above)
+  theme.wireReactivity({ ui, audio, updateAutoPlayHUD, clearAutoPlayTimer });
 
   // ── Cached DOM refs ──
 
@@ -604,12 +545,36 @@
     // Handle endings
     if (scene.ending) return;
 
-    // Skip-read auto-advance through visited no-choice scenes
+    // Skip-read auto-advance through visited no-choice scenes (iterative to avoid stack overflow)
     const choices = currentEngine.getAvailableChoices();
     if (choices.length === 0 && scene.next && shouldSkipScene(sceneId)) {
       await new Promise(r => setTimeout(r, 50));
-      const nextScene = currentEngine.goToScene(scene.next);
-      return playScene(nextScene);
+      let nextScene = currentEngine.goToScene(scene.next);
+      // Loop instead of recursion — long linear chains of visited scenes could exhaust the call stack
+      while (nextScene && !nextScene.ending && currentEngine) {
+        const nId = currentEngine.state.currentScene;
+        textHistory.add(nId, nextScene.speaker, nextScene.text);
+        const nEffOvr = (!settings.get('screenShake') && (nextScene.effect === 'glitch' || nextScene.effect === 'shake')) ? null : undefined;
+        const nRender = nEffOvr !== undefined ? { ...nextScene, effect: nEffOvr } : nextScene;
+        await ui.renderScene(nRender, currentEngine);
+        if (audio.enabled) audio.setTheme(ui._lastBgClass);
+        if (currentSlug) {
+          const isCT = campaignMode && (currentSlug === 'campaign-intro' || currentSlug.startsWith('campaign-connector-'));
+          if (!isCT) saveManager.autoSave(currentSlug, currentEngine, nextScene);
+          tracker.recordVisitedScenes(currentSlug, currentEngine.state.visited);
+        }
+        updateProgressHUD();
+        const nc = currentEngine.getAvailableChoices();
+        if (nc.length > 0 || !nextScene.next || !shouldSkipScene(nId)) break;
+        await new Promise(r => setTimeout(r, 50));
+        nextScene = currentEngine.goToScene(nextScene.next);
+      }
+      // If we broke out onto an ending or non-skip scene, let normal playScene handle it
+      if (nextScene && currentEngine) {
+        // Re-enter for the final scene (endings, choices, or first unseen scene)
+        return playScene(nextScene);
+      }
+      return;
     }
 
     updateRewindButton();
