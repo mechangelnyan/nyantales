@@ -45,6 +45,7 @@
     ui, settings, textHistory, audio, saveManager, tracker,
     vnContainer: document.querySelector('.vn-container')
   });
+  const campaignFlow = new CampaignFlow(campaign, campaignUI, saveManager, achievements, playback);
   const achPanel      = new AchievementPanel(achievements);
   const sceneSelect   = new SceneSelect((sceneId) => {
     if (!playback.engine) return;
@@ -168,7 +169,6 @@
   // Game state aliases (delegated to PlaybackController)
   // Access via playback.engine, playback.currentSlug, playback.campaignMode, etc.
   let storyStartTime = null; // timestamp when current story session began
-  let pendingAchievementUnlocks = [];
 
   // Reusable DOM elements for ending overlays (avoids createElement per ending)
   let _endingTimeBox      = null;
@@ -337,7 +337,7 @@
   // ── Engine Callbacks (wired once, reference playback.engine dynamically) ──
 
   // Campaign ending callback — wired once on ui, invoked via ending delegation (data-action="campaign-next")
-  ui._onCampaignEnding = () => onCampaignEnding();
+  ui._onCampaignEnding = () => campaignFlow.onEnding();
 
   /** @type {Object|null} The most recently parsed story data (for restart). */
   let _currentParsed = null;
@@ -396,7 +396,7 @@
     const newAch = achievements.checkAll();
     if (newAch.length > 0) {
       if (playback.campaignMode) {
-        pendingAchievementUnlocks.push(...newAch);
+        campaignFlow.pendingUnlocks.push(...newAch);
       } else {
         trackTimeout(() => achievements.showNewUnlocks(newAch), 2000);
       }
@@ -489,7 +489,7 @@
     const startAch = achievements.checkAll();
     if (startAch.length > 0) {
       if (playback.campaignMode) {
-        pendingAchievementUnlocks.push(...startAch);
+        campaignFlow.pendingUnlocks.push(...startAch);
       } else {
         trackTimeout(() => achievements.showNewUnlocks(startAch), 1500);
       }
@@ -950,7 +950,7 @@
     switch (id) {
       case 'btn-campaign': {
         ensureAudio();
-        startCampaign();
+        campaignFlow.start();
         break;
       }
       case 'btn-continue': {
@@ -960,7 +960,7 @@
         if (recent.slug === 'campaign-intro' || recent.slug?.startsWith('campaign-connector-')) {
           saveManager.deleteSlot(recent.slug, 'auto');
           ensureAudio();
-          startCampaign();
+          campaignFlow.start();
           return;
         }
         const story = storySlugMap.get(recent.slug);
@@ -1137,142 +1137,17 @@
     }
   }
 
-  // ── Campaign Mode ──
+  // ── Campaign Mode (delegated to CampaignFlow) ──
 
-  /** Start or continue the campaign. */
-  async function startCampaign() {
-    if (!campaign.isLoaded) {
-      Toast.show('Campaign data not available', { icon: '⚠️' });
-      return;
-    }
-    // Clean up stale transient saves from previous campaign runs
-    saveManager.deleteSlot('campaign-intro', 'auto');
-    playback.campaignMode = true;
-    playCampaignPhase();
-  }
+  // Wire campaign flow callbacks (needs startStory/returnToMenu defined above)
+  campaignFlow.startStory   = (story, state, opts) => startStory(story, state, opts);
+  campaignFlow.returnToMenu = () => returnToMenu();
+  campaignFlow.storySlugMap = () => storySlugMap;
 
-  /** Play the current campaign phase (intro, connector, chapter, or complete). */
-  async function playCampaignPhase() {
-    const phase = campaign.progress.phase;
-
-    if (phase === 'intro' && !campaign.progress.started) {
-      // Play the intro
-      const introStory = campaign.getIntroAsStory();
-      if (introStory) {
-        startStory(introStory);
-        return;
-      }
-      // If no intro, advance to first chapter
-      campaign.advance();
-      playCampaignPhase();
-      return;
-    }
-
-    if (phase === 'connector') {
-      const key = campaign.progress.connectorKey;
-      const connStory = campaign.getConnectorAsStory(key);
-      if (connStory) {
-        startStory(connStory);
-        return;
-      }
-      // If connector missing, skip to chapter
-      campaign.advance();
-      playCampaignPhase();
-      return;
-    }
-
-    if (phase === 'chapter') {
-      const ch = campaign.getCurrentChapter();
-      if (!ch) {
-        campaign.progress.phase = 'complete';
-        campaign.saveProgress();
-        playCampaignPhase();
-        return;
-      }
-      const story = storySlugMap.get(ch.story);
-      if (!story) {
-        console.warn(`Campaign: story "${ch.story}" not found, skipping`);
-        campaign.advance();
-        playCampaignPhase();
-        return;
-      }
-      // Apply persistent state to the new engine after it starts
-      startStory(story).then(() => {
-        if (playback.engine) campaign.applyPersistentState(playback.engine);
-      }).catch(e => console.warn('Campaign: failed to start chapter', e));
-      return;
-    }
-
-    if (phase === 'complete') {
-      playback.campaignMode = false;
-      Toast.show('Campaign complete! 🎉 Thanks for playing.', { icon: '🐱', duration: 5000 });
-      returnToMenu();
-      return;
-    }
-  }
-
-  /**
-   * Called when a story/connector ends during campaign mode.
-   * Advances campaign state and plays the next phase.
-   */
-  function onCampaignEnding() {
-    // Clean up transient campaign saves (intro/connectors shouldn't linger)
-    if (playback.currentSlug === 'campaign-intro' || playback.currentSlug?.startsWith('campaign-connector-')) {
-      saveManager.deleteSlot(playback.currentSlug, 'auto');
-    }
-    campaign.advance(playback.engine);
-    campaignUI.rebuildSlugMap(); // Refresh unlock state after advancing
-    const queuedUnlocks = pendingAchievementUnlocks.splice(0, pendingAchievementUnlocks.length);
-    // Small delay before advancing to next phase for pacing
-    trackTimeout(() => {
-      playCampaignPhase();
-      if (queuedUnlocks.length > 0) {
-        trackTimeout(() => achievements.showNewUnlocks(queuedUnlocks), 1200);
-      }
-    }, 500);
-  }
-
-  // Campaign UI (button, grid, slug map, chapter delegation) managed by CampaignUI class
-
-  /** Whether the chapter grid has been built at least once (for partial refresh). */
-  // _chapterGridBuilt managed by CampaignUI
-
-  // Wire campaignUI chapter grid click
   campaignUI.onChapterSelect = (idx) => {
     ensureAudio();
-    startCampaignChapter(idx);
+    campaignFlow.startChapter(idx);
   };
-
-  /**
-   * Start a specific campaign chapter by index.
-   * Used when player clicks a chapter card to replay or jump to current chapter.
-   */
-  async function startCampaignChapter(chapterIndex) {
-    if (!campaign.isLoaded) {
-      Toast.show('Campaign data not available', { icon: '⚠️' });
-      return;
-    }
-    const ch = campaign.chapters[chapterIndex];
-    if (!ch) return;
-    const story = storySlugMap.get(ch.story);
-    if (!story) {
-      Toast.show('Story not found: ' + ch.story, { icon: '⚠️' });
-      return;
-    }
-    // Set campaign to play this chapter
-    campaign.progress.chapterIndex = chapterIndex;
-    campaign.progress.phase = 'chapter';
-    if (!campaign.progress.started && chapterIndex === 0) {
-      // Starting fresh — go through intro first
-      campaign.progress.started = false;
-    } else if (chapterIndex > 0) {
-      campaign.progress.started = true;
-    }
-    campaign.saveProgress();
-    playback.campaignMode = true;
-    await startStory(story);
-    if (playback.engine) campaign.applyPersistentState(playback.engine);
-  }
 
   // ── Online/Offline Toasts ──
 

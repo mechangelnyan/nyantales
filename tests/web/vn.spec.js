@@ -2843,3 +2843,36 @@ test.describe('PanelManager', () => {
     expect(afterClose).toBe(true);
   });
 });
+
+// ─────────────────────────────────────────────────
+// CampaignFlow
+// ─────────────────────────────────────────────────
+test.describe('CampaignFlow', () => {
+  test('class is available and has expected API', async ({ page }) => {
+    await page.goto('/web/');
+    const api = await page.evaluate(() => {
+      return typeof CampaignFlow === 'function' &&
+        typeof CampaignFlow.prototype.start === 'function' &&
+        typeof CampaignFlow.prototype.onEnding === 'function' &&
+        typeof CampaignFlow.prototype.startChapter === 'function';
+    });
+    expect(api).toBe(true);
+  });
+
+  test('campaign button triggers campaignFlow.start', async ({ page }) => {
+    await page.goto('/web/');
+    await page.waitForSelector('.story-card', { timeout: 10000 });
+    // Campaign button should be visible
+    const btn = page.locator('#btn-campaign');
+    await expect(btn).toBeVisible({ timeout: 5000 });
+    // Click should start campaign (show story screen or intro)
+    await btn.click();
+    // Should leave the title screen (either intro overlay or story screen appears)
+    const left = await page.waitForFunction(() => {
+      const intro = document.querySelector('.story-intro-overlay.visible');
+      const story = document.querySelector('#story-screen.active');
+      return !!(intro || story);
+    }, { timeout: 8000 });
+    expect(left).toBeTruthy();
+  });
+});

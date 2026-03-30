@@ -30,6 +30,7 @@ JS_FILES=(
   "js/engine.js"
   "js/campaign.js"
   "js/campaign-ui.js"
+  "js/campaign-flow.js"
   "js/story-card-manager.js"
   "js/playback-controller.js"
   "js/app-router.js"
