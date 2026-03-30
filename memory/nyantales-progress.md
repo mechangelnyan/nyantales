@@ -2386,5 +2386,18 @@ cd /tmp/nyantales && python3 -m http.server 9876
 - All 34 JS files pass `node --check`, 204/204 unit tests, 107/107 Playwright tests
 - Committed & pushed
 
+## Phase 128: AbortController Route Map Events, README Freshness ✅
+- **Route map event cleanup via AbortController** — replaced 9 individual `removeEventListener` calls with single `_evtCtrl.abort()`
+  - `_bindEvents()` creates `AbortController`, passes `{ signal }` to all 10 `addEventListener` calls
+  - `_unbindEvents()` calls `_evtCtrl.abort()` — removes all listeners in one call
+  - Removed `_boundHandlers` object entirely (was storing 9 named handler references)
+  - Cleaner event lifecycle: no risk of mismatched add/remove pairs
+  - removeEventListener count across codebase: 13 → 4 (2 actual in touch.js, 2 comments)
+- **README** — Playwright test count updated from 100 → 107
+- SW cache bumped to v110, production build regenerated (185KB JS, 96KB CSS)
+- All 34 JS files pass `node --check`, 204/204 unit tests, 107/107 Playwright tests
+- Committed & pushed
+
 ## Log (continued)
+- 2026-03-30 (1:27 AM): Phase 128 — Route map AbortController (9 removeEventListener calls → single _evtCtrl.abort()). README test count updated. SW v110, 185KB bundle. All 34 JS + 204/204 unit + 107/107 Playwright pass. Committed & pushed.
 - 2026-03-30 (12:27 AM): Phase 127 — CSS mood color variables (--mood-warm/sad/spooky added to :root, 3 hardcoded hex values→vars). Replaced 3 more hardcoded colors with CSS vars (sort option bg, loading screen, high-contrast text, toast text). Added 7 Playwright tests (touch gesture, mood vars, auto-save, campaign flow+structure, SW cache, SafeStorage error handling). Test count 100→107. SW v109. All 107 Playwright + 204/204 unit pass. Committed & pushed.
