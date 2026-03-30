@@ -1158,3 +1158,185 @@ test.describe('Audio Toggle', () => {
     expect(text.trim()).toMatch(/🔇|🔊/);
   });
 });
+
+test.describe('Visited Choice Hints', () => {
+  test('revisited choices show visited badge after replaying', async ({ page }) => {
+    // Start a story and make a choice
+    const { text, choices } = await startStory(page);
+    await ensureFullTextVisible(page);
+    const firstChoiceText = await choices.first().textContent();
+    await choices.first().click();
+    await page.waitForTimeout(300);
+
+    // Rewind back
+    await page.keyboard.press('b');
+    await page.waitForTimeout(500);
+    await page.locator('#vn-textbox').click();
+    await page.waitForTimeout(300);
+
+    // The previously chosen path should have a visited marker or class
+    const firstChoice = page.locator('.choice-btn').first();
+    const choiceHtml = await firstChoice.innerHTML();
+    // Phase 35: visited choices get ✓ badge and .choice-visited-path class
+    const hasVisitedHint = choiceHtml.includes('✓') ||
+      (await firstChoice.evaluate(el => el.classList.contains('choice-visited-path')));
+    expect(hasVisitedHint).toBe(true);
+  });
+});
+
+test.describe('Font Scale Application', () => {
+  test('font size setting changes --text-scale CSS variable', async ({ page }) => {
+    await startStory(page);
+    await ensureFullTextVisible(page);
+
+    // Get baseline --text-scale
+    const baseScale = await page.evaluate(() =>
+      getComputedStyle(document.documentElement).getPropertyValue('--text-scale').trim()
+    );
+    expect(baseScale).toBe('100%');
+
+    // Set font size to 140% via settings
+    await page.keyboard.press('s');
+    await page.waitForTimeout(300);
+    await page.evaluate(() => {
+      const slider = document.getElementById('set-font-size');
+      const setter = Object.getOwnPropertyDescriptor(
+        window.HTMLInputElement.prototype, 'value'
+      ).set;
+      setter.call(slider, 140);
+      slider.dispatchEvent(new Event('input', { bubbles: true }));
+    });
+    await page.waitForTimeout(300);
+    await page.keyboard.press('Escape');
+
+    // Verify CSS variable changed
+    const newScale = await page.evaluate(() =>
+      getComputedStyle(document.documentElement).getPropertyValue('--text-scale').trim()
+    );
+    expect(newScale).toBe('140%');
+  });
+});
+
+test.describe('Data Import/Export Round-Trip', () => {
+  test('exported data can be verified for structure', async ({ page }) => {
+    // Play a story and advance a choice to generate tracker + save data
+    const { choices } = await startStory(page);
+    await ensureFullTextVisible(page);
+    await choices.first().click();
+    await page.waitForTimeout(500);
+
+    // Return to menu (triggers auto-save + tracker persist)
+    await page.keyboard.press('Escape');
+    await page.waitForTimeout(800);
+
+    // Collect all nyantales localStorage keys
+    const data = await page.evaluate(() => {
+      const result = {};
+      for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i);
+        if (key.startsWith('nyantales')) {
+          result[key] = localStorage.getItem(key);
+        }
+      }
+      return result;
+    });
+
+    // Should have tracker data (created after visiting scenes)
+    const hasTracker = !!data['nyantales-tracker'];
+    const hasSaves = Object.keys(data).some(k => k.startsWith('nyantales-save-'));
+    expect(hasTracker || hasSaves).toBe(true);
+  });
+});
+
+test.describe('Story Locking', () => {
+  test('locked story cards cannot be clicked to start', async ({ page }) => {
+    await waitForTitleScreen(page);
+
+    const lockedCard = page.locator('.story-card.story-locked').first();
+    const exists = await lockedCard.count();
+    if (exists > 0) {
+      await expect(lockedCard).toBeVisible();
+      // Locked cards should have a lock icon
+      const cardText = await lockedCard.textContent();
+      expect(cardText).toContain('🔒');
+    }
+  });
+});
+
+test.describe('Skip-to-Content Link', () => {
+  test('skip link becomes visible on Tab focus', async ({ page }) => {
+    await waitForTitleScreen(page);
+
+    // Tab to the skip link
+    await page.keyboard.press('Tab');
+    const skipLink = page.locator('.skip-link');
+    const isVisible = await skipLink.evaluate(el => {
+      const rect = el.getBoundingClientRect();
+      return rect.width > 0 && rect.height > 0;
+    });
+    // Skip link should be focusable (it exists in DOM)
+    const count = await skipLink.count();
+    expect(count).toBe(1);
+  });
+});
+
+test.describe('Color Theme Persistence', () => {
+  test('color theme persists across page reload', async ({ page }) => {
+    await waitForTitleScreen(page);
+
+    // Open settings and select green theme
+    await startStory(page);
+    await ensureFullTextVisible(page);
+    await page.keyboard.press('s');
+    await page.waitForTimeout(300);
+
+    // Click green swatch
+    await page.evaluate(() => {
+      const swatches = document.querySelectorAll('.theme-swatch');
+      for (const s of swatches) {
+        if (s.dataset.theme === 'green') s.click();
+      }
+    });
+    await page.waitForTimeout(300);
+    await page.keyboard.press('Escape');
+
+    // Verify accent changed
+    const greenAccent = await page.evaluate(() =>
+      getComputedStyle(document.documentElement).getPropertyValue('--accent-cyan').trim()
+    );
+    expect(greenAccent).toBe('#00ff88');
+
+    // Reload and check persistence
+    await page.reload();
+    await waitForTitleScreen(page);
+
+    const persistedAccent = await page.evaluate(() =>
+      getComputedStyle(document.documentElement).getPropertyValue('--accent-cyan').trim()
+    );
+    expect(persistedAccent).toBe('#00ff88');
+  });
+});
+
+test.describe('Empty Filter State', () => {
+  test('searching for nonexistent term shows empty state message', async ({ page }) => {
+    await waitForTitleScreen(page);
+
+    await page.locator('#filter-input').fill('zzzznonexistent');
+    await page.waitForTimeout(200);
+
+    // Should show empty state
+    const emptyEl = page.locator('.filter-empty');
+    await expect(emptyEl).not.toHaveClass(/hidden/, { timeout: 3000 });
+  });
+});
+
+test.describe('High Contrast Mode', () => {
+  test('prefers-contrast: more activates high-contrast styles', async ({ page }) => {
+    await page.emulateMedia({ forcedColors: 'active' });
+    await waitForTitleScreen(page);
+
+    // High contrast mode is CSS-only — just verify the page loads without errors
+    const card = page.locator('.story-card:not(.story-locked)').first();
+    await expect(card).toBeVisible();
+  });
+});

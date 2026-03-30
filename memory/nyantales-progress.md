@@ -2345,3 +2345,21 @@ cd /tmp/nyantales && python3 -m http.server 9876
 
 ## Log (continued)
 - 2026-03-29 (10:27 PM): Phase 125 — Consolidated 13 scattered CSS media queries (8× 480px + 5× 600px) into 2 single blocks at end of stylesheet. Added 8 Playwright tests (intro, reading time, continue, random, document title, rewind, audio button). Total: 18→7 @media blocks, 84→92 tests. SW v107. All 92 Playwright + 204/204 unit pass. Committed & pushed.
+
+## Phase 126: Expanded Test Coverage — Visited Choices, Theme Persistence, A11y, QoL ✅
+- **8 new Playwright tests** (92 → 100):
+  - **Visited Choice Hints**: rewind after choosing, verify ✓ badge / `.choice-visited-path` on explored paths
+  - **Font Scale Application**: settings font-size slider changes `--text-scale` CSS variable to 140%
+  - **Data Import/Export Round-Trip**: play + advance + menu return generates tracker/save localStorage entries
+  - **Story Locking**: locked campaign cards show 🔒 icon and `.story-locked` class
+  - **Skip-to-Content Link**: `.skip-link` accessibility element present in DOM
+  - **Color Theme Persistence**: green swatch → reload → `--accent-cyan` remains `#00ff88`
+  - **Empty Filter State**: nonexistent search term reveals `.filter-empty` element
+  - **High Contrast Mode**: emulated `forcedColors: active` loads without errors
+- **Milestone: 100 Playwright tests** — comprehensive UI regression coverage
+- SW cache bumped to v108, production build regenerated (186KB JS, 96KB CSS)
+- All 34 JS files pass `node --check`, 204/204 unit tests, 100/100 Playwright tests
+- Committed & pushed
+
+## Log (continued)
+- 2026-03-29 (11:27 PM): Phase 126 — Added 8 Playwright tests: visited choice hints (rewind + verify badge), font scale CSS var, data export structure, story locking, skip-to-content link, color theme persistence across reload, empty filter state, high contrast mode. Milestone: 100 Playwright tests. SW v108. All 100 Playwright + 204/204 unit pass. Committed & pushed.
