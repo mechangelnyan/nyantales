@@ -2597,5 +2597,23 @@ cd /tmp/nyantales && python3 -m http.server 9876
 - All 35 JS files pass `node --check`, 204/204 unit tests, 169/169 Playwright tests
 - Committed & pushed
 
+## Phase 137: ThemeManager Extraction + Skip-Read Stack Safety ✅
+- **Extracted `ThemeManager` class** (`web/js/theme-manager.js`) — color themes, particles, font size, fullscreen
+  - `ThemeManager.COLOR_THEMES` static property (was inline object in main.js)
+  - `applyColorTheme()`, `applyParticles()`, `applyFontSize()`, `toggleFullscreen()` methods
+  - `applyAll()` convenience method for boot-time application of all stored settings
+  - `wireReactivity(deps)` centralizes all settings.onChange handlers + fullscreenchange listener
+  - main.js: 1910 → 1875 lines (35 lines removed)
+- **Skip-read auto-advance converted to iterative loop** — fixes potential stack overflow
+  - Recursive `playScene(nextScene)` chain for visited no-choice scenes replaced with `while` loop
+  - Long linear chains of visited scenes (e.g. 100+ scene story replayed in skip mode) could exhaust call stack
+  - Loop handles full per-scene work (history, render, audio, save, progress) then breaks on ending/choice/unseen
+  - Final unseen/ending scene still calls `playScene()` once for normal handling
+- Added to: index.html script chain, sw.js pre-cache, build.sh bundle
+- SW cache bumped to v119, production build regenerated (189KB JS, 96KB CSS)
+- All 36 JS files pass `node --check`, 204/204 unit tests, 169/169 Playwright tests
+- Committed & pushed
+
 ## Log (continued)
+- 2026-03-30 (10:27 AM): Phase 137 — Extracted ThemeManager class from main.js (COLOR_THEMES, applyColorTheme/Particles/FontSize/Fullscreen, settings reactivity wiring). Fixed skip-read recursive playScene → iterative loop (prevents stack overflow on long visited-scene chains). main.js 1910→1875 lines. SW v119, 189KB bundle. All 36 JS + 204/204 unit + 169/169 Playwright pass. Committed & pushed.
 - 2026-03-30 (9:27 AM): Phase 136 — Extracted CampaignUI class from main.js: chapter grid rendering, campaign button management, slug map for O(1) lock lookups, ending button, grid delegation. main.js 2186→1910 lines (13% reduction). Campaign flow logic stays in main.js (needs engine refs). SW v118, 188KB bundle. All 35 JS + 204/204 unit + 169/169 Playwright pass. Committed & pushed.
