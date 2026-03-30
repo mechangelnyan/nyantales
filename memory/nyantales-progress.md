@@ -2323,3 +2323,25 @@ cd /tmp/nyantales && python3 -m http.server 9876
 - 2026-03-29 (9:27 PM): Phase 124 — Added 9 Playwright tests: save/load persistence (round-trip save→menu→load→verify text), a11y (dialog roles, grid roles, textbox aria-live), PWA manifest validation, reduced motion (emulated media query + duration check), escape key priority (panel close without story exit + menu return), settings persistence across reload. Test count 75→84. SW v106. All 84 Playwright + 204/204 unit pass. Committed & pushed.
 - 2026-03-29 (8:27 PM): Phase 123 — Added 8 Playwright tests: text history (records dialogue + search filter), auto-play indicator toggle, progress HUD during gameplay, top progress bar visibility, CSP compliance (no script-src violations), service worker registration, ending screen (plays through story to completion). Test count 67→75. SW v105. All 75 Playwright + 204/204 unit pass. Committed & pushed.
 - 2026-03-29 (7:27 PM): Phase 122 — Added 7 new Playwright test categories: favorites toggle+filter, sort-by-longest, route map open/close, font size slider, data export download, achievements panel (16 items), scene select panel. Made about panel close more robust (backdrop fallback). Test count 60→67. All 67 Playwright + 204/204 unit pass. Production build regenerated. Committed & pushed.
+
+## Phase 125: CSS Media Query Consolidation + Test Expansion ✅
+- **Consolidated scattered CSS media queries** — 13 duplicate breakpoint blocks merged into 2
+  - 8 scattered `@media (max-width: 480px)` blocks → 1 consolidated block at end of file
+  - 5 scattered `@media (max-width: 600px)` blocks → 1 consolidated block at end of file
+  - Total `@media` blocks in stylesheet: 18 → 7 (one per unique breakpoint)
+  - CSS lines: 4618 → 4590 (net reduction from removed duplicate `@media` wrappers)
+  - Brace balance verified, all 92 Playwright tests pass (no visual regressions)
+- **8 new Playwright tests** (84 → 92):
+  - **Story Intro**: portrait visible on entry, continue button dismisses intro and starts gameplay
+  - **Reading Time Meta**: story cards display reading time (min) and scene count
+  - **Continue Button**: appears after playing a story and returning to menu
+  - **Random Story**: button starts a random story (shows intro overlay)
+  - **Document Title**: updates during gameplay (`{title} — NyanTales`), resets on menu return
+  - **Rewind Functionality**: pressing B returns to previous scene text
+  - **Audio Button**: visible during gameplay, shows speaker emoji
+- SW cache bumped to v107, production build regenerated (186KB JS, 96KB CSS)
+- All 34 JS files pass `node --check`, 204/204 unit tests, 92/92 Playwright tests
+- Committed & pushed
+
+## Log (continued)
+- 2026-03-29 (10:27 PM): Phase 125 — Consolidated 13 scattered CSS media queries (8× 480px + 5× 600px) into 2 single blocks at end of stylesheet. Added 8 Playwright tests (intro, reading time, continue, random, document title, rewind, audio button). Total: 18→7 @media blocks, 84→92 tests. SW v107. All 92 Playwright + 204/204 unit pass. Committed & pushed.
