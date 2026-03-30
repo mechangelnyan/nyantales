@@ -41,13 +41,17 @@
   // Wire chapter grid click → startCampaignChapter (set after startCampaignChapter is defined below)
   const statsDashboard = new StatsDashboard(tracker, achievements, saveManager, ui.portraits, campaign);
   const routeMap      = new RouteMap();
+  const playback      = new PlaybackController({
+    ui, settings, textHistory, audio, saveManager, tracker,
+    vnContainer: document.querySelector('.vn-container')
+  });
   const achPanel      = new AchievementPanel(achievements);
   const sceneSelect   = new SceneSelect((sceneId) => {
-    if (!currentEngine) return;
-    clearAutoPlayTimer();
-    updateSkipIndicator(false);
-    const scene = currentEngine.jumpToScene(sceneId);
-    if (scene) playScene(scene);
+    if (!playback.engine) return;
+    playback.clearAutoPlay();
+    playback.updateSkipIndicator(false);
+    const scene = playback.engine.jumpToScene(sceneId);
+    if (scene) playback.playScene(scene);
     updateRewindButton();
   });
 
@@ -146,61 +150,21 @@
   let storySlugMap  = new Map();
   /** @type {Map<Object, number>} story object → storyIndex position for O(1) indexOf */
   let storyIdxMap   = new Map();
-  let currentEngine = null;
-  let _currentTotalScenes = 0; // cached Object.keys(engine.scenes).length
-  let currentSlug   = null;
+  // Game state aliases (delegated to PlaybackController)
+  // Access via playback.engine, playback.currentSlug, playback.campaignMode, etc.
   let storyStartTime = null; // timestamp when current story session began
-  let campaignMode  = false; // true when playing the connected campaign
   let pendingAchievementUnlocks = [];
-  let suppressNextAutoAdvance = false;
-  // Route change serial managed by router.serial / router.bump() / router.isCurrent()
-
-  // ── Auto-play State ──
-
-  let autoPlayTimer     = null;
-  /** Tracked timers for achievement toasts, campaign pacing, etc. Cleared on menu return. */
-  let _miscTimers       = [];
 
   // Reusable DOM elements for ending overlays (avoids createElement per ending)
   let _endingTimeBox      = null;
   let _endingNewBadge     = null;
   // _endingCampaignBtn managed by campaignUI
 
-  function clearAutoPlayTimer() {
-    if (autoPlayTimer) { clearTimeout(autoPlayTimer); autoPlayTimer = null; }
-  }
-
-  /** Schedule a tracked timeout — automatically cleared on menu return via clearMiscTimers(). */
-  function trackTimeout(fn, ms) {
-    const id = setTimeout(() => {
-      const idx = _miscTimers.indexOf(id);
-      if (idx !== -1) _miscTimers.splice(idx, 1);
-      fn();
-    }, ms);
-    _miscTimers.push(id);
-    return id;
-  }
-
-  function clearMiscTimers() {
-    for (const id of _miscTimers) clearTimeout(id);
-    _miscTimers.length = 0;
-  }
-
-  /**
-   * Advance to the next scene if the current scene has a `next` link
-   * and no choices / no ending. Returns true if advanced.
-   */
-  function advanceScene() {
-    if (!currentEngine) return false;
-    const scene = currentEngine.getCurrentScene();
-    if (scene && scene.next && currentEngine.getAvailableChoices().length === 0 && !scene.ending) {
-      clearAutoPlayTimer();
-      const next = currentEngine.goToScene(scene.next);
-      playScene(next);
-      return true;
-    }
-    return false;
-  }
+  // Convenience aliases (used heavily throughout main.js)
+  function clearAutoPlayTimer() { playback.clearAutoPlay(); }
+  function trackTimeout(fn, ms) { return playback.trackTimeout(fn, ms); }
+  function clearMiscTimers() { playback.clearMiscTimers(); }
+  function advanceScene() { return playback.advanceScene(); }
 
   /** Check if any overlay panel is currently visible */
   function isAnyPanelOpen() {
@@ -209,6 +173,9 @@
       || aboutPanel.isVisible || statsDashboard.isVisible || storyInfo.isVisible
       || achPanel.isVisible || gallery.isVisible;
   }
+
+  // Wire panel-open check into playback controller
+  playback.isAnyPanelOpen = isAnyPanelOpen;
 
   /**
    * Sync touch gesture suspension with panel state.
@@ -219,38 +186,17 @@
     touch.suspend(isAnyPanelOpen());
   }
 
-  function scheduleAutoAdvance() {
-    clearAutoPlayTimer();
-    if (!settings.get('autoPlay') || !currentEngine) return;
-
-    // Pause auto-play while any panel/overlay is open
-    if (isAnyPanelOpen()) return;
-
-    const scene = currentEngine.getCurrentScene();
-    if (!scene || scene.ending) return;
-    if (currentEngine.getAvailableChoices().length > 0) return;
-    if (suppressNextAutoAdvance) {
-      suppressNextAutoAdvance = false;
-      return;
-    }
-
-    autoPlayTimer = setTimeout(() => {
-      if (!currentEngine || isAnyPanelOpen()) return;
-      advanceScene();
-    }, settings.get('autoPlayDelay'));
-  }
+  function scheduleAutoAdvance() { playback.scheduleAutoAdvance(); }
 
   function updateAutoPlayHUD(on) {
-    btnAutoEl.classList.toggle('hud-inactive', !on);
-    btnAutoEl.title = on ? 'Auto-Play ON (A)' : 'Auto-Play OFF (A)';
-    btnAutoEl.setAttribute('aria-pressed', on ? 'true' : 'false');
-    autoPlayIndicator.classList.toggle('hidden', !on);
+    playback.updateAutoPlayHUD(on, btnAutoEl);
   }
 
   // Wire theme settings reactivity (needs updateAutoPlayHUD + clearAutoPlayTimer defined above)
   theme.wireReactivity({ ui, audio, updateAutoPlayHUD, clearAutoPlayTimer });
 
   // ── Cached DOM refs ──
+  // HUD indicators are now managed by PlaybackController (autoPlay, skip, progress, bar)
 
   const vnContainer    = document.querySelector('.vn-container');
   const btnAutoEl      = document.getElementById('btn-auto');
@@ -259,95 +205,9 @@
   const textboxEl      = document.getElementById('vn-textbox');
   // chapterGridEl, sectionDivider, campaignBtnEl now managed by CampaignUI
 
-  // ── Pre-created overlay indicators ──
-  // Built once at init, toggled via .hidden class. Avoids createElement in hot paths.
-
-  const autoPlayIndicator = (() => {
-    const el = document.createElement('div');
-    el.className = 'auto-play-indicator hidden';
-    const dot = document.createElement('div');
-    dot.className = 'auto-play-dot';
-    el.appendChild(dot);
-    el.appendChild(document.createTextNode(' AUTO'));
-    vnContainer.appendChild(el);
-    return el;
-  })();
-
-  const skipIndicator = (() => {
-    const el = document.createElement('div');
-    el.className = 'skip-indicator hidden';
-    el.textContent = '⏭ SKIP';
-    vnContainer.appendChild(el);
-    return el;
-  })();
-
-  const progressHUD = (() => {
-    const el = document.createElement('div');
-    el.className = 'progress-hud hidden';
-    el.setAttribute('aria-live', 'off');
-    // Pre-build child spans so we can update textContent instead of innerHTML
-    const visitedSpan = document.createElement('span');
-    const turnSpan = document.createElement('span');
-    el.appendChild(visitedSpan);
-    el.appendChild(turnSpan);
-    el._visitedSpan = visitedSpan;
-    el._turnSpan = turnSpan;
-    vnContainer.appendChild(el);
-    return el;
-  })();
-
-  const progressBar = (() => {
-    const el = document.createElement('div');
-    el.className = 'story-progress-bar hidden';
-    vnContainer.appendChild(el);
-    return el;
-  })();
-
-  // Throttle progress HUD updates: only re-render if values actually changed
-  let _lastProgressPct = -1;
-  let _lastProgressTurns = -1;
-
-  function updateProgressHUD() {
-    if (!currentEngine) return;
-
-    const totalScenes = _currentTotalScenes;
-    const visited = currentEngine.state.visited.size;
-    const pct = totalScenes > 0 ? Math.round((visited / totalScenes) * 100) : 0;
-    const turns = currentEngine.state.turns;
-
-    // Skip DOM writes if nothing changed (avoids layout thrash during skip mode)
-    if (pct === _lastProgressPct && turns === _lastProgressTurns) {
-      progressHUD.classList.remove('hidden');
-      progressBar.classList.remove('hidden');
-      return;
-    }
-    _lastProgressPct = pct;
-    _lastProgressTurns = turns;
-
-    progressHUD._visitedSpan.textContent = `📍 ${visited}/${totalScenes}`;
-    progressHUD._turnSpan.textContent = ` · Turn ${turns}`;
-    progressHUD.title = `${pct}% explored · Turn ${turns}`;
-    progressHUD.classList.remove('hidden');
-
-    // Update thin top progress bar via CSS custom property
-    progressBar.style.setProperty('--bar-pct', `${pct}%`);
-    progressBar.classList.remove('hidden');
-  }
-
-  // ── Skip-Read Logic ──
-
-  function shouldSkipScene(sceneId) {
-    return settings.get('skipRead') && currentEngine && currentEngine.state.visited.has(sceneId);
-  }
-
-  function updateSkipIndicator(active) {
-    skipIndicator.classList.toggle('hidden', !active);
-    if (active) {
-      autoPlayIndicator.classList.add('hidden');
-    } else if (settings.get('autoPlay')) {
-      autoPlayIndicator.classList.remove('hidden');
-    }
-  }
+  // Convenience aliases delegating to PlaybackController
+  function updateProgressHUD() { playback.updateProgressHUD(); }
+  function updateSkipIndicator(active) { playback.updateSkipIndicator(active); }
 
   // ── Load Stories ──
 
@@ -455,90 +315,14 @@
     }
   }
 
-  // ── Core Scene Playback ──
+  // ── Core Scene Playback (delegated to PlaybackController) ──
 
-  /** Check if a slug is a campaign transient (intro/connector) that shouldn't be auto-saved. */
-  function _isCampaignTransient(slug) {
-    return campaignMode && (slug === 'campaign-intro' || slug?.startsWith('campaign-connector-'));
-  }
-
-  /** Compute effect override for a scene (suppress shake/glitch when disabled). */
-  function _effectOverride(scene) {
-    return (!settings.get('screenShake') && (scene.effect === 'glitch' || scene.effect === 'shake'))
-      ? null : undefined;
-  }
-
-  /**
-   * Render one scene: record history, apply effects, render UI, auto-save, update HUD.
-   * Shared between normal play and skip-read loop to eliminate duplication.
-   * @param {Object} scene — current scene data
-   * @param {boolean} skipMode — true if this is part of skip-read fast-forward
-   */
-  async function _renderOneScene(scene, skipMode) {
-    const sceneId = currentEngine.state.currentScene;
-    textHistory.add(sceneId, scene.speaker, scene.text);
-
-    const wasInFastMode = ui.fastMode;
-    const skipActive = skipMode && !scene.ending;
-    if (skipActive) ui.fastMode = true;
-    if (!skipMode) updateSkipIndicator(skipActive);
-
-    const effOvr = _effectOverride(scene);
-    const renderScene = effOvr !== undefined ? { ...scene, effect: effOvr } : scene;
-    await ui.renderScene(renderScene, currentEngine);
-
-    if (audio.enabled) audio.setTheme(ui._lastBgClass);
-    if (skipActive) ui.fastMode = wasInFastMode;
-
-    if (currentSlug && !_isCampaignTransient(currentSlug)) {
-      saveManager.autoSave(currentSlug, currentEngine, scene);
-    }
-    if (currentSlug) tracker.recordVisitedScenes(currentSlug, currentEngine.state.visited);
-    updateProgressHUD();
-  }
-
-  /**
-   * Play a scene: record history, apply skip/fast mode, render, auto-save, schedule next.
-   * This is the central heartbeat of the game loop.
-   */
-  async function playScene(scene) {
-    if (!scene || !currentEngine) return;
-
-    const sceneId = currentEngine.state.currentScene;
-    const skipActive = shouldSkipScene(sceneId) && !scene.ending;
-    updateSkipIndicator(skipActive);
-
-    await _renderOneScene(scene, skipActive);
-
-    // Handle endings
-    if (scene.ending) return;
-
-    // Skip-read auto-advance through visited no-choice scenes (iterative to avoid stack overflow)
-    const choices = currentEngine.getAvailableChoices();
-    if (choices.length === 0 && scene.next && shouldSkipScene(sceneId)) {
-      await new Promise(r => setTimeout(r, 50));
-      let nextScene = currentEngine.goToScene(scene.next);
-      while (nextScene && !nextScene.ending && currentEngine) {
-        const nId = currentEngine.state.currentScene;
-        await _renderOneScene(nextScene, true);
-        const nc = currentEngine.getAvailableChoices();
-        if (nc.length > 0 || !nextScene.next || !shouldSkipScene(nId)) break;
-        await new Promise(r => setTimeout(r, 50));
-        nextScene = currentEngine.goToScene(nextScene.next);
-      }
-      if (nextScene && currentEngine) {
-        return playScene(nextScene);
-      }
-      return;
-    }
-
-    updateRewindButton();
-    scheduleAutoAdvance();
-  }
+  /** Play a scene through the playback controller. */
+  function playScene(scene) { return playback.playScene(scene); }
 
   // ── Start / Restart Story ──
 
-  // ── Engine Callbacks (wired once, reference currentEngine dynamically) ──
+  // ── Engine Callbacks (wired once, reference playback.engine dynamically) ──
 
   // Campaign ending callback — wired once on ui, invoked via ending delegation (data-action="campaign-next")
   ui._onCampaignEnding = () => onCampaignEnding();
@@ -547,9 +331,9 @@
   let _currentParsed = null;
 
   ui.onChoice(choice => {
-    if (!currentEngine) return;
+    if (!playback.engine) return;
     clearAutoPlayTimer();
-    const nextScene = currentEngine.goToScene(choice.goto, choice);
+    const nextScene = playback.engine.goToScene(choice.goto, choice);
     playScene(nextScene);
   });
 
@@ -559,8 +343,8 @@
 
     // Record reading time to tracker for persistent stats
     const sessionElapsed = storyStartTime ? Date.now() - storyStartTime : 0;
-    if (currentSlug && sessionElapsed > 0) {
-      tracker.recordReadingTime(currentSlug, sessionElapsed);
+    if (playback.currentSlug && sessionElapsed > 0) {
+      tracker.recordReadingTime(playback.currentSlug, sessionElapsed);
       storyStartTime = null; // prevent double-counting on menu return
     }
 
@@ -586,7 +370,7 @@
       }
     }
 
-    const result = tracker.recordEnding(currentSlug, scene.ending, engine.state.turns);
+    const result = tracker.recordEnding(playback.currentSlug, scene.ending, engine.state.turns);
 
     if (result.isNewEnding && ui.endingEl) {
       if (!_endingNewBadge) {
@@ -599,7 +383,7 @@
 
     const newAch = achievements.checkAll();
     if (newAch.length > 0) {
-      if (campaignMode) {
+      if (playback.campaignMode) {
         pendingAchievementUnlocks.push(...newAch);
       } else {
         trackTimeout(() => achievements.showNewUnlocks(newAch), 2000);
@@ -607,7 +391,7 @@
     }
 
     // In campaign mode, add a "Next Chapter" button to the ending overlay
-    if (campaignMode && ui.endingEl) {
+    if (playback.campaignMode && ui.endingEl) {
       const nextBtn = campaignUI.getEndingButton(campaign.isComplete());
       const actionsRow = ui._endingRefs.actionsRow;
       actionsRow.insertBefore(nextBtn, actionsRow.firstChild);
@@ -618,24 +402,25 @@
   ui.onRestart(() => {
     if (!_currentParsed) return;
     initEngine(_currentParsed);
-    if (campaignMode && currentEngine) campaign.applyPersistentState(currentEngine);
+    if (playback.campaignMode && playback.engine) campaign.applyPersistentState(playback.engine);
     ui.showStoryScreen();
     updateAutoPlayHUD(settings.get('autoPlay'));
-    playScene(currentEngine.getCurrentScene());
+    playScene(playback.engine.getCurrentScene());
   });
 
   ui.onMenu(() => {
-    if (campaignMode) campaignMode = false;
+    if (playback.campaignMode) playback.campaignMode = false;
     returnToMenu();
   });
 
   function initEngine(parsed) {
     _currentParsed = parsed;
-    currentEngine = new StoryEngine(parsed);
+    const engine = new StoryEngine(parsed);
+    playback.engine = engine;
     // Count scenes without Object.keys allocation
     let _sc = 0; for (const _ in parsed.scenes) _sc++;
-    _currentTotalScenes = _sc;
-    ui._totalScenes = _currentTotalScenes; // share with UI to avoid re-computing in _showEnding
+    playback.totalScenes = _sc;
+    ui._totalScenes = _sc; // share with UI to avoid re-computing in _showEnding
     textHistory.clear();
     ui.typewriterSpeed = settings.get('textSpeed');
   }
@@ -649,7 +434,7 @@
 
     const navId = router.bump();
 
-    currentSlug = story.slug;
+    playback.currentSlug = story.slug;
     storyStartTime = Date.now();
     document.title = `${story.title} — NyanTales`;
     ui.setStorySlug(story.slug);
@@ -670,28 +455,28 @@
 
     // If loading a saved state, restore it
     if (savedState) {
-      try { currentEngine.loadState(savedState); } catch (e) { console.warn('Failed to load save:', e); }
+      try { playback.engine.loadState(savedState); } catch (e) { console.warn('Failed to load save:', e); }
     }
 
     // Show story intro splash (skip for loaded saves / history-driven route changes)
     if (showIntro) {
       await StoryIntro.show(story, ui.portraits);
       if (!router.isCurrent(navId)) return;
-      suppressNextAutoAdvance = true;
+      playback.suppressNextAutoAdvance();
     }
 
     ui.showStoryScreen();
     updateAutoPlayHUD(settings.get('autoPlay'));
     showKeyboardHints();
 
-    const firstScene = currentEngine.getCurrentScene();
+    const firstScene = playback.engine.getCurrentScene();
     await playScene(firstScene);
     if (!router.isCurrent(navId)) return;
 
     // Check achievements on story start
     const startAch = achievements.checkAll();
     if (startAch.length > 0) {
-      if (campaignMode) {
+      if (playback.campaignMode) {
         pendingAchievementUnlocks.push(...startAch);
       } else {
         trackTimeout(() => achievements.showNewUnlocks(startAch), 1500);
@@ -703,28 +488,19 @@
     const { syncRoute = true, historyMode = 'replace' } = options;
     router.bump();
     // Record reading time before clearing state
-    if (currentSlug && storyStartTime) {
-      tracker.recordReadingTime(currentSlug, Date.now() - storyStartTime);
+    if (playback.currentSlug && storyStartTime) {
+      tracker.recordReadingTime(playback.currentSlug, Date.now() - storyStartTime);
     }
 
-    clearAutoPlayTimer();
-    clearMiscTimers();
     achievements.cancelPendingToasts();
-    currentEngine = null;
-    currentSlug = null;
     storyStartTime = null;
-    _lastProgressPct = -1;
-    _lastProgressTurns = -1;
     document.title = router.APP_TITLE;
     ui.setStorySlug(null);
     if (syncRoute) router.syncStoryUrl(null, historyMode);
     audio.stop();
     textHistory.clear();
-    updateSkipIndicator(false);
     if (sceneSelect.isVisible) sceneSelect.hide();
-    autoPlayIndicator.classList.add('hidden');
-    progressHUD.classList.add('hidden');
-    progressBar.classList.add('hidden');
+    playback.cleanup(); // clears engine, slug, timers, HUD indicators
     ui.showTitleScreen();
     renderTitleScreen();
 
@@ -997,7 +773,7 @@
   });
 
   ui.clickIndicator?.addEventListener('click', () => {
-    if (ui.isTyping || !currentEngine) return;
+    if (ui.isTyping || !playback.engine) return;
     advanceScene();
   });
 
@@ -1011,14 +787,14 @@
       }
     },
     onOpenHistory: () => {
-      if (currentEngine && !historyPanel.isVisible) historyPanel.show();
+      if (playback.engine && !historyPanel.isVisible) historyPanel.show();
     },
     onOpenSettings: () => {
       if (!settingsPanel.isVisible) settingsPanel.show();
     },
     onOpenSave: () => {
-      if (currentEngine && currentSlug && !saveManager.isVisible) {
-        saveManager.show(currentSlug, currentEngine, 'save');
+      if (playback.engine && playback.currentSlug && !saveManager.isVisible) {
+        saveManager.show(playback.currentSlug, playback.engine, 'save');
       }
     }
   });
@@ -1039,12 +815,12 @@
         openPanel.hide();
         syncTouchSuspension();
         // Resume auto-play if no panels remain open
-        if (settings.get('autoPlay') && currentEngine && !isAnyPanelOpen()) {
+        if (settings.get('autoPlay') && playback.engine && !isAnyPanelOpen()) {
           scheduleAutoAdvance();
         }
         return;
       }
-      if (currentEngine) { returnToMenu(); return; }
+      if (playback.engine) { returnToMenu(); return; }
     }
 
     if (isSearchFocused) return;
@@ -1070,18 +846,18 @@
     const key = e.key.toLowerCase();
 
     if (key === 'm' && noMod) toggleAudio();
-    if (key === 'b' && noMod && currentEngine) rewindOneScene();
+    if (key === 'b' && noMod && playback.engine) rewindOneScene();
     if (e.key === '?' || (key === '/' && e.shiftKey)) togglePanel(keyboardHelp);
 
-    if (key === 'a' && noMod && currentEngine) toggleAutoPlay();
-    if (key === 'h' && noMod && currentEngine) togglePanel(historyPanel);
-    if (key === 'g' && noMod && currentEngine) togglePanel(sceneSelect, currentEngine, currentEngine.state.currentScene);
-    if (key === 'r' && noMod && currentEngine) togglePanel(routeMap, currentEngine);
-    if (key === 'f' && noMod && currentEngine) settings.set('fullscreen', !settings.get('fullscreen'));
+    if (key === 'a' && noMod && playback.engine) toggleAutoPlay();
+    if (key === 'h' && noMod && playback.engine) togglePanel(historyPanel);
+    if (key === 'g' && noMod && playback.engine) togglePanel(sceneSelect, playback.engine, playback.engine.state.currentScene);
+    if (key === 'r' && noMod && playback.engine) togglePanel(routeMap, playback.engine);
+    if (key === 'f' && noMod && playback.engine) settings.set('fullscreen', !settings.get('fullscreen'));
     if (key === 's' && noMod) togglePanel(settingsPanel);
 
     // 'Q' for save/load panel
-    if (key === 'q' && noMod && currentEngine && currentSlug) togglePanel(saveManager, currentSlug, currentEngine, 'save');
+    if (key === 'q' && noMod && playback.engine && playback.currentSlug) togglePanel(saveManager, playback.currentSlug, playback.engine, 'save');
   });
 
   // ── Auto-play Toggle ──
@@ -1089,7 +865,7 @@
   function toggleAutoPlay() {
     const newVal = !settings.get('autoPlay');
     settings.set('autoPlay', newVal);
-    if (newVal && currentEngine) scheduleAutoAdvance();
+    if (newVal && playback.engine) scheduleAutoAdvance();
   }
 
   // ── Audio Toggle ──
@@ -1114,20 +890,11 @@
 
   // Mobile sticky filter sync is handled by TitleBrowser (scroll/resize/orientation listeners)
 
-  function updateRewindButton() {
-    const canRewind = currentEngine && currentEngine.state.snapshots.length > 0;
-    btnRewind.classList.toggle('hud-dim', !canRewind);
-    btnRewind.disabled = !canRewind;
-  }
+  // Wire rewind button into playback controller
+  playback.setRewindButton(btnRewind);
 
-  function rewindOneScene() {
-    if (!currentEngine || currentEngine.state.snapshots.length === 0) return;
-    clearAutoPlayTimer();
-    updateSkipIndicator(false);
-    const prevScene = currentEngine.rewindScene();
-    if (prevScene) playScene(prevScene);
-    updateRewindButton();
-  }
+  function updateRewindButton() { playback.updateRewindButton(btnRewind); }
+  function rewindOneScene() { playback.rewindOneScene(btnRewind); }
 
   // Wire save manager's load callback
   saveManager.onLoad = (slug, stateJson) => {
@@ -1146,7 +913,7 @@
     switch (id) {
       case 'btn-back':    returnToMenu(); break;
       case 'btn-rewind':  rewindOneScene(); break;
-      case 'btn-save':    if (currentEngine && currentSlug) saveManager.show(currentSlug, currentEngine, 'save'); break;
+      case 'btn-save':    if (playback.engine && playback.currentSlug) saveManager.show(playback.currentSlug, playback.engine, 'save'); break;
       case 'btn-hud-more':
         hudToolbar.classList.toggle('hud-expanded');
         hudMoreBtn.textContent = hudToolbar.classList.contains('hud-expanded') ? '✕' : '⋯';
@@ -1156,12 +923,12 @@
         ui.btnFast.title = fast ? 'Fast Mode ON' : 'Fast Mode OFF';
         break;
       }
-      case 'btn-auto':    if (currentEngine) toggleAutoPlay(); break;
-      case 'btn-history': if (currentEngine) togglePanel(historyPanel); break;
-      case 'btn-scenes':  if (currentEngine) togglePanel(sceneSelect, currentEngine, currentEngine.state.currentScene); break;
+      case 'btn-auto':    if (playback.engine) toggleAutoPlay(); break;
+      case 'btn-history': if (playback.engine) togglePanel(historyPanel); break;
+      case 'btn-scenes':  if (playback.engine) togglePanel(sceneSelect, playback.engine, playback.engine.state.currentScene); break;
       case 'btn-settings': togglePanel(settingsPanel); break;
       case 'btn-audio':   ensureAudio(); toggleAudio(); break;
-      case 'btn-routemap': if (currentEngine) togglePanel(routeMap, currentEngine); break;
+      case 'btn-routemap': if (playback.engine) togglePanel(routeMap, playback.engine); break;
       case 'btn-help':    togglePanel(keyboardHelp); break;
     }
   });
@@ -1299,7 +1066,7 @@
 
     const requestedSlug = router.getRequestedSlug();
     if (!requestedSlug) {
-      if (currentSlug) {
+      if (playback.currentSlug) {
         returnToMenu({ syncRoute: !fromHistory, historyMode: defaultHistoryMode });
       } else if (!fromHistory) {
         router.syncStoryUrl(null, defaultHistoryMode);
@@ -1310,7 +1077,7 @@
     const story = storySlugMap.get(requestedSlug);
     if (!story) {
       Toast.show(`Story not found: ${requestedSlug}`, { icon: '⚠️', duration: 3500 });
-      if (currentSlug) {
+      if (playback.currentSlug) {
         returnToMenu({ syncRoute: !fromHistory, historyMode: 'replace' });
       } else {
         router.syncStoryUrl(null, 'replace');
@@ -1318,7 +1085,7 @@
       return;
     }
 
-    if (currentSlug === requestedSlug && currentEngine) return;
+    if (playback.currentSlug === requestedSlug && playback.engine) return;
 
     await startStory(story, null, {
       historyMode: defaultHistoryMode,
@@ -1375,7 +1142,7 @@
     }
     // Clean up stale transient saves from previous campaign runs
     saveManager.deleteSlot('campaign-intro', 'auto');
-    campaignMode = true;
+    playback.campaignMode = true;
     playCampaignPhase();
   }
 
@@ -1426,13 +1193,13 @@
       }
       // Apply persistent state to the new engine after it starts
       startStory(story).then(() => {
-        if (currentEngine) campaign.applyPersistentState(currentEngine);
+        if (playback.engine) campaign.applyPersistentState(playback.engine);
       }).catch(e => console.warn('Campaign: failed to start chapter', e));
       return;
     }
 
     if (phase === 'complete') {
-      campaignMode = false;
+      playback.campaignMode = false;
       Toast.show('Campaign complete! 🎉 Thanks for playing.', { icon: '🐱', duration: 5000 });
       returnToMenu();
       return;
@@ -1445,10 +1212,10 @@
    */
   function onCampaignEnding() {
     // Clean up transient campaign saves (intro/connectors shouldn't linger)
-    if (currentSlug === 'campaign-intro' || currentSlug?.startsWith('campaign-connector-')) {
-      saveManager.deleteSlot(currentSlug, 'auto');
+    if (playback.currentSlug === 'campaign-intro' || playback.currentSlug?.startsWith('campaign-connector-')) {
+      saveManager.deleteSlot(playback.currentSlug, 'auto');
     }
-    campaign.advance(currentEngine);
+    campaign.advance(playback.engine);
     campaignUI.rebuildSlugMap(); // Refresh unlock state after advancing
     const queuedUnlocks = pendingAchievementUnlocks.splice(0, pendingAchievementUnlocks.length);
     // Small delay before advancing to next phase for pacing
@@ -1497,9 +1264,9 @@
       campaign.progress.started = true;
     }
     campaign.saveProgress();
-    campaignMode = true;
+    playback.campaignMode = true;
     await startStory(story);
-    if (currentEngine) campaign.applyPersistentState(currentEngine);
+    if (playback.engine) campaign.applyPersistentState(playback.engine);
   }
 
   // ── Online/Offline Toasts ──
@@ -1511,7 +1278,7 @@
   document.addEventListener('visibilitychange', () => {
     if (document.hidden) {
       clearAutoPlayTimer();
-    } else if (settings.get('autoPlay') && currentEngine && !isAnyPanelOpen()) {
+    } else if (settings.get('autoPlay') && playback.engine && !isAnyPanelOpen()) {
       scheduleAutoAdvance();
     }
   });

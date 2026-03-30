@@ -2640,3 +2640,115 @@ test.describe('StoryCardManager', () => {
     expect(size).toBe(0);
   });
 });
+
+// ── PlaybackController Tests ──
+
+test.describe('PlaybackController', () => {
+  test('class is available and constructible', async ({ page }) => {
+    await page.goto('/web/');
+    await page.waitForSelector('.story-card', { timeout: 10000 });
+    const ok = await page.evaluate(() => {
+      return typeof PlaybackController === 'function'
+        && typeof PlaybackController.prototype.playScene === 'function'
+        && typeof PlaybackController.prototype.advanceScene === 'function'
+        && typeof PlaybackController.prototype.scheduleAutoAdvance === 'function';
+    });
+    expect(ok).toBe(true);
+  });
+
+  test('trackTimeout fires and auto-removes from timer list', async ({ page }) => {
+    await page.goto('/web/');
+    await page.waitForSelector('.story-card', { timeout: 10000 });
+    const result = await page.evaluate(() => {
+      return new Promise(resolve => {
+        const container = document.createElement('div');
+        const pc = new PlaybackController({
+          ui: {}, settings: { get: () => false }, textHistory: { add() {}, clear() {} },
+          audio: { enabled: false }, saveManager: {}, tracker: { recordVisitedScenes() {} },
+          vnContainer: container
+        });
+        const sizeBefore = pc._miscTimers.length;
+        pc.trackTimeout(() => {
+          resolve({ sizeBefore, sizeAfter: pc._miscTimers.length });
+        }, 10);
+      });
+    });
+    expect(result.sizeBefore).toBe(0);
+    expect(result.sizeAfter).toBe(0);
+  });
+
+  test('clearMiscTimers cancels pending timers', async ({ page }) => {
+    await page.goto('/web/');
+    await page.waitForSelector('.story-card', { timeout: 10000 });
+    const result = await page.evaluate(() => {
+      const container = document.createElement('div');
+      const pc = new PlaybackController({
+        ui: {}, settings: { get: () => false }, textHistory: { add() {}, clear() {} },
+        audio: { enabled: false }, saveManager: {}, tracker: { recordVisitedScenes() {} },
+        vnContainer: container
+      });
+      let fired = false;
+      pc.trackTimeout(() => { fired = true; }, 50);
+      const sizeBeforeClear = pc._miscTimers.length;
+      pc.clearMiscTimers();
+      const sizeAfterClear = pc._miscTimers.length;
+      return { sizeBeforeClear, sizeAfterClear };
+    });
+    expect(result.sizeBeforeClear).toBe(1);
+    expect(result.sizeAfterClear).toBe(0);
+  });
+
+  test('cleanup resets all state and hides indicators', async ({ page }) => {
+    await page.goto('/web/');
+    await page.waitForSelector('.story-card', { timeout: 10000 });
+    const result = await page.evaluate(() => {
+      const container = document.createElement('div');
+      const pc = new PlaybackController({
+        ui: { fastMode: false }, settings: { get: () => false }, textHistory: { add() {}, clear() {} },
+        audio: { enabled: false }, saveManager: {}, tracker: { recordVisitedScenes() {} },
+        vnContainer: container
+      });
+      pc.engine = { state: { visited: new Set() } };
+      pc.currentSlug = 'test';
+      pc.totalScenes = 10;
+      pc.campaignMode = true;
+      pc.cleanup();
+      return {
+        engine: pc.engine,
+        slug: pc.currentSlug,
+        scenes: pc.totalScenes,
+        campaign: pc.campaignMode,
+        autoHidden: pc._autoEl.classList.contains('hidden'),
+        skipHidden: pc._skipEl.classList.contains('hidden'),
+        hudHidden: pc._hudEl.classList.contains('hidden'),
+        barHidden: pc._barEl.classList.contains('hidden')
+      };
+    });
+    expect(result.engine).toBeNull();
+    expect(result.slug).toBeNull();
+    expect(result.scenes).toBe(0);
+    // campaignMode is NOT reset by cleanup (managed by main.js)
+    expect(result.autoHidden).toBe(true);
+    expect(result.skipHidden).toBe(true);
+    expect(result.hudHidden).toBe(true);
+    expect(result.barHidden).toBe(true);
+  });
+
+  test('HUD indicators are created in the vnContainer', async ({ page }) => {
+    await page.goto('/web/');
+    await page.waitForSelector('.story-card', { timeout: 10000 });
+    const counts = await page.evaluate(() => {
+      const vc = document.querySelector('.vn-container');
+      return {
+        auto: vc.querySelectorAll('.auto-play-indicator').length,
+        skip: vc.querySelectorAll('.skip-indicator').length,
+        hud: vc.querySelectorAll('.progress-hud').length,
+        bar: vc.querySelectorAll('.story-progress-bar').length
+      };
+    });
+    expect(counts.auto).toBe(1);
+    expect(counts.skip).toBe(1);
+    expect(counts.hud).toBe(1);
+    expect(counts.bar).toBe(1);
+  });
+});
