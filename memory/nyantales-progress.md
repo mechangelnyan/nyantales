@@ -2524,3 +2524,36 @@ cd /tmp/nyantales && python3 -m http.server 9876
 ## Log (continued)
 - 2026-03-30 (6:27 AM): Phase 133 — Added 11 Playwright tests: StoryTracker reading time accumulation + formatDuration edge cases, engine interpolation ({{items}}/{{turns}}/{{item_count}}), SaveManager round-trip via SafeStorage (state with Set serialization), overlay backdrop close, color theme RGB variable updates, text formatting (code/bold/italic→HTML), campaign persistence round-trip, skip link accessibility, ShareHelper canonical URLs, multi-panel Escape close order (3-deep stack). Test count 150→161. SW v115. 185KB bundle. All 34 JS + 204/204 unit + 161/161 Playwright pass.
 - 2026-03-30 (5:27 AM): Phase 132 — Added 23 Playwright tests covering: toast system (appear + max cap), confirm dialog, engine state (choices/items/flags/rewind), SafeStorage (fallback + round-trip), FocusTrap (Tab containment), OverlayMixin (aria-hidden), story intro details, ShareHelper URL generation, sprite determinism, tracker favorites, stats dashboard search+sort, typewriter effect, ambient audio, color themes, reading time tracking, DataManager keys, compound conditions, YAML parsing, campaign button. Test count 127→150. SW v114, 185KB bundle. All 34 JS + 204/204 unit + 150/150 Playwright pass. Committed & pushed.
+
+## Phase 134: Lazy Story Loading via Build-Time Manifest ✅
+- **Story manifest** (`story-manifest.json`) — 8KB JSON generated at build time, replaces 30 individual YAML fetches on production boot
+  - Pre-computes: slug, title, description, sceneCount, wordCount, totalEndings, readMins
+  - Production boot: single 8KB fetch + JSON.parse vs 1.6MB of YAML fetch + js-yaml parsing (200x data reduction)
+  - Title screen renders instantly from manifest metadata (`_meta` property on story objects)
+- **Lazy YAML loading** — `loadFullStory(slug)` fetches and parses the full YAML on first play
+  - Result cached on `story._parsed` for subsequent plays (same session)
+  - `startStory()` awaits lazy load if `_parsed` is null (manifest-boot mode)
+  - Error handling: toast + return to menu if YAML fails to load
+  - Route change guard: checks `navId !== routeChangeSerial` after async load
+- **Dev mode fallback** — when manifest isn't available, falls through to existing 30-YAML parallel loading
+  - `loadStoryIndex()` tries manifest URL first, catches failure, then runs YAML path
+  - Manifest URL derived from `storyBasePath()` with path translation for web/ and web/dist/
+- **BUG FIX: totalEndings was always 0** in `getStoryMeta()`, `StatsDashboard.setStories()`, and `StoryInfoModal.show()`
+  - Raw YAML uses `is_ending: true` (not `ending:`), which `StoryEngine._normalizeScenes()` converts to `scene.ending` at play time
+  - All 4 call sites that count endings from raw YAML now check `s.is_ending || s.ending`
+  - Build script manifest generator also checks both
+  - Correctly reports 183 total endings across 30 stories (was 0 everywhere)
+- **`_meta` property** on story index entries — pre-computed metadata from manifest
+  - `getStoryMeta()` uses `_meta` when available (zero `_parsed` dependency for title screen)
+  - `StatsDashboard.setStories()` uses `_meta` for scene/ending counts
+  - `StoryInfoModal.show()` uses `_meta` as second fallback (before `_parsed` inline computation)
+- **Build script** — added step 5 (manifest generation) before asset copying
+  - Runs `node -e` with js-yaml to parse all 30 stories and generate manifest
+  - Manifest added to production service worker pre-cache
+- **Dev service worker** — `story-manifest.json` added to pre-cache list
+- SW cache bumped to v116, production build regenerated (186KB JS, 96KB CSS)
+- All 34 JS files pass `node --check`, 204/204 unit tests pass
+- Committed & pushed
+
+## Log (continued)
+- 2026-03-30 (7:27 AM): Phase 134 — Lazy story loading via build-time manifest: 8KB JSON replaces 30 YAML fetches on production boot (200x data reduction). Stories lazy-loaded on first play via loadFullStory(). BUG FIX: totalEndings was always 0 (raw YAML uses is_ending not ending — fixed in getStoryMeta, stats-dashboard, story-info, and build script; correctly reports 183 endings now). _meta property on story entries used by title screen, stats, and story info without needing _parsed. SW v116, 186KB JS. All 34 JS + 204/204 unit pass. Committed & pushed.
