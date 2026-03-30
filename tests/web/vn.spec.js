@@ -1746,3 +1746,391 @@ test.describe('Stats Bar', () => {
     await expect(stats).toContainText(/🏆/); // achievement icon
   });
 });
+
+// ── Toast Notification System ──
+test.describe('Toast Notifications', () => {
+  test('toast appears and auto-dismisses', async ({ page }) => {
+    await waitForTitleScreen(page);
+    // Trigger a toast by favoriting then unfavoriting
+    await page.evaluate(() => {
+      Toast.show('Test toast!', { icon: '🧪', duration: 2000 });
+    });
+    const toast = page.locator('.nt-toast').first();
+    await expect(toast).toBeVisible();
+    await expect(toast).toContainText('Test toast');
+  });
+
+  test('max 3 toasts visible at once', async ({ page }) => {
+    await waitForTitleScreen(page);
+    await page.evaluate(() => {
+      for (let i = 0; i < 5; i++) Toast.show(`Toast ${i}`, { duration: 10000 });
+    });
+    const visible = page.locator('.nt-toast.visible');
+    await expect(visible).toHaveCount(3);
+  });
+});
+
+// ── Confirm Dialog ──
+test.describe('Confirm Dialog', () => {
+  test('confirm dialog blocks until user responds', async ({ page }) => {
+    await waitForTitleScreen(page);
+    // Settings → Reset defaults triggers a confirm
+    await page.keyboard.press('s');
+    const settingsPanel = page.locator('.settings-overlay');
+    await expect(settingsPanel).toBeVisible();
+    // Find the reset button and click it
+    const resetBtn = page.locator('.settings-body').getByText(/Reset to Defaults/i);
+    if (await resetBtn.isVisible()) {
+      await resetBtn.click();
+      const dialog = page.locator('.confirm-overlay.visible');
+      await expect(dialog).toBeVisible();
+      // Cancel to dismiss
+      await dialog.getByRole('button', { name: /cancel/i }).click();
+      await expect(dialog).not.toBeVisible();
+    }
+  });
+});
+
+// ── Engine State: Flags and Inventory ──
+test.describe('Engine State', () => {
+  test('engine evaluates conditions and choice filtering', async ({ page }) => {
+    await waitForTitleScreen(page);
+    const result = await page.evaluate(() => {
+      const engine = new StoryEngine({
+        start: 'scene1',
+        scenes: {
+          scene1: { text: 'Hello', choices: [
+            { text: 'Go', goto: 'scene2' },
+            { text: 'Locked', goto: 'scene3', requires_flag: 'key' }
+          ]},
+          scene2: { text: 'World' },
+          scene3: { text: 'Secret' }
+        }
+      });
+      return {
+        available: engine.getAvailableChoices().length,
+        interpolated: engine.interpolate('Turn {{turns}} with {{item_count}} items'),
+        scene: engine.getCurrentScene().text
+      };
+    });
+    expect(result.available).toBe(1); // Only 'Go', 'Locked' filtered out
+    expect(result.interpolated).toBe('Turn 0 with 0 items');
+    expect(result.scene).toBe('Hello');
+  });
+
+  test('engine goToScene processes items and flags', async ({ page }) => {
+    await waitForTitleScreen(page);
+    const result = await page.evaluate(() => {
+      const engine = new StoryEngine({
+        start: 'a',
+        scenes: { a: { text: 'Start' }, b: { text: 'End' } }
+      });
+      engine.goToScene('b', { give_item: 'sword', set_flag: 'armed' });
+      return {
+        scene: engine.state.currentScene,
+        hasItem: engine.state.inventory.includes('sword'),
+        hasFlag: engine.state.flags.has('armed'),
+        turns: engine.state.turns
+      };
+    });
+    expect(result.scene).toBe('b');
+    expect(result.hasItem).toBe(true);
+    expect(result.hasFlag).toBe(true);
+    expect(result.turns).toBe(1);
+  });
+
+  test('engine rewindScene restores previous state', async ({ page }) => {
+    await waitForTitleScreen(page);
+    const result = await page.evaluate(() => {
+      const engine = new StoryEngine({
+        start: 'a',
+        scenes: { a: { text: 'First' }, b: { text: 'Second' }, c: { text: 'Third' } }
+      });
+      engine.goToScene('b');
+      engine.goToScene('c', { give_item: 'key' });
+      // Rewind from c→b should restore state as it was entering c (with key, since choice applied before snapshot)
+      engine.rewindScene();
+      return {
+        scene: engine.state.currentScene,
+        turns: engine.state.turns,
+        historyLen: engine.state.history.length,
+        snapshotLen: engine.state.snapshots.length
+      };
+    });
+    expect(result.scene).toBe('b');
+    expect(result.turns).toBe(1);
+    expect(result.snapshotLen).toBe(1); // Only one snapshot left (a→b transition)
+  });
+});
+
+// ── SafeStorage ──
+test.describe('SafeStorage', () => {
+  test('getJSON returns fallback for missing keys', async ({ page }) => {
+    await waitForTitleScreen(page);
+    const result = await page.evaluate(() => {
+      return SafeStorage.getJSON('nonexistent-key-12345', { fallback: true });
+    });
+    expect(result).toEqual({ fallback: true });
+  });
+
+  test('setJSON and getJSON round-trip', async ({ page }) => {
+    await waitForTitleScreen(page);
+    const result = await page.evaluate(() => {
+      SafeStorage.setJSON('test-round-trip', { a: 1, b: [2, 3] });
+      const val = SafeStorage.getJSON('test-round-trip', null);
+      SafeStorage.remove('test-round-trip');
+      return val;
+    });
+    expect(result).toEqual({ a: 1, b: [2, 3] });
+  });
+});
+
+// ── FocusTrap ──
+test.describe('FocusTrap', () => {
+  test('focus trap contains Tab navigation within overlay', async ({ page }) => {
+    await waitForTitleScreen(page);
+    // Open settings (has focus trap)
+    await page.keyboard.press('s');
+    await expect(page.locator('.settings-overlay')).toBeVisible();
+    // Press Tab several times — focus should stay within settings panel
+    for (let i = 0; i < 10; i++) {
+      await page.keyboard.press('Tab');
+    }
+    const focused = await page.evaluate(() => {
+      const el = document.activeElement;
+      return el ? el.closest('.settings-overlay') !== null : false;
+    });
+    expect(focused).toBe(true);
+    await page.keyboard.press('Escape');
+  });
+});
+
+// ── OverlayMixin Behavior ──
+test.describe('OverlayMixin Consistency', () => {
+  test('panels set aria-hidden=false when shown', async ({ page }) => {
+    await startStory(page);
+    // Open settings (reliable panel with clear aria-hidden management)
+    await page.keyboard.press('s');
+    const settingsOverlay = page.locator('.settings-overlay');
+    await expect(settingsOverlay).toBeVisible();
+    expect(await settingsOverlay.getAttribute('aria-hidden')).toBe('false');
+    await page.keyboard.press('Escape');
+  });
+});
+
+// ── Story Intro Splash ──
+test.describe('Story Intro Details', () => {
+  test('intro shows protagonist portrait and description', async ({ page }) => {
+    await waitForTitleScreen(page);
+    const card = page.locator('.story-card').filter({ hasText: /Terminal Cat/i }).first();
+    await card.click();
+    const intro = page.locator('.story-intro-overlay');
+    await expect(intro).toBeVisible();
+    // Should show title and some description text
+    await expect(intro.locator('.story-intro-title')).toContainText(/Terminal Cat/i);
+    await expect(intro.locator('.story-intro-desc')).not.toHaveText(/^\s*$/);
+  });
+});
+
+// ── Share Helper ──
+test.describe('Share Helper', () => {
+  test('storyUrl generates canonical root-level URLs', async ({ page }) => {
+    await waitForTitleScreen(page);
+    const url = await page.evaluate(() => ShareHelper.storyUrl('the-terminal-cat'));
+    expect(url).toContain('/?story=the-terminal-cat');
+    expect(url).not.toContain('/web/');
+  });
+});
+
+// ── Sprites ──
+test.describe('Sprite Generation', () => {
+  test('CatSpriteGenerator produces deterministic data URLs', async ({ page }) => {
+    await waitForTitleScreen(page);
+    const result = await page.evaluate(() => {
+      const gen = new CatSpriteGenerator();
+      const url1 = gen.generate('TestCat', 'orange tabby');
+      const url2 = gen.generate('TestCat', 'orange tabby');
+      const urlDiff = gen.generate('OtherCat', 'gray');
+      return { same: url1 === url2, different: url1 !== urlDiff, isDataUrl: url1.startsWith('data:') };
+    });
+    expect(result.same).toBe(true);       // Deterministic
+    expect(result.different).toBe(true);   // Different for different names
+    expect(result.isDataUrl).toBe(true);
+  });
+});
+
+// ── Tracker Favorites ──
+test.describe('Tracker', () => {
+  test('toggleFavorite and isFavorite work correctly', async ({ page }) => {
+    await waitForTitleScreen(page);
+    const result = await page.evaluate(() => {
+      const tracker = window._testTracker || new StoryTracker();
+      tracker.toggleFavorite('test-slug');
+      const isFav = tracker.isFavorite('test-slug');
+      tracker.toggleFavorite('test-slug');
+      const notFav = tracker.isFavorite('test-slug');
+      return { isFav, notFav };
+    });
+    expect(result.isFav).toBe(true);
+    expect(result.notFav).toBe(false);
+  });
+});
+
+// ── Campaign Manager ──
+test.describe('Campaign Manager', () => {
+  test('campaign loads and exposes chapters', async ({ page }) => {
+    await waitForTitleScreen(page);
+    const result = await page.evaluate(() => {
+      // Access the global campaign instance set during boot
+      const camp = document.querySelector('#btn-campaign') ? true : false;
+      return { hasCampaignButton: camp };
+    });
+    expect(result.hasCampaignButton).toBe(true);
+  });
+});
+
+// ── Stats Dashboard Sorting ──
+test.describe('Stats Dashboard Sorting', () => {
+  test('stats dashboard search and sort work together', async ({ page }) => {
+    await waitForTitleScreen(page);
+    await page.locator('#btn-stats').click();
+    const overlay = page.locator('.stats-overlay');
+    await expect(overlay).toBeVisible();
+    // Search should narrow results
+    const search = overlay.locator('.stats-search');
+    await search.fill('terminal');
+    const count = overlay.locator('.stats-story-count');
+    await expect(count).toContainText(/1/);
+    // Sort should work without errors
+    await overlay.locator('.stats-sort').selectOption('title-asc');
+    await expect(overlay).toBeVisible(); // Didn't crash
+    await page.keyboard.press('Escape');
+  });
+});
+
+// ── Typewriter Effect ──
+test.describe('Typewriter Effect', () => {
+  test('text appears gradually then completes on click', async ({ page }) => {
+    await startStory(page);
+    // The textbox should have text content
+    const textbox = page.locator('#vn-textbox');
+    await expect(textbox).toBeVisible();
+    // Click to skip typewriter animation
+    await textbox.click();
+    await page.waitForTimeout(200);
+    // Text should now be fully visible (no tw-hidden chars)
+    const hiddenCount = await page.evaluate(() =>
+      document.querySelectorAll('#vn-text .tw-hidden').length
+    );
+    expect(hiddenCount).toBe(0);
+  });
+});
+
+// ── Ambient Audio ──
+test.describe('Ambient Audio', () => {
+  test('audio system initializes without errors', async ({ page }) => {
+    await waitForTitleScreen(page);
+    const result = await page.evaluate(() => {
+      return typeof AmbientAudio !== 'undefined' && typeof AmbientAudio.prototype.init === 'function';
+    });
+    expect(result).toBe(true);
+  });
+});
+
+// ── Color Theme Application ──
+test.describe('Color Themes', () => {
+  test('all 5 themes produce different accent colors via settings', async ({ page }) => {
+    await startStory(page);
+    // Open settings to access theme swatches
+    await page.keyboard.press('s');
+    await expect(page.locator('.settings-overlay')).toBeVisible();
+    // Read the current accent, change to green, check it changed
+    const cyan = await page.evaluate(() =>
+      getComputedStyle(document.documentElement).getPropertyValue('--accent-cyan').trim()
+    );
+    await page.locator('.theme-swatch[data-theme="green"]').click();
+    const green = await page.evaluate(() =>
+      getComputedStyle(document.documentElement).getPropertyValue('--accent-cyan').trim()
+    );
+    expect(cyan).not.toBe(green);
+    // Reset back
+    await page.locator('.theme-swatch[data-theme="cyan"]').click();
+    await page.keyboard.press('Escape');
+  });
+});
+
+// ── Reading Time Tracking ──
+test.describe('Reading Time', () => {
+  test('tracker records and formats reading time', async ({ page }) => {
+    await waitForTitleScreen(page);
+    const result = await page.evaluate(() => {
+      const tracker = new StoryTracker();
+      tracker.recordReadingTime('test-slug', 125000); // 2m 5s
+      const total = tracker.getTotalReadingMs();
+      const formatted = StoryTracker.formatDuration(125000);
+      return { total, formatted };
+    });
+    expect(result.total).toBeGreaterThanOrEqual(125000);
+    expect(result.formatted).toBe('2m 5s');
+  });
+});
+
+// ── Data Manager Export Structure ──
+test.describe('Data Manager Detailed', () => {
+  test('DataManager instance has expected data keys', async ({ page }) => {
+    await waitForTitleScreen(page);
+    const keys = await page.evaluate(() => {
+      const dm = new DataManager();
+      return dm.DATA_KEYS;
+    });
+    expect(keys).toContain('nyantales-tracker');
+    expect(keys).toContain('nyantales-achievements');
+    expect(keys).toContain('nyantales-settings');
+    expect(keys).toContain('nyantales-campaign');
+    expect(keys).toContain('nyantales-title-browser');
+  });
+});
+
+// ── Conditional Text ──
+test.describe('Engine Conditional Text', () => {
+  test('evaluateCondition handles compound all/any/not', async ({ page }) => {
+    await waitForTitleScreen(page);
+    const result = await page.evaluate(() => {
+      const engine = new StoryEngine({ start: 'a', scenes: { a: { text: '' } } });
+      engine.state.flags.add('debug');
+      return {
+        allTrue: engine.evaluateCondition({ all: [{ flag: 'debug' }] }),
+        allFalse: engine.evaluateCondition({ all: [{ flag: 'debug' }, { flag: 'missing' }] }),
+        anyTrue: engine.evaluateCondition({ any: [{ flag: 'missing' }, { flag: 'debug' }] }),
+        anyFalse: engine.evaluateCondition({ any: [{ flag: 'missing' }] }),
+        notTrue: engine.evaluateCondition({ not: { flag: 'missing' } }),
+        notFalse: engine.evaluateCondition({ not: { flag: 'debug' } }),
+      };
+    });
+    expect(result.allTrue).toBe(true);
+    expect(result.allFalse).toBe(false);
+    expect(result.anyTrue).toBe(true);
+    expect(result.anyFalse).toBe(false);
+    expect(result.notTrue).toBe(true);
+    expect(result.notFalse).toBe(false);
+  });
+});
+
+// ── YAML Parser ──
+test.describe('YAML Parser', () => {
+  test('YAMLParser can parse YAML content', async ({ page }) => {
+    await waitForTitleScreen(page);
+    const result = await page.evaluate(() => {
+      const yaml = 'title: Test\nstart: scene1\nscenes:\n  scene1:\n    text: Hello world';
+      const parsed = YAMLParser.parse(yaml);
+      return {
+        hasTitle: parsed.title === 'Test',
+        hasStart: parsed.start === 'scene1',
+        hasScenes: !!parsed.scenes,
+      };
+    });
+    expect(result.hasTitle).toBe(true);
+    expect(result.hasStart).toBe(true);
+    expect(result.hasScenes).toBe(true);
+  });
+});

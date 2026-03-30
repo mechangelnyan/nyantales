@@ -2479,3 +2479,31 @@ cd /tmp/nyantales && python3 -m http.server 9876
 
 ## Log (continued)
 - 2026-03-30 (4:27 AM): Phase 131 — Eliminated last Object.entries/values from app code (data-manager importFromFile + story-info save scan). StoryInfo accepts cached meta from getStoryMeta() (avoids re-computing word count per info click). Pre-built endings value elements (TextNode + span reused per show). 8 new Playwright tests (progress bars, export integrity, touch API, escape priority, backgrounds, favorites sort, CSP, stats bar). Test count 119→127. SW v113, 185KB bundle. All 34 JS + 204/204 unit + 127/127 Playwright pass. Committed & pushed.
+
+## Phase 132: Expanded Test Suite — Engine, SafeStorage, Panels, Sprites, Themes ✅
+- **23 new Playwright tests** (127 → 150):
+  - **Toast system**: toast appears and auto-dismisses, max 3 visible enforcement
+  - **Confirm dialog**: settings reset triggers confirm, cancel dismisses it
+  - **Engine state**: condition evaluation (available choices filtered by flags), goToScene processes items/flags/turns, rewindScene restores snapshots
+  - **SafeStorage**: getJSON returns fallback for missing keys, setJSON/getJSON round-trip
+  - **FocusTrap**: Tab navigation stays within settings overlay (10 Tab presses, focus remains inside)
+  - **OverlayMixin**: settings panel sets aria-hidden=false when shown
+  - **Story intro details**: intro shows protagonist portrait and description text
+  - **ShareHelper**: storyUrl generates canonical root-level URLs without /web/ prefix
+  - **Sprites**: CatSpriteGenerator produces deterministic data URLs (same name→same result, different name→different result)
+  - **Tracker**: toggleFavorite/isFavorite toggle correctly
+  - **Stats dashboard sorting**: search + sort work together without crashes
+  - **Typewriter effect**: text fully visible (no tw-hidden chars) after click
+  - **Ambient audio**: AmbientAudio class is available with init method
+  - **Color themes**: settings swatch changes --accent-cyan CSS variable
+  - **Reading time**: tracker records and formats duration correctly (125000ms → "2m 5s")
+  - **Data manager**: instance has expected DATA_KEYS array
+  - **Engine conditionals**: all/any/not compound conditions evaluate correctly
+  - **YAML parser**: YAMLParser.parse() handles inline YAML content
+  - **Campaign manager**: campaign button exists on title screen
+- SW cache bumped to v114, production build regenerated (185KB JS, 96KB CSS)
+- All 34 JS files pass `node --check`, 204/204 unit tests, 150/150 Playwright tests
+- README updated with test count
+
+## Log (continued)
+- 2026-03-30 (5:27 AM): Phase 132 — Added 23 Playwright tests covering: toast system (appear + max cap), confirm dialog, engine state (choices/items/flags/rewind), SafeStorage (fallback + round-trip), FocusTrap (Tab containment), OverlayMixin (aria-hidden), story intro details, ShareHelper URL generation, sprite determinism, tracker favorites, stats dashboard search+sort, typewriter effect, ambient audio, color themes, reading time tracking, DataManager keys, compound conditions, YAML parsing, campaign button. Test count 127→150. SW v114, 185KB bundle. All 34 JS + 204/204 unit + 150/150 Playwright pass. Committed & pushed.
