@@ -2876,3 +2876,68 @@ test.describe('CampaignFlow', () => {
     expect(left).toBeTruthy();
   });
 });
+
+// ─────────────────────────────────────────────────
+test.describe('PlaybackController — Ending Helpers', () => {
+  test('getSessionElapsed returns elapsed time and resets timer', async ({ page }) => {
+    await page.goto('/web/');
+    const result = await page.evaluate(() => {
+      const pc = new PlaybackController({
+        ui: {}, settings: { get: () => false }, textHistory: { add() {}, clear() {} },
+        audio: { enabled: false, setTheme() {} }, saveManager: { autoSave() {} },
+        tracker: { recordVisitedScenes() {} }, vnContainer: document.createElement('div')
+      });
+      pc.storyStartTime = Date.now() - 5000;
+      const elapsed = pc.getSessionElapsed();
+      const secondCall = pc.getSessionElapsed();
+      return { elapsed: elapsed >= 4900 && elapsed <= 6000, secondCall };
+    });
+    expect(result.elapsed).toBe(true);
+    expect(result.secondCall).toBe(0);
+  });
+
+  test('injectReadingTime creates and reuses DOM element', async ({ page }) => {
+    await page.goto('/web/');
+    const result = await page.evaluate(() => {
+      const pc = new PlaybackController({
+        ui: {}, settings: { get: () => false }, textHistory: { add() {}, clear() {} },
+        audio: { enabled: false, setTheme() {} }, saveManager: { autoSave() {} },
+        tracker: { recordVisitedScenes() {} }, vnContainer: document.createElement('div')
+      });
+      const grid = document.createElement('div');
+      pc.injectReadingTime(grid, 125000);
+      const firstChild = grid.firstChild;
+      const text = firstChild?.querySelector('.ending-stat-value')?.textContent;
+      // Inject again — should reuse element
+      pc.injectReadingTime(grid, 60000);
+      const sameElement = grid.firstChild === firstChild;
+      return { hasChild: !!firstChild, text: text?.includes('2m'), sameElement };
+    });
+    expect(result.hasChild).toBe(true);
+    expect(result.text).toBe(true);
+    expect(result.sameElement).toBe(true);
+  });
+
+  test('showNewEndingBadge creates and reuses badge element', async ({ page }) => {
+    await page.goto('/web/');
+    const result = await page.evaluate(() => {
+      const pc = new PlaybackController({
+        ui: {}, settings: { get: () => false }, textHistory: { add() {}, clear() {} },
+        audio: { enabled: false, setTheme() {} }, saveManager: { autoSave() {} },
+        tracker: { recordVisitedScenes() {} }, vnContainer: document.createElement('div')
+      });
+      const endingEl = document.createElement('div');
+      pc.showNewEndingBadge(endingEl);
+      const badge = endingEl.querySelector('.new-ending-badge');
+      const text = badge?.textContent;
+      // Call again — should reuse same element
+      const endingEl2 = document.createElement('div');
+      pc.showNewEndingBadge(endingEl2);
+      const badge2 = endingEl2.querySelector('.new-ending-badge');
+      return { hasBadge: !!badge, text: text?.includes('New Ending'), reused: badge === badge2 };
+    });
+    expect(result.hasBadge).toBe(true);
+    expect(result.text).toBe(true);
+    expect(result.reused).toBe(true);
+  });
+});
