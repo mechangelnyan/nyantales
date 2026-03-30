@@ -37,7 +37,7 @@ cd dist && python3 -m http.server 9877
 
 Build output: **186KB JS** (from 361KB), **96KB CSS** (from 125KB). Gzip'd: ~50KB JS, ~15KB CSS. GitHub Pages CI runs the build automatically.
 
-**Testing:** 204 unit tests (Node.js) + 100 Playwright browser tests covering UI, a11y, persistence, deep links, and more. Run `npm test` and `npx playwright test`.
+**Testing:** 204 unit tests (Node.js) + 107 Playwright browser tests covering UI, a11y, persistence, deep links, campaign flow, and more. Run `npm test` and `npx playwright test`.
 
 **Features:**
 - 🎮 30 interactive stories with branching narratives

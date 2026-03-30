@@ -28,7 +28,7 @@ class RouteMap {
     this._tooltip = null;
     this._tooltipRefs = null; // pre-built tooltip child elements
     this._animFrame = null;
-    this._boundHandlers = {};
+    this._evtCtrl = null;
     this._built = false;
   }
 
@@ -396,14 +396,18 @@ class RouteMap {
     const canvas = this.canvas;
     if (!canvas) return;
 
+    // AbortController for clean bulk unbind
+    this._evtCtrl = new AbortController();
+    const sig = { signal: this._evtCtrl.signal };
+
     // Mouse pan
-    this._boundHandlers.mousedown = (e) => {
+    canvas.addEventListener('mousedown', (e) => {
       this._dragging = true;
       this._dragStart = { x: e.clientX, y: e.clientY };
       this._panStart = { ...this._pan };
       canvas.classList.add('route-map-grabbing');
-    };
-    this._boundHandlers.mousemove = (e) => {
+    }, sig);
+    window.addEventListener('mousemove', (e) => {
       if (this._dragging) {
         const dx = (e.clientX - this._dragStart.x) / this._zoom;
         const dy = (e.clientY - this._dragStart.y) / this._zoom;
@@ -413,30 +417,30 @@ class RouteMap {
       } else {
         this._checkHover(e);
       }
-    };
-    this._boundHandlers.mouseup = () => {
+    }, sig);
+    window.addEventListener('mouseup', () => {
       this._dragging = false;
       canvas.classList.remove('route-map-grabbing');
-    };
-    this._boundHandlers.wheel = (e) => {
+    }, sig);
+    canvas.addEventListener('wheel', (e) => {
       e.preventDefault();
       const factor = e.deltaY < 0 ? 1.1 : 0.9;
       this._zoom = Math.max(0.15, Math.min(3, this._zoom * factor));
       this._render();
-    };
-    this._boundHandlers.keydown = (e) => {
+    }, { ...sig, passive: false });
+    document.addEventListener('keydown', (e) => {
       if (e.key === 'Escape') this.hide();
-    };
+    }, sig);
 
     // Touch pan
-    this._boundHandlers.touchstart = (e) => {
+    canvas.addEventListener('touchstart', (e) => {
       if (e.touches.length === 1) {
         this._dragging = true;
         this._dragStart = { x: e.touches[0].clientX, y: e.touches[0].clientY };
         this._panStart = { ...this._pan };
       }
-    };
-    this._boundHandlers.touchmove = (e) => {
+    }, { ...sig, passive: true });
+    canvas.addEventListener('touchmove', (e) => {
       if (this._dragging && e.touches.length === 1) {
         e.preventDefault();
         const dx = (e.touches[0].clientX - this._dragStart.x) / this._zoom;
@@ -445,39 +449,21 @@ class RouteMap {
         this._pan.y = this._panStart.y + dy;
         this._render();
       }
-    };
-    this._boundHandlers.touchend = () => { this._dragging = false; };
-
-    canvas.addEventListener('mousedown', this._boundHandlers.mousedown);
-    window.addEventListener('mousemove', this._boundHandlers.mousemove);
-    window.addEventListener('mouseup', this._boundHandlers.mouseup);
-    canvas.addEventListener('wheel', this._boundHandlers.wheel, { passive: false });
-    canvas.addEventListener('touchstart', this._boundHandlers.touchstart, { passive: true });
-    canvas.addEventListener('touchmove', this._boundHandlers.touchmove, { passive: false });
-    canvas.addEventListener('touchend', this._boundHandlers.touchend);
-    document.addEventListener('keydown', this._boundHandlers.keydown);
+    }, { ...sig, passive: false });
+    canvas.addEventListener('touchend', () => { this._dragging = false; }, sig);
 
     // Resize
-    this._boundHandlers.resize = () => {
+    window.addEventListener('resize', () => {
       this._resizeCanvas();
       this._render();
-    };
-    window.addEventListener('resize', this._boundHandlers.resize);
+    }, sig);
   }
 
   _unbindEvents() {
-    const canvas = this.canvas;
-    if (!canvas) return;
-
-    canvas.removeEventListener('mousedown', this._boundHandlers.mousedown);
-    window.removeEventListener('mousemove', this._boundHandlers.mousemove);
-    window.removeEventListener('mouseup', this._boundHandlers.mouseup);
-    canvas.removeEventListener('wheel', this._boundHandlers.wheel);
-    canvas.removeEventListener('touchstart', this._boundHandlers.touchstart);
-    canvas.removeEventListener('touchmove', this._boundHandlers.touchmove);
-    canvas.removeEventListener('touchend', this._boundHandlers.touchend);
-    document.removeEventListener('keydown', this._boundHandlers.keydown);
-    window.removeEventListener('resize', this._boundHandlers.resize);
+    if (this._evtCtrl) {
+      this._evtCtrl.abort();
+      this._evtCtrl = null;
+    }
   }
 
   _checkHover(e) {
