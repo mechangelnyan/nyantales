@@ -2637,5 +2637,26 @@ cd /tmp/nyantales && python3 -m http.server 9876
 - All 37 JS files pass `node --check`, 204/204 unit tests, 175/175 Playwright tests
 - 2 commits pushed
 
+## Phase 139: StoryCardManager Extraction from main.js ✅
+- **Extracted `StoryCardManager` class** (`web/js/story-card-manager.js`) — card decoration/refresh/reset logic pulled out of main.js
+  - `getMeta(story)` — cached story metadata computation (sceneCount, readMins, wordCount, totalEndings)
+  - `buildSearchBlob(story)` — lowercase search string for story grid filtering (includes CHARACTER_DATA)
+  - `decorate(card, story)` — full card decoration with badges, progress, meta, favorites, info button
+  - `refresh(storyIndex, cards)` — partial refresh of card state without DOM rebuild
+  - `reset(card, story)` — strip dynamic decorations for re-decoration (lock state change)
+  - `clearRefs()` — clear internal ref cache before full grid rebuild
+  - Internal `_metaCache` (Map) and `_cardRefs` (Map) managed inside class
+- **main.js: 1830 → 1554 lines** (276 lines removed, 15% reduction)
+  - `getStoryMeta()` now delegates to `cardManager.getMeta()`
+  - `decorateStoryCard()`, `_refreshStoryCards()`, `_resetCardForRedecorate()`, `buildStorySearchBlob()` all moved
+  - `renderTitleScreen()` uses `cardManager.decorate()` and `cardManager.refresh()`
+- Added to: index.html script chain, sw.js pre-cache, build.sh bundle
+- **6 new Playwright tests** for StoryCardManager (class availability, getMeta caching, search blob with CHARACTER_DATA, card decoration attributes, clearRefs)
+- **Playwright test count: 175 → 181**
+- SW cache bumped to v121, production build regenerated (190KB JS, 96KB CSS)
+- All 38 JS files pass `node --check`, 204/204 unit tests, 181/181 Playwright tests
+- Committed & pushed
+
 ## Log (continued)
+- 2026-03-30 (12:27 PM): Phase 139 — Extracted StoryCardManager class from main.js: card decoration, refresh, reset, metadata, and search blob. main.js 1830→1554 lines (15% reduction). 6 new Playwright tests. SW v121, 190KB bundle. All 38 JS + 204/204 unit + 181/181 Playwright pass. Committed & pushed.
 - 2026-03-30 (11:27 AM): Phase 138 — Extracted AppRouter class from main.js (URL sync, storyBasePath, route serial, PWA detection). DRYed playScene skip-read duplication (_renderOneScene shared function, _isCampaignTransient + _effectOverride helpers). main.js 1875→1830 lines. 6 new AppRouter Playwright tests. SW v120, 189KB bundle. All 37 JS + 204/204 unit + 175/175 Playwright pass. 2 commits pushed.
