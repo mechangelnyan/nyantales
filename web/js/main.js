@@ -115,7 +115,7 @@
   // Migrate legacy save format to new slot system
   saveManager.migrateLegacy();
 
-  // AI portraits preloaded in parallel with story/campaign loading during boot (see boot())
+
 
   // ── Theme & Settings ──
 
@@ -150,14 +150,9 @@
   const router = new AppRouter();
   const stories = new StoryLoader(router);
 
-  // Game state aliases (delegated to PlaybackController)
-  // Access via playback.engine, playback.currentSlug, playback.campaignMode, etc.
-  // storyStartTime, _endingTimeBox, _endingNewBadge managed by PlaybackController
-
   // Convenience aliases (used heavily throughout main.js)
   function clearAutoPlayTimer() { playback.clearAutoPlay(); }
   function trackTimeout(fn, ms) { return playback.trackTimeout(fn, ms); }
-  function clearMiscTimers() { playback.clearMiscTimers(); }
   function advanceScene() { return playback.advanceScene(); }
 
   /** Check if any overlay panel is currently visible */
@@ -187,26 +182,16 @@
   theme.wireReactivity({ ui, audio, updateAutoPlayHUD, clearAutoPlayTimer });
 
   // ── Cached DOM refs ──
-  // HUD indicators are now managed by PlaybackController (autoPlay, skip, progress, bar)
 
   const btnAutoEl      = document.getElementById('btn-auto');
   const btnInstallEl   = document.getElementById('btn-install');
   const statsEl        = document.getElementById('title-stats');
   const textboxEl      = document.getElementById('vn-textbox');
-  // chapterGridEl, sectionDivider, campaignBtnEl now managed by CampaignUI
 
-  // Convenience aliases delegating to PlaybackController
-  function updateProgressHUD() { playback.updateProgressHUD(); }
-  function updateSkipIndicator(active) { playback.updateSkipIndicator(active); }
 
-  // ── Load Stories (delegated to StoryLoader) ──
-
-  // ── Core Scene Playback (delegated to PlaybackController) ──
 
   /** Play a scene through the playback controller. */
   function playScene(scene) { return playback.playScene(scene); }
-
-  // ── Start / Restart Story ──
 
   // ── Engine Callbacks (wired once, reference playback.engine dynamically) ──
 
@@ -225,7 +210,7 @@
 
   ui._ending._onEndingHook = (scene, engine) => {
     clearAutoPlayTimer();
-    updateSkipIndicator(false);
+    playback.updateSkipIndicator(false);
 
     // Record reading time to tracker for persistent stats
     const sessionElapsed = playback.getSessionElapsed();
@@ -445,10 +430,7 @@
 
   const btnContinueEl = document.getElementById('btn-continue');
 
-  // Install button logic managed by InstallManager (Phase 146)
   const installMgr = new InstallManager(btnInstallEl, router);
-
-  // btn-continue click is handled by title-actions event delegation above
 
   // ── Search, Filter & Sort (delegated to TitleBrowser) ──
 
@@ -463,8 +445,6 @@
     titleBg
   });
 
-  // buildStorySearchBlob moved to StoryCardManager (Phase 139)
-
   // ── Title Screen Renderer ──
 
   const titleScreen = new TitleScreen({
@@ -474,7 +454,6 @@
   });
 
   function renderTitleScreen() { titleScreen.render(); }
-  function updateContinueButton() { titleScreen.updateContinueButton(); }
 
   // ── Click/Tap to Advance ──
 
@@ -575,7 +554,6 @@
   // ── Audio Toggle ──
 
   const btnAudio = document.getElementById('btn-audio');
-  // btn-audio click is handled by HUD event delegation
 
   function toggleAudio() {
     const enabled = audio.toggle();
@@ -591,8 +569,6 @@
   const btnRewind = document.getElementById('btn-rewind');
   const hudMoreBtn = document.getElementById('btn-hud-more');
   const hudToolbar = document.querySelector('.vn-hud');
-
-  // Mobile sticky filter sync is handled by TitleBrowser (scroll/resize/orientation listeners)
 
   // Wire rewind button into playback controller
   playback.setRewindButton(btnRewind);
@@ -697,8 +673,6 @@
   // ── Boot ──
 
   achievements.checkAll();
-
-  // Install prompt events handled by InstallManager (constructor wires them)
 
   // Respect browser Back/Forward for ?story=slug deep links.
   window.addEventListener('popstate', () => {
