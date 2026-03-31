@@ -2,7 +2,7 @@
  * NyanTales Visual Novel — UI Controller
  * Handles DOM updates, scene rendering, character sprites.
  * Delegates to: BackgroundManager (bg transitions), TypewriterController (text reveal),
- * SpriteManager (character sprites).
+ * SpriteManager (character sprites), EndingOverlay (ending screen).
  */
 
 class VNUI {
@@ -48,6 +48,11 @@ class VNUI {
     // Typewriter delegated to TypewriterController (Phase 152)
     this._tw = new TypewriterController(this.textEl, this.textboxEl, this.clickIndicator);
 
+    // Ending overlay delegated to EndingOverlay (Phase 153)
+    this._ending = new EndingOverlay(this.endingEl, this.choicesEl, this._sprites);
+    // Expose refs for external access (main.js ending hook uses statsGrid/actionsRow)
+    this._endingRefs = this._ending.refs;
+
     // Cached container ref (used for shake effects)
     this.containerEl = document.querySelector('.vn-container');
 
@@ -63,14 +68,8 @@ class VNUI {
     // Choice button pool (avoids createElement per choice per render)
     this._choiceBtnPool = [];
 
-    // Pre-built ending overlay child elements (avoids innerHTML per ending)
-    this._endingRefs = this._buildEndingDOM();
-
     // State — typewriter proxied via _tw
     this._lastInventory = ''; // cached inventory key to skip redundant DOM updates
-
-    // Init ending event delegation (one-time, prevents listener leak)
-    this._initEndingDelegation();
 
     // Mood emoji map
     this.moodEmojis = {
@@ -341,10 +340,9 @@ class VNUI {
 
     // Check for ending — show a "Continue" prompt first, then the ending overlay
     if (scene.ending) {
-      await this._waitForEndingContinue();
-      this._showEnding(scene, engine);
-      // Notify external hook (tracker, achievements)
-      if (this._onEndingHook) this._onEndingHook(scene, engine);
+      this.clickIndicator.classList.add('hidden');
+      await this._ending.waitForContinue();
+      this._ending.show(scene, engine);
       return;
     }
 
@@ -376,57 +374,7 @@ class VNUI {
     this._tw.skip();
   }
 
-  /**
-   * Show a "Continue ▶" button and wait for the player to click/tap it
-   * before revealing the ending overlay. Gives the player a moment to
-   * absorb the final scene text.
-   * Uses a reusable button element and permanent event handlers to avoid
-   * per-show addEventListener/removeEventListener churn.
-   * @returns {Promise<void>}
-   */
-  _waitForEndingContinue() {
-    return new Promise(resolve => {
-      this.clickIndicator.classList.add('hidden');
-      this.choicesEl.textContent = '';
-      this.choicesEl.classList.remove('hidden');
-
-      // Reuse the continue button element across endings
-      if (!this._endingContinueBtn) {
-        this._endingContinueBtn = document.createElement('button');
-        this._endingContinueBtn.className = 'choice-btn ending-continue-btn fade-in';
-        this._endingContinueBtn.textContent = 'Continue ▶';
-
-        // Permanent click handler — only fires when _endingContinueResolve is set
-        this._endingContinueBtn.addEventListener('click', () => {
-          if (this._endingContinueResolve) this._dismissEndingContinue();
-        });
-
-        // Permanent keydown handler — only fires when _endingContinueResolve is set
-        document.addEventListener('keydown', (e) => {
-          if (!this._endingContinueResolve) return;
-          if (e.key === 'Enter' || e.key === ' ') {
-            e.preventDefault();
-            this._dismissEndingContinue();
-          }
-        });
-      }
-
-      this._endingContinueResolve = resolve;
-      this.choicesEl.appendChild(this._endingContinueBtn);
-      this._endingContinueBtn.focus();
-    });
-  }
-
-  /** Dismiss the ending continue prompt and resolve the pending promise. */
-  _dismissEndingContinue() {
-    const resolve = this._endingContinueResolve;
-    this._endingContinueResolve = null;
-    this.choicesEl.textContent = '';
-    this.choicesEl.classList.add('hidden');
-    if (resolve) resolve();
-  }
-
-  // ── Choices ──
+    // ── Choices ──
 
   /**
    * Show choices using event delegation on choicesEl (single listener,
@@ -581,209 +529,11 @@ class VNUI {
     this.conditionalEl.textContent = '';
   }
 
-  // ── Ending ──
+  // ── Ending (delegated to EndingOverlay — Phase 153) ──
 
-  /**
-   * Build the ending overlay DOM tree once. Returns refs to dynamic elements
-   * so _showEnding can swap content via textContent/classList instead of innerHTML.
-   * @private
-   */
-  _buildEndingDOM() {
-    const r = {};
-    r.iconEl = document.createElement('div');
-    r.iconEl.className = 'ending-icon';
-
-    r.typeEl = document.createElement('div');
-    r.typeEl.className = 'ending-type';
-
-    r.textEl = document.createElement('div');
-    r.textEl.className = 'ending-text';
-
-    r.statsGrid = document.createElement('div');
-    r.statsGrid.className = 'ending-stats-grid';
-    r.statsGrid.id = 'ending-stats-grid';
-
-    // Turns stat (always visible)
-    r.turnsBox = document.createElement('div');
-    r.turnsBox.className = 'ending-stat-box';
-    r.turnsVal = document.createElement('span');
-    r.turnsVal.className = 'ending-stat-value';
-    const turnsLabel = document.createElement('span');
-    turnsLabel.className = 'ending-stat-label';
-    turnsLabel.textContent = 'Turns';
-    r.turnsBox.appendChild(r.turnsVal);
-    r.turnsBox.appendChild(turnsLabel);
-
-    // Scenes stat (always visible)
-    r.scenesBox = document.createElement('div');
-    r.scenesBox.className = 'ending-stat-box';
-    r.scenesVal = document.createElement('span');
-    r.scenesVal.className = 'ending-stat-value';
-    r.scenesLabel = document.createElement('span');
-    r.scenesLabel.className = 'ending-stat-label';
-    r.scenesBox.appendChild(r.scenesVal);
-    r.scenesBox.appendChild(r.scenesLabel);
-
-    // Inventory stat (conditionally shown)
-    r.invBox = document.createElement('div');
-    r.invBox.className = 'ending-stat-box ending-stat-wide';
-    r.invVal = document.createElement('span');
-    r.invVal.className = 'ending-stat-value';
-    const invLabel = document.createElement('span');
-    invLabel.className = 'ending-stat-label';
-    invLabel.textContent = 'Items Collected';
-    r.invBox.appendChild(r.invVal);
-    r.invBox.appendChild(invLabel);
-
-    // Actions row (always the same buttons)
-    r.actionsRow = document.createElement('div');
-    r.actionsRow.className = 'ending-actions';
-    r.restartBtn = document.createElement('button');
-    r.restartBtn.className = 'ending-btn';
-    r.restartBtn.dataset.action = 'restart';
-    r.restartBtn.textContent = '↻ Play Again';
-    r.menuBtn = document.createElement('button');
-    r.menuBtn.className = 'ending-btn ending-btn-secondary';
-    r.menuBtn.dataset.action = 'menu';
-    r.menuBtn.textContent = '⏎ Story List';
-    r.shareBtn = document.createElement('button');
-    r.shareBtn.className = 'ending-btn ending-btn-secondary ending-btn-share';
-    r.shareBtn.dataset.action = 'share';
-    r.shareBtn.title = 'Copy ending summary to clipboard';
-    r.shareBtn.textContent = '📋 Share';
-    r.actionsRow.appendChild(r.restartBtn);
-    r.actionsRow.appendChild(r.menuBtn);
-    r.actionsRow.appendChild(r.shareBtn);
-
-    return r;
-  }
-
-  /**
-   * Show the ending overlay. Uses pre-built DOM elements (no innerHTML) and
-   * event delegation on endingEl to avoid listener leaks.
-   */
-  _showEnding(scene, engine) {
-    const ending = scene.ending;
-    const type = ending.type || 'neutral';
-    const icon = VNUI._ENDING_ICONS[type] || '📋';
-
-    // Dim sprites with ending-state CSS class
-    this._sprites.applyEndingState(type);
-
-    // Use cached scene count if available (avoids Object.keys allocation per ending)
-    let totalScenes = this._totalScenes;
-    if (!totalScenes) { totalScenes = 0; for (const _ in engine.scenes) totalScenes++; }
-    const visitPct = totalScenes > 0 ? Math.round((engine.state.visited.size / totalScenes) * 100) : 0;
-
-    // Store share data for delegation handler
-    const shareUrl = ShareHelper.storyUrl(engine.story?.slug);
-
-    this._endingShareData = {
-      icon,
-      endingTitle: ending.title || type.toUpperCase(),
-      storyTitle: engine.story.title || 'Unknown Story',
-      storySlug: engine.story?.slug || '',
-      turns: engine.state.turns,
-      visitedSize: engine.state.visited.size,
-      totalScenes,
-      visitPct,
-      inventory: [...engine.state.inventory],
-      shareUrl
-    };
-
-    const r = this._endingRefs;
-
-    // Update pre-built elements with current ending data
-    r.iconEl.textContent = icon;
-    r.typeEl.className = `ending-type ${type}`;
-    r.typeEl.textContent = (ending.title || type.toUpperCase()).toUpperCase();
-    r.textEl.textContent = engine.interpolate(ending.text || scene.text || '');
-    r.turnsVal.textContent = engine.state.turns;
-    r.scenesVal.textContent = `${engine.state.visited.size}/${totalScenes}`;
-    r.scenesLabel.textContent = `Scenes (${visitPct}%)`;
-
-    // Rebuild stats grid (just re-append existing elements, no creation)
-    r.statsGrid.textContent = '';
-    r.statsGrid.appendChild(r.turnsBox);
-    r.statsGrid.appendChild(r.scenesBox);
-    if (engine.state.inventory.length) {
-      r.invVal.textContent = `🎒 ${engine.state.inventory.join(', ')}`;
-      r.statsGrid.appendChild(r.invBox);
-    }
-
-    // Assemble into endingEl (no innerHTML — just re-append pre-built children)
-    this.endingEl.textContent = '';
-    this.endingEl.appendChild(r.iconEl);
-    this.endingEl.appendChild(r.typeEl);
-    this.endingEl.appendChild(r.textEl);
-    this.endingEl.appendChild(r.statsGrid);
-    this.endingEl.appendChild(r.actionsRow);
-    this.endingEl.classList.remove('hidden');
-
-    this.endingEl.setAttribute('role', 'dialog');
-    this.endingEl.setAttribute('aria-label', `Ending: ${ending.title || type}`);
-
-    // Auto-focus the "Play Again" button for keyboard users
-    requestAnimationFrame(() => r.restartBtn.focus());
-  }
-
-  /**
-   * Initialize event delegation on the ending overlay (called once).
-   * This avoids creating new listeners on every ending render.
-   * @private
-   */
-  _initEndingDelegation() {
-    if (this._endingDelegated) return;
-    this._endingDelegated = true;
-
-    this.endingEl.addEventListener('click', async (e) => {
-      const btn = e.target.closest('[data-action]');
-      if (!btn) return;
-
-      const action = btn.dataset.action;
-      if (action === 'restart' && this._onRestart) {
-        this._onRestart();
-      } else if (action === 'menu' && this._onMenu) {
-        this._onMenu();
-      } else if (action === 'share') {
-        await this._shareEnding();
-      } else if (action === 'campaign-next' && this._onCampaignEnding) {
-        this._onCampaignEnding();
-      }
-    });
-  }
-
-  /** Share ending card via Web Share API → clipboard fallback */
-  async _shareEnding() {
-    const d = this._endingShareData;
-    if (!d) return;
-
-    const shareText = [
-      `🐱 NyanTales — ${d.storyTitle}`,
-      `${d.icon} Ending: ${d.endingTitle}`,
-      `📊 ${d.turns} turns · ${d.visitedSize}/${d.totalScenes} scenes (${d.visitPct}%)`,
-      d.inventory.length ? `🎒 Items: ${d.inventory.join(', ')}` : '',
-      '',
-      `🎮 Play this story: ${d.shareUrl}`
-    ].filter(Boolean).join('\n');
-
-    await ShareHelper.share({
-      title: `NyanTales — ${d.storyTitle}`,
-      text: shareText,
-      url: d.shareUrl,
-      successMessage: 'Copied to clipboard!',
-      successIcon: '📋',
-      errorMessage: 'Failed to copy'
-    });
-  }
-
-  hideEnding() {
-    this.endingEl.classList.add('hidden');
-    this.endingEl.textContent = '';
-  }
-
-  onRestart(callback) { this._onRestart = callback; }
-  onMenu(callback) { this._onMenu = callback; }
+  hideEnding() { this._ending.hide(); }
+  onRestart(callback) { this._ending.onRestart(callback); }
+  onMenu(callback) { this._ending.onMenu(callback); }
 
   // ── Text Formatting (delegated to TypewriterController) ──
 
@@ -805,8 +555,7 @@ class VNUI {
   // with var(--accent-r/g/b). RouteMap has its own copy for canvas rendering.
 }
 
-/** Ending type → icon map (static, avoids object literal allocation per ending). */
-VNUI._ENDING_ICONS = { good: '🌟', bad: '💀', neutral: '📋', secret: '🔮' };
+// Note: _ENDING_ICONS moved to EndingOverlay._ICONS (Phase 153)
 
 // Note: _FORMAT_RE, _HTML_ESC_RE, _HTML_ESC_MAP moved to TypewriterController (Phase 152)
 // Note: Sprite position arrays moved to SpriteManager._POS_STATIC (Phase 151)
