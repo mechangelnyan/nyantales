@@ -2801,3 +2801,20 @@ cd /tmp/nyantales && python3 -m http.server 9876
 
 ## Log (continued)
 - 2026-03-30 (6:27 PM): Phase 147 — Zero innerHTML in main.js (boot error → DOM API), deduplicated vnContainer query, storySlugMap/storyIdxMap let→const with .clear(), fixed share test assertion (em-dash→hyphen), fixed flaky deep link menu-return test (explicit intro dismiss wait). SW v129, 196KB bundle. All 42 JS + 204/204 unit + 194/194 Playwright pass. Committed & pushed.
+
+## Phase 148: Set-Based Misc Timers, README Freshness ✅
+- **PlaybackController._miscTimers: Array → Set** — O(1) delete instead of O(n) indexOf+splice
+  - `trackTimeout()` uses `.add()` / `.delete()` (was `.push()` / `.indexOf()` + `.splice()`)
+  - `clearMiscTimers()` uses `.clear()` (was `.length = 0`)
+  - Set is semantically correct (timer IDs are unique, no duplicates, order irrelevant)
+- **README accuracy** — updated stale build statistics
+  - File count: 41 → 42 app JS files
+  - Bundle size: 195KB → 196KB JS
+  - Playwright tests: 191 → 194
+- **Playwright tests updated** — 2 tests referenced `_miscTimers.length` (Array API), now use `.size` (Set API)
+- SW cache bumped to v130, production build regenerated (196KB JS, 96KB CSS)
+- All 42 JS files pass `node --check`, 204/204 unit tests, 194/194 Playwright tests
+- Committed & pushed
+
+## Log (continued)
+- 2026-03-30 (7:27 PM): Phase 148 — PlaybackController._miscTimers Array→Set (O(1) delete), README accuracy (42 files, 196KB, 194 Playwright), test fixes for Set API. SW v130, 196KB bundle. All 42 JS + 204/204 unit + 194/194 Playwright pass. Committed & pushed.
