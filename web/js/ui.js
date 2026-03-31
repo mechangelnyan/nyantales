@@ -34,7 +34,10 @@ class VNUI {
     this.spriteGen = new CatSpriteGenerator();
     this.portraits = new PortraitManager(this.spriteGen);
     this.currentStorySlug = null;
-    this._activeSprites = new Map(); // name -> element
+    this._activeSprites = new Map();  // name -> element
+    this._speakerCache = new Map();    // speaker name -> character (per-story)
+    this._charNameCache = new Map();   // character name -> lowercase (per-story)
+    this._charHyphenCache = new Map(); // character name -> hyphenated (per-story)
 
     // Cached container ref (used for shake effects)
     this.containerEl = document.querySelector('.vn-container');
@@ -109,50 +112,45 @@ class VNUI {
 
   // ── Screen Transitions ──
 
-  /** Switch to title screen with fade animation */
-  showTitleScreen() {
-    this.storyScreen.classList.remove('active');
-    this.storyScreen.classList.add('exiting');
-    // Show title with entering animation, then promote to active
-    this.titleScreen.classList.add('entering');
+  /**
+   * Shared screen transition: fade entering screen in, fade exiting screen out.
+   * @param {HTMLElement} show - Screen element to reveal
+   * @param {HTMLElement} hide - Screen element to dismiss
+   */
+  _transitionScreens(show, hide) {
+    hide.classList.remove('active');
+    hide.classList.add('exiting');
+    show.classList.add('entering');
     requestAnimationFrame(() => {
       requestAnimationFrame(() => {
-        this.titleScreen.classList.remove('entering');
-        this.titleScreen.classList.add('active');
+        show.classList.remove('entering');
+        show.classList.add('active');
       });
     });
     clearTimeout(this._screenTransTimer);
     this._screenTransTimer = setTimeout(() => {
-      this.storyScreen.classList.remove('exiting');
+      hide.classList.remove('exiting');
     }, 500);
+  }
+
+  /** Switch to title screen with fade animation */
+  showTitleScreen() {
+    this._transitionScreens(this.titleScreen, this.storyScreen);
     this._clearSprites();
   }
 
   /** Switch to story VN screen with fade animation */
   showStoryScreen() {
-    this.titleScreen.classList.remove('active');
-    this.titleScreen.classList.add('exiting');
-    // Show story with entering animation, then promote to active
-    this.storyScreen.classList.add('entering');
-    requestAnimationFrame(() => {
-      requestAnimationFrame(() => {
-        this.storyScreen.classList.remove('entering');
-        this.storyScreen.classList.add('active');
-      });
-    });
-    clearTimeout(this._screenTransTimer);
-    this._screenTransTimer = setTimeout(() => {
-      this.titleScreen.classList.remove('exiting');
-    }, 500);
+    this._transitionScreens(this.storyScreen, this.titleScreen);
   }
 
   setStorySlug(slug) {
     this.currentStorySlug = slug;
-    this._speakerCache = new Map(); // reset speaker lookup cache per story
-    this._charNameCache = new Map(); // reset lowercase name cache per story
-    this._charHyphenCache = new Map(); // reset hyphenated name cache per story
-    this._lastSpeakerKey = ''; // reset speaker DOM cache
-    this._lastInventory = ''; // reset inventory cache
+    this._speakerCache.clear();    // reset speaker lookup cache per story
+    this._charNameCache.clear();   // reset lowercase name cache per story
+    this._charHyphenCache.clear(); // reset hyphenated name cache per story
+    this._lastSpeakerKey = '';     // reset speaker DOM cache
+    this._lastInventory = '';      // reset inventory cache
   }
 
   /**
@@ -162,7 +160,6 @@ class VNUI {
    * @returns {Object|null}
    */
   _findSpeakerChar(speakerName) {
-    if (!this._speakerCache) this._speakerCache = new Map();
     if (this._speakerCache.has(speakerName)) return this._speakerCache.get(speakerName);
 
     const chars = CHARACTER_DATA[this.currentStorySlug] || [];
@@ -261,8 +258,7 @@ class VNUI {
 
     // Build visible list without spreading (avoids object allocation per character per render)
     // Cache lowercase names per story to avoid toLowerCase() on every render
-    if (!this._charNameCache) this._charNameCache = new Map();
-    if (!this._charHyphenCache) this._charHyphenCache = new Map();
+    // Caches initialized in constructor, cleared in setStorySlug()
     const visible = [];
     const speakerFlags = []; // parallel array: true if the char at this index is speaking
     for (const char of chars) {

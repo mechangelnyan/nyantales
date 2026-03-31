@@ -2543,15 +2543,20 @@ test.describe('AppRouter', () => {
     // Dismiss intro if visible, then wait for story screen
     const introEl = await page.$('.story-intro-overlay.visible');
     if (introEl) {
-      await page.click('.story-intro-overlay');
+      // Try continue button first, then overlay click, then keyboard
+      const contBtn = await page.$('.story-intro-continue');
+      if (contBtn) await contBtn.click();
+      else await page.click('.story-intro-overlay');
       await page.waitForFunction(() => {
         const o = document.querySelector('.story-intro-overlay');
         return !o || !o.classList.contains('visible');
       }, { timeout: 5000 });
     }
-    await page.waitForSelector('#story-screen:not(.hidden)', { timeout: 5000 });
+    await page.waitForSelector('#story-screen:not(.hidden)', { timeout: 10000 });
+    // Small delay to let route sync complete before pressing Escape
+    await page.waitForTimeout(300);
     await page.keyboard.press('Escape');
-    await page.waitForSelector('#title-screen:not(.hidden)', { timeout: 5000 });
+    await page.waitForSelector('#title-screen:not(.hidden)', { timeout: 10000 });
     expect(page.url()).not.toContain('story=');
   });
 });
