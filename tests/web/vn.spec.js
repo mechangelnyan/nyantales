@@ -2273,8 +2273,7 @@ test.describe('Text Formatting', () => {
   test('format text converts markdown-like syntax to HTML', async ({ page }) => {
     await waitForTitleScreen(page);
     const result = await page.evaluate(() => {
-      const ui = new VNUI();
-      const formatted = ui._formatText('Hello `code` and **bold** and *italic*');
+      const formatted = TypewriterController.formatText('Hello `code` and **bold** and *italic*');
       return {
         hasCode: formatted.includes('<code'),
         hasBold: formatted.includes('<strong'),
