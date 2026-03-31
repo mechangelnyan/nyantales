@@ -3041,3 +3041,26 @@ cd /tmp/nyantales && python3 -m http.server 9876
   - Settings/history panels could be open from prior keyboard events, intercepting Escape before achievements
 - SW cache bumped to v139, production build regenerated (198KB JS, 96KB CSS)
 - All 50 JS files pass `node --check`, 204/204 unit tests, 227/227 Playwright tests
+
+## Phase 159: Cached MediaQueryList, Pre-Built Empty State, Allocation-Free Sort, Splice RemoveItem ✅
+- **TitleBrowser cached `_mobileMQ`** — `window.matchMedia('(max-width: 768px)')` called once at construction
+  - `syncMobileSticky()` uses cached `_mobileMQ.matches` instead of creating a new MediaQueryList per scroll event
+  - Called on every scroll, resize, and orientationchange — significant savings on mobile
+- **TitleBrowser pre-built empty state children** — `_emptyIconEl` and `_emptyHintEl` built in constructor
+  - Previously: lazy guard `if (!this._emptyIconEl)` checked on every filter invocation with 0 results
+  - Now: children always exist, `_applyFilter` directly sets textContent (no conditional element creation)
+- **TitleBrowser allocation-free sort** — `_applySortToGrid()` reuses `_sortBuf` array instead of `[...this._getCards()]`
+  - Buffer resized only when card count changes, repopulated in-place per sort
+  - Avoids spread-into-new-array allocation on every sort dropdown change or title screen render
+- **Engine `removeItem()` uses `indexOf + splice`** — replaces `.filter()` which allocated a new array
+  - Mutates in-place (single splice) instead of creating a filtered copy
+  - Minor: inventories are small, but follows the "zero unnecessary allocation" principle
+- **Flaky test fix** — achievements panel Playwright test now closes all known overlay types (was only checking settings + history)
+  - Checks: settings, history, about, gallery, stats, keyboard-help overlays
+  - Up to 5 Escape attempts with 150ms settle between each
+- SW cache bumped to v140, production build regenerated (198KB JS, 96KB CSS)
+- All 50 JS files pass `node --check`, 204/204 unit tests, 227/227 Playwright tests
+- Committed & pushed
+
+## Log (continued)
+- 2026-03-31 (6:27 AM): Phase 159 — Cached MediaQueryList in TitleBrowser (avoids matchMedia per scroll), pre-built empty state children (removes lazy init guard), allocation-free sort buffer (_sortBuf reused), engine removeItem via splice instead of filter. Flaky achievements test fix (checks all 6 overlay types). SW v140, 198KB bundle. All 50 JS + 204/204 unit + 227/227 Playwright pass. Committed & pushed.
