@@ -3194,3 +3194,37 @@ test.describe('TypewriterController', () => {
     expect(delegates).toBe(true);
   });
 });
+
+test.describe('ChoiceRenderer', () => {
+  test('class is available and has expected API', async ({ page }) => {
+    await page.goto('/web/');
+    const api = await page.evaluate(() => {
+      return typeof ChoiceRenderer === 'function'
+        && typeof ChoiceRenderer.prototype.show === 'function'
+        && typeof ChoiceRenderer.prototype.hide === 'function'
+        && typeof ChoiceRenderer.prototype.onChoice === 'function';
+    });
+    expect(api).toBe(true);
+  });
+
+  test('VNUI delegates choices to ChoiceRenderer', async ({ page }) => {
+    await page.goto('/web/');
+    const delegates = await page.evaluate(() => {
+      const ui = new VNUI();
+      return ui._choices instanceof ChoiceRenderer
+        && typeof ui._currentChoices !== 'undefined'
+        && Array.isArray(ui._choiceBtnPool);
+    });
+    expect(delegates).toBe(true);
+  });
+
+  test('choice buttons appear during gameplay', async ({ page }) => {
+    const { choices } = await startStory(page);
+    await ensureFullTextVisible(page);
+    const count = await choices.count();
+    expect(count).toBeGreaterThan(0);
+    // Verify buttons use the pool pattern (have data-choice-idx)
+    const firstIdx = await choices.first().getAttribute('data-choice-idx');
+    expect(firstIdx).toBe('0');
+  });
+});

@@ -41,6 +41,7 @@ JS_FILES=(
   "js/sprite-manager.js"
   "js/background-manager.js"
   "js/typewriter.js"
+  "js/choice-renderer.js"
   "js/ending-overlay.js"
   "js/portraits.js"
   "js/tracker.js"

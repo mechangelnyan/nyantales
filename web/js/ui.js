@@ -62,11 +62,11 @@ class VNUI {
     this._speakerText = document.createTextNode('');
     this._lastSpeakerKey = ''; // cache key to skip redundant updates
 
+    // Choice rendering delegated to ChoiceRenderer (Phase 154)
+    this._choices = new ChoiceRenderer(this.choicesEl);
+
     // Pre-built inventory item pool
     this._invPool = []; // reusable <span> elements
-
-    // Choice button pool (avoids createElement per choice per render)
-    this._choiceBtnPool = [];
 
     // State — typewriter proxied via _tw
     this._lastInventory = ''; // cached inventory key to skip redundant DOM updates
@@ -374,102 +374,17 @@ class VNUI {
     this._tw.skip();
   }
 
-    // ── Choices ──
+    // ── Choices (delegated to ChoiceRenderer — Phase 154) ──
 
-  /**
-   * Show choices using event delegation on choicesEl (single listener,
-   * initialized once in constructor-like flow via _initChoiceDelegation).
-   */
-  showChoices(choices, engine) {
-    this.choicesEl.textContent = '';
-    this.choicesEl.classList.remove('hidden');
-    // Store current choices for delegation handler lookup
-    this._currentChoices = choices;
+  showChoices(choices, engine) { this._choices.show(choices, engine); }
+  hideChoices() { this._choices.hide(); }
+  onChoice(callback) { this._choices.onChoice(callback); }
 
-    // Grow pool as needed (reuse buttons across choice renders)
-    while (this._choiceBtnPool.length < choices.length) {
-      const btn = document.createElement('button');
-      // Pre-build child structure: [numHint span] [text node] [visited span]
-      btn._numSpan = document.createElement('span');
-      btn._numSpan.className = 'choice-num';
-      btn._textNode = document.createTextNode('');
-      btn._visitedSpan = document.createElement('span');
-      btn._visitedSpan.className = 'choice-visited';
-      btn._visitedSpan.title = 'Previously visited';
-      btn._visitedSpan.textContent = '✓';
-      this._choiceBtnPool.push(btn);
-    }
+  /** @returns {Array|null} Current choices (for number-key lookup). */
+  get _currentChoices() { return this._choices.current; }
 
-    const frag = document.createDocumentFragment();
-    for (let i = 0; i < choices.length; i++) {
-      const choice = choices[i];
-      const btn = this._choiceBtnPool[i];
-      btn.className = 'choice-btn fade-in';
-      btn.style.setProperty('--choice-delay', `${i * 0.08}s`);
-      btn.dataset.choiceIdx = i;
-
-      let label = engine.interpolate(choice.label || choice.text || `Choice ${i + 1}`);
-      if (choice.requires_item) {
-        const hasItem = engine.state.inventory.includes(choice.requires_item);
-        if (hasItem) label += ` [${choice.requires_item}]`;
-      }
-
-      const visited = choice.goto && engine.state.visited.has(choice.goto);
-      if (visited) btn.classList.add('choice-visited-path');
-
-      // Update pre-built children
-      btn.textContent = '';
-      if (i < 9) {
-        btn._numSpan.textContent = i + 1;
-        btn.appendChild(btn._numSpan);
-      }
-      btn._textNode.textContent = label;
-      btn.appendChild(btn._textNode);
-      if (visited) btn.appendChild(btn._visitedSpan);
-
-      frag.appendChild(btn);
-    }
-    this.choicesEl.appendChild(frag);
-
-    // One-time delegation setup
-    this._initChoiceDelegation();
-  }
-
-  /**
-   * Set up a single delegated click listener on choicesEl (called once).
-   * Replaces per-button addEventListener that leaked on each showChoices call.
-   * @private
-   */
-  _initChoiceDelegation() {
-    if (this._choicesDelegated) return;
-    this._choicesDelegated = true;
-
-    this.choicesEl.addEventListener('click', (e) => {
-      const btn = e.target.closest('.choice-btn');
-      if (!btn || !this._currentChoices) return;
-      const idx = parseInt(btn.dataset.choiceIdx, 10);
-      const choice = this._currentChoices[idx];
-      if (!choice) return;
-
-      // Click ripple effect — track timer so rapid clicks don't queue stale callbacks
-      btn.classList.add('chosen');
-      clearTimeout(this._choiceRippleTimer);
-      this._choiceRippleTimer = setTimeout(() => {
-        this.choicesEl.classList.add('hidden');
-        if (this._onChoice) this._onChoice(choice);
-      }, 200);
-    });
-  }
-
-  hideChoices() {
-    this.choicesEl.classList.add('hidden');
-    this.choicesEl.textContent = '';
-    this._currentChoices = null;
-  }
-
-  onChoice(callback) {
-    this._onChoice = callback;
-  }
+  /** @returns {Array} Choice button pool (for direct index access from keyboard shortcuts). */
+  get _choiceBtnPool() { return this._choices.pool; }
 
   // ── Inventory ──
 
