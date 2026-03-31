@@ -200,20 +200,9 @@ class VNUI {
 
   // ── Character Sprites (delegated to SpriteManager) ──
 
+  /** Clear all sprites and remove lingering effect CSS classes. */
   _clearSprites() {
     this._sprites.clear();
-    this.textEl.classList.remove('glitch-text');
-    this.containerEl.classList.remove('shake');
-  }
-
-  _updateSprites(scene, engine) {
-    this._sprites.update(scene, engine, this._sceneLower);
-  }
-
-  _trackTimer(id) { return this._sprites._trackTimer(id); }
-
-  _clearEffectTimers() {
-    this._sprites._clearEffectTimers();
     this.textEl.classList.remove('glitch-text');
     this.containerEl.classList.remove('shake');
   }
@@ -235,7 +224,9 @@ class VNUI {
     this.clickIndicator.classList.add('hidden');
 
     // Cancel any lingering effect timers from the previous scene
-    this._clearEffectTimers();
+    this._sprites._clearEffectTimers();
+    this.textEl.classList.remove('glitch-text');
+    this.containerEl.classList.remove('shake');
 
     // Pre-compute lowercase strings once for use by both background and sprites
     // Reuses the same object (allocated in constructor) to avoid per-render allocation
@@ -249,7 +240,7 @@ class VNUI {
     await this._bg.transition(scene, engine, this._sceneLower, this._tw.fastMode);
 
     // Update sprites
-    this._updateSprites(scene, engine);
+    this._sprites.update(scene, engine, this._sceneLower);
 
     // Location
     if (scene.location) {
@@ -318,11 +309,11 @@ class VNUI {
     // Effects (tracked so they can be cancelled on scene change)
     if (scene.effect === 'glitch') {
       this.textEl.classList.add('glitch-text');
-      this._trackTimer(setTimeout(() => this.textEl.classList.remove('glitch-text'), 1000));
+      this._sprites._trackTimer(setTimeout(() => this.textEl.classList.remove('glitch-text'), 1000));
     }
     if (scene.effect === 'shake') {
       this.containerEl.classList.add('shake');
-      this._trackTimer(setTimeout(() => this.containerEl.classList.remove('shake'), 500));
+      this._sprites._trackTimer(setTimeout(() => this.containerEl.classList.remove('shake'), 500));
     }
 
     // Check for ending — show a "Continue" prompt first, then the ending overlay

@@ -3128,3 +3128,12 @@ cd /tmp/nyantales && python3 -m http.server 9876
 - SW cache bumped to v143, production build regenerated (198KB JS, 96KB CSS)
 - All 50 JS files pass `node --check`, 204/204 unit tests, 238/238 Playwright tests
 - Committed & pushed
+
+## Phase 163: Inline Dead Sprite Proxies from VNUI ✅
+- **Removed 4 dead proxy methods from VNUI** — `_updateSprites()`, `_trackTimer()`, `_clearEffectTimers()` were one-liner delegates to `SpriteManager` only called within `renderScene()`
+  - Inlined all 4 call sites in `renderScene()` to call `this._sprites.*` directly
+  - `_clearSprites()` kept (called from `showTitleScreen()` — different concern than `renderScene()`)
+  - Eliminates function call overhead on every scene render (hot path)
+- **ui.js: 454 → 445 lines** (9 lines removed, 2% reduction)
+- SW cache bumped to v144, production build regenerated (198KB JS, 96KB CSS)
+- All 50 JS files pass `node --check`, 204/204 unit tests, 238/238 Playwright tests
