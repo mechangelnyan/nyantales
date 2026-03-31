@@ -2844,3 +2844,21 @@ cd /tmp/nyantales && python3 -m http.server 9876
 ## Log (continued)
 - 2026-03-30 (8:27 PM): Phase 149 — Extracted StoryLoader class (story index loading, lazy YAML, O(1) maps, random pick) and TitleScreen class (stats bar, grid render/refresh, continue button) from main.js. main.js 1091→853 lines (22% reduction). 6 new Playwright tests. SW v131, 197KB bundle. All 44 JS + 204/204 unit + 200/200 Playwright pass. Committed & pushed.
 - 2026-03-30 (7:27 PM): Phase 148 — PlaybackController._miscTimers Array→Set (O(1) delete), README accuracy (42 files, 196KB, 194 Playwright), test fixes for Set API. SW v130, 196KB bundle. All 42 JS + 204/204 unit + 194/194 Playwright pass. Committed & pushed.
+
+## Phase 150: DRY Screen Transitions, Map.clear(), Test Stability ✅
+- **DRY screen transitions** — extracted `_transitionScreens(show, hide)` helper in VNUI
+  - `showTitleScreen()` and `showStoryScreen()` both had identical 10-line transition pattern
+  - Now: 1 shared method, 2 thin callers (showTitleScreen adds `_clearSprites()`)
+- **Map.clear() replaces new Map()** in `setStorySlug()` — 3 caches reset without allocation
+  - `_speakerCache`, `_charNameCache`, `_charHyphenCache` now use `.clear()` instead of `= new Map()`
+  - Caches initialized in constructor (removes 2 lazy-init guard blocks)
+  - Reduces GC pressure on story change (reuses existing Map objects)
+- **Flaky test fix** — `returning to menu clears story param from URL`
+  - Tries continue button before overlay click for intro dismiss (more reliable)
+  - Added 300ms settle delay + increased timeouts for route sync
+- SW cache bumped to v132, production build regenerated (196KB bundle)
+- All 44 JS files pass `node --check`, 204/204 unit tests, 200/200 Playwright tests
+- Committed & pushed
+
+## Log (continued)
+- 2026-03-30 (9:27 PM): Phase 150 — DRY screen transitions (_transitionScreens helper replaces duplicated show/hide pattern). Map.clear() replaces new Map() in setStorySlug (3 caches reuse existing objects). Fixed flaky deep link test (continue button fallback + settle delay). SW v132, 196KB bundle. All 44 JS + 204/204 unit + 200/200 Playwright pass. Committed & pushed.
