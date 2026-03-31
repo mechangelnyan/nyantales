@@ -3563,10 +3563,6 @@ body {
 }
 
 /* ═══════════════════════════════════════
-   Noscript Fallback
-   ═══════════════════════════════════════ */
-
-/* ═══════════════════════════════════════
    Statistics Dashboard
    ═══════════════════════════════════════ */
 
@@ -4112,8 +4108,6 @@ body {
   top: 1rem;
   flex-direction: column;
 }
-
-/* will-change + touch-action properties merged into their respective original definitions */
 
 /* ═══════════════════════════════════════
    Route Map Overlay
