@@ -2972,3 +2972,31 @@ cd /tmp/nyantales && python3 -m http.server 9876
 
 ## Log (continued)
 - 2026-03-31 (1:27 AM): Phase 154 — Extracted ChoiceRenderer class from VNUI: choice button pool, delegation, show/hide, ripple timer. ui.js 569→484 lines (15% reduction). 3 new Playwright tests. SW v136, 199KB bundle. All 50 JS + 204/204 unit + 214/214 Playwright pass. Committed & pushed.
+
+## Phase 155: UI Cleanup — Dead Proxy Removal, Test Expansion ✅
+- **Removed `VNUI._escapeDiv` backward-compat property descriptor** — no callers remained after Phase 152 extraction
+  - Was a `Object.defineProperty` bridging `VNUI._escapeDiv` → `TypewriterController._escDiv`
+  - All modules now reference `TypewriterController` directly
+- **Removed `VNUI._formatText()` and `VNUI._escapeHtml()` proxy methods** — dead code
+  - Both were thin delegates to `TypewriterController.formatText/escapeHtml`
+  - No external callers existed (only used internally by ui.js via TypewriterController)
+- **Inlined `_findSpeakerChar()`** — was a one-liner proxy to `this._sprites.findSpeakerChar()`
+  - Only called once in `renderScene()` — direct call is clearer
+- **Removed 8 dead comment blocks** at bottom of ui.js (migration notes from Phases 151-153)
+- **ui.js: 487 → 451 lines** (7% reduction, 36 lines removed)
+- **13 new Playwright tests** (214 → 227):
+  - Dead code removal verification (VNUI._escapeDiv, _formatText, _escapeHtml no longer exist)
+  - TypewriterController static API (formatText, escapeHtml)
+  - Speaker name plate (pre-built HTMLImageElement + TextNode in constructor)
+  - ui.js line count guard (<460 lines)
+  - Inventory/conditional element pools (empty arrays at init)
+  - BackgroundManager._KEYWORDS static array (40+ entries)
+  - BackgroundManager transition applies bg class during gameplay
+  - SpriteManager effect timer cleanup on clear()
+  - EndingOverlay._ICONS static map + pre-built DOM refs
+- SW cache bumped to v137, production build regenerated (198KB JS, 96KB CSS)
+- All 50 JS files pass `node --check`, 204/204 unit tests, 227/227 Playwright tests
+- Committed & pushed
+
+## Log (continued)
+- 2026-03-31 (2:27 AM): Phase 155 — UI cleanup: removed VNUI._escapeDiv property descriptor (dead backward-compat bridge), removed _formatText/_escapeHtml proxy methods (no callers), inlined _findSpeakerChar (one-liner proxy), removed 8 dead comment blocks. ui.js 487→451 lines. 13 new Playwright tests (dead code verification, speaker plate, inventory pools, BackgroundManager keywords, SpriteManager timer cleanup, EndingOverlay DOM/icons). Test count 214→227. SW v137, 198KB JS / 96KB CSS. All 50 JS + 204/204 unit + 227/227 Playwright pass. Committed & pushed.
