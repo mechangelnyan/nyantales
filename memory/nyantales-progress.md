@@ -2920,3 +2920,33 @@ cd /tmp/nyantales && python3 -m http.server 9876
 
 ## Log (continued)
 - 2026-03-30 (11:27 PM): Phase 152 — Extracted BackgroundManager (bg inference + crossfade transitions) and TypewriterController (text reveal + formatting pipeline) from ui.js. ui.js 996→820 lines (18% reduction). Proxy getters/setters maintain backward compatibility. 7 new Playwright tests. SW v134, 198KB JS / 96KB CSS. All 47 JS + 204/204 unit + 211/211 Playwright pass. Committed & pushed.
+
+## Phase 153: Extract EndingOverlay from VNUI ✅
+- **`EndingOverlay` class** (`web/js/ending-overlay.js`) — ending screen extracted from ui.js
+  - Pre-built DOM tree (`_buildDOM`) with cached refs (iconEl, typeEl, textEl, statsGrid, turnsVal, scenesVal, invBox, actionsRow, restartBtn, menuBtn, shareBtn)
+  - `waitForContinue()` — reusable continue button with permanent click + keydown handlers
+  - `show(scene, engine)` — assembles ending overlay via pre-built elements (zero innerHTML)
+  - `hide()` — clears ending overlay
+  - `_share()` — Web Share API → clipboard fallback (was `_shareEnding` on VNUI)
+  - `_initDelegation()` — single delegated click listener for restart/menu/share/campaign-next
+  - Static `_ICONS` map (was `VNUI._ENDING_ICONS`)
+  - Callbacks: `_onRestart`, `_onMenu`, `_onCampaignEnding`, `_onEndingHook`
+  - `_totalScenes` property set by main.js (avoids Object.keys per ending)
+- **ui.js: 820 → 569 lines** (251 lines removed, 31% reduction)
+  - Ending section replaced with 3 thin delegation lines (hideEnding, onRestart, onMenu)
+  - `_endingRefs` exposed as `this._ending.refs` for external access (main.js ending hook)
+  - `renderScene()` ending block delegates to `_ending.waitForContinue()` + `_ending.show()`
+  - Removed: `_buildEndingDOM`, `_showEnding`, `_initEndingDelegation`, `_shareEnding`
+  - Removed: `_waitForEndingContinue`, `_dismissEndingContinue`, `_endingContinueBtn`, `_endingContinueResolve`
+  - Removed: `_endingShareData`, `VNUI._ENDING_ICONS` static
+- **main.js** — updated to reference `ui._ending` directly:
+  - `ui._onCampaignEnding` → `ui._ending._onCampaignEnding`
+  - `ui._onEndingHook` → `ui._ending._onEndingHook`
+  - `ui._totalScenes` → `ui._ending._totalScenes`
+- Added to: index.html script chain, sw.js pre-cache, build.sh bundle
+- SW cache bumped to v135, production build regenerated (198KB JS, 96KB CSS)
+- All 49 JS files pass `node --check`, 204/204 unit tests, 211/211 Playwright tests
+- Committed & pushed
+
+## Log (continued)
+- 2026-03-31 (12:27 AM): Phase 153 — Extracted EndingOverlay class from ui.js: ending DOM tree, continue prompt, show/hide, share, event delegation, callbacks. ui.js 820→569 lines (31% reduction). main.js ending refs updated to ui._ending.*. SW v135, 198KB JS / 96KB CSS. All 49 JS + 204/204 unit + 211/211 Playwright pass. Committed & pushed.
