@@ -68,6 +68,12 @@ class VNUI {
     // Pre-built inventory item pool
     this._invPool = []; // reusable <span> elements
 
+    // Pre-built conditional text pool
+    this._condPool = [];
+
+    // Reusable scene lowercase buffer (avoids object allocation per render)
+    this._sceneLower = { loc: '', scn: '', txt: '', spk: '' };
+
     // State — typewriter proxied via _tw
     this._lastInventory = ''; // cached inventory key to skip redundant DOM updates
 
@@ -249,12 +255,12 @@ class VNUI {
     this._clearEffectTimers();
 
     // Pre-compute lowercase strings once for use by both background and sprites
-    this._sceneLower = {
-      loc: (scene.location || '').toLowerCase(),
-      scn: (engine.state.currentScene || '').toLowerCase(),
-      txt: (scene.text || '').toLowerCase(),
-      spk: (scene.speaker || '').toLowerCase()
-    };
+    // Reuses the same object (allocated in constructor) to avoid per-render allocation
+    const sl = this._sceneLower;
+    sl.loc = (scene.location || '').toLowerCase();
+    sl.scn = (engine.state.currentScene || '').toLowerCase();
+    sl.txt = (scene.text || '').toLowerCase();
+    sl.spk = (scene.speaker || '').toLowerCase();
 
     // Scene transition effect (delegated to BackgroundManager)
     await this._bg.transition(scene, engine, this._sceneLower, this._tw.fastMode);
@@ -271,15 +277,13 @@ class VNUI {
     }
 
     // Mood
+    this.textEl.className = 'vn-text';
     if (scene.mood) {
-      const emoji = this.moodEmojis[scene.mood] || '';
-      this.moodEl.textContent = emoji;
+      this.moodEl.textContent = this.moodEmojis[scene.mood] || '';
       this.moodEl.classList.remove('hidden');
-      this.textEl.className = 'vn-text';
-      if (scene.mood) this.textEl.classList.add(`mood-${scene.mood}`);
+      this.textEl.classList.add(`mood-${scene.mood}`);
     } else {
       this.moodEl.classList.add('hidden');
-      this.textEl.className = 'vn-text';
     }
 
     // ASCII Art
@@ -424,7 +428,6 @@ class VNUI {
   _showConditionals(conditionals, engine) {
     this.conditionalEl.classList.remove('hidden');
     // Reuse pooled div elements instead of innerHTML + map + join
-    if (!this._condPool) this._condPool = [];
     while (this._condPool.length < conditionals.length) {
       const div = document.createElement('div');
       div.className = 'cond-text';
