@@ -3000,3 +3000,15 @@ cd /tmp/nyantales && python3 -m http.server 9876
 
 ## Log (continued)
 - 2026-03-31 (2:27 AM): Phase 155 — UI cleanup: removed VNUI._escapeDiv property descriptor (dead backward-compat bridge), removed _formatText/_escapeHtml proxy methods (no callers), inlined _findSpeakerChar (one-liner proxy), removed 8 dead comment blocks. ui.js 487→451 lines. 13 new Playwright tests (dead code verification, speaker plate, inventory pools, BackgroundManager keywords, SpriteManager timer cleanup, EndingOverlay DOM/icons). Test count 214→227. SW v137, 198KB JS / 96KB CSS. All 50 JS + 204/204 unit + 227/227 Playwright pass. Committed & pushed.
+
+## Phase 156: Test Fix + README Freshness ✅
+- **Fixed broken Playwright test** — `Text Formatting` test referenced dead `VNUI._formatText()` method
+  - Updated to call `TypewriterController.formatText()` directly (the extraction target from Phase 152)
+  - Test was failing since Phase 155 removed `_formatText` proxy from VNUI
+- **README build stats updated** — 198KB JS (was 199KB), 227 Playwright tests (was 214)
+- Production build regenerated (198KB JS, 96KB CSS)
+- All 50 JS files pass `node --check`, 204/204 unit tests, 227/227 Playwright tests
+- Committed & pushed
+
+## Log (continued)
+- 2026-03-31 (3:27 AM): Phase 156 — Fixed broken Playwright text formatting test (VNUI._formatText removed in Phase 155 → updated to TypewriterController.formatText). README build stats freshened. 227/227 Playwright + 204/204 unit pass. Committed & pushed.
