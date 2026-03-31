@@ -3221,3 +3221,16 @@ cd /tmp/nyantales && python3 -m http.server 9876
 - 2026-03-31 (2:27 PM): Phase 166 — EndingOverlay public API: replaced _onCampaignEnding/_onEndingHook/_totalScenes with public properties (JSDoc). Zero ui.ending._ cross-module access. SW v147. All 50 JS + 204/204 unit + 242/242 Playwright pass. Committed & pushed.
 - 2026-03-31 (12:27 PM): Phase 165 — Public API surface cleanup: replaced 5 underscore-prefixed VNUI getters with clean public accessors (lastBgClass, currentChoices, choiceBtnPool, ending, endingRefs). Removed dead _activeSprites alias and stale _endingRefs property. Zero ui._ cross-module access in main.js and playback-controller.js. 4 new Playwright tests for public API verification. SW v146, 198KB bundle. All 50 JS + 204/204 unit + 242/242 Playwright pass.
 - 2026-03-31 (11:27 AM): Phase 164 — Cleaned 19 stale 'Phase N' references from module JSDoc headers (replaced with descriptive purpose text), removed stale '(delegated to X)' section headers and orphan JSDoc in main.js, cleaned ui.js subsystem init comments. main.js 806→796, ui.js 445→435. SW v145, 198KB bundle. All 50 JS + 204/204 unit + 238/238 Playwright pass. Committed & pushed.
+
+## Phase 170: DOM Custom Property Cleanup, Build Accuracy ✅
+- **Eliminated custom properties on DOM elements** — moved to proper instance fields on PlaybackController
+  - `el._visitedSpan` / `el._turnSpan` on `_hudEl` → `this._hudVisitedSpan` / `this._hudTurnSpan`
+  - `box._valSpan` on `_endingTimeBox` → `this._endingTimeValSpan`
+  - DOM elements should store DOM data, not app state — these were fragile patterns from early phases
+- **Build script HTTP request count corrected** — was "53 → 4", now "50+ → 4" (matches actual 50 JS files)
+- **README build description corrected** — same request count fix
+- SW cache bumped to v151, production build regenerated (198KB JS, 97KB CSS)
+- All 50 JS files pass `node --check`, 204/204 unit tests, 242/242 Playwright tests
+
+## Log (continued)
+- 2026-03-31 (4:27 PM): Phase 170 — DOM custom property cleanup: moved _hudEl._visitedSpan/_turnSpan and _endingTimeBox._valSpan to proper PlaybackController instance fields. Fixed stale HTTP request count in build.sh and README (53→50+). SW v151. 198KB bundle. All 50 JS + 204/204 unit + 242/242 Playwright pass. Committed & pushed.

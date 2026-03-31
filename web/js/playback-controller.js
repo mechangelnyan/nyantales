@@ -81,11 +81,11 @@ class PlaybackController {
       const ts = document.createElement('span');
       el.appendChild(vs);
       el.appendChild(ts);
-      el._visitedSpan = vs;
-      el._turnSpan = ts;
       vc.appendChild(el);
       return el;
     })();
+    this._hudVisitedSpan = this._hudEl.firstChild;
+    this._hudTurnSpan = this._hudEl.lastChild;
 
     this._barEl = (() => {
       const el = document.createElement('div');
@@ -198,8 +198,8 @@ class PlaybackController {
     this._lastPct = pct;
     this._lastTurns = turns;
 
-    this._hudEl._visitedSpan.textContent = `📍 ${visited}/${this.totalScenes}`;
-    this._hudEl._turnSpan.textContent = ` · Turn ${turns}`;
+    this._hudVisitedSpan.textContent = `📍 ${visited}/${this.totalScenes}`;
+    this._hudTurnSpan.textContent = ` · Turn ${turns}`;
     this._hudEl.title = `${pct}% explored · Turn ${turns}`;
     this._hudEl.classList.remove('hidden');
 
@@ -330,10 +330,10 @@ class PlaybackController {
       lblSpan.textContent = 'Reading Time';
       box.appendChild(valSpan);
       box.appendChild(lblSpan);
-      box._valSpan = valSpan;
       this._endingTimeBox = box;
+      this._endingTimeValSpan = valSpan;
     }
-    this._endingTimeBox._valSpan.textContent = `⏱ ${StoryTracker.formatDuration(elapsedMs)}`;
+    this._endingTimeValSpan.textContent = `⏱ ${StoryTracker.formatDuration(elapsedMs)}`;
     statsGrid.insertBefore(this._endingTimeBox, statsGrid.firstChild);
   }
 

@@ -300,7 +300,7 @@ echo ""
 echo "Files:"
 ls -lh "$DIST/js/"*.js "$DIST/css/"*.css 2>/dev/null | awk '{print "  " $NF " (" $5 ")"}'
 echo ""
-echo "HTTP requests: 53 → 4 (index.html + js-yaml + bundle + css)"
+echo "HTTP requests: 50+ → 4 (index.html + js-yaml + bundle + css)"
 echo ""
 echo "To test locally:"
 echo "  cd $DIST && python3 -m http.server 9877"

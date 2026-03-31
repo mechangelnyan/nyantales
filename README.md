@@ -27,7 +27,7 @@ cd nyantales && python3 -m http.server 8080
 
 ### Production Build
 
-The build script bundles 49 app JS files into a single minified file, minifies CSS, generates an optimized service worker, and pre-computes a story manifest — reducing HTTP requests from 53 to 4:
+The build script bundles 49 app JS files into a single minified file, minifies CSS, generates an optimized service worker, and pre-computes a story manifest — reducing HTTP requests from 50+ to 4:
 
 ```bash
 cd web && bash build.sh
