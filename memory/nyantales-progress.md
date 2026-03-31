@@ -3234,3 +3234,26 @@ cd /tmp/nyantales && python3 -m http.server 9876
 
 ## Log (continued)
 - 2026-03-31 (4:27 PM): Phase 170 — DOM custom property cleanup: moved _hudEl._visitedSpan/_turnSpan and _endingTimeBox._valSpan to proper PlaybackController instance fields. Fixed stale HTTP request count in build.sh and README (53→50+). SW v151. 198KB bundle. All 50 JS + 204/204 unit + 242/242 Playwright pass. Committed & pushed.
+
+## Phase 171: Shared _delay Utility, StoryLoader Reuse, Test Expansion ✅
+- **`PlaybackController._delay(ms)` static utility** — shared delay Promise replacing 3 inline `new Promise(r => setTimeout(r, ms))` allocations
+  - PlaybackController skip-read loop: 2 inline Promises → `_delay(50)` calls
+  - main.js boot sequence: 1 inline Promise → `_delay(300)` call
+  - Returns `undefined` for ms ≤ 0 (zero allocation in fast paths)
+- **`BackgroundManager._wait()` delegates to `_delay()`** — no longer creates its own Promise
+  - Combined with existing fast-mode short-circuit: `if (fast) return;` → `_delay(ms)`
+  - Single shared implementation for all timed delays in the codebase
+- **`StoryLoader._clear()` reuses array** — `this.index.length = 0` instead of `this.index = []`
+  - Consistent with `.clear()` on Maps (reuse existing objects, reduce GC pressure)
+- **5 new Playwright tests** (242 → 247):
+  - `_delay(0)` returns undefined (zero allocation)
+  - `_delay(10)` returns a resolvable Promise
+  - `BackgroundManager._KEYWORDS` static array has 40+ entries
+  - `StoryLoader.SLUGS` contains exactly 30 slugs
+  - `PlaybackController._delay` is a function (shared utility exists)
+- SW cache bumped to v152, production build regenerated (198KB JS, 97KB CSS)
+- All 50 JS files pass `node --check`, 204/204 unit tests, 247/247 Playwright tests
+- Committed & pushed
+
+## Log (continued)
+- 2026-03-31 (5:27 PM): Phase 171 — Shared _delay utility (PlaybackController._delay replaces 3 inline new Promise(setTimeout) across playback-controller + main.js). BackgroundManager._wait delegates to _delay. StoryLoader._clear uses index.length=0 instead of new array. 5 new Playwright tests. SW v152, 198KB bundle. All 50 JS + 204/204 unit + 247/247 Playwright pass. Committed & pushed.
