@@ -2686,9 +2686,9 @@ test.describe('PlaybackController', () => {
           audio: { enabled: false }, saveManager: {}, tracker: { recordVisitedScenes() {} },
           vnContainer: container
         });
-        const sizeBefore = pc._miscTimers.length;
+        const sizeBefore = pc._miscTimers.size;
         pc.trackTimeout(() => {
-          resolve({ sizeBefore, sizeAfter: pc._miscTimers.length });
+          resolve({ sizeBefore, sizeAfter: pc._miscTimers.size });
         }, 10);
       });
     });
@@ -2708,9 +2708,9 @@ test.describe('PlaybackController', () => {
       });
       let fired = false;
       pc.trackTimeout(() => { fired = true; }, 50);
-      const sizeBeforeClear = pc._miscTimers.length;
+      const sizeBeforeClear = pc._miscTimers.size;
       pc.clearMiscTimers();
-      const sizeAfterClear = pc._miscTimers.length;
+      const sizeAfterClear = pc._miscTimers.size;
       return { sizeBeforeClear, sizeAfterClear };
     });
     expect(result.sizeBeforeClear).toBe(1);

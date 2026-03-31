@@ -40,7 +40,7 @@ class PlaybackController {
     this._suppressNext = false;
 
     // Misc tracked timers (achievement toasts, campaign pacing) — cleared on menu return
-    this._miscTimers  = [];
+    this._miscTimers  = new Set();
 
     // Progress HUD throttle
     this._lastPct     = -1;
@@ -104,17 +104,16 @@ class PlaybackController {
   /** Schedule a tracked timeout — auto-cleared on cleanup(). */
   trackTimeout(fn, ms) {
     const id = setTimeout(() => {
-      const idx = this._miscTimers.indexOf(id);
-      if (idx !== -1) this._miscTimers.splice(idx, 1);
+      this._miscTimers.delete(id);
       fn();
     }, ms);
-    this._miscTimers.push(id);
+    this._miscTimers.add(id);
     return id;
   }
 
   clearMiscTimers() {
     for (const id of this._miscTimers) clearTimeout(id);
-    this._miscTimers.length = 0;
+    this._miscTimers.clear();
   }
 
   /** Suppress the next auto-advance (e.g. after intro splash). */
