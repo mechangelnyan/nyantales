@@ -3176,6 +3176,28 @@ cd /tmp/nyantales && python3 -m http.server 9876
 - All 50 JS files pass `node --check`, 204/204 unit tests, 242/242 Playwright tests
 - Committed & pushed
 
+## Phase 166: EndingOverlay Public API ✅
+- **Replaced underscore-prefixed properties** on EndingOverlay with clean public accessors
+  - `_onCampaignEnding` → `onCampaignEnding` (JSDoc documented)
+  - `_onEndingHook` → `onEndingHook` (JSDoc documented)
+  - `_totalScenes` → `totalScenes` (JSDoc documented)
+- **main.js** — zero `ui.ending._` cross-module access
+- SW cache bumped to v147, production build regenerated (198KB JS, 96KB CSS)
+- All 50 JS files pass `node --check`, 204/204 unit tests, 242/242 Playwright tests
+- Committed & pushed
+
+## Phase 167: CSS transition:all → Specific Properties ✅
+- **Replaced all 37 `transition: all` with named property lists** — better rendering performance
+  - Each selector gets only the properties it actually animates (background, border-color, color, box-shadow, transform, opacity as applicable)
+  - Prevents browsers from checking/animating layout-triggering properties (width, height, padding, margin)
+  - Proper CSS shorthand: each property gets its own duration (e.g. `background 0.2s, border-color 0.2s`)
+  - Zero `transition: all` remaining in stylesheet
+- SW cache bumped to v148, production build regenerated (198KB JS, 98KB CSS)
+- All 50 JS files pass `node --check`, 204/204 unit tests, 242/242 Playwright tests
+- Committed & pushed
+
 ## Log (continued)
+- 2026-03-31 (2:27 PM): Phase 167 — Replaced all 37 transition:all with specific property lists. Zero transition:all remaining. SW v148. 198KB JS / 98KB CSS. All 50 JS + 204/204 unit + 242/242 Playwright pass. Committed & pushed.
+- 2026-03-31 (2:27 PM): Phase 166 — EndingOverlay public API: replaced _onCampaignEnding/_onEndingHook/_totalScenes with public properties (JSDoc). Zero ui.ending._ cross-module access. SW v147. All 50 JS + 204/204 unit + 242/242 Playwright pass. Committed & pushed.
 - 2026-03-31 (12:27 PM): Phase 165 — Public API surface cleanup: replaced 5 underscore-prefixed VNUI getters with clean public accessors (lastBgClass, currentChoices, choiceBtnPool, ending, endingRefs). Removed dead _activeSprites alias and stale _endingRefs property. Zero ui._ cross-module access in main.js and playback-controller.js. 4 new Playwright tests for public API verification. SW v146, 198KB bundle. All 50 JS + 204/204 unit + 242/242 Playwright pass.
 - 2026-03-31 (11:27 AM): Phase 164 — Cleaned 19 stale 'Phase N' references from module JSDoc headers (replaced with descriptive purpose text), removed stale '(delegated to X)' section headers and orphan JSDoc in main.js, cleaned ui.js subsystem init comments. main.js 806→796, ui.js 445→435. SW v145, 198KB bundle. All 50 JS + 204/204 unit + 238/238 Playwright pass. Committed & pushed.
