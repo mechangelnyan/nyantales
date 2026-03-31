@@ -3101,3 +3101,30 @@ cd /tmp/nyantales && python3 -m http.server 9876
 ## Log (continued)
 - 2026-03-31 (8:27 AM): Phase 161 — Dead alias removal (clearMiscTimers, updateProgressHUD, updateContinueButton, updateSkipIndicator), 10 stale refactoring comments cleaned, 2 empty section headers removed. README Playwright test count 227→238. main.js 853→827 lines. SW v142, 198KB bundle. All 50 JS + 204/204 unit + 238/238 Playwright pass. Committed & pushed.
 - 2026-03-31 (7:27 AM): Phase 160 — CRITICAL CI fix: GitHub Actions deploy was broken since Phase 134 (js-yaml MODULE_NOT_FOUND). Added npm ci to workflow, fixed build.sh duplicate require + path resolution. 11 new Playwright tests (production build, URL routing, panel interactions, campaign, a11y). SW v141, 198KB bundle. All 50 JS + 204/204 unit + 238/238 Playwright pass. Committed & pushed.
+
+## Phase 162: Inline Dead Aliases, Move _currentParsed to PlaybackController ✅
+- **Moved `_currentParsed` to `PlaybackController.currentParsed`** — playback state belongs with the playback state machine
+  - Was a standalone `let` variable in main.js IIFE scope
+  - Now lives alongside `engine`, `currentSlug`, `totalScenes` on PlaybackController
+  - Cleared in `cleanup()` on menu return
+- **Removed 8 trivial alias functions** — each was a one-liner delegating to a subsystem
+  - `clearAutoPlayTimer()` → `playback.clearAutoPlay()` (3 call sites inlined)
+  - `trackTimeout()` → `playback.trackTimeout()` (3 call sites inlined)
+  - `advanceScene()` → `playback.advanceScene()` (3 call sites inlined)
+  - `isAnyPanelOpen()` → `panels.isAnyOpen()` (1 call site inlined)
+  - `scheduleAutoAdvance()` → `playback.scheduleAutoAdvance()` (3 call sites inlined)
+  - `playScene()` → `playback.playScene()` (3 call sites inlined)
+  - `getStoryMeta()` → `cardManager.getMeta()` (1 call site inlined)
+  - `updateRewindButton()` → `playback.updateRewindButton(btnRewind)` (1 call site inlined)
+  - `rewindOneScene()` → `playback.rewindOneScene(btnRewind)` (2 call sites inlined)
+  - `renderTitleScreen()` → `titleScreen.render()` (2 call sites inlined)
+- **PlaybackController.setAutoButton(el)** — caches btnAutoEl ref internally
+  - `updateAutoPlayHUD(on)` no longer needs btnEl parameter
+  - Removes the wrapper function from main.js
+- **wireReactivity** now receives inline arrow functions (no intermediate named functions)
+- **Cleaned consecutive blank lines** via `cat -s`
+- main.js: 827 → 806 lines (21 lines removed)
+- main.js functions: 21 → 16 (5 fewer function declarations)
+- SW cache bumped to v143, production build regenerated (198KB JS, 96KB CSS)
+- All 50 JS files pass `node --check`, 204/204 unit tests, 238/238 Playwright tests
+- Committed & pushed
