@@ -3083,5 +3083,21 @@ cd /tmp/nyantales && python3 -m http.server 9876
 - All 50 JS files pass `node --check`, 204/204 unit tests, 238/238 Playwright tests
 - Committed & pushed
 
+## Phase 161: Dead Alias Removal, Stale Comment Cleanup, README Freshness ✅
+- **Removed 3 dead convenience aliases** — `clearMiscTimers()`, `updateProgressHUD()`, `updateContinueButton()` were declared but never called
+  - All 3 were one-liner delegates to PlaybackController / TitleScreen methods
+  - Leftover from extraction phases (140, 149) where callers were moved but aliases remained
+- **Removed `updateSkipIndicator` alias** — 1 remaining call site inlined to `playback.updateSkipIndicator()` directly
+- **Removed 10 stale refactoring comments** — "moved to X", "handled by Y", "managed by Z" breadcrumbs from extraction phases
+  - e.g. "// AI portraits preloaded in parallel...", "// buildStorySearchBlob moved to StoryCardManager (Phase 139)"
+  - These were migration notes, not meaningful code documentation
+- **Removed 2 empty section headers** — `// ── Load Stories (delegated to StoryLoader) ──` and `// ── Core Scene Playback (delegated to PlaybackController) ──` with no code below them
+- **README** — Playwright test count updated (227 → 238), file tree test count (194 → 238)
+- main.js: 853 → 827 lines (26 lines removed, 3% reduction)
+- SW cache bumped to v142, production build regenerated (198KB JS, 96KB CSS)
+- All 50 JS files pass `node --check`, 204/204 unit tests, 238/238 Playwright tests
+- Committed & pushed
+
 ## Log (continued)
+- 2026-03-31 (8:27 AM): Phase 161 — Dead alias removal (clearMiscTimers, updateProgressHUD, updateContinueButton, updateSkipIndicator), 10 stale refactoring comments cleaned, 2 empty section headers removed. README Playwright test count 227→238. main.js 853→827 lines. SW v142, 198KB bundle. All 50 JS + 204/204 unit + 238/238 Playwright pass. Committed & pushed.
 - 2026-03-31 (7:27 AM): Phase 160 — CRITICAL CI fix: GitHub Actions deploy was broken since Phase 134 (js-yaml MODULE_NOT_FOUND). Added npm ci to workflow, fixed build.sh duplicate require + path resolution. 11 new Playwright tests (production build, URL routing, panel interactions, campaign, a11y). SW v141, 198KB bundle. All 50 JS + 204/204 unit + 238/238 Playwright pass. Committed & pushed.
