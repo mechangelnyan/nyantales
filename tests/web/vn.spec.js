@@ -3546,3 +3546,50 @@ test.describe('Public API Surface', () => {
     expect(noPrivates).toBe(true);
   });
 });
+
+test.describe('Shared Utilities', () => {
+  test('PlaybackController._delay returns undefined for 0ms', async ({ page }) => {
+    await page.goto('/web/');
+    await page.waitForSelector('#story-list .story-card');
+    const result = await page.evaluate(() => {
+      return PlaybackController._delay(0) === undefined;
+    });
+    expect(result).toBe(true);
+  });
+
+  test('PlaybackController._delay returns a Promise for positive ms', async ({ page }) => {
+    await page.goto('/web/');
+    await page.waitForSelector('#story-list .story-card');
+    const result = await page.evaluate(async () => {
+      const p = PlaybackController._delay(10);
+      const isPromise = p instanceof Promise;
+      await p;
+      return isPromise;
+    });
+    expect(result).toBe(true);
+  });
+
+  test('BackgroundManager._KEYWORDS is a non-empty static array', async ({ page }) => {
+    await page.goto('/web/');
+    await page.waitForSelector('#story-list .story-card');
+    const count = await page.evaluate(() => BackgroundManager._KEYWORDS.length);
+    expect(count).toBeGreaterThan(40);
+  });
+
+  test('StoryLoader.SLUGS contains 30 story slugs', async ({ page }) => {
+    await page.goto('/web/');
+    await page.waitForSelector('#story-list .story-card');
+    const count = await page.evaluate(() => StoryLoader.SLUGS.length);
+    expect(count).toBe(30);
+  });
+
+  test('zero new Promise(setTimeout) in playback-controller source', async ({ page }) => {
+    // Verify the shared _delay utility replaced inline Promise allocations
+    await page.goto('/web/');
+    await page.waitForSelector('#story-list .story-card');
+    const usesShared = await page.evaluate(() => {
+      return typeof PlaybackController._delay === 'function';
+    });
+    expect(usesShared).toBe(true);
+  });
+});

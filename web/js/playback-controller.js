@@ -3,6 +3,9 @@
  * skip-read fast-forward, rewind, and HUD indicator state.
  */
 class PlaybackController {
+  /** Shared delay utility — zero allocation when ms <= 0. */
+  static _delay(ms) { return ms > 0 ? new Promise(r => setTimeout(r, ms)) : undefined; }
+
   /**
    * @param {Object} deps — subsystem references
    * @param {VNUI}             deps.ui
@@ -284,14 +287,14 @@ class PlaybackController {
     // Skip-read auto-advance through visited no-choice scenes (iterative)
     const choices = this.engine.getAvailableChoices();
     if (choices.length === 0 && scene.next && this.shouldSkip(sceneId)) {
-      await new Promise(r => setTimeout(r, 50));
+      await PlaybackController._delay(50);
       let nextScene = this.engine.goToScene(scene.next);
       while (nextScene && !nextScene.ending && this.engine) {
         const nId = this.engine.state.currentScene;
         await this._renderOneScene(nextScene, true);
         const nc = this.engine.getAvailableChoices();
         if (nc.length > 0 || !nextScene.next || !this.shouldSkip(nId)) break;
-        await new Promise(r => setTimeout(r, 50));
+        await PlaybackController._delay(50);
         nextScene = this.engine.goToScene(nextScene.next);
       }
       if (nextScene && this.engine) {

@@ -737,7 +737,7 @@
       updateLoadingProgress(100, 'Ready!');
 
       // Brief pause for visual satisfaction
-      await new Promise(r => setTimeout(r, 300));
+      await PlaybackController._delay(300);
       hideLoadingScreen();
       ui.showTitleScreen();
       await handleRouteChange({ defaultHistoryMode: 'replace' });

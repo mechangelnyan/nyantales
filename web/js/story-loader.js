@@ -155,9 +155,9 @@ class StoryLoader {
     return pick;
   }
 
-  /** Clear all internal data structures. */
+  /** Clear all internal data structures (reuses existing objects). */
   _clear() {
-    this.index = [];
+    this.index.length = 0;
     this.slugMap.clear();
     this.idxMap.clear();
   }
