@@ -169,10 +169,10 @@ with open('$DIST/index.html', 'w') as f:
 # ── 5. Generate story manifest (8KB JSON replaces 1.6MB of YAML boot parsing) ──
 echo "📝 Generating story manifest..."
 node -e "
-const yaml = require('js-yaml');
-const fs = require('fs');
 const path = require('path');
-const storyDir = path.resolve(__dirname, '..', 'stories');
+const fs = require('fs');
+const yaml = require(require.resolve('js-yaml', { paths: [process.cwd(), path.resolve(process.cwd(), '..')] }));
+const storyDir = path.resolve(process.cwd(), '..', 'stories');
 const slugs = fs.readdirSync(storyDir).filter(d => {
   const p = path.join(storyDir, d, 'story.yaml');
   return fs.existsSync(p);

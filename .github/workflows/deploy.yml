@@ -30,6 +30,9 @@ jobs:
         with:
           node-version: '20'
 
+      - name: Install dependencies
+        run: npm ci
+
       - name: Build optimized bundle
         run: cd web && bash build.sh
 
