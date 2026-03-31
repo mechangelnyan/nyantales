@@ -188,7 +188,8 @@ class StoryEngine {
   }
 
   removeItem(item) {
-    this.state.inventory = this.state.inventory.filter(i => i !== item);
+    const idx = this.state.inventory.indexOf(item);
+    if (idx !== -1) this.state.inventory.splice(idx, 1);
   }
 
   /**

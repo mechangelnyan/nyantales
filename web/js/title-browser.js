@@ -36,9 +36,20 @@ class TitleBrowser {
     this._cachedCards = null;
     this._filterTimer = null;
 
+    // Cached MediaQueryList — avoids creating a new one per scroll/resize in syncMobileSticky
+    this._mobileMQ = window.matchMedia('(max-width: 768px)');
+
     // Pre-create count + empty state elements (hot path: avoid createElement per keystroke)
     this._countEl = this._createCountEl();
     this._emptyEl = this._createEmptyEl();
+
+    // Pre-build empty state children (avoids lazy creation check in _applyFilter hot path)
+    this._emptyIconEl = document.createElement('span');
+    this._emptyIconEl.className = 'filter-empty-icon';
+    this._emptyIconEl.textContent = '🐱';
+    this._emptyHintEl = document.createElement('span');
+    this._emptyEl.appendChild(this._emptyIconEl);
+    this._emptyEl.appendChild(this._emptyHintEl);
 
     this._wireEvents();
     this._loadState();
@@ -88,7 +99,7 @@ class TitleBrowser {
   syncMobileSticky() {
     if (!this._storyFilter || !this._titleBg) return;
 
-    const mobile = window.matchMedia('(max-width: 768px)').matches;
+    const mobile = this._mobileMQ.matches;
     const titleVisible = !this._titleBg.classList.contains('hidden');
     if (!mobile || !titleVisible) {
       this._storyFilter.classList.remove('mobile-stuck');
@@ -254,20 +265,11 @@ class TitleBrowser {
       this._countEl.classList.add('hidden');
     }
 
-    // Empty state
+    // Empty state (children pre-built in constructor)
     if (visibleCount === 0 && (query || this._activeFilter !== 'all')) {
       const hint = this._activeFilter === 'favorites' ? 'Tap 🤍 on a story card to favorite it!'
         : this._activeFilter === 'completed' ? 'No stories completed yet — start playing!'
         : 'No matches found. Try a different search.';
-      if (!this._emptyIconEl) {
-        this._emptyIconEl = document.createElement('span');
-        this._emptyIconEl.className = 'filter-empty-icon';
-        this._emptyIconEl.textContent = '🐱';
-        this._emptyHintEl = document.createElement('span');
-        this._emptyEl.textContent = '';
-        this._emptyEl.appendChild(this._emptyIconEl);
-        this._emptyEl.appendChild(this._emptyHintEl);
-      }
       this._emptyHintEl.textContent = hint;
       this._emptyEl.classList.remove('hidden');
     } else {
@@ -294,13 +296,19 @@ class TitleBrowser {
   };
 
   _applySortToGrid() {
-    const cards = [...this._getCards()];
+    const src = this._getCards();
+    if (src.length === 0) return;
     const cmp = TitleBrowser._COMPARATORS[this._activeSort];
-    if (cmp) cards.sort(cmp);
+    // Sort a copy (cachedCards must keep DOM order; sort mutates in-place)
+    if (!this._sortBuf || this._sortBuf.length !== src.length) {
+      this._sortBuf = new Array(src.length);
+    }
+    for (let i = 0; i < src.length; i++) this._sortBuf[i] = src[i];
+    if (cmp) this._sortBuf.sort(cmp);
 
     // Reorder DOM elements via DocumentFragment (1 reflow instead of 30 appendChild calls)
     const frag = document.createDocumentFragment();
-    for (const card of cards) frag.appendChild(card);
+    for (const card of this._sortBuf) frag.appendChild(card);
     this._grid.appendChild(frag);
   }
 }
