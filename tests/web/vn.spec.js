@@ -3033,3 +3033,69 @@ test.describe('TitleScreen', () => {
     expect(stats.hasValues).toBe(true);
   });
 });
+
+// ── SpriteManager (Phase 151) ──
+
+test.describe('SpriteManager', () => {
+  test('class is available and has expected API', async ({ page }) => {
+    await page.goto('/web/');
+    await page.waitForSelector('#story-list .story-card');
+    const api = await page.evaluate(() => {
+      return typeof SpriteManager === 'function'
+        && typeof SpriteManager.prototype.update === 'function'
+        && typeof SpriteManager.prototype.clear === 'function'
+        && typeof SpriteManager.prototype.findSpeakerChar === 'function'
+        && typeof SpriteManager.prototype.applyEndingState === 'function'
+        && typeof SpriteManager.prototype.setStorySlug === 'function'
+        && Array.isArray(SpriteManager._POS_STATIC);
+    });
+    expect(api).toBe(true);
+  });
+
+  test('static positions return correct arrays for 0-3 sprites', async ({ page }) => {
+    await page.goto('/web/');
+    await page.waitForSelector('#story-list .story-card');
+    const positions = await page.evaluate(() => {
+      return {
+        zero: SpriteManager._POSITIONS(0).length,
+        one: SpriteManager._POSITIONS(1).length,
+        two: SpriteManager._POSITIONS(2).length,
+        three: SpriteManager._POSITIONS(3).length,
+        four: SpriteManager._POSITIONS(4).length
+      };
+    });
+    expect(positions.zero).toBe(0);
+    expect(positions.one).toBe(1);
+    expect(positions.two).toBe(2);
+    expect(positions.three).toBe(3);
+    expect(positions.four).toBe(4);
+  });
+
+  test('VNUI delegates sprite operations to SpriteManager', async ({ page }) => {
+    await page.goto('/web/');
+    await page.waitForSelector('#story-list .story-card');
+    const delegates = await page.evaluate(() => {
+      const ui = new VNUI();
+      return ui._sprites instanceof SpriteManager
+        && ui._activeSprites === ui._sprites.activeSprites;
+    });
+    expect(delegates).toBe(true);
+  });
+
+  test('sprites appear during gameplay', async ({ page }) => {
+    await page.goto('/web/');
+    await page.waitForSelector('#story-list .story-card');
+    // Click Terminal Cat (always unlocked)
+    await page.locator('.story-card').filter({ hasText: /Terminal Cat/i }).first().click();
+    // Wait for intro overlay
+    const intro = page.locator('.story-intro-overlay');
+    await expect(intro).toBeVisible({ timeout: 10000 });
+    // Dismiss intro
+    await intro.getByRole('button', { name: /continue/i }).click();
+    await page.waitForSelector('#story-screen.active', { timeout: 10000 });
+    // Wait for sprites to appear
+    await page.waitForSelector('#vn-sprites .vn-sprite-wrap', { timeout: 5000 });
+    const spriteCount = await page.locator('#vn-sprites .vn-sprite-wrap').count();
+    expect(spriteCount).toBeGreaterThanOrEqual(1);
+  });
+});

@@ -38,6 +38,7 @@ JS_FILES=(
   "js/app-router.js"
   "js/theme-manager.js"
   "js/sprites.js"
+  "js/sprite-manager.js"
   "js/portraits.js"
   "js/tracker.js"
   "js/audio.js"

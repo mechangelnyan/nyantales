@@ -2862,3 +2862,31 @@ cd /tmp/nyantales && python3 -m http.server 9876
 
 ## Log (continued)
 - 2026-03-30 (9:27 PM): Phase 150 — DRY screen transitions (_transitionScreens helper replaces duplicated show/hide pattern). Map.clear() replaces new Map() in setStorySlug (3 caches reuse existing objects). Fixed flaky deep link test (continue button fallback + settle delay). SW v132, 196KB bundle. All 44 JS + 204/204 unit + 200/200 Playwright pass. Committed & pushed.
+
+## Phase 151: SpriteManager Extraction from VNUI ✅
+- **Extracted `SpriteManager` class** (`web/js/sprite-manager.js`) — character sprite lifecycle pulled out of ui.js
+  - `update(scene, engine, sceneLower)` — determine visible characters, diff against active sprites, create/move/fade sprites
+  - `clear()` — remove all sprites and cancel effect timers
+  - `findSpeakerChar(speakerName)` — cached speaker→character lookup
+  - `applyEndingState(type)` — apply ending CSS class to all active sprites
+  - `setStorySlug(slug)` — reset per-story caches (speaker, name, hyphen)
+  - Static `_POSITIONS(count)` — pre-built position arrays for 0-3 sprites, dynamic for 4+
+  - Per-story caches (`_speakerCache`, `_charNameCache`, `_charHyphenCache`) moved from VNUI
+  - Reusable `_visibleNamesBuf` Set for fade-out diffing (zero allocation per render)
+  - Effect timer tracking (`_effectTimers`, `_trackTimer`, `_clearEffectTimers`)
+- **ui.js: 1136 → 996 lines** (140 lines removed, 12% reduction)
+  - `_clearSprites()`, `_updateSprites()`, `_trackTimer()`, `_clearEffectTimers()`, `_getSpritePositions()` replaced with delegation
+  - `_findSpeakerChar()` delegates to `SpriteManager.findSpeakerChar()`
+  - `setStorySlug()` delegates cache reset to SpriteManager
+  - `_activeSprites` preserved as alias to `_sprites.activeSprites` for external access
+  - Removed `VNUI._SPRITE_POS` static (moved to `SpriteManager._POS_STATIC`)
+  - Removed `_speakerCache`, `_charNameCache`, `_charHyphenCache`, `_visibleNamesBuf` from VNUI
+- **4 new Playwright tests** for SpriteManager (API check, static positions, VNUI delegation, sprites during gameplay)
+- **Playwright test count: 200 → 204**
+- Added to: index.html script chain, sw.js pre-cache, build.sh bundle
+- SW cache bumped to v133, production build regenerated (197KB JS, 96KB CSS)
+- All 45 JS files pass `node --check`, 204/204 unit tests, 204/204 Playwright tests
+- Committed & pushed
+
+## Log (continued)
+- 2026-03-30 (10:27 PM): Phase 151 — Extracted SpriteManager class from ui.js: sprite update/clear/positioning, speaker char lookup cache, ending state application, effect timer management. ui.js 1136→996 lines (12% reduction). 4 new Playwright tests. SW v133, 197KB JS / 96KB CSS. All 45 JS + 204/204 unit + 204/204 Playwright pass. Committed & pushed.

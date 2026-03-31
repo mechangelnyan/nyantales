@@ -34,10 +34,11 @@ class VNUI {
     this.spriteGen = new CatSpriteGenerator();
     this.portraits = new PortraitManager(this.spriteGen);
     this.currentStorySlug = null;
-    this._activeSprites = new Map();  // name -> element
-    this._speakerCache = new Map();    // speaker name -> character (per-story)
-    this._charNameCache = new Map();   // character name -> lowercase (per-story)
-    this._charHyphenCache = new Map(); // character name -> hyphenated (per-story)
+
+    // Sprite management delegated to SpriteManager (Phase 151)
+    this._sprites = new SpriteManager(this.spritesEl, this.portraits);
+    // Expose for external access (ending state, activeSprites)
+    this._activeSprites = this._sprites.activeSprites;
 
     // Cached container ref (used for shake effects)
     this.containerEl = document.querySelector('.vn-container');
@@ -71,9 +72,6 @@ class VNUI {
     // Reusable transition overlay (avoids DOM create/remove on every bg change)
     this._transOverlay = document.createElement('div');
     this._transOverlay.className = 'scene-transition-overlay';
-
-    // Track active effect timers so they can be cancelled on scene change
-    this._effectTimers = [];
 
     // Init ending event delegation (one-time, prevents listener leak)
     this._initEndingDelegation();
@@ -146,31 +144,19 @@ class VNUI {
 
   setStorySlug(slug) {
     this.currentStorySlug = slug;
-    this._speakerCache.clear();    // reset speaker lookup cache per story
-    this._charNameCache.clear();   // reset lowercase name cache per story
-    this._charHyphenCache.clear(); // reset hyphenated name cache per story
+    this._sprites.setStorySlug(slug);
     this._lastSpeakerKey = '';     // reset speaker DOM cache
     this._lastInventory = '';      // reset inventory cache
   }
 
   /**
    * Find a character matching a speaker name, with per-story caching.
-   * Avoids repeated array.find() on every scene render for the same speaker.
+   * Delegates to SpriteManager.
    * @param {string} speakerName
    * @returns {Object|null}
    */
   _findSpeakerChar(speakerName) {
-    if (this._speakerCache.has(speakerName)) return this._speakerCache.get(speakerName);
-
-    const chars = CHARACTER_DATA[this.currentStorySlug] || [];
-    const speakerLower = speakerName.toLowerCase();
-    const found = chars.find(c =>
-      c.name.toLowerCase() === speakerLower ||
-      speakerLower.includes(c.name.toLowerCase())
-    ) || null;
-
-    this._speakerCache.set(speakerName, found);
-    return found;
+    return this._sprites.findSpeakerChar(speakerName);
   }
 
   // ── Story List ──
@@ -234,143 +220,27 @@ class VNUI {
 
   // ── Character Sprites ──
 
+  /** Remove all sprites (delegated to SpriteManager). */
   _clearSprites() {
-    this._clearEffectTimers(); // Cancel any pending sprite fade-out / effect timers
-    this.spritesEl.textContent = '';
-    this._activeSprites.clear();
-  }
-
-  _updateSprites(scene, engine) {
-    const slug = this.currentStorySlug;
-    if (!slug) return;
-
-    const chars = CHARACTER_DATA[slug] || [];
-    if (chars.length === 0) return;
-
-    // Determine which characters should be visible
-    // 1. The speaker (if named)
-    // 2. Characters mentioned in text
-    // Use pre-computed lowercase strings from renderScene (avoids redundant toLowerCase)
-    const sl = this._sceneLower;
-    const speakerLower = sl ? sl.spk : (scene.speaker || '').toLowerCase();
-    const textLower = sl ? sl.txt : (scene.text || '').toLowerCase();
-    const sceneIdLower = sl ? sl.scn : (engine.state.currentScene || '').toLowerCase();
-
-    // Build visible list without spreading (avoids object allocation per character per render)
-    // Cache lowercase names per story to avoid toLowerCase() on every render
-    // Caches initialized in constructor, cleared in setStorySlug()
-    const visible = [];
-    const speakerFlags = []; // parallel array: true if the char at this index is speaking
-    for (const char of chars) {
-      let nameLower = this._charNameCache.get(char.name);
-      if (nameLower === undefined) {
-        nameLower = char.name.toLowerCase();
-        this._charNameCache.set(char.name, nameLower);
-      }
-      let nameHyphen = this._charHyphenCache.get(char.name);
-      if (nameHyphen === undefined) {
-        nameHyphen = nameLower.replace(/\s+/g, '-');
-        this._charHyphenCache.set(char.name, nameHyphen);
-      }
-      const isSpeaker = speakerLower === nameLower || speakerLower.includes(nameLower);
-      const inText = textLower.includes(nameLower);
-      const inScene = sceneIdLower.includes(nameHyphen);
-
-      if (isSpeaker || inText || inScene) {
-        visible.push(char);
-        speakerFlags.push(isSpeaker);
-      }
-    }
-
-    // If no one's visible, show protagonist
-    if (visible.length === 0 && chars.length > 0) {
-      const protag = chars.find(c => c.role === 'protagonist') || chars[0];
-      visible.push(protag);
-      speakerFlags.push(false);
-    }
-
-    // Position sprites
-    const positions = this._getSpritePositions(visible.length);
-
-    // Fade out removed sprites (reuse Set to avoid allocation per render)
-    if (!this._visibleNamesBuf) this._visibleNamesBuf = new Set();
-    const visibleNames = this._visibleNamesBuf;
-    visibleNames.clear();
-    for (const v of visible) visibleNames.add(v.name);
-    for (const [name, el] of this._activeSprites) {
-      if (!visibleNames.has(name)) {
-        el.classList.remove('visible');
-        el.classList.add('sprite-exit');
-        this._trackTimer(setTimeout(() => el.remove(), 500));
-        this._activeSprites.delete(name);
-      }
-    }
-
-    // Add/update visible sprites
-    for (let i = 0; i < visible.length; i++) {
-      const char = visible[i];
-      const isSpeaker = speakerFlags[i];
-      let spriteEl = this._activeSprites.get(char.name);
-      const pos = positions[i];
-
-      if (!spriteEl) {
-        // Create new sprite
-        spriteEl = document.createElement('div');
-        spriteEl.className = 'vn-sprite-wrap';
-        const img = document.createElement('img');
-        img.src = this.portraits.getPortrait(char.name, char.appearance);
-        img.className = 'vn-sprite';
-        if (this.portraits.hasPortrait(char.name)) img.classList.add('ai-portrait');
-        img.alt = char.name;
-
-        const label = document.createElement('div');
-        label.className = 'sprite-label';
-        label.textContent = char.name;
-
-        spriteEl.appendChild(img);
-        spriteEl.appendChild(label);
-        this.spritesEl.appendChild(spriteEl);
-        this._activeSprites.set(char.name, spriteEl);
-
-        // Trigger entrance animation via CSS custom properties
-        requestAnimationFrame(() => {
-          spriteEl.style.setProperty('--sprite-x', pos.x);
-          spriteEl.style.setProperty('--sprite-scale', pos.scale);
-          img.classList.add('visible');
-        });
-      } else {
-        // Move existing sprite via CSS custom properties
-        spriteEl.style.setProperty('--sprite-x', pos.x);
-        spriteEl.style.setProperty('--sprite-scale', pos.scale);
-      }
-
-      // Highlight speaker — use CSS classes instead of inline styles for theme reactivity
-      spriteEl.classList.toggle('speaking', isSpeaker);
-      // Clear any ending-state classes from previous scene
-      spriteEl.classList.remove('ending-good', 'ending-bad', 'ending-neutral');
-    }
-  }
-
-  /** Track a setTimeout so it can be cancelled on scene teardown. */
-  _trackTimer(id) { this._effectTimers.push(id); return id; }
-
-  /** Cancel all pending effect timers and clean up stale CSS classes. */
-  _clearEffectTimers() {
-    for (const id of this._effectTimers) clearTimeout(id);
-    this._effectTimers.length = 0;
-    // Remove any lingering effect classes that a cancelled timer would have cleaned up
+    this._sprites.clear();
+    // Also clean up effect classes that sprite timers would have handled
     this.textEl.classList.remove('glitch-text');
     this.containerEl.classList.remove('shake');
   }
 
-  _getSpritePositions(count) {
-    // Use pre-built static arrays for common counts (0-3) to avoid allocation per render
-    if (count <= 3) return VNUI._SPRITE_POS[count];
-    // 4+: spread evenly (rare — most scenes have 1-3 visible characters)
-    return Array.from({ length: count }, (_, i) => ({
-      x: `${15 + (70 * i / (count - 1))}%`,
-      scale: 0.75
-    }));
+  /** Update sprites for a scene (delegated to SpriteManager). */
+  _updateSprites(scene, engine) {
+    this._sprites.update(scene, engine, this._sceneLower);
+  }
+
+  /** Track a setTimeout so it can be cancelled on scene teardown. */
+  _trackTimer(id) { return this._sprites._trackTimer(id); }
+
+  /** Cancel all pending effect timers and clean up stale CSS classes. */
+  _clearEffectTimers() {
+    this._sprites._clearEffectTimers();
+    this.textEl.classList.remove('glitch-text');
+    this.containerEl.classList.remove('shake');
   }
 
   // ── Scene Rendering ──
@@ -957,12 +827,8 @@ class VNUI {
     const type = ending.type || 'neutral';
     const icon = VNUI._ENDING_ICONS[type] || '📋';
 
-    // Dim sprites with CSS class — use cached _activeSprites Map (no querySelectorAll)
-    const endingClass = `ending-${type === 'secret' ? 'neutral' : type}`;
-    for (const [, wrap] of this._activeSprites) {
-      wrap.classList.remove('ending-good', 'ending-bad', 'ending-neutral');
-      wrap.classList.add(endingClass);
-    }
+    // Dim sprites with ending-state CSS class
+    this._sprites.applyEndingState(type);
 
     // Use cached scene count if available (avoids Object.keys allocation per ending)
     let totalScenes = this._totalScenes;
@@ -1127,10 +993,4 @@ VNUI._ENDING_ICONS = { good: '🌟', bad: '💀', neutral: '📋', secret: '🔮
 VNUI._HTML_ESC_RE = /[&<>]/g;
 VNUI._HTML_ESC_MAP = { '&': '&amp;', '<': '&lt;', '>': '&gt;' };
 
-/** Pre-built sprite position arrays for counts 0-3 (avoids object/array allocation per render). */
-VNUI._SPRITE_POS = [
-  [],
-  [{ x: '50%', scale: 1 }],
-  [{ x: '30%', scale: 0.9 }, { x: '70%', scale: 0.9 }],
-  [{ x: '20%', scale: 0.8 }, { x: '50%', scale: 0.9 }, { x: '80%', scale: 0.8 }]
-];
+// Note: Sprite position arrays moved to SpriteManager._POS_STATIC (Phase 151)
