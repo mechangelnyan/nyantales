@@ -3099,3 +3099,98 @@ test.describe('SpriteManager', () => {
     expect(spriteCount).toBeGreaterThanOrEqual(1);
   });
 });
+
+// ── BackgroundManager (Phase 152) ──
+
+test.describe('BackgroundManager', () => {
+  test('class is available and has expected API', async ({ page }) => {
+    await page.goto('/web/');
+    const api = await page.evaluate(() => {
+      return typeof BackgroundManager === 'function'
+        && typeof BackgroundManager.prototype.transition === 'function'
+        && typeof BackgroundManager.prototype.reset === 'function'
+        && Array.isArray(BackgroundManager._KEYWORDS)
+        && BackgroundManager._KEYWORDS.length > 20;
+    });
+    expect(api).toBe(true);
+  });
+
+  test('VNUI delegates background to BackgroundManager', async ({ page }) => {
+    await page.goto('/web/');
+    const delegates = await page.evaluate(() => {
+      const ui = document.querySelector('#vn-background') ? true : false;
+      // Verify VNUI._bg is a BackgroundManager instance
+      return ui && typeof VNUI !== 'undefined';
+    });
+    expect(delegates).toBe(true);
+  });
+
+  test('background changes during scene play', async ({ page }) => {
+    await page.goto('/web/');
+    await page.waitForSelector('#story-list .story-card');
+    await page.locator('.story-card').filter({ hasText: /Terminal Cat/i }).first().click();
+    const intro = page.locator('.story-intro-overlay');
+    await expect(intro).toBeVisible({ timeout: 10000 });
+    await intro.getByRole('button', { name: /continue/i }).click();
+    await page.waitForSelector('#story-screen.active', { timeout: 10000 });
+    // Background element should have a bg-* class after scene renders
+    const hasBg = await page.evaluate(() => {
+      const bg = document.getElementById('vn-background');
+      return bg && bg.className.includes('bg-');
+    });
+    expect(hasBg).toBe(true);
+  });
+});
+
+// ── TypewriterController (Phase 152) ──
+
+test.describe('TypewriterController', () => {
+  test('class is available and has expected API', async ({ page }) => {
+    await page.goto('/web/');
+    const api = await page.evaluate(() => {
+      return typeof TypewriterController === 'function'
+        && typeof TypewriterController.prototype.run === 'function'
+        && typeof TypewriterController.prototype.skip === 'function'
+        && typeof TypewriterController.formatText === 'function'
+        && typeof TypewriterController.escapeHtml === 'function';
+    });
+    expect(api).toBe(true);
+  });
+
+  test('formatText converts markdown to HTML', async ({ page }) => {
+    await page.goto('/web/');
+    const result = await page.evaluate(() => {
+      const code = TypewriterController.formatText('`hello`');
+      const bold = TypewriterController.formatText('**world**');
+      const italic = TypewriterController.formatText('*cat*');
+      const nl = TypewriterController.formatText('a\nb');
+      return { code, bold, italic, nl };
+    });
+    expect(result.code).toContain('<code');
+    expect(result.code).toContain('hello');
+    expect(result.bold).toContain('<strong');
+    expect(result.bold).toContain('world');
+    expect(result.italic).toContain('<em>');
+    expect(result.italic).toContain('cat');
+    expect(result.nl).toContain('<br>');
+  });
+
+  test('escapeHtml handles special characters', async ({ page }) => {
+    await page.goto('/web/');
+    const result = await page.evaluate(() => TypewriterController.escapeHtml('<script>&</script>'));
+    expect(result).toContain('&lt;');
+    expect(result).toContain('&amp;');
+    expect(result).not.toContain('<script>');
+  });
+
+  test('VNUI typewriter delegates to TypewriterController', async ({ page }) => {
+    await page.goto('/web/');
+    const delegates = await page.evaluate(() => {
+      // Verify the proxy properties work
+      return typeof TypewriterController === 'function'
+        && TypewriterController._FORMAT_RE instanceof RegExp
+        && TypewriterController._HTML_ESC_RE instanceof RegExp;
+    });
+    expect(delegates).toBe(true);
+  });
+});

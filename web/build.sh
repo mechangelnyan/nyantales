@@ -39,6 +39,8 @@ JS_FILES=(
   "js/theme-manager.js"
   "js/sprites.js"
   "js/sprite-manager.js"
+  "js/background-manager.js"
+  "js/typewriter.js"
   "js/portraits.js"
   "js/tracker.js"
   "js/audio.js"

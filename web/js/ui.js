@@ -1,6 +1,8 @@
 /**
  * NyanTales Visual Novel — UI Controller
- * Handles DOM updates, typewriter text, scene rendering, transitions, character sprites.
+ * Handles DOM updates, scene rendering, character sprites.
+ * Delegates to: BackgroundManager (bg transitions), TypewriterController (text reveal),
+ * SpriteManager (character sprites).
  */
 
 class VNUI {
@@ -40,6 +42,12 @@ class VNUI {
     // Expose for external access (ending state, activeSprites)
     this._activeSprites = this._sprites.activeSprites;
 
+    // Background management delegated to BackgroundManager (Phase 152)
+    this._bg = new BackgroundManager(this.bgEl);
+
+    // Typewriter delegated to TypewriterController (Phase 152)
+    this._tw = new TypewriterController(this.textEl, this.textboxEl, this.clickIndicator);
+
     // Cached container ref (used for shake effects)
     this.containerEl = document.querySelector('.vn-container');
 
@@ -58,20 +66,8 @@ class VNUI {
     // Pre-built ending overlay child elements (avoids innerHTML per ending)
     this._endingRefs = this._buildEndingDOM();
 
-    // State
-    this.typewriterSpeed = 18; // ms per character
-    this.fastMode = false;
-    this.isTyping = false;
-    this._typewriterResolve = null;
-    this._typewriterTimeout = null;
-    this._fullText = '';
-    this._lastBgClass = '';
-    this._transitioning = false;
+    // State — typewriter proxied via _tw
     this._lastInventory = ''; // cached inventory key to skip redundant DOM updates
-
-    // Reusable transition overlay (avoids DOM create/remove on every bg change)
-    this._transOverlay = document.createElement('div');
-    this._transOverlay.className = 'scene-transition-overlay';
 
     // Init ending event delegation (one-time, prevents listener leak)
     this._initEndingDelegation();
@@ -82,31 +78,21 @@ class VNUI {
       glitch: '⚡', danger: '💀', warm: '☀️', sad: '😿',
       excited: '✨', spooky: '👻'
     };
-
-    // Background keyword → class entries (pre-computed array avoids Object.entries() per render)
-    this._bgEntries = [
-      ['terminal', 'bg-terminal'], ['shell', 'bg-terminal'],
-      ['filesystem', 'bg-filesystem'], ['directory', 'bg-filesystem'],
-      ['/home', 'bg-filesystem'], ['/root', 'bg-filesystem'], ['/bin', 'bg-filesystem'],
-      ['/tmp', 'bg-filesystem'], ['/etc', 'bg-filesystem'], ['/proc', 'bg-danger'], ['/var', 'bg-filesystem'],
-      ['server', 'bg-server-room'], ['rack', 'bg-server-room'], ['datacenter', 'bg-server-room'],
-      ['network', 'bg-network'], ['http', 'bg-network'], ['dns', 'bg-network'],
-      ['tcp', 'bg-network'], ['packet', 'bg-network'],
-      ['memory', 'bg-memory'], ['heap', 'bg-memory'], ['stack', 'bg-memory'], ['buffer', 'bg-memory'],
-      ['database', 'bg-database'], ['sql', 'bg-database'], ['table', 'bg-database'],
-      ['café', 'bg-cafe'], ['cafe', 'bg-cafe'], ['coffee', 'bg-cafe'],
-      ['warm', 'bg-warm'], ['home', 'bg-warm'], ['cozy', 'bg-warm'],
-      ['danger', 'bg-danger'], ['kernel', 'bg-danger'], ['panic', 'bg-danger'], ['crash', 'bg-danger'],
-      ['void', 'bg-void'], ['null', 'bg-void'], ['empty', 'bg-void'],
-      ['docker', 'bg-server-room'], ['container', 'bg-server-room'],
-      ['git', 'bg-terminal'], ['branch', 'bg-terminal'],
-      ['regex', 'bg-danger'], ['loop', 'bg-memory'],
-      ['process', 'bg-server-room'], ['pipe', 'bg-terminal'],
-      ['deploy', 'bg-server-room'], ['production', 'bg-danger'],
-      ['cache', 'bg-memory'], ['tls', 'bg-network'], ['ssl', 'bg-network'],
-      ['cipher', 'bg-network'], ['handshake', 'bg-network']
-    ];
   }
+
+  // ── Typewriter proxy properties (backward-compatible with external callers) ──
+
+  get typewriterSpeed() { return this._tw.speed; }
+  set typewriterSpeed(v) { this._tw.speed = v; }
+  get fastMode() { return this._tw.fastMode; }
+  set fastMode(v) { this._tw.fastMode = v; }
+  get isTyping() { return this._tw.isTyping; }
+  set isTyping(v) { this._tw.isTyping = v; }
+
+  // ── Background proxy ──
+
+  /** @returns {string} Current background CSS class */
+  get _lastBgClass() { return this._bg.lastBgClass; }
 
   // ── Screen Transitions ──
 
@@ -145,6 +131,7 @@ class VNUI {
   setStorySlug(slug) {
     this.currentStorySlug = slug;
     this._sprites.setStorySlug(slug);
+    this._bg.reset();              // reset background transition state
     this._lastSpeakerKey = '';     // reset speaker DOM cache
     this._lastInventory = '';      // reset inventory cache
   }
@@ -262,7 +249,7 @@ class VNUI {
     // Cancel any lingering effect timers from the previous scene
     this._clearEffectTimers();
 
-    // Pre-compute lowercase strings once for use by both _sceneTransition and _updateSprites
+    // Pre-compute lowercase strings once for use by both background and sprites
     this._sceneLower = {
       loc: (scene.location || '').toLowerCase(),
       scn: (engine.state.currentScene || '').toLowerCase(),
@@ -270,8 +257,8 @@ class VNUI {
       spk: (scene.speaker || '').toLowerCase()
     };
 
-    // Scene transition effect
-    await this._sceneTransition(scene, engine);
+    // Scene transition effect (delegated to BackgroundManager)
+    await this._bg.transition(scene, engine, this._sceneLower, this._tw.fastMode);
 
     // Update sprites
     this._updateSprites(scene, engine);
@@ -373,167 +360,20 @@ class VNUI {
     }
   }
 
-  // ── Scene Transition ──
-
-  async _sceneTransition(scene, engine) {
-    const newBg = this._inferBackground(scene, engine);
-
-    if (newBg !== this._lastBgClass && this._lastBgClass) {
-      // Crossfade background using reusable overlay (no DOM create/remove per transition)
-      this._transitioning = true;
-      const overlay = this._transOverlay;
-      this.bgEl.parentElement.appendChild(overlay);
-
-      // Fade in overlay
-      requestAnimationFrame(() => overlay.classList.add('active'));
-      await this._wait(300);
-
-      // Switch background
-      this.bgEl.className = 'vn-bg';
-      if (newBg) this.bgEl.classList.add(newBg);
-      await this._wait(100);
-
-      // Fade out overlay, then detach (keeps it reusable)
-      overlay.classList.remove('active');
-      await this._wait(300);
-      if (overlay.parentElement) overlay.parentElement.removeChild(overlay);
-
-      this._transitioning = false;
-    } else {
-      this.bgEl.className = 'vn-bg';
-      if (newBg) this.bgEl.classList.add(newBg);
-    }
-
-    this._lastBgClass = newBg;
-  }
-
-  _inferBackground(scene, engine) {
-    if (scene.background) return `bg-${scene.background}`;
-
-    // Use pre-computed lowercase strings from renderScene (avoids redundant toLowerCase per render)
-    const sl = this._sceneLower;
-    const loc = sl ? sl.loc : (scene.location || '').toLowerCase();
-    const scn = sl ? sl.scn : (engine.state.currentScene || '').toLowerCase();
-    const txt = sl ? sl.txt : (scene.text || '').toLowerCase();
-
-    for (const [keyword, bgClass] of this._bgEntries) {
-      if (loc.includes(keyword) || scn.includes(keyword) || txt.includes(keyword)) return bgClass;
-    }
-    return '';
-  }
-
-  _wait(ms) {
-    return new Promise(r => setTimeout(r, this.fastMode ? 0 : ms));
-  }
-
   // ── Typewriter Effect ──
 
   /**
    * Display text with typewriter animation. Resolves when fully displayed or skipped.
+   * Delegates to TypewriterController (Phase 152).
    * @param {string} text - Text to display
    * @returns {Promise<void>}
    */
   typewriterText(text) {
-    return new Promise(resolve => {
-      this._cancelTypewriter();
-
-      this._fullText = text;
-      this._typewriterResolve = resolve;
-      this.isTyping = true;
-      this.clickIndicator.classList.add('hidden');
-
-      const formattedHtml = this._formatText(text);
-
-      if (this.fastMode) {
-        this.textEl.innerHTML = formattedHtml;
-        this.isTyping = false;
-        this.clickIndicator.classList.remove('hidden');
-        this.textboxEl.scrollTop = this.textboxEl.scrollHeight;
-        resolve();
-        return;
-      }
-
-      // Progressive reveal: render the full formatted HTML into a hidden container,
-      // then reveal characters via a clipping wrapper. This avoids re-calling
-      // _formatText() on every 2-char chunk (was O(n²) for long text).
-      this.textEl.innerHTML = '';
-      const wrapper = document.createElement('span');
-      wrapper.className = 'vn-typewriter-reveal';
-      wrapper.innerHTML = formattedHtml;
-      this.textEl.appendChild(wrapper);
-
-      // Measure total text length for progressive reveal
-      const fullLen = wrapper.textContent.length;
-      let revealedLen = 0;
-
-      // Use CSS clip-path or max-width to reveal progressively
-      // Simplest cross-browser approach: walk text nodes and toggle visibility
-      const textNodes = [];
-      const walker = document.createTreeWalker(wrapper, NodeFilter.SHOW_TEXT);
-      let node;
-      while ((node = walker.nextNode())) textNodes.push(node);
-
-      // Split each text node into individual spans for character-level reveal
-      const charSpans = [];
-      for (const tn of textNodes) {
-        const parent = tn.parentNode;
-        const chars = tn.textContent;
-        const frag = document.createDocumentFragment();
-        for (let i = 0; i < chars.length; i++) {
-          const span = document.createElement('span');
-          span.textContent = chars[i];
-          span.className = 'tw-hidden';
-          charSpans.push(span);
-          frag.appendChild(span);
-        }
-        parent.replaceChild(frag, tn);
-      }
-
-      const type = () => {
-        const end = Math.min(revealedLen + 2, charSpans.length);
-        for (let i = revealedLen; i < end; i++) {
-          charSpans[i].className = '';
-        }
-        revealedLen = end;
-
-        // Auto-scroll textbox to keep new text visible
-        this.textboxEl.scrollTop = this.textboxEl.scrollHeight;
-
-        if (revealedLen < charSpans.length) {
-          this._typewriterTimeout = setTimeout(type, this.typewriterSpeed);
-        } else {
-          // Replace char spans with clean formatted HTML (removes per-char spans)
-          this.textEl.innerHTML = formattedHtml;
-          this.isTyping = false;
-          this.clickIndicator.classList.remove('hidden');
-          this.textboxEl.scrollTop = this.textboxEl.scrollHeight;
-          resolve();
-        }
-      };
-      type();
-    });
+    return this._tw.run(text);
   }
 
   skipTypewriter() {
-    if (this.isTyping) {
-      this._cancelTypewriter();
-      // Reveal all text immediately (replaces char spans with clean formatted HTML)
-      this.textEl.innerHTML = this._formatText(this._fullText);
-      this.isTyping = false;
-      this.clickIndicator.classList.remove('hidden');
-      this.textboxEl.scrollTop = this.textboxEl.scrollHeight;
-      if (this._typewriterResolve) {
-        this._typewriterResolve();
-        this._typewriterResolve = null;
-      }
-    }
-  }
-
-  _cancelTypewriter() {
-    if (this._typewriterTimeout) {
-      clearTimeout(this._typewriterTimeout);
-      this._typewriterTimeout = null;
-    }
+    this._tw.skip();
   }
 
   /**
@@ -945,31 +785,13 @@ class VNUI {
   onRestart(callback) { this._onRestart = callback; }
   onMenu(callback) { this._onMenu = callback; }
 
-  // ── Text Formatting ──
+  // ── Text Formatting (delegated to TypewriterController) ──
 
-  /**
-   * Format VN text: escape HTML, then apply markdown (code, bold, italic, newlines).
-   * Uses a single pre-compiled regex for markdown transforms (replaces 4 sequential passes).
-   */
-  _formatText(text) {
-    // First pass: HTML escape (single regex with map lookup)
-    const escaped = text.replace(VNUI._HTML_ESC_RE, c => VNUI._HTML_ESC_MAP[c]);
-    // Second pass: markdown + newlines in one regex
-    return escaped.replace(VNUI._FORMAT_RE, (m, code, bold, italic) => {
-      if (code !== undefined) return `<code class="vn-inline-code">${code}</code>`;
-      if (bold !== undefined) return `<strong class="vn-bold">${bold}</strong>`;
-      if (italic !== undefined) return `<em>${italic}</em>`;
-      if (m === '\n') return '<br>';
-      return m;
-    });
-  }
+  /** Format VN text: escape HTML, apply markdown. Delegates to TypewriterController. */
+  _formatText(text) { return TypewriterController.formatText(text); }
 
-  _escapeHtml(text) {
-    // Reuse a single off-screen element instead of creating one per call
-    if (!VNUI._escapeDiv) VNUI._escapeDiv = document.createElement('div');
-    VNUI._escapeDiv.textContent = text;
-    return VNUI._escapeDiv.innerHTML;
-  }
+  /** Escape HTML special characters. Delegates to TypewriterController. */
+  _escapeHtml(text) { return TypewriterController.escapeHtml(text); }
 
   // ── Fast Mode ──
 
@@ -983,14 +805,16 @@ class VNUI {
   // with var(--accent-r/g/b). RouteMap has its own copy for canvas rendering.
 }
 
-/** Pre-compiled regex for _formatText: matches backtick code, **bold**, *italic*, or newline in one pass. */
-VNUI._FORMAT_RE = /`([^`]+)`|\*\*([^*]+)\*\*|\*([^*]+)\*|\n/g;
-
 /** Ending type → icon map (static, avoids object literal allocation per ending). */
 VNUI._ENDING_ICONS = { good: '🌟', bad: '💀', neutral: '📋', secret: '🔮' };
 
-/** Pre-compiled HTML escape regex and lookup map (replaces 3 chained .replace() calls). */
-VNUI._HTML_ESC_RE = /[&<>]/g;
-VNUI._HTML_ESC_MAP = { '&': '&amp;', '<': '&lt;', '>': '&gt;' };
-
+// Note: _FORMAT_RE, _HTML_ESC_RE, _HTML_ESC_MAP moved to TypewriterController (Phase 152)
 // Note: Sprite position arrays moved to SpriteManager._POS_STATIC (Phase 151)
+// Note: _bgEntries moved to BackgroundManager._KEYWORDS (Phase 152)
+
+// Backward-compatible alias: modules that referenced VNUI._escapeDiv now use TypewriterController
+VNUI._escapeDiv = null;
+Object.defineProperty(VNUI, '_escapeDiv', {
+  get() { return TypewriterController._escDiv; },
+  set(v) { TypewriterController._escDiv = v; }
+});
