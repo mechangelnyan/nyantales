@@ -68,7 +68,7 @@
     startStory(story);
   };
   storyInfo.onLoad = (slug, stateJson) => {
-    const story = storySlugMap.get(slug);
+    const story = stories.get(slug);
     if (story) {
       ensureAudio();
       startStory(story, stateJson);
@@ -105,7 +105,7 @@
 
   // Wire gallery story click (one-time, not per-show)
   gallery.onStorySelect = (slug) => {
-    const story = storySlugMap.get(slug);
+    const story = stories.get(slug);
     if (story) { ensureAudio(); startStory(story); }
   };
 
@@ -145,28 +145,11 @@
     panels.toggle(panel, ...showArgs);
   }
 
-  // ── Story Index ──
-
-  const STORY_SLUGS = [
-    '404-not-found', 'buffer-overflow', 'cache-invalidation', 'cafe-debug',
-    'deadlock', 'dns-quest', 'docker-escape', 'encoding-error',
-    'floating-point', 'fork-bomb', 'garbage-collection', 'git-blame',
-    'haunted-network', 'infinite-loop', 'kernel-panic', 'memory-leak',
-    'merge-conflict', 'midnight-deploy', 'permission-denied',
-    'pipeline-purrdition', 'race-condition', 'regex-catastrophe',
-    'segfault', 'server-room-stray', 'sql-injection', 'stack-overflow',
-    'the-terminal-cat', 'tls-pawshake', 'vim-escape', 'zombie-process'
-  ];
+  // ── Story Index (delegated to StoryLoader) ──
 
   const router = new AppRouter();
+  const stories = new StoryLoader(router);
 
-  // deferredInstallPrompt managed by InstallManager
-
-  let storyIndex   = [];
-  /** @type {Map<string, Object>} slug → story for O(1) lookups */
-  const storySlugMap  = new Map();
-  /** @type {Map<Object, number>} story object → storyIndex position for O(1) indexOf */
-  const storyIdxMap   = new Map();
   // Game state aliases (delegated to PlaybackController)
   // Access via playback.engine, playback.currentSlug, playback.campaignMode, etc.
   // storyStartTime, _endingTimeBox, _endingNewBadge managed by PlaybackController
@@ -216,111 +199,7 @@
   function updateProgressHUD() { playback.updateProgressHUD(); }
   function updateSkipIndicator(active) { playback.updateSkipIndicator(active); }
 
-  // ── Load Stories ──
-
-  /**
-   * Load the story index - tries a pre-built manifest first (production),
-   * falls back to fetching all 30 YAML files (dev).
-   * Manifest mode: 8KB JSON vs 1.6MB of YAML, zero js-yaml parsing on boot.
-   */
-  async function loadStoryIndex() {
-    const base = router.storyBasePath();
-
-    // Try manifest first (generated at build time, ~8KB vs ~1.6MB of YAML)
-    try {
-      // Replace trailing 'stories' segment with 'story-manifest.json'
-      const manifestUrl = base.replace(/stories$/, 'story-manifest.json');
-      const resp = await fetch(manifestUrl);
-      if (resp.ok) {
-        const manifest = await resp.json();
-        if (Array.isArray(manifest) && manifest.length > 0) {
-          storyIndex = [];
-          storySlugMap.clear();
-          storyIdxMap.clear();
-          for (let i = 0; i < manifest.length; i++) {
-            const m = manifest[i];
-            const entry = {
-              slug: m.slug,
-              title: m.title || m.slug,
-              description: m.description || '',
-              _parsed: null, // lazy-loaded on play
-              _meta: { sceneCount: m.sceneCount, wordCount: m.wordCount, totalEndings: m.totalEndings, readMins: m.readMins }
-            };
-            storyIndex.push(entry);
-            storySlugMap.set(m.slug, entry);
-            storyIdxMap.set(entry, i);
-          }
-          return storyIndex;
-        }
-      }
-    } catch (_) { /* manifest not available, fall through to YAML loading */ }
-
-    // Fallback: fetch and parse all YAML files (dev mode)
-    const results = await Promise.allSettled(
-      STORY_SLUGS.map(async slug => {
-        try {
-          const resp = await fetch(`${base}/${slug}/story.yaml`);
-          if (!resp.ok) return null;
-          const text = await resp.text();
-          const parsed = YAMLParser.parse(text);
-          if (!parsed || !parsed.scenes) {
-            console.warn(`[NyanTales] Invalid story data: ${slug}`);
-            return null;
-          }
-          return { slug, title: parsed.title || slug, description: parsed.description || '', _parsed: parsed, _meta: null };
-        } catch (err) {
-          console.warn(`[NyanTales] Failed to load story: ${slug}`, err);
-          return null;
-        }
-      })
-    );
-    storyIndex = [];
-    storySlugMap.clear();
-    storyIdxMap.clear();
-    for (const r of results) {
-      if (r.status === 'fulfilled' && r.value) {
-        const entry = r.value;
-        storyIdxMap.set(entry, storyIndex.length);
-        storyIndex.push(entry);
-        storySlugMap.set(entry.slug, entry);
-      }
-    }
-    return storyIndex;
-  }
-
-  /**
-   * Lazy-load and parse a story's full YAML data. Returns the parsed object.
-   * Caches the result on story._parsed for subsequent plays.
-   * @param {Object} story - story index entry
-   * @returns {Promise<Object|null>} parsed YAML data (scenes, title, start, etc.)
-   */
-  async function loadFullStory(story) {
-    if (story._parsed) return story._parsed;
-    const base = router.storyBasePath();
-    try {
-      const resp = await fetch(`${base}/${story.slug}/story.yaml`);
-      if (!resp.ok) return null;
-      const text = await resp.text();
-      const parsed = YAMLParser.parse(text);
-      if (!parsed || !parsed.scenes) return null;
-      story._parsed = parsed;
-      // Backfill _meta if it wasn't from the manifest
-      if (!story._meta) {
-        let sc = 0, wc = 0, te = 0;
-        for (const id in parsed.scenes) {
-          sc++;
-          const sc_ = parsed.scenes[id];
-          if (sc_.text) wc += sc_.text.split(/\s+/).length;
-          if (sc_.is_ending || sc_.ending) te++;
-        }
-        story._meta = { sceneCount: sc, wordCount: wc, totalEndings: te, readMins: Math.max(1, Math.ceil(wc / 200)) };
-      }
-      return parsed;
-    } catch (err) {
-      console.warn(`[NyanTales] Failed to lazy-load story: ${story.slug}`, err);
-      return null;
-    }
-  }
+  // ── Load Stories (delegated to StoryLoader) ──
 
   // ── Core Scene Playback (delegated to PlaybackController) ──
 
@@ -424,7 +303,7 @@
 
     // Lazy-load full YAML if not yet parsed (manifest-boot mode)
     if (!story._parsed) {
-      const parsed = await loadFullStory(story);
+      const parsed = await stories.loadFull(story);
       if (!parsed) {
         Toast.show(`Failed to load story: ${story.title}`, { icon: '⚠️', duration: 3000 });
         returnToMenu();
@@ -499,7 +378,7 @@
   /** Resolve a story from a card element via data-slug */
   function storyFromCard(card) {
     const slug = card?.dataset.slug;
-    return slug ? storySlugMap.get(slug) : null;
+    return slug ? stories.get(slug) : null;
   }
 
   /** Start a story from a card click (shared by click + keydown delegation) */
@@ -556,133 +435,15 @@
   // ── Story Card Manager ──
   // Manages card decoration, refresh, reset, and metadata (extracted from main.js Phase 139)
   const cardManager = new StoryCardManager({
-    tracker, saveManager, campaignUI, storySlugMap, storyIdxMap
+    tracker, saveManager, campaignUI, storySlugMap: stories.slugMap, storyIdxMap: stories.idxMap
   });
 
   /** Shorthand for card manager getMeta (used by storyInfo and statsDashboard). */
   function getStoryMeta(story) { return cardManager.getMeta(story); }
 
-  /** Whether the story grid has been built at least once (for partial refresh). */
-  let _gridBuilt = false;
-  // _chapterGridBuilt managed by CampaignUI
-
-  /**
-   * Render (or re-render) the title screen.
-   * First call: builds the full story grid from scratch.
-   * Subsequent calls: partial refresh - only updates stats, badges, progress, and
-   * dynamic card state without destroying/rebuilding 30 DOM cards.
-   * Safe to call multiple times.
-   */
-  // Pre-built stats bar elements (avoid innerHTML on every menu return)
-  let _statsBuilt = false;
-  const _statRefs = {};
-
-  function _ensureStatsBar() {
-    if (_statsBuilt) return;
-    statsEl.textContent = '';
-    const defs = [
-      { key: 'complete', icon: '📖', suffix: () => `/${storyIndex.length} complete` },
-      { key: 'endings', icon: '🔮', suffix: () => ' endings found' },
-      { key: 'plays', icon: '🎮', suffix: () => ' plays' },
-      { key: 'achievements', icon: '🏆', suffix: () => '' },
-      { key: 'readTime', icon: '⏱', suffix: () => ' reading' }
-    ];
-    for (const d of defs) {
-      const div = document.createElement('div');
-      div.className = 'stat';
-      const valSpan = document.createElement('span');
-      valSpan.className = 'stat-value';
-      div.appendChild(document.createTextNode(d.icon + ' '));
-      div.appendChild(valSpan);
-      const suffixNode = document.createTextNode('');
-      div.appendChild(suffixNode);
-      _statRefs[d.key] = { el: div, valSpan, suffixNode, suffixFn: d.suffix };
-      statsEl.appendChild(div);
-    }
-    _statsBuilt = true;
-  }
-
-  function _updateStatsBar(stats, achStats, totalTime) {
-    _statRefs.complete.valSpan.textContent = stats.storiesCompleted;
-    _statRefs.complete.suffixNode.textContent = _statRefs.complete.suffixFn();
-    _statRefs.endings.valSpan.textContent = stats.totalEndings;
-    _statRefs.endings.suffixNode.textContent = _statRefs.endings.suffixFn();
-    _statRefs.plays.valSpan.textContent = stats.totalPlays;
-    _statRefs.plays.suffixNode.textContent = _statRefs.plays.suffixFn();
-    _statRefs.achievements.valSpan.textContent = `${achStats.unlocked}/${achStats.total}`;
-    const hasReadTime = tracker.getTotalReadingMs() > 0;
-    _statRefs.readTime.el.classList.toggle('hidden', !hasReadTime);
-    if (hasReadTime) {
-      _statRefs.readTime.valSpan.textContent = totalTime;
-      _statRefs.readTime.suffixNode.textContent = _statRefs.readTime.suffixFn();
-    }
-  }
-
-  function renderTitleScreen() {
-    const stats = tracker.getStats();
-    const achStats = achievements.getStats();
-    const totalTime = StoryTracker.formatDuration(tracker.getTotalReadingMs());
-    _ensureStatsBar();
-    _updateStatsBar(stats, achStats, totalTime);
-
-    // Campaign section
-    campaignUI.updateButton();
-    campaignUI.renderGrid();
-
-    if (!_gridBuilt) {
-      // First render: build full story grid from scratch
-      cardManager.clearRefs();
-      ui.renderStoryList(storyIndex);
-      const cards = titleBrowser.refreshCards();
-      for (let idx = 0; idx < storyIndex.length; idx++) {
-        const card = cards[idx];
-        if (card) cardManager.decorate(card, storyIndex[idx]);
-      }
-      _gridBuilt = true;
-    } else {
-      // Subsequent renders: update dynamic card state without rebuilding DOM
-      cardManager.refresh(storyIndex, titleBrowser.refreshCards());
-    }
-
-    // "Continue" button - shows if there's a recent save
-    updateContinueButton();
-
-    titleBrowser.apply();
-  }
-
-  // _refreshStoryCards and _resetCardForRedecorate moved to StoryCardManager (Phase 139)
-
-  // ── Continue Button ──
+  // ── Title Screen (delegated to TitleScreen) ──
 
   const btnContinueEl = document.getElementById('btn-continue');
-  // Pre-build continue button children so we can update textContent instead of innerHTML
-  let _continueMeta = null;
-  if (btnContinueEl) {
-    btnContinueEl.textContent = '';
-    btnContinueEl.appendChild(document.createTextNode('▶ Continue'));
-    _continueMeta = document.createElement('span');
-    _continueMeta.className = 'continue-meta';
-    btnContinueEl.appendChild(_continueMeta);
-  }
-
-  function updateContinueButton() {
-    const btn = btnContinueEl;
-    let recent = saveManager.getMostRecentSave();
-
-    // Skip campaign transient saves - they shouldn't drive the Continue button
-    if (recent && (recent.slug === 'campaign-intro' || recent.slug?.startsWith('campaign-connector-'))) {
-      recent = null;
-    }
-
-    if (recent && btn) {
-      const story = storySlugMap.get(recent.slug);
-      const title = story ? story.title : recent.slug;
-      _continueMeta.textContent = `${title} · ${recent.turns} turns`;
-      btn.classList.remove('hidden');
-    } else if (btn) {
-      btn.classList.add('hidden');
-    }
-  }
 
   // Install button logic managed by InstallManager (Phase 146)
   const installMgr = new InstallManager(btnInstallEl, router);
@@ -703,6 +464,17 @@
   });
 
   // buildStorySearchBlob moved to StoryCardManager (Phase 139)
+
+  // ── Title Screen Renderer ──
+
+  const titleScreen = new TitleScreen({
+    tracker, achievements, saveManager, campaignUI, cardManager,
+    ui, titleBrowser, stories,
+    statsEl, btnContinueEl
+  });
+
+  function renderTitleScreen() { titleScreen.render(); }
+  function updateContinueButton() { titleScreen.updateContinueButton(); }
 
   // ── Click/Tap to Advance ──
 
@@ -830,7 +602,7 @@
 
   // Wire save manager's load callback
   saveManager.onLoad = (slug, stateJson) => {
-    const story = storySlugMap.get(slug);
+    const story = stories.get(slug);
     if (story) startStory(story, stateJson);
   };
 
@@ -890,25 +662,15 @@
           campaignFlow.start();
           return;
         }
-        const story = storySlugMap.get(recent.slug);
+        const story = stories.get(recent.slug);
         if (!story) return;
         ensureAudio();
         startStory(story, recent.state);
         break;
       }
       case 'btn-random': {
-        if (storyIndex.length === 0) return;
-        // Reservoir sampling: pick a random unplayed story without allocating filtered array.
-        // Falls back to any story if all are completed.
-        let pick = null;
-        let count = 0;
-        for (const s of storyIndex) {
-          if (!tracker.isCompleted(s.slug)) {
-            count++;
-            if (Math.random() * count < 1) pick = s;
-          }
-        }
-        if (!pick) pick = storyIndex[Math.floor(Math.random() * storyIndex.length)];
+        if (stories.index.length === 0) return;
+        const pick = stories.pickRandom(slug => tracker.isCompleted(slug));
         ensureAudio();
         startStory(pick);
         break;
@@ -919,11 +681,11 @@
       }
       case 'btn-gallery': gallery.show(); break;
       case 'btn-achievements': togglePanel(achPanel); break;
-      case 'btn-stats': statsDashboard.setStories(storyIndex); statsDashboard.show(); break;
+      case 'btn-stats': statsDashboard.setStories(stories.index); statsDashboard.show(); break;
       case 'btn-about': {
         const achStats = achievements.getStats();
         aboutPanel.show({
-          stories: storyIndex.length,
+          stories: stories.index.length,
           characters: _totalCharCount,
           achievements: `${achStats.unlocked}/${achStats.total}`
         });
@@ -988,7 +750,7 @@
       return;
     }
 
-    const story = storySlugMap.get(requestedSlug);
+    const story = stories.get(requestedSlug);
     if (!story) {
       Toast.show(`Story not found: ${requestedSlug}`, { icon: '⚠️', duration: 3500 });
       if (playback.currentSlug) {
@@ -1014,7 +776,7 @@
       updateLoadingProgress(30, 'Loading stories...');
       // Parallelize story index, campaign, and portrait preloads
       const [,] = await Promise.all([
-        loadStoryIndex(),
+        stories.load(),
         campaign.load(router.storyBasePath()).then(() => {
           campaign.loadProgress();
           campaignUI.rebuildSlugMap();
@@ -1063,7 +825,7 @@
   // Wire campaign flow callbacks (needs startStory/returnToMenu defined above)
   campaignFlow.startStory   = (story, state, opts) => startStory(story, state, opts);
   campaignFlow.returnToMenu = () => returnToMenu();
-  campaignFlow.storySlugMap = () => storySlugMap;
+  campaignFlow.storySlugMap = () => stories.slugMap;
 
   campaignUI.onChapterSelect = (idx) => {
     ensureAudio();

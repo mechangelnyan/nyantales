@@ -59,6 +59,8 @@ JS_FILES=(
   "js/about.js"
   "js/ui.js"
   "js/title-browser.js"
+  "js/story-loader.js"
+  "js/title-screen.js"
   "js/main.js"
 )
 

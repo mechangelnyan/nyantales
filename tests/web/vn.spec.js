@@ -2947,3 +2947,84 @@ test.describe('PlaybackController — Ending Helpers', () => {
     expect(result.reused).toBe(true);
   });
 });
+
+// ═══════════════════════════════════════════════════════════════════
+//  StoryLoader — story index loading, slug maps, lazy load, random
+// ═══════════════════════════════════════════════════════════════════
+
+test.describe('StoryLoader', () => {
+  test('class is available and has expected API', async ({ page }) => {
+    await page.goto('/web/');
+    await page.waitForSelector('#story-list .story-card');
+    const api = await page.evaluate(() => {
+      return typeof StoryLoader === 'function'
+        && Array.isArray(StoryLoader.SLUGS)
+        && StoryLoader.SLUGS.length === 30;
+    });
+    expect(api).toBe(true);
+  });
+
+  test('SLUGS list matches loaded story count', async ({ page }) => {
+    await page.goto('/web/');
+    await page.waitForSelector('#story-list .story-card');
+    const match = await page.evaluate(() => {
+      return StoryLoader.SLUGS.length === document.querySelectorAll('#story-list .story-card').length;
+    });
+    expect(match).toBe(true);
+  });
+
+  test('pickRandom returns a story entry', async ({ page }) => {
+    await page.goto('/web/');
+    await page.waitForSelector('#story-list .story-card');
+    const result = await page.evaluate(() => {
+      const loader = new StoryLoader(new AppRouter());
+      // Manually populate index for test
+      loader.index = [{ slug: 'a', title: 'A' }, { slug: 'b', title: 'B' }];
+      const pick = loader.pickRandom(() => false);
+      return { hasSlug: !!pick?.slug, hasTitle: !!pick?.title };
+    });
+    expect(result.hasSlug).toBe(true);
+    expect(result.hasTitle).toBe(true);
+  });
+
+  test('pickRandom falls back when all completed', async ({ page }) => {
+    await page.goto('/web/');
+    await page.waitForSelector('#story-list .story-card');
+    const result = await page.evaluate(() => {
+      const loader = new StoryLoader(new AppRouter());
+      loader.index = [{ slug: 'x', title: 'X' }];
+      const pick = loader.pickRandom(() => true); // all completed
+      return pick?.slug;
+    });
+    expect(result).toBe('x');
+  });
+});
+
+// ═══════════════════════════════════════════════════════════════════
+//  TitleScreen — stats bar, grid rendering, continue button
+// ═══════════════════════════════════════════════════════════════════
+
+test.describe('TitleScreen', () => {
+  test('class is available and has expected API', async ({ page }) => {
+    await page.goto('/web/');
+    await page.waitForSelector('#story-list .story-card');
+    const api = await page.evaluate(() => {
+      return typeof TitleScreen === 'function'
+        && typeof TitleScreen.prototype.render === 'function'
+        && typeof TitleScreen.prototype.updateContinueButton === 'function';
+    });
+    expect(api).toBe(true);
+  });
+
+  test('stats bar rendered with expected stats', async ({ page }) => {
+    await page.goto('/web/');
+    await page.waitForSelector('#story-list .story-card');
+    const stats = await page.evaluate(() => {
+      const el = document.getElementById('title-stats');
+      const divs = el?.querySelectorAll('.stat');
+      return { count: divs?.length, hasValues: el?.querySelectorAll('.stat-value').length > 0 };
+    });
+    expect(stats.count).toBeGreaterThanOrEqual(4);
+    expect(stats.hasValues).toBe(true);
+  });
+});
