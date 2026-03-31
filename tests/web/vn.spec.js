@@ -600,6 +600,11 @@ test.describe('Data Export', () => {
 test.describe('Achievements Panel', () => {
   test('achievements panel opens from title screen', async ({ page }) => {
     await waitForTitleScreen(page);
+    // Close any accidentally-open panels first
+    while (await page.locator('.settings-overlay.visible, .history-overlay.visible').count() > 0) {
+      await page.keyboard.press('Escape');
+      await page.waitForTimeout(100);
+    }
     await page.locator('#btn-achievements').click();
 
     const overlay = page.locator('.achievements-overlay');

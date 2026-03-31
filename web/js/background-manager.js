@@ -12,7 +12,6 @@ class BackgroundManager {
   constructor(bgEl) {
     this._bgEl = bgEl;
     this._lastBgClass = '';
-    this._transitioning = false;
 
     // Reusable crossfade overlay (single element, avoids create/remove per transition)
     this._overlay = document.createElement('div');
@@ -34,7 +33,6 @@ class BackgroundManager {
     const newBg = this._infer(scene, engine, sceneLower);
 
     if (newBg !== this._lastBgClass && this._lastBgClass) {
-      this._transitioning = true;
       const overlay = this._overlay;
       this._bgEl.parentElement.appendChild(overlay);
 
@@ -48,8 +46,6 @@ class BackgroundManager {
       overlay.classList.remove('active');
       await this._wait(300, fastMode);
       if (overlay.parentElement) overlay.parentElement.removeChild(overlay);
-
-      this._transitioning = false;
     } else {
       this._bgEl.className = 'vn-bg';
       if (newBg) this._bgEl.classList.add(newBg);
@@ -84,9 +80,10 @@ class BackgroundManager {
     return '';
   }
 
-  /** @private */
+  /** @private — resolves immediately in fast mode (zero Promise allocation). */
   _wait(ms, fast) {
-    return new Promise(r => setTimeout(r, fast ? 0 : ms));
+    if (fast) return;
+    return new Promise(r => setTimeout(r, ms));
   }
 }
 

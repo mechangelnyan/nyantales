@@ -123,13 +123,6 @@ class CampaignManager {
     };
   }
 
-  /** Find a story in the story index by slug for the current chapter. */
-  getChapterStory(storyIndex) {
-    const ch = this.getCurrentChapter();
-    if (!ch) return null;
-    return storyIndex.find(s => s.slug === ch.story) || null;
-  }
-
   /** Human-readable progress label for the title screen. */
   getProgressLabel() {
     if (!this._loaded) return null;

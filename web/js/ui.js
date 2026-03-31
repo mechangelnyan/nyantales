@@ -77,12 +77,8 @@ class VNUI {
     // State — typewriter proxied via _tw
     this._lastInventory = ''; // cached inventory key to skip redundant DOM updates
 
-    // Mood emoji map
-    this.moodEmojis = {
-      tense: '😰', peaceful: '😌', mysterious: '🔮', funny: '😹',
-      glitch: '⚡', danger: '💀', warm: '☀️', sad: '😿',
-      excited: '✨', spooky: '👻'
-    };
+    // Mood emoji map (static — shared across instances)
+    // See VNUI._MOOD_EMOJIS below
   }
 
   // ── Typewriter proxy properties (backward-compatible with external callers) ──
@@ -266,7 +262,7 @@ class VNUI {
     // Mood
     this.textEl.className = 'vn-text';
     if (scene.mood) {
-      this.moodEl.textContent = this.moodEmojis[scene.mood] || '';
+      this.moodEl.textContent = VNUI._MOOD_EMOJIS[scene.mood] || '';
       this.moodEl.classList.remove('hidden');
       this.textEl.classList.add(`mood-${scene.mood}`);
     } else {
@@ -449,3 +445,10 @@ class VNUI {
   }
 
 }
+
+/** Mood → emoji lookup (static, shared, no per-instance allocation). */
+VNUI._MOOD_EMOJIS = {
+  tense: '😰', peaceful: '😌', mysterious: '🔮', funny: '😹',
+  glitch: '⚡', danger: '💀', warm: '☀️', sad: '😿',
+  excited: '✨', spooky: '👻'
+};

@@ -3024,3 +3024,20 @@ cd /tmp/nyantales && python3 -m http.server 9876
 ## Log (continued)
 - 2026-03-31 (4:27 AM): Phase 157 — Single-pass stats computation (merged .map() + aggregation into one for...of loop in stats-dashboard, zero intermediate array allocation). Allocation-free scene-select visited list (spread+filter → direct Set iteration). SW v138. 198KB bundle. All 50 JS + 204/204 unit + 227/227 Playwright pass.
 - 2026-03-31 (3:27 AM): Phase 156 — Fixed broken Playwright text formatting test (VNUI._formatText removed in Phase 155 → updated to TypewriterController.formatText). README build stats freshened. 227/227 Playwright + 204/204 unit pass. Committed & pushed.
+
+## Phase 158: Dead Code Removal, Static Mood Map, Fast-Mode Optimization ✅
+- **Removed dead `_transitioning` flag** from BackgroundManager — was set but never read anywhere
+  - Field was set to true/false during transitions but no code checked it
+  - Leftover from pre-extraction VNUI code
+- **Removed dead `getChapterStory()` method** from CampaignManager
+  - Used `storyIndex.find()` but was never called from any file (replaced by direct slugMap lookups in CampaignFlow)
+- **Static `VNUI._MOOD_EMOJIS`** — mood emoji map hoisted from per-instance object to class-level static
+  - Was allocating a new 10-property object in every VNUI constructor (only one instance exists, but principle matters)
+  - All moods now reference `VNUI._MOOD_EMOJIS[scene.mood]` instead of `this.moodEmojis[scene.mood]`
+- **BackgroundManager `_wait()` fast-mode optimization** — returns `undefined` instead of creating a `Promise(r => setTimeout(r, 0))`
+  - In fast mode (skip-read), 3 `_wait` calls per transition were each creating a Promise + scheduling a 0ms setTimeout
+  - Now: `if (fast) return;` — zero allocation in the hot skip-read path
+- **Flaky test fix** — achievements panel test now closes any accidentally-open panels before clicking the button
+  - Settings/history panels could be open from prior keyboard events, intercepting Escape before achievements
+- SW cache bumped to v139, production build regenerated (198KB JS, 96KB CSS)
+- All 50 JS files pass `node --check`, 204/204 unit tests, 227/227 Playwright tests
