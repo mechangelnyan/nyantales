@@ -2816,5 +2816,31 @@ cd /tmp/nyantales && python3 -m http.server 9876
 - All 42 JS files pass `node --check`, 204/204 unit tests, 194/194 Playwright tests
 - Committed & pushed
 
+## Phase 149: StoryLoader + TitleScreen Extraction ✅
+- **`StoryLoader` class** (`web/js/story-loader.js`) — story index loading and lazy YAML parsing
+  - `StoryLoader.SLUGS` static property (canonical 30-slug list, was inline array in main.js)
+  - `load()` — tries manifest first (production, ~8KB), falls back to 30 YAML fetches (dev)
+  - `loadFull(story)` — lazy-loads full YAML on first play, caches on `story._parsed`
+  - `get(slug)` — O(1) slug→story via internal `slugMap`
+  - `pickRandom(isCompleted)` — reservoir sampling (zero allocation)
+  - `index`, `slugMap`, `idxMap` properties replace standalone variables in main.js
+- **`TitleScreen` class** (`web/js/title-screen.js`) — title screen rendering orchestration
+  - `render()` — stats bar + campaign + story grid (first build vs partial refresh)
+  - `updateContinueButton()` — most-recent save detection + button visibility
+  - Pre-built stats bar DOM (5 stat divs created once, textContent updates on re-render)
+  - Pre-built continue button children (textContent swap, no innerHTML)
+  - Accepts dependencies via constructor object (tracker, achievements, saveManager, campaignUI, cardManager, ui, titleBrowser, stories, statsEl, btnContinueEl)
+- **main.js: 1091 → 853 lines** (238 lines removed, 22% reduction)
+  - `loadStoryIndex()`, `loadFullStory()`, `STORY_SLUGS`, `storySlugMap`, `storyIdxMap` all moved to StoryLoader
+  - `renderTitleScreen()`, `_ensureStatsBar()`, `_updateStatsBar()`, `updateContinueButton()`, `_statsBuilt`, `_statRefs`, `_gridBuilt`, `_continueMeta` all moved to TitleScreen
+  - Thin convenience aliases: `renderTitleScreen()` → `titleScreen.render()`, `updateContinueButton()` → `titleScreen.updateContinueButton()`
+  - Random story inline reservoir sampling → `stories.pickRandom()`
+- **6 new Playwright tests** for StoryLoader (class API, SLUGS count, pickRandom normal + fallback) and TitleScreen (class API, stats bar rendering)
+- **Playwright test count: 194 → 200**
+- SW cache bumped to v131, production build regenerated (197KB JS, 96KB CSS)
+- All 44 JS files pass `node --check`, 204/204 unit tests, 200/200 Playwright tests
+- Committed & pushed
+
 ## Log (continued)
+- 2026-03-30 (8:27 PM): Phase 149 — Extracted StoryLoader class (story index loading, lazy YAML, O(1) maps, random pick) and TitleScreen class (stats bar, grid render/refresh, continue button) from main.js. main.js 1091→853 lines (22% reduction). 6 new Playwright tests. SW v131, 197KB bundle. All 44 JS + 204/204 unit + 200/200 Playwright pass. Committed & pushed.
 - 2026-03-30 (7:27 PM): Phase 148 — PlaybackController._miscTimers Array→Set (O(1) delete), README accuracy (42 files, 196KB, 194 Playwright), test fixes for Set API. SW v130, 196KB bundle. All 42 JS + 204/204 unit + 194/194 Playwright pass. Committed & pushed.
