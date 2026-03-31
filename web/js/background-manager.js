@@ -2,7 +2,7 @@
  * NyanTales Visual Novel — Background Manager
  *
  * Handles scene background inference from keywords and crossfade transitions.
- * Extracted from VNUI (Phase 152) to isolate background logic from the main UI controller.
+ * Manages scene background CSS class inference and crossfade transitions.
  */
 
 class BackgroundManager {

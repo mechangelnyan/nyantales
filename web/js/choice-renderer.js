@@ -1,7 +1,7 @@
 /**
  * NyanTales — Choice Renderer
  * Manages choice button rendering with a reusable button pool and event delegation.
- * Extracted from VNUI (Phase 154).
+ * Manages choice button pool, delegation, visited hints, and click handling.
  *
  * @class ChoiceRenderer
  */

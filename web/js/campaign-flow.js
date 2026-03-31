@@ -4,7 +4,7 @@
  * Manages the campaign state machine: starting the campaign, advancing phases
  * (intro → connector → chapter → complete), and handling campaign endings.
  *
- * Separated from main.js (Phase 143) to isolate campaign orchestration.
+ * Orchestrates the multi-act campaign state machine (start, phase transitions, chapter flow).
  * Requires callbacks for startStory / returnToMenu (set after construction).
  */
 class CampaignFlow {

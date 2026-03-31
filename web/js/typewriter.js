@@ -2,7 +2,7 @@
  * NyanTales Visual Novel — Typewriter Controller
  *
  * Handles progressive text reveal with character-level animation.
- * Extracted from VNUI (Phase 152) to isolate text rendering logic.
+ * Progressive character reveal with formatting pipeline (HTML escape + markdown).
  */
 
 class TypewriterController {

@@ -1,7 +1,7 @@
 /**
  * NyanTales — Sprite Manager
  * Manages character sprite positioning, visibility, caching, and animations.
- * Extracted from VNUI (Phase 151) to reduce ui.js complexity.
+ * Manages character sprite lifecycle: positioning, fade in/out, speaking state, and effect timers.
  */
 
 class SpriteManager {

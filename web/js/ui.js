@@ -37,20 +37,12 @@ class VNUI {
     this.portraits = new PortraitManager(this.spriteGen);
     this.currentStorySlug = null;
 
-    // Sprite management delegated to SpriteManager (Phase 151)
+    // Subsystem delegates
     this._sprites = new SpriteManager(this.spritesEl, this.portraits);
-    // Expose for external access (ending state, activeSprites)
     this._activeSprites = this._sprites.activeSprites;
-
-    // Background management delegated to BackgroundManager (Phase 152)
     this._bg = new BackgroundManager(this.bgEl);
-
-    // Typewriter delegated to TypewriterController (Phase 152)
     this._tw = new TypewriterController(this.textEl, this.textboxEl, this.clickIndicator);
-
-    // Ending overlay delegated to EndingOverlay (Phase 153)
     this._ending = new EndingOverlay(this.endingEl, this.choicesEl, this._sprites);
-    // Expose refs for external access (main.js ending hook uses statsGrid/actionsRow)
     this._endingRefs = this._ending.refs;
 
     // Cached container ref (used for shake effects)
@@ -62,7 +54,6 @@ class VNUI {
     this._speakerText = document.createTextNode('');
     this._lastSpeakerKey = ''; // cache key to skip redundant updates
 
-    // Choice rendering delegated to ChoiceRenderer (Phase 154)
     this._choices = new ChoiceRenderer(this.choicesEl);
 
     // Pre-built inventory item pool
@@ -340,7 +331,6 @@ class VNUI {
 
   /**
    * Display text with typewriter animation. Resolves when fully displayed or skipped.
-   * Delegates to TypewriterController (Phase 152).
    * @param {string} text - Text to display
    * @returns {Promise<void>}
    */
@@ -352,7 +342,7 @@ class VNUI {
     this._tw.skip();
   }
 
-    // ── Choices (delegated to ChoiceRenderer — Phase 154) ──
+    // ── Choices ──
 
   showChoices(choices, engine) { this._choices.show(choices, engine); }
   hideChoices() { this._choices.hide(); }
@@ -421,7 +411,7 @@ class VNUI {
     this.conditionalEl.textContent = '';
   }
 
-  // ── Ending (delegated to EndingOverlay — Phase 153) ──
+  // ── Ending ──
 
   hideEnding() { this._ending.hide(); }
   onRestart(callback) { this._ending.onRestart(callback); }

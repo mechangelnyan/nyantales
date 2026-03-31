@@ -3,7 +3,7 @@
  * Manages the ending screen: pre-built DOM, share, restart/menu actions,
  * "Continue ▶" prompt, and event delegation.
  *
- * Extracted from VNUI (Phase 153) to reduce ui.js by ~230 lines.
+ * Pre-built ending DOM, continue prompt, share, and event delegation.
  *
  * @class EndingOverlay
  */

@@ -4,7 +4,7 @@
  * Registers the service worker and shows an update banner
  * when a new version is detected.
  *
- * Extracted from main.js (Phase 144) for CSP compliance
+ * Service worker registration and update-available notification banner.
  * (no inline scripts) and cleaner separation.
  */
 class SWRegister {

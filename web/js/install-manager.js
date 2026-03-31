@@ -4,7 +4,7 @@
  * Manages: deferred install prompt, button state, iOS fallback,
  * beforeinstallprompt / appinstalled / standalone-mode events.
  *
- * Extracted from main.js (Phase 146) for cleaner separation.
+ * Handles PWA install prompt, button visibility, and iOS guidance.
  */
 class InstallManager {
   /**

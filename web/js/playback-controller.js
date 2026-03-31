@@ -1,9 +1,6 @@
 /**
  * PlaybackController — manages scene playback pipeline, auto-play timer,
  * skip-read fast-forward, rewind, and HUD indicator state.
- *
- * Extracted from main.js Phase 140 to reduce orchestrator size
- * and encapsulate the game-loop state machine.
  */
 class PlaybackController {
   /**

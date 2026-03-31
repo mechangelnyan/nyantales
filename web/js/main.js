@@ -143,12 +143,10 @@
     panels.toggle(panel, ...showArgs);
   }
 
-  // ── Story Index (delegated to StoryLoader) ──
+  // ── Routing & Stories ──
 
   const router = new AppRouter();
   const stories = new StoryLoader(router);
-
-  // Convenience alias
 
   // Wire panel-open check into playback controller
   playback.isAnyPanelOpen = () => panels.isAnyOpen();
@@ -178,8 +176,6 @@
   const btnInstallEl   = document.getElementById('btn-install');
   const statsEl        = document.getElementById('title-stats');
   const textboxEl      = document.getElementById('vn-textbox');
-
-  /** Play a scene through the playback controller. */
 
   // ── Engine Callbacks (wired once, reference playback.engine dynamically) ──
 
@@ -403,20 +399,17 @@
   });
 
   // ── Story Card Manager ──
-  // Manages card decoration, refresh, reset, and metadata (extracted from main.js Phase 139)
   const cardManager = new StoryCardManager({
     tracker, saveManager, campaignUI, storySlugMap: stories.slugMap, storyIdxMap: stories.idxMap
   });
 
-  /** Shorthand for card manager getMeta (used by storyInfo and statsDashboard). */
-
-  // ── Title Screen (delegated to TitleScreen) ──
+  // ── Title Screen ──
 
   const btnContinueEl = document.getElementById('btn-continue');
 
   const installMgr = new InstallManager(btnInstallEl, router);
 
-  // ── Search, Filter & Sort (delegated to TitleBrowser) ──
+  // ── Search, Filter & Sort ──
 
   const titleBg = document.querySelector('.title-bg');
 
@@ -773,9 +766,7 @@
     }
   }
 
-  // ── Campaign Mode (delegated to CampaignFlow) ──
-
-  // Wire campaign flow callbacks (needs startStory/returnToMenu defined above)
+  // ── Campaign Mode ──
   campaignFlow.startStory   = (story, state, opts) => startStory(story, state, opts);
   campaignFlow.returnToMenu = () => returnToMenu();
   campaignFlow.storySlugMap = () => stories.slugMap;
@@ -799,7 +790,6 @@
     }
   });
 
-  // ── Service Worker Registration (delegated to SWRegister) ──
   SWRegister.init();
 
   boot();

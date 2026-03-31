@@ -4,7 +4,7 @@
  * Manages campaign-specific UI: chapter grid rendering, campaign button,
  * story unlock state, campaign flow (start/advance/ending), and slug map.
  *
- * Extracted from main.js (Phase 136) for cleaner separation of concerns.
+ * Renders campaign chapter grid, button state, and story lock status.
  * main.js handles app-wide orchestration; this handles campaign display logic.
  */
 class CampaignUI {
