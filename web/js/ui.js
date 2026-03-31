@@ -141,15 +141,7 @@ class VNUI {
     this._lastInventory = '';      // reset inventory cache
   }
 
-  /**
-   * Find a character matching a speaker name, with per-story caching.
-   * Delegates to SpriteManager.
-   * @param {string} speakerName
-   * @returns {Object|null}
-   */
-  _findSpeakerChar(speakerName) {
-    return this._sprites.findSpeakerChar(speakerName);
-  }
+
 
   // ── Story List ──
 
@@ -210,25 +202,20 @@ class VNUI {
     this.storyListEl.appendChild(frag);
   }
 
-  // ── Character Sprites ──
+  // ── Character Sprites (delegated to SpriteManager) ──
 
-  /** Remove all sprites (delegated to SpriteManager). */
   _clearSprites() {
     this._sprites.clear();
-    // Also clean up effect classes that sprite timers would have handled
     this.textEl.classList.remove('glitch-text');
     this.containerEl.classList.remove('shake');
   }
 
-  /** Update sprites for a scene (delegated to SpriteManager). */
   _updateSprites(scene, engine) {
     this._sprites.update(scene, engine, this._sceneLower);
   }
 
-  /** Track a setTimeout so it can be cancelled on scene teardown. */
   _trackTimer(id) { return this._sprites._trackTimer(id); }
 
-  /** Cancel all pending effect timers and clean up stale CSS classes. */
   _clearEffectTimers() {
     this._sprites._clearEffectTimers();
     this.textEl.classList.remove('glitch-text');
@@ -296,7 +283,7 @@ class VNUI {
 
     // Speaker (with portrait in name plate) — uses pre-built DOM + cache to skip redundant updates
     if (scene.speaker) {
-      const speakerChar = this._findSpeakerChar(scene.speaker);
+      const speakerChar = this._sprites.findSpeakerChar(scene.speaker);
       // Build a cache key: "charName|speaker" or just "speaker" (null char)
       const speakerKey = speakerChar ? `${speakerChar.name}|${scene.speaker}` : scene.speaker;
       if (speakerKey !== this._lastSpeakerKey) {
@@ -453,14 +440,6 @@ class VNUI {
   onRestart(callback) { this._ending.onRestart(callback); }
   onMenu(callback) { this._ending.onMenu(callback); }
 
-  // ── Text Formatting (delegated to TypewriterController) ──
-
-  /** Format VN text: escape HTML, apply markdown. Delegates to TypewriterController. */
-  _formatText(text) { return TypewriterController.formatText(text); }
-
-  /** Escape HTML special characters. Delegates to TypewriterController. */
-  _escapeHtml(text) { return TypewriterController.escapeHtml(text); }
-
   // ── Fast Mode ──
 
   toggleFastMode() {
@@ -469,19 +448,4 @@ class VNUI {
     return this.fastMode;
   }
 
-  // Note: _accentRGBA removed — sprite highlighting now uses pure CSS classes
-  // with var(--accent-r/g/b). RouteMap has its own copy for canvas rendering.
 }
-
-// Note: _ENDING_ICONS moved to EndingOverlay._ICONS (Phase 153)
-
-// Note: _FORMAT_RE, _HTML_ESC_RE, _HTML_ESC_MAP moved to TypewriterController (Phase 152)
-// Note: Sprite position arrays moved to SpriteManager._POS_STATIC (Phase 151)
-// Note: _bgEntries moved to BackgroundManager._KEYWORDS (Phase 152)
-
-// Backward-compatible alias: modules that referenced VNUI._escapeDiv now use TypewriterController
-VNUI._escapeDiv = null;
-Object.defineProperty(VNUI, '_escapeDiv', {
-  get() { return TypewriterController._escDiv; },
-  set(v) { TypewriterController._escDiv = v; }
-});

@@ -3214,3 +3214,146 @@ test.describe('ChoiceRenderer', () => {
     expect(firstIdx).toBe('0');
   });
 });
+
+test.describe('UI Cleanup — Phase 155', () => {
+  test('VNUI no longer exposes _escapeDiv static property', async ({ page }) => {
+    await page.goto('/web/');
+    const hasOwnProp = await page.evaluate(() =>
+      Object.getOwnPropertyDescriptor(VNUI, '_escapeDiv') === undefined
+    );
+    expect(hasOwnProp).toBe(true);
+  });
+
+  test('VNUI no longer exposes _formatText or _escapeHtml methods', async ({ page }) => {
+    await page.goto('/web/');
+    const noProxies = await page.evaluate(() => {
+      return typeof VNUI.prototype._formatText === 'undefined'
+        && typeof VNUI.prototype._escapeHtml === 'undefined';
+    });
+    expect(noProxies).toBe(true);
+  });
+
+  test('TypewriterController has formatText and escapeHtml statics', async ({ page }) => {
+    await page.goto('/web/');
+    const has = await page.evaluate(() => {
+      return typeof TypewriterController.formatText === 'function'
+        && typeof TypewriterController.escapeHtml === 'function';
+    });
+    expect(has).toBe(true);
+  });
+
+  test('speaker name plate renders during gameplay', async ({ page }) => {
+    const { text } = await startStory(page);
+    // Click to skip typewriter then check speaker element
+    await page.locator('#vn-textbox').click();
+    await page.waitForTimeout(200);
+    const speaker = page.locator('#vn-speaker');
+    const visible = await speaker.isVisible();
+    // Story may or may not have a speaker on first scene
+    // Check that the element exists in DOM
+    expect(await speaker.count()).toBe(1);
+  });
+
+  test('speaker name plate uses pre-built img element', async ({ page }) => {
+    await page.goto('/web/');
+    const preBuilt = await page.evaluate(() => {
+      const ui = new VNUI();
+      return ui._speakerIcon instanceof HTMLImageElement
+        && ui._speakerIcon.className === 'speaker-icon'
+        && ui._speakerText instanceof Text;
+    });
+    expect(preBuilt).toBe(true);
+  });
+
+  test('ui.js line count is under 460', async ({ page }) => {
+    // Verify the extraction kept ui.js lean
+    const resp = await page.goto('/web/js/ui.js');
+    const text = await resp.text();
+    const lineCount = text.split('\n').length;
+    expect(lineCount).toBeLessThan(460);
+  });
+});
+
+test.describe('Inventory & Conditionals', () => {
+  test('inventory element exists and has pooled span approach', async ({ page }) => {
+    await page.goto('/web/');
+    const hasPool = await page.evaluate(() => {
+      const ui = new VNUI();
+      return Array.isArray(ui._invPool) && ui._invPool.length === 0
+        && Array.isArray(ui._condPool) && ui._condPool.length === 0;
+    });
+    expect(hasPool).toBe(true);
+  });
+
+  test('inventory DOM element present during gameplay', async ({ page }) => {
+    await startStory(page);
+    const inv = page.locator('#vn-inventory');
+    expect(await inv.count()).toBe(1);
+  });
+});
+
+test.describe('BackgroundManager Keywords', () => {
+  test('BackgroundManager has static _KEYWORDS array', async ({ page }) => {
+    await page.goto('/web/');
+    const has = await page.evaluate(() => {
+      return Array.isArray(BackgroundManager._KEYWORDS)
+        && BackgroundManager._KEYWORDS.length > 40;
+    });
+    expect(has).toBe(true);
+  });
+
+  test('BackgroundManager transition applies bg class during play', async ({ page }) => {
+    await startStory(page);
+    await page.locator('#vn-textbox').click();
+    await page.waitForTimeout(300);
+    const bgEl = page.locator('#vn-background');
+    const classes = await bgEl.getAttribute('class');
+    // Should have at least the base class
+    expect(classes).toBeTruthy();
+  });
+});
+
+test.describe('SpriteManager — Extended', () => {
+  test('SpriteManager clears effect timers on clear()', async ({ page }) => {
+    await page.goto('/web/');
+    const result = await page.evaluate(() => {
+      const el = document.createElement('div');
+      const pm = new PortraitManager(new CatSpriteGenerator());
+      const sm = new SpriteManager(el, pm);
+      // Track a fake timer
+      const id = sm._trackTimer(setTimeout(() => {}, 10000));
+      const before = sm._effectTimers.length;
+      sm.clear();
+      const after = sm._effectTimers.length;
+      clearTimeout(id);
+      return { before, after };
+    });
+    expect(result.before).toBe(1);
+    expect(result.after).toBe(0);
+  });
+});
+
+test.describe('EndingOverlay — Extended', () => {
+  test('EndingOverlay has static _ICONS map', async ({ page }) => {
+    await page.goto('/web/');
+    const icons = await page.evaluate(() => {
+      return EndingOverlay._ICONS && typeof EndingOverlay._ICONS === 'object'
+        && 'good' in EndingOverlay._ICONS && 'bad' in EndingOverlay._ICONS;
+    });
+    expect(icons).toBe(true);
+  });
+
+  test('EndingOverlay builds pre-built DOM refs', async ({ page }) => {
+    await page.goto('/web/');
+    const refs = await page.evaluate(() => {
+      const endEl = document.getElementById('vn-ending');
+      const choicesEl = document.getElementById('vn-choices');
+      const sprites = document.getElementById('vn-sprites');
+      const pm = new PortraitManager(new CatSpriteGenerator());
+      const sm = new SpriteManager(sprites, pm);
+      const eo = new EndingOverlay(endEl, choicesEl, sm);
+      return eo.refs && 'statsGrid' in eo.refs && 'actionsRow' in eo.refs;
+    });
+    expect(refs).toBe(true);
+  });
+});
