@@ -3196,7 +3196,27 @@ cd /tmp/nyantales && python3 -m http.server 9876
 - All 50 JS files pass `node --check`, 204/204 unit tests, 242/242 Playwright tests
 - Committed & pushed
 
+## Phase 168: Dead CSS Removal ✅
+- **Removed 5 unused CSS selectors** + 2 dead `@keyframes` — 87 lines eliminated
+  - `.chapter-grid-empty` — never referenced from JS/HTML
+  - `.touch-hint` + `@keyframes touchHintFade` — legacy mobile hint, replaced by Toast system
+  - `.shortcut-toast` (3 selectors) — legacy shortcut hint, replaced by Toast + KeyboardHelp panel
+  - `.nt-toast-bottom` — toast container only uses `.nt-toast-top`
+  - `.story-card-badge.new-save-badge` + `@keyframes badge-pulse` — save badges now use `.hidden` toggle
+- CSS: 4592 → 4505 lines, minified 98KB → 97KB
+- SW cache bumped to v149
+- All 50 JS pass `node --check`, 204/204 unit tests, 242/242 Playwright tests
+
+## Phase 169: CSS Cleanup — Stale Comments, README Freshness ✅
+- Removed stale `will-change + touch-action merged` migration comment
+- Removed empty `Noscript Fallback` section header (no rules below it)
+- README: corrected CSS output size (97KB)
+- CSS: 4505 → 4499 lines
+- SW cache bumped to v150
+
 ## Log (continued)
+- 2026-03-31 (2:27 PM): Phase 169 — CSS cleanup: removed stale migration comment + empty section header. README freshened. SW v150. 4499 CSS lines.
+- 2026-03-31 (2:27 PM): Phase 168 — Dead CSS removal: 5 unused selectors + 2 dead @keyframes. 87 lines removed. CSS 4592→4505. SW v149. 97KB minified CSS. All 50 JS + 204/204 unit + 242/242 Playwright pass.
 - 2026-03-31 (2:27 PM): Phase 167 — Replaced all 37 transition:all with specific property lists. Zero transition:all remaining. SW v148. 198KB JS / 98KB CSS. All 50 JS + 204/204 unit + 242/242 Playwright pass. Committed & pushed.
 - 2026-03-31 (2:27 PM): Phase 166 — EndingOverlay public API: replaced _onCampaignEnding/_onEndingHook/_totalScenes with public properties (JSDoc). Zero ui.ending._ cross-module access. SW v147. All 50 JS + 204/204 unit + 242/242 Playwright pass. Committed & pushed.
 - 2026-03-31 (12:27 PM): Phase 165 — Public API surface cleanup: replaced 5 underscore-prefixed VNUI getters with clean public accessors (lastBgClass, currentChoices, choiceBtnPool, ending, endingRefs). Removed dead _activeSprites alias and stale _endingRefs property. Zero ui._ cross-module access in main.js and playback-controller.js. 4 new Playwright tests for public API verification. SW v146, 198KB bundle. All 50 JS + 204/204 unit + 242/242 Playwright pass.
