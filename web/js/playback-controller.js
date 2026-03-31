@@ -31,6 +31,9 @@ class PlaybackController {
     this.campaignMode = false;
     this.storyStartTime = null;
 
+    /** @type {Object|null} Most recently parsed story data (for restart). */
+    this.currentParsed = null;
+
     // Reusable ending DOM elements (avoids createElement per ending)
     this._endingTimeBox  = null;
     this._endingNewBadge = null;
@@ -170,10 +173,16 @@ class PlaybackController {
     }
   }
 
-  updateAutoPlayHUD(on, btnEl) {
-    btnEl.classList.toggle('hud-inactive', !on);
-    btnEl.title = on ? 'Auto-Play ON (A)' : 'Auto-Play OFF (A)';
-    btnEl.setAttribute('aria-pressed', on ? 'true' : 'false');
+  /** Cache the auto-play HUD button ref. */
+  setAutoButton(el) { this._autoBtnEl = el; }
+
+  updateAutoPlayHUD(on) {
+    const btnEl = this._autoBtnEl;
+    if (btnEl) {
+      btnEl.classList.toggle('hud-inactive', !on);
+      btnEl.title = on ? 'Auto-Play ON (A)' : 'Auto-Play OFF (A)';
+      btnEl.setAttribute('aria-pressed', on ? 'true' : 'false');
+    }
     this._autoEl.classList.toggle('hidden', !on);
   }
 
@@ -362,6 +371,7 @@ class PlaybackController {
     this.currentSlug = null;
     this.totalScenes = 0;
     this.storyStartTime = null;
+    this.currentParsed = null;
     this.hideIndicators();
     this.updateSkipIndicator(false);
   }

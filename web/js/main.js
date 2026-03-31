@@ -54,7 +54,7 @@
     playback.updateSkipIndicator(false);
     const scene = playback.engine.jumpToScene(sceneId);
     if (scene) playback.playScene(scene);
-    updateRewindButton();
+    playback.updateRewindButton(btnRewind);
   });
 
   /** Ensure audio context is initialized (safe to call repeatedly). */
@@ -115,8 +115,6 @@
   // Migrate legacy save format to new slot system
   saveManager.migrateLegacy();
 
-
-
   // ── Theme & Settings ──
 
   const theme = new ThemeManager(settings);
@@ -150,16 +148,10 @@
   const router = new AppRouter();
   const stories = new StoryLoader(router);
 
-  // Convenience aliases (used heavily throughout main.js)
-  function clearAutoPlayTimer() { playback.clearAutoPlay(); }
-  function trackTimeout(fn, ms) { return playback.trackTimeout(fn, ms); }
-  function advanceScene() { return playback.advanceScene(); }
-
-  /** Check if any overlay panel is currently visible */
-  function isAnyPanelOpen() { return panels.isAnyOpen(); }
+  // Convenience alias
 
   // Wire panel-open check into playback controller
-  playback.isAnyPanelOpen = isAnyPanelOpen;
+  playback.isAnyPanelOpen = () => panels.isAnyOpen();
 
   /**
    * Sync touch gesture suspension with panel state.
@@ -172,44 +164,37 @@
   // Wire panel change listener for touch suspension sync
   panels.onPanelChange = syncTouchSuspension;
 
-  function scheduleAutoAdvance() { playback.scheduleAutoAdvance(); }
-
-  function updateAutoPlayHUD(on) {
-    playback.updateAutoPlayHUD(on, btnAutoEl);
-  }
-
-  // Wire theme settings reactivity (needs updateAutoPlayHUD + clearAutoPlayTimer defined above)
-  theme.wireReactivity({ ui, audio, updateAutoPlayHUD, clearAutoPlayTimer });
+  // Wire theme settings reactivity
+  theme.wireReactivity({
+    ui, audio,
+    updateAutoPlayHUD: (on) => playback.updateAutoPlayHUD(on),
+    clearAutoPlayTimer: () => playback.clearAutoPlay()
+  });
 
   // ── Cached DOM refs ──
 
   const btnAutoEl      = document.getElementById('btn-auto');
+  playback.setAutoButton(btnAutoEl);
   const btnInstallEl   = document.getElementById('btn-install');
   const statsEl        = document.getElementById('title-stats');
   const textboxEl      = document.getElementById('vn-textbox');
 
-
-
   /** Play a scene through the playback controller. */
-  function playScene(scene) { return playback.playScene(scene); }
 
   // ── Engine Callbacks (wired once, reference playback.engine dynamically) ──
 
   // Campaign ending callback - wired once on ending overlay, invoked via delegation (data-action="campaign-next")
   ui._ending._onCampaignEnding = () => campaignFlow.onEnding();
 
-  /** @type {Object|null} The most recently parsed story data (for restart). */
-  let _currentParsed = null;
-
   ui.onChoice(choice => {
     if (!playback.engine) return;
-    clearAutoPlayTimer();
+    playback.clearAutoPlay();
     const nextScene = playback.engine.goToScene(choice.goto, choice);
-    playScene(nextScene);
+    playback.playScene(nextScene);
   });
 
   ui._ending._onEndingHook = (scene, engine) => {
-    clearAutoPlayTimer();
+    playback.clearAutoPlay();
     playback.updateSkipIndicator(false);
 
     // Record reading time to tracker for persistent stats
@@ -232,7 +217,7 @@
       if (playback.campaignMode) {
         campaignFlow.pendingUnlocks.push(...newAch);
       } else {
-        trackTimeout(() => achievements.showNewUnlocks(newAch), 2000);
+        playback.trackTimeout(() => achievements.showNewUnlocks(newAch), 2000);
       }
     }
 
@@ -246,12 +231,12 @@
   };
 
   ui.onRestart(() => {
-    if (!_currentParsed) return;
-    initEngine(_currentParsed);
+    if (!playback.currentParsed) return;
+    initEngine(playback.currentParsed);
     if (playback.campaignMode && playback.engine) campaign.applyPersistentState(playback.engine);
     ui.showStoryScreen();
-    updateAutoPlayHUD(settings.get('autoPlay'));
-    playScene(playback.engine.getCurrentScene());
+    playback.updateAutoPlayHUD(settings.get('autoPlay'));
+    playback.playScene(playback.engine.getCurrentScene());
   });
 
   ui.onMenu(() => {
@@ -260,7 +245,7 @@
   });
 
   function initEngine(parsed) {
-    _currentParsed = parsed;
+    playback.currentParsed = parsed;
     const engine = new StoryEngine(parsed);
     playback.engine = engine;
     // Count scenes without Object.keys allocation
@@ -312,11 +297,11 @@
     }
 
     ui.showStoryScreen();
-    updateAutoPlayHUD(settings.get('autoPlay'));
+    playback.updateAutoPlayHUD(settings.get('autoPlay'));
     showKeyboardHints();
 
     const firstScene = playback.engine.getCurrentScene();
-    await playScene(firstScene);
+    await playback.playScene(firstScene);
     if (!router.isCurrent(navId)) return;
 
     // Check achievements on story start
@@ -325,7 +310,7 @@
       if (playback.campaignMode) {
         campaignFlow.pendingUnlocks.push(...startAch);
       } else {
-        trackTimeout(() => achievements.showNewUnlocks(startAch), 1500);
+        playback.trackTimeout(() => achievements.showNewUnlocks(startAch), 1500);
       }
     }
   }
@@ -348,7 +333,7 @@
     if (sceneSelect.isVisible) sceneSelect.hide();
     playback.cleanup(); // clears engine, slug, timers, HUD indicators
     ui.showTitleScreen();
-    renderTitleScreen();
+    titleScreen.render();
 
     // Scroll title screen back to top
     if (titleBg) titleBg.scrollTo({ top: 0, behavior: 'smooth' });
@@ -384,7 +369,7 @@
       e.stopPropagation();
       const card = infoBtn.closest('.story-card');
       const story = storyFromCard(card);
-      if (story) storyInfo.show(story, CHARACTER_DATA[story.slug] || [], getStoryMeta(story));
+      if (story) storyInfo.show(story, CHARACTER_DATA[story.slug] || [], cardManager.getMeta(story));
       return;
     }
 
@@ -424,7 +409,6 @@
   });
 
   /** Shorthand for card manager getMeta (used by storyInfo and statsDashboard). */
-  function getStoryMeta(story) { return cardManager.getMeta(story); }
 
   // ── Title Screen (delegated to TitleScreen) ──
 
@@ -453,8 +437,6 @@
     statsEl, btnContinueEl
   });
 
-  function renderTitleScreen() { titleScreen.render(); }
-
   // ── Click/Tap to Advance ──
 
   textboxEl.addEventListener('click', (e) => {
@@ -464,7 +446,7 @@
 
   ui.clickIndicator?.addEventListener('click', () => {
     if (ui.isTyping || !playback.engine) return;
-    advanceScene();
+    playback.advanceScene();
   });
 
   // ── Touch Gestures (mobile) ──
@@ -473,7 +455,7 @@
       if (ui.isTyping) {
         ui.skipTypewriter();
       } else {
-        advanceScene();
+        playback.advanceScene();
       }
     },
     onOpenHistory: () => {
@@ -499,7 +481,7 @@
       if (panels.closeTopmost()) {
         // Resume auto-play if no panels remain open
         if (settings.get('autoPlay') && playback.engine && !panels.isAnyOpen()) {
-          scheduleAutoAdvance();
+          playback.scheduleAutoAdvance();
         }
         return;
       }
@@ -513,7 +495,7 @@
       if (ui.isTyping) {
         ui.skipTypewriter();
       } else {
-        advanceScene();
+        playback.advanceScene();
       }
     }
 
@@ -529,7 +511,7 @@
     const key = e.key.toLowerCase();
 
     if (key === 'm' && noMod) toggleAudio();
-    if (key === 'b' && noMod && playback.engine) rewindOneScene();
+    if (key === 'b' && noMod && playback.engine) playback.rewindOneScene(btnRewind);
     if (e.key === '?' || (key === '/' && e.shiftKey)) togglePanel(keyboardHelp);
 
     if (key === 'a' && noMod && playback.engine) toggleAutoPlay();
@@ -548,7 +530,7 @@
   function toggleAutoPlay() {
     const newVal = !settings.get('autoPlay');
     settings.set('autoPlay', newVal);
-    if (newVal && playback.engine) scheduleAutoAdvance();
+    if (newVal && playback.engine) playback.scheduleAutoAdvance();
   }
 
   // ── Audio Toggle ──
@@ -573,9 +555,6 @@
   // Wire rewind button into playback controller
   playback.setRewindButton(btnRewind);
 
-  function updateRewindButton() { playback.updateRewindButton(btnRewind); }
-  function rewindOneScene() { playback.rewindOneScene(btnRewind); }
-
   // Wire save manager's load callback
   saveManager.onLoad = (slug, stateJson) => {
     const story = stories.get(slug);
@@ -592,7 +571,7 @@
 
     switch (id) {
       case 'btn-back':    returnToMenu(); break;
-      case 'btn-rewind':  rewindOneScene(); break;
+      case 'btn-rewind':  playback.rewindOneScene(btnRewind); break;
       case 'btn-save':    if (playback.engine && playback.currentSlug) saveManager.show(playback.currentSlug, playback.engine, 'save'); break;
       case 'btn-hud-more':
         hudToolbar.classList.toggle('hud-expanded');
@@ -694,7 +673,7 @@
     const app = document.getElementById('app');
     if (loading) {
       loading.classList.add('hidden');
-      trackTimeout(() => loading.remove(), 600);
+      playback.trackTimeout(() => loading.remove(), 600);
     }
     if (app) app.removeAttribute('aria-hidden');
   }
@@ -760,7 +739,7 @@
         ui.portraits.preloadAll()
       ]);
       updateLoadingProgress(80, 'Rendering...');
-      renderTitleScreen();
+      titleScreen.render();
       installMgr.updateButton();
       updateLoadingProgress(100, 'Ready!');
 
@@ -814,9 +793,9 @@
   // Pause auto-play when tab is hidden (saves CPU / prevents unexpected advances)
   document.addEventListener('visibilitychange', () => {
     if (document.hidden) {
-      clearAutoPlayTimer();
-    } else if (settings.get('autoPlay') && playback.engine && !isAnyPanelOpen()) {
-      scheduleAutoAdvance();
+      playback.clearAutoPlay();
+    } else if (settings.get('autoPlay') && playback.engine && !panels.isAnyOpen()) {
+      playback.scheduleAutoAdvance();
     }
   });
 
