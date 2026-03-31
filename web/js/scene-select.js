@@ -114,9 +114,12 @@ class SceneSelect {
     const visited = engine.state.visited;
     const scenes = engine.scenes;
 
-    // Build scene list (visited only)
+    // Build scene list (visited only) — iterate Set directly, no spread+filter
     const listEl = this._listEl;
-    const visitedArr = [...visited].filter(id => scenes[id]);
+    const visitedArr = [];
+    for (const id of visited) {
+      if (scenes[id]) visitedArr.push(id);
+    }
 
     this._visitedCount = visitedArr.length;
     // Count scenes without Object.keys allocation

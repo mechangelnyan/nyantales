@@ -411,8 +411,12 @@ class StatsDashboard {
     const achStats = this.achievements.getStats();
     const stories = this._storyIndex;
 
-    // Per-story data
-    const storyRows = stories.map(story => {
+    // Per-story data + single-pass aggregation (zero intermediate arrays)
+    const storyRows = [];
+    let totalScenes = 0, totalScenesVisited = 0, totalEndingsPossible = 0, saveCount = 0;
+    const mostPlayed = [], recentlyPlayed = [];
+
+    for (const story of stories) {
       const data = this.tracker.getStory(story.slug);
       const sceneCount = this._sceneCountCache.get(story.slug) || 0;
       const visitedCount = this.tracker.visitedSceneCount(story.slug);
@@ -424,36 +428,22 @@ class StatsDashboard {
       const lastPlayed = data.lastPlayed || 0;
       const readingMs = data.totalReadingMs || 0;
       const hasSave = this.saveManager.hasSave(story.slug);
-
       const totalEndings = this._totalEndingsCache.get(story.slug) || 0;
 
-      return {
-        slug: story.slug,
-        title: story.title,
-        sceneCount,
-        visitedCount,
-        progress,
-        endings,
-        totalEndings,
-        completed,
-        plays,
-        bestTurns,
-        lastPlayed,
-        readingMs,
-        hasSave
+      const row = {
+        slug: story.slug, title: story.title, sceneCount, visitedCount,
+        progress, endings, totalEndings, completed, plays, bestTurns,
+        lastPlayed, readingMs, hasSave
       };
-    });
+      storyRows.push(row);
 
-    // Single-pass aggregation (was 3 reduce + 1 forEach = 4 array passes)
-    let totalScenes = 0, totalScenesVisited = 0, totalEndingsPossible = 0, saveCount = 0;
-    const mostPlayed = [], recentlyPlayed = [];
-    for (const s of storyRows) {
-      totalScenes += s.sceneCount;
-      totalScenesVisited += s.visitedCount;
-      totalEndingsPossible += s.totalEndings;
-      if (s.hasSave) saveCount++;
-      if (s.plays > 0) mostPlayed.push(s);
-      if (s.lastPlayed > 0) recentlyPlayed.push(s);
+      // Accumulate globals in the same pass
+      totalScenes += sceneCount;
+      totalScenesVisited += visitedCount;
+      totalEndingsPossible += totalEndings;
+      if (hasSave) saveCount++;
+      if (plays > 0) mostPlayed.push(row);
+      if (lastPlayed > 0) recentlyPlayed.push(row);
     }
     mostPlayed.sort((a, b) => b.plays - a.plays);
     recentlyPlayed.sort((a, b) => b.lastPlayed - a.lastPlayed);

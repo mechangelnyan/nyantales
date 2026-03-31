@@ -3010,5 +3010,17 @@ cd /tmp/nyantales && python3 -m http.server 9876
 - All 50 JS files pass `node --check`, 204/204 unit tests, 227/227 Playwright tests
 - Committed & pushed
 
+## Phase 157: Single-Pass Stats, Allocation-Free Scene Select ✅
+- **Stats dashboard single-pass computation** — merged `stories.map()` + aggregation loop into one `for...of` pass
+  - Previously: `.map()` allocated a 30-element intermediate `storyRows` array, then a second loop aggregated globals
+  - Now: single loop builds `storyRows`, accumulates `totalScenes`/`totalScenesVisited`/`totalEndingsPossible`/`saveCount`, and populates `mostPlayed`/`recentlyPlayed` in one pass
+  - Zero intermediate array allocation
+- **Scene Select allocation-free visited list** — `[...visited].filter(id => scenes[id])` → direct `for...of` push
+  - Previously: spread Set into array (allocation) then filter (second allocation)
+  - Now: iterates Set directly, pushes valid IDs into `visitedArr` (single array)
+- SW cache bumped to v138, production build regenerated (198KB JS, 96KB CSS)
+- All 50 JS files pass `node --check`, 204/204 unit tests, 227/227 Playwright tests
+
 ## Log (continued)
+- 2026-03-31 (4:27 AM): Phase 157 — Single-pass stats computation (merged .map() + aggregation into one for...of loop in stats-dashboard, zero intermediate array allocation). Allocation-free scene-select visited list (spread+filter → direct Set iteration). SW v138. 198KB bundle. All 50 JS + 204/204 unit + 227/227 Playwright pass.
 - 2026-03-31 (3:27 AM): Phase 156 — Fixed broken Playwright text formatting test (VNUI._formatText removed in Phase 155 → updated to TypewriterController.formatText). README build stats freshened. 227/227 Playwright + 204/204 unit pass. Committed & pushed.
