@@ -2534,29 +2534,15 @@ test.describe('AppRouter', () => {
   });
 
   test('returning to menu clears story param from URL', async ({ page }) => {
-    await page.goto('/web/?story=the-terminal-cat');
-    await page.waitForFunction(() => {
-      const ss = document.getElementById('story-screen');
-      const intro = document.querySelector('.story-intro-overlay.visible');
-      return (ss && !ss.classList.contains('hidden')) || intro;
-    }, { timeout: 15000 });
-    // Dismiss intro if visible, then wait for story screen
-    const introEl = await page.$('.story-intro-overlay.visible');
-    if (introEl) {
-      // Try continue button first, then overlay click, then keyboard
-      const contBtn = await page.$('.story-intro-continue');
-      if (contBtn) await contBtn.click();
-      else await page.click('.story-intro-overlay');
-      await page.waitForFunction(() => {
-        const o = document.querySelector('.story-intro-overlay');
-        return !o || !o.classList.contains('visible');
-      }, { timeout: 5000 });
-    }
-    await page.waitForSelector('#story-screen:not(.hidden)', { timeout: 10000 });
-    // Small delay to let route sync complete before pressing Escape
-    await page.waitForTimeout(300);
+    // Use the existing startStory helper to get into a story reliably
+    await startStory(page);
+    await ensureFullTextVisible(page);
+    // URL should include story param
+    expect(page.url()).toContain('story=');
+    // Return to menu via Escape (no panels open, so Escape triggers returnToMenu)
     await page.keyboard.press('Escape');
-    await page.waitForSelector('#title-screen:not(.hidden)', { timeout: 10000 });
+    await page.waitForSelector('#title-screen.active', { timeout: 10000 });
+    await page.waitForFunction(() => !window.location.search.includes('story='), { timeout: 5000 });
     expect(page.url()).not.toContain('story=');
   });
 });
