@@ -2950,3 +2950,25 @@ cd /tmp/nyantales && python3 -m http.server 9876
 
 ## Log (continued)
 - 2026-03-31 (12:27 AM): Phase 153 — Extracted EndingOverlay class from ui.js: ending DOM tree, continue prompt, show/hide, share, event delegation, callbacks. ui.js 820→569 lines (31% reduction). main.js ending refs updated to ui._ending.*. SW v135, 198KB JS / 96KB CSS. All 49 JS + 204/204 unit + 211/211 Playwright pass. Committed & pushed.
+
+## Phase 154: Extract ChoiceRenderer from VNUI ✅
+- **`ChoiceRenderer` class** (`web/js/choice-renderer.js`) — choice button lifecycle extracted from VNUI
+  - Reusable button pool with pre-built child structure (numSpan, textNode, visitedSpan)
+  - Single delegated click listener on choices container (initialized once)
+  - `show(choices, engine)` — render choices with visited hints, interpolation, item requirements
+  - `hide()` — clear choices and current state
+  - `onChoice(fn)` — set callback for selection
+  - Ripple timer management for click feedback
+  - `current` getter for number-key lookup, `pool` getter for direct index access
+- **ui.js: 569 → 484 lines** (85 lines removed, 15% reduction)
+  - `showChoices`, `hideChoices`, `onChoice` delegate to `_choices` ChoiceRenderer instance
+  - `_currentChoices` and `_choiceBtnPool` exposed as proxy getters for backward compatibility
+  - Removed: `_choiceBtnPool`, `_currentChoices`, `_choicesDelegated`, `_choiceRippleTimer`, `_initChoiceDelegation`
+- **3 new Playwright tests** (API availability, VNUI delegation, gameplay buttons with data-choice-idx)
+- Added to: index.html script chain, sw.js pre-cache, build.sh bundle
+- SW cache bumped to v136, production build regenerated (199KB JS, 96KB CSS)
+- All 50 JS files pass `node --check`, 204/204 unit tests, 214/214 Playwright tests
+- Committed & pushed
+
+## Log (continued)
+- 2026-03-31 (1:27 AM): Phase 154 — Extracted ChoiceRenderer class from VNUI: choice button pool, delegation, show/hide, ripple timer. ui.js 569→484 lines (15% reduction). 3 new Playwright tests. SW v136, 199KB bundle. All 50 JS + 204/204 unit + 214/214 Playwright pass. Committed & pushed.
