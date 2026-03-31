@@ -3137,3 +3137,20 @@ cd /tmp/nyantales && python3 -m http.server 9876
 - **ui.js: 454 → 445 lines** (9 lines removed, 2% reduction)
 - SW cache bumped to v144, production build regenerated (198KB JS, 96KB CSS)
 - All 50 JS files pass `node --check`, 204/204 unit tests, 238/238 Playwright tests
+
+## Phase 164: Stale Phase Reference Cleanup ✅
+- **Cleaned 19 'Phase N' references** from JSDoc headers across 11 modules
+  - Replaced extraction history comments with descriptive purpose text
+  - e.g. `Extracted from VNUI (Phase 152)` → `Manages scene background CSS class inference and crossfade transitions.`
+  - Files cleaned: background-manager, campaign-flow, campaign-ui, choice-renderer, ending-overlay, install-manager, sprite-manager, sw-register, typewriter, ui, playback-controller
+- **Removed stale section headers** in main.js — `(delegated to X)` suffixes on 5 section headers
+- **Removed orphan JSDoc** — `/** Play a scene through the playback controller. */` with no function below it
+- **Removed empty comment** — `// Convenience alias` with no code after it
+- **Cleaned ui.js subsystem init** — 11 lines of per-subsystem comments → single `// Subsystem delegates` line
+- main.js: 806 → 796 lines, ui.js: 445 → 435 lines
+- SW cache bumped to v145, production build regenerated (198KB JS, 96KB CSS)
+- All 50 JS files pass `node --check`, 204/204 unit tests, 238/238 Playwright tests
+- Committed & pushed
+
+## Log (continued)
+- 2026-03-31 (11:27 AM): Phase 164 — Cleaned 19 stale 'Phase N' references from module JSDoc headers (replaced with descriptive purpose text), removed stale '(delegated to X)' section headers and orphan JSDoc in main.js, cleaned ui.js subsystem init comments. main.js 806→796, ui.js 445→435. SW v145, 198KB bundle. All 50 JS + 204/204 unit + 238/238 Playwright pass. Committed & pushed.
