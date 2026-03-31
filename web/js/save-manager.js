@@ -116,7 +116,8 @@ class SaveManager {
         const stateJson = SafeStorage.getRaw(key);
         if (!stateJson) continue;
 
-        const state = JSON.parse(stateJson);
+        const state = SafeStorage.getJSON(key, null);
+        if (!state) continue;
         const slots = {
           auto: {
             state: stateJson,

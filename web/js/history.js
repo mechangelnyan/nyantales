@@ -7,37 +7,55 @@
 
 class TextHistory {
   constructor() {
-    this.entries = [];    // { speaker, text, sceneId, timestamp }
+    this._buf = [];       // ring buffer of { speaker, text, sceneId, timestamp }
+    this._head = 0;       // next write position
+    this._size = 0;       // current entry count
     this.maxEntries = 500;
   }
 
   /** Add a dialogue/narration entry */
   add(sceneId, speaker, text) {
     if (!text || !text.trim()) return;
-    this.entries.push({
+    const entry = {
       sceneId,
       speaker: speaker || null,
       text: text.trim(),
       timestamp: Date.now()
-    });
-    if (this.entries.length > this.maxEntries) {
-      this.entries.shift();
+    };
+    if (this._buf.length < this.maxEntries) {
+      // Buffer not full yet — just push
+      this._buf.push(entry);
+      this._head = this._buf.length % this.maxEntries;
+      this._size = this._buf.length;
+    } else {
+      // Overwrite oldest entry at _head (O(1) instead of shift O(n))
+      this._buf[this._head] = entry;
+      this._head = (this._head + 1) % this.maxEntries;
+      this._size = this.maxEntries;
     }
   }
 
   /** Clear history (on story restart/exit) */
   clear() {
-    this.entries = [];
+    this._buf.length = 0;
+    this._head = 0;
+    this._size = 0;
   }
 
-  /** Get all entries */
+  /** Get all entries in chronological order */
   getAll() {
-    return this.entries;
+    if (this._size < this.maxEntries) return this._buf;
+    // Ring buffer is full — return entries in chronological order starting from _head
+    const result = new Array(this._size);
+    for (let i = 0; i < this._size; i++) {
+      result[i] = this._buf[(this._head + i) % this.maxEntries];
+    }
+    return result;
   }
 
   /** Get entry count */
   get length() {
-    return this.entries.length;
+    return this._size;
   }
 }
 
@@ -253,12 +271,14 @@ class HistoryPanel {
     const entries = this.history.getAll();
     if (entries.length === 0) return;
 
-    const lines = entries.map(e => {
-      const prefix = e.speaker ? `[${e.speaker}] ` : '';
-      return `${prefix}${e.text}`;
-    });
+    let body = '';
+    for (const e of entries) {
+      if (body) body += '\n\n';
+      if (e.speaker) body += `[${e.speaker}] `;
+      body += e.text;
+    }
 
-    const content = `NyanTales — Text History Export\n${'═'.repeat(40)}\nExported: ${new Date().toLocaleString()}\nEntries: ${entries.length}\n${'═'.repeat(40)}\n\n${lines.join('\n\n')}`;
+    const content = `NyanTales — Text History Export\n${'═'.repeat(40)}\nExported: ${new Date().toLocaleString()}\nEntries: ${entries.length}\n${'═'.repeat(40)}\n\n${body}`;
 
     const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
     const url = URL.createObjectURL(blob);
