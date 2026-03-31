@@ -2890,3 +2890,33 @@ cd /tmp/nyantales && python3 -m http.server 9876
 
 ## Log (continued)
 - 2026-03-30 (10:27 PM): Phase 151 — Extracted SpriteManager class from ui.js: sprite update/clear/positioning, speaker char lookup cache, ending state application, effect timer management. ui.js 1136→996 lines (12% reduction). 4 new Playwright tests. SW v133, 197KB JS / 96KB CSS. All 45 JS + 204/204 unit + 204/204 Playwright pass. Committed & pushed.
+
+## Phase 152: Extract BackgroundManager + TypewriterController from VNUI ✅
+- **`BackgroundManager` class** (`web/js/background-manager.js`) — scene background inference + crossfade transitions
+  - `_KEYWORDS` static tuple array (moved from `_bgEntries` on VNUI) — 45+ keyword→class pairs
+  - `transition(scene, engine, sceneLower, fastMode)` — handles crossfade overlay (was `_sceneTransition`)
+  - `_infer(scene, engine, sceneLower)` — keyword matching (was `_inferBackground`)
+  - `reset()` — resets state on story/menu change
+  - Reusable crossfade overlay element (same single-element pattern from earlier phases)
+- **`TypewriterController` class** (`web/js/typewriter.js`) — text reveal + formatting pipeline
+  - `run(text)` — progressive character reveal via tw-hidden spans (was `typewriterText`)
+  - `skip()` — instant reveal (was `skipTypewriter`)
+  - Static `formatText(text)` — HTML escape + markdown regex in single pass (was `_formatText` + statics)
+  - Static `escapeHtml(text)` — reusable DOM element (was `_escapeHtml`)
+  - Statics: `_FORMAT_RE`, `_HTML_ESC_RE`, `_HTML_ESC_MAP` moved from VNUI class
+- **ui.js: 996 → 820 lines** (176 lines removed, 18% reduction)
+  - Proxy getters/setters for `typewriterSpeed`, `fastMode`, `isTyping` (backward-compatible)
+  - `_lastBgClass` getter proxies to `BackgroundManager.lastBgClass`
+  - `_formatText` / `_escapeHtml` delegate to `TypewriterController` statics
+  - Removed: `_sceneTransition`, `_inferBackground`, `_wait`, `_bgEntries`, `_transOverlay`
+  - Removed: `_typewriterResolve`, `_typewriterTimeout`, `_fullText`, `_cancelTypewriter`
+  - Backward-compat: `VNUI._escapeDiv` property descriptor maps to `TypewriterController._escDiv`
+- **7 new Playwright tests** for BackgroundManager (API, delegation, bg changes during play) and TypewriterController (API, formatText markdown, escapeHtml, delegation)
+- **Playwright test count: 204 → 211**
+- Added to: index.html script chain, sw.js pre-cache, build.sh bundle
+- SW cache bumped to v134, production build regenerated (198KB JS, 96KB CSS)
+- All 47 JS files pass `node --check`, 204/204 unit tests, 211/211 Playwright tests
+- Committed & pushed
+
+## Log (continued)
+- 2026-03-30 (11:27 PM): Phase 152 — Extracted BackgroundManager (bg inference + crossfade transitions) and TypewriterController (text reveal + formatting pipeline) from ui.js. ui.js 996→820 lines (18% reduction). Proxy getters/setters maintain backward compatibility. 7 new Playwright tests. SW v134, 198KB JS / 96KB CSS. All 47 JS + 204/204 unit + 211/211 Playwright pass. Committed & pushed.
