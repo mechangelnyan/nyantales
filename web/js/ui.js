@@ -39,11 +39,9 @@ class VNUI {
 
     // Subsystem delegates
     this._sprites = new SpriteManager(this.spritesEl, this.portraits);
-    this._activeSprites = this._sprites.activeSprites;
     this._bg = new BackgroundManager(this.bgEl);
     this._tw = new TypewriterController(this.textEl, this.textboxEl, this.clickIndicator);
     this._ending = new EndingOverlay(this.endingEl, this.choicesEl, this._sprites);
-    this._endingRefs = this._ending.refs;
 
     // Cached container ref (used for shake effects)
     this.containerEl = document.querySelector('.vn-container');
@@ -83,8 +81,8 @@ class VNUI {
 
   // ── Background proxy ──
 
-  /** @returns {string} Current background CSS class */
-  get _lastBgClass() { return this._bg.lastBgClass; }
+  /** @returns {string} Current background CSS class (used by audio theme sync). */
+  get lastBgClass() { return this._bg.lastBgClass; }
 
   // ── Screen Transitions ──
 
@@ -349,10 +347,10 @@ class VNUI {
   onChoice(callback) { this._choices.onChoice(callback); }
 
   /** @returns {Array|null} Current choices (for number-key lookup). */
-  get _currentChoices() { return this._choices.current; }
+  get currentChoices() { return this._choices.current; }
 
   /** @returns {Array} Choice button pool (for direct index access from keyboard shortcuts). */
-  get _choiceBtnPool() { return this._choices.pool; }
+  get choiceBtnPool() { return this._choices.pool; }
 
   // ── Inventory ──
 
@@ -416,6 +414,12 @@ class VNUI {
   hideEnding() { this._ending.hide(); }
   onRestart(callback) { this._ending.onRestart(callback); }
   onMenu(callback) { this._ending.onMenu(callback); }
+
+  /** @returns {EndingOverlay} Ending overlay subsystem. */
+  get ending() { return this._ending; }
+
+  /** @returns {Object} Pre-built ending DOM refs (statsGrid, actionsRow, etc.). */
+  get endingRefs() { return this._ending.refs; }
 
   // ── Fast Mode ──
 

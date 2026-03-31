@@ -180,7 +180,7 @@
   // ── Engine Callbacks (wired once, reference playback.engine dynamically) ──
 
   // Campaign ending callback - wired once on ending overlay, invoked via delegation (data-action="campaign-next")
-  ui._ending._onCampaignEnding = () => campaignFlow.onEnding();
+  ui.ending._onCampaignEnding = () => campaignFlow.onEnding();
 
   ui.onChoice(choice => {
     if (!playback.engine) return;
@@ -189,7 +189,7 @@
     playback.playScene(nextScene);
   });
 
-  ui._ending._onEndingHook = (scene, engine) => {
+  ui.ending._onEndingHook = (scene, engine) => {
     playback.clearAutoPlay();
     playback.updateSkipIndicator(false);
 
@@ -200,7 +200,7 @@
     }
 
     // Inject reading time into ending stats grid (reusable element)
-    playback.injectReadingTime(ui._endingRefs.statsGrid, sessionElapsed);
+    playback.injectReadingTime(ui.endingRefs.statsGrid, sessionElapsed);
 
     const result = tracker.recordEnding(playback.currentSlug, scene.ending, engine.state.turns);
 
@@ -220,7 +220,7 @@
     // In campaign mode, add a "Next Chapter" button to the ending overlay
     if (playback.campaignMode && ui.endingEl) {
       const nextBtn = campaignUI.getEndingButton(campaign.isComplete());
-      const actionsRow = ui._endingRefs.actionsRow;
+      const actionsRow = ui.endingRefs.actionsRow;
       actionsRow.insertBefore(nextBtn, actionsRow.firstChild);
       requestAnimationFrame(() => nextBtn.focus());
     }
@@ -247,7 +247,7 @@
     // Count scenes without Object.keys allocation
     let _sc = 0; for (const _ in parsed.scenes) _sc++;
     playback.totalScenes = _sc;
-    ui._ending._totalScenes = _sc; // share with ending overlay to avoid re-computing
+    ui.ending._totalScenes = _sc; // share with ending overlay to avoid re-computing
     textHistory.clear();
     ui.typewriterSpeed = settings.get('textSpeed');
   }
@@ -495,8 +495,8 @@
     // Number keys for choices - direct pool lookup (no querySelector)
     if (e.key >= '1' && e.key <= '9') {
       const idx = parseInt(e.key) - 1;
-      const pool = ui._choiceBtnPool;
-      const btn = (ui._currentChoices && idx < ui._currentChoices.length) ? pool[idx] : null;
+      const pool = ui.choiceBtnPool;
+      const btn = (ui.currentChoices && idx < ui.currentChoices.length) ? pool[idx] : null;
       if (btn) btn.click();
     }
 
@@ -536,7 +536,7 @@
     btnAudio.classList.toggle('hud-inactive', !enabled);
     btnAudio.title = enabled ? 'Audio ON (M)' : 'Audio OFF (M)';
     btnAudio.setAttribute('aria-pressed', enabled ? 'true' : 'false');
-    if (enabled && ui._lastBgClass) audio.setTheme(ui._lastBgClass);
+    if (enabled && ui.lastBgClass) audio.setTheme(ui.lastBgClass);
   }
 
   // ── Rewind helpers (referenced by HUD delegation + keyboard) ──

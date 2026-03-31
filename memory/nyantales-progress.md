@@ -3152,5 +3152,30 @@ cd /tmp/nyantales && python3 -m http.server 9876
 - All 50 JS files pass `node --check`, 204/204 unit tests, 238/238 Playwright tests
 - Committed & pushed
 
+## Phase 165: Public API Surface — Remove Cross-Module Underscore Access ✅
+- **VNUI public accessors** — replaced underscore-prefixed getters with clean public API
+  - `ui._lastBgClass` → `ui.lastBgClass` (used by audio theme sync + playback controller)
+  - `ui._currentChoices` → `ui.currentChoices` (used by keyboard number-key shortcuts)
+  - `ui._choiceBtnPool` → `ui.choiceBtnPool` (used by keyboard direct-index choice lookup)
+  - `ui._ending` → `ui.ending` (used by main.js for campaign/ending hooks)
+  - `ui._endingRefs` → `ui.endingRefs` (used by main.js for reading time + campaign button injection)
+  - All underscore getters **removed** (not aliased) — clean break
+- **Removed dead `_activeSprites` alias** on VNUI — was assigned in constructor but never read by any file
+  - Leftover from Phase 151 extraction (kept as "alias for external access" but nothing used it)
+- **Removed stale `_endingRefs` property** — was a constructor assignment duplicating `this._ending.refs`
+  - New `endingRefs` getter reads from `_ending.refs` directly
+- **main.js: zero `ui._` accesses** — all 7 cross-module underscore references eliminated
+- **playback-controller.js: zero `ui._` accesses** — `this.ui._lastBgClass` → `this.ui.lastBgClass`
+- **4 new Playwright tests** for the public API surface:
+  - `ui.ending instanceof EndingOverlay` + `ui.endingRefs` has statsGrid/actionsRow
+  - `ui.choiceBtnPool` is Array + `ui.currentChoices` defined
+  - `ui.lastBgClass` returns string
+  - Old underscore getters no longer exist on prototype
+- **Playwright test count: 238 → 242**
+- SW cache bumped to v146, production build regenerated (198KB JS, 96KB CSS)
+- All 50 JS files pass `node --check`, 204/204 unit tests, 242/242 Playwright tests
+- Committed & pushed
+
 ## Log (continued)
+- 2026-03-31 (12:27 PM): Phase 165 — Public API surface cleanup: replaced 5 underscore-prefixed VNUI getters with clean public accessors (lastBgClass, currentChoices, choiceBtnPool, ending, endingRefs). Removed dead _activeSprites alias and stale _endingRefs property. Zero ui._ cross-module access in main.js and playback-controller.js. 4 new Playwright tests for public API verification. SW v146, 198KB bundle. All 50 JS + 204/204 unit + 242/242 Playwright pass.
 - 2026-03-31 (11:27 AM): Phase 164 — Cleaned 19 stale 'Phase N' references from module JSDoc headers (replaced with descriptive purpose text), removed stale '(delegated to X)' section headers and orphan JSDoc in main.js, cleaned ui.js subsystem init comments. main.js 806→796, ui.js 445→435. SW v145, 198KB bundle. All 50 JS + 204/204 unit + 238/238 Playwright pass. Committed & pushed.

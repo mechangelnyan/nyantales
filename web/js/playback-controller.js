@@ -255,7 +255,7 @@ class PlaybackController {
     const renderScene = effOvr !== undefined ? { ...scene, effect: effOvr } : scene;
     await this.ui.renderScene(renderScene, this.engine);
 
-    if (this.audio.enabled) this.audio.setTheme(this.ui._lastBgClass);
+    if (this.audio.enabled) this.audio.setTheme(this.ui.lastBgClass);
     if (skipActive) this.ui.fastMode = wasInFastMode;
 
     if (this.currentSlug && !this._isCampaignTransient()) {

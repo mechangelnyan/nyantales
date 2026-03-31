@@ -3069,7 +3069,7 @@ test.describe('SpriteManager', () => {
     const delegates = await page.evaluate(() => {
       const ui = new VNUI();
       return ui._sprites instanceof SpriteManager
-        && ui._activeSprites === ui._sprites.activeSprites;
+        && ui._sprites.activeSprites instanceof Map;
     });
     expect(delegates).toBe(true);
   });
@@ -3204,8 +3204,8 @@ test.describe('ChoiceRenderer', () => {
     const delegates = await page.evaluate(() => {
       const ui = new VNUI();
       return ui._choices instanceof ChoiceRenderer
-        && typeof ui._currentChoices !== 'undefined'
-        && Array.isArray(ui._choiceBtnPool);
+        && typeof ui.currentChoices !== 'undefined'
+        && Array.isArray(ui.choiceBtnPool);
     });
     expect(delegates).toBe(true);
   });
@@ -3491,5 +3491,58 @@ test.describe('Accessibility — Extended', () => {
     const choices = page.locator('#vn-choices');
     const live = await choices.getAttribute('aria-live');
     expect(live).toBe('polite');
+  });
+});
+
+// ── Public API Surface ──
+
+test.describe('Public API Surface', () => {
+  test('VNUI exposes public ending accessor', async ({ page }) => {
+    await page.goto('/web/');
+    await page.waitForSelector('#story-list .story-card');
+    const hasPublicAPI = await page.evaluate(() => {
+      const ui = new VNUI();
+      return ui.ending instanceof EndingOverlay
+        && typeof ui.endingRefs === 'object'
+        && ui.endingRefs !== null
+        && 'statsGrid' in ui.endingRefs
+        && 'actionsRow' in ui.endingRefs;
+    });
+    expect(hasPublicAPI).toBe(true);
+  });
+
+  test('VNUI exposes public choice accessors', async ({ page }) => {
+    await page.goto('/web/');
+    await page.waitForSelector('#story-list .story-card');
+    const hasAPI = await page.evaluate(() => {
+      const ui = new VNUI();
+      return Array.isArray(ui.choiceBtnPool)
+        && typeof ui.currentChoices !== 'undefined';
+    });
+    expect(hasAPI).toBe(true);
+  });
+
+  test('VNUI exposes public lastBgClass getter', async ({ page }) => {
+    await page.goto('/web/');
+    await page.waitForSelector('#story-list .story-card');
+    const hasGetter = await page.evaluate(() => {
+      const ui = new VNUI();
+      // Initially empty string (no bg class set)
+      return typeof ui.lastBgClass === 'string';
+    });
+    expect(hasGetter).toBe(true);
+  });
+
+  test('VNUI no longer exposes underscore-prefixed ending/choice/bg properties', async ({ page }) => {
+    await page.goto('/web/');
+    await page.waitForSelector('#story-list .story-card');
+    const noPrivates = await page.evaluate(() => {
+      const ui = new VNUI();
+      const desc = Object.getOwnPropertyDescriptor(Object.getPrototypeOf(ui), '_lastBgClass');
+      const desc2 = Object.getOwnPropertyDescriptor(Object.getPrototypeOf(ui), '_currentChoices');
+      const desc3 = Object.getOwnPropertyDescriptor(Object.getPrototypeOf(ui), '_choiceBtnPool');
+      return !desc && !desc2 && !desc3;
+    });
+    expect(noPrivates).toBe(true);
   });
 });
