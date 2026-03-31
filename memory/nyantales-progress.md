@@ -3064,3 +3064,24 @@ cd /tmp/nyantales && python3 -m http.server 9876
 
 ## Log (continued)
 - 2026-03-31 (6:27 AM): Phase 159 — Cached MediaQueryList in TitleBrowser (avoids matchMedia per scroll), pre-built empty state children (removes lazy init guard), allocation-free sort buffer (_sortBuf reused), engine removeItem via splice instead of filter. Flaky achievements test fix (checks all 6 overlay types). SW v140, 198KB bundle. All 50 JS + 204/204 unit + 227/227 Playwright pass. Committed & pushed.
+
+## Phase 160: CI Deploy Fix, Production Build Tests, Extended Coverage ✅
+- **CRITICAL FIX: GitHub Actions deployment was failing since Phase 134** — `Cannot find module 'js-yaml'`
+  - Build script's manifest generation step (`node -e "require('js-yaml')..."`) failed in CI because `npm ci` was never run
+  - Added `npm ci` step to `.github/workflows/deploy.yml` before `bash build.sh`
+  - Fixed build.sh: `require('js-yaml')` now resolves from both `cwd` and parent dir (handles `npm ci` at repo root vs local dev)
+  - Fixed duplicate `const path = require('path')` causing SyntaxError
+  - Used `process.cwd()` instead of `__dirname` for story dir resolution (correct in `node -e` context)
+  - GitHub Pages deployment now succeeds: https://mechangelnyan.github.io/nyantales/ is live again
+- **11 new Playwright tests** (227 → 238):
+  - **Production Build**: dist/story-manifest.json validates 30 entries with non-zero endings, dist/index.html references minified bundle (not individual files), dist/sw.js uses production cache name
+  - **Story URL Routing**: invalid deep link shows toast + stays on title screen, story URL contains slug during gameplay
+  - **Panel Interactions**: settings aria-hidden toggles correctly, Escape with no panels returns to menu
+  - **Campaign System**: act groupings present, locked cards show lock icon
+  - **Accessibility**: all HUD buttons have title attributes, choices container has aria-live="polite"
+- SW cache bumped to v141, production build regenerated (198KB JS, 96KB CSS)
+- All 50 JS files pass `node --check`, 204/204 unit tests, 238/238 Playwright tests
+- Committed & pushed
+
+## Log (continued)
+- 2026-03-31 (7:27 AM): Phase 160 — CRITICAL CI fix: GitHub Actions deploy was broken since Phase 134 (js-yaml MODULE_NOT_FOUND). Added npm ci to workflow, fixed build.sh duplicate require + path resolution. 11 new Playwright tests (production build, URL routing, panel interactions, campaign, a11y). SW v141, 198KB bundle. All 50 JS + 204/204 unit + 238/238 Playwright pass. Committed & pushed.

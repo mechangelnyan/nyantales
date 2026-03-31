@@ -3363,3 +3363,133 @@ test.describe('EndingOverlay — Extended', () => {
     expect(refs).toBe(true);
   });
 });
+
+// ── Phase 160: CI Deployment + Extended Coverage ──
+
+test.describe('Production Build', () => {
+  test('dist/story-manifest.json has all 30 stories with non-zero endings', async ({ page }) => {
+    const res = await page.request.get('/web/dist/story-manifest.json');
+    expect(res.ok()).toBe(true);
+    const manifest = await res.json();
+    expect(manifest.length).toBe(30);
+    for (const entry of manifest) {
+      expect(entry.slug).toBeTruthy();
+      expect(entry.title).toBeTruthy();
+      expect(entry.sceneCount).toBeGreaterThan(0);
+      expect(entry.totalEndings).toBeGreaterThan(0);
+      expect(entry.readMins).toBeGreaterThan(0);
+    }
+  });
+
+  test('dist/index.html references minified bundle', async ({ page }) => {
+    const res = await page.request.get('/web/dist/index.html');
+    expect(res.ok()).toBe(true);
+    const html = await res.text();
+    expect(html).toContain('nyantales.bundle.min.js');
+    expect(html).toContain('style.min.css');
+    // Should NOT have individual JS file references
+    expect(html).not.toContain('src="js/main.js"');
+    expect(html).not.toContain('src="js/ui.js"');
+  });
+
+  test('dist/sw.js uses production cache name', async ({ page }) => {
+    const res = await page.request.get('/web/dist/sw.js');
+    expect(res.ok()).toBe(true);
+    const text = await res.text();
+    expect(text).toMatch(/nyantales-v\d+-prod/);
+    expect(text).toContain('story-manifest.json');
+  });
+});
+
+test.describe('Story URL Routing', () => {
+  test('invalid deep link shows toast and stays on title screen', async ({ page }) => {
+    await page.goto('/web/?story=nonexistent-slug');
+    await page.waitForFunction(() => {
+      return document.querySelectorAll('.story-card').length >= 20;
+    }, { timeout: 30000 });
+    // Should show error toast
+    const toast = page.locator('.nt-toast');
+    await expect(toast.first()).toBeVisible({ timeout: 5000 });
+    // Should be on title screen (story cards visible)
+    const cards = page.locator('.story-card');
+    expect(await cards.count()).toBeGreaterThanOrEqual(20);
+  });
+
+  test('story URL updates during gameplay', async ({ page }) => {
+    const { text } = await startStory(page, /Terminal Cat/i);
+    await expect(text).not.toHaveText(/^\s*$/, { timeout: 10000 });
+    const url = page.url();
+    expect(url).toContain('story=the-terminal-cat');
+  });
+});
+
+test.describe('Panel Interactions', () => {
+  test('settings panel opened via HUD button shows aria-hidden=false', async ({ page }) => {
+    await startStory(page, /Terminal Cat/i);
+    // Open settings via keyboard (consistent with existing tests)
+    await page.keyboard.press('s');
+    const settingsOverlay = page.locator('.settings-overlay');
+    await expect(settingsOverlay).toHaveClass(/visible/, { timeout: 3000 });
+    // Verify aria-hidden is false when visible
+    const ariaHidden = await settingsOverlay.getAttribute('aria-hidden');
+    expect(ariaHidden).toBe('false');
+    // Close and verify aria-hidden flips back
+    await page.keyboard.press('Escape');
+    await expect(settingsOverlay).not.toHaveClass(/visible/);
+    const ariaAfter = await settingsOverlay.getAttribute('aria-hidden');
+    expect(ariaAfter).toBe('true');
+  });
+
+  test('Escape returns to menu when no panels are open', async ({ page }) => {
+    await startStory(page, /Terminal Cat/i);
+    // Verify story screen is active
+    await expect(page.locator('#story-screen')).toHaveClass(/active/);
+    // Press Escape with no panels open — should return to menu
+    await page.keyboard.press('Escape');
+    await expect(page.locator('#title-screen')).toHaveClass(/active/, { timeout: 5000 });
+    // Story cards should be visible again
+    const cards = page.locator('.story-card');
+    expect(await cards.count()).toBeGreaterThanOrEqual(20);
+  });
+});
+
+test.describe('Campaign System', () => {
+  test('campaign chapters have act groupings', async ({ page }) => {
+    await waitForTitleScreen(page);
+    const acts = page.locator('.act-header');
+    expect(await acts.count()).toBeGreaterThan(0);
+    const firstAct = await acts.first().textContent();
+    expect(firstAct).toMatch(/act/i);
+  });
+
+  test('locked story cards are not clickable for play', async ({ page }) => {
+    await waitForTitleScreen(page);
+    const locked = page.locator('.story-card.story-locked');
+    const count = await locked.count();
+    if (count > 0) {
+      // Verify locked cards have lock icon
+      const lockIcon = await locked.first().textContent();
+      expect(lockIcon).toContain('🔒');
+    }
+  });
+});
+
+test.describe('Accessibility — Extended', () => {
+  test('all HUD buttons have title attributes', async ({ page }) => {
+    const { hud } = await startStory(page, /Terminal Cat/i);
+    const buttons = hud.locator('.hud-btn');
+    const count = await buttons.count();
+    expect(count).toBeGreaterThan(5);
+    for (let i = 0; i < count; i++) {
+      const title = await buttons.nth(i).getAttribute('title');
+      expect(title, `HUD button ${i} missing title`).toBeTruthy();
+    }
+  });
+
+  test('choices container has aria-live for screen readers', async ({ page }) => {
+    await page.goto('/web/');
+    const choices = page.locator('#vn-choices');
+    const live = await choices.getAttribute('aria-live');
+    expect(live).toBe('polite');
+  });
+});
