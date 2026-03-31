@@ -22,14 +22,32 @@ class EndingOverlay {
     // Callbacks (wired by main.js)
     this._onRestart = null;
     this._onMenu = null;
-    this._onCampaignEnding = null;
-    this._onEndingHook = null;
+
+    /**
+     * Called when the player clicks "Next Chapter" in campaign mode.
+     * Wired once by main.js at init time.
+     * @type {Function|null}
+     */
+    this.onCampaignEnding = null;
+
+    /**
+     * Called after the ending overlay is assembled — for injecting reading time,
+     * recording stats, and showing campaign buttons.
+     * @type {Function|null}
+     * @param {Object} scene - The ending scene object
+     * @param {StoryEngine} engine - The current engine instance
+     */
+    this.onEndingHook = null;
 
     // Share data stored for delegation handler
     this._endingShareData = null;
 
-    // Total scene count (set by main.js, avoids Object.keys per ending)
-    this._totalScenes = 0;
+    /**
+     * Total scene count for the current story (avoids Object.keys per ending).
+     * Set by main.js after engine initialization.
+     * @type {number}
+     */
+    this.totalScenes = 0;
 
     // Pre-built ending overlay child elements (avoids innerHTML per ending)
     this.refs = this._buildDOM();
@@ -140,8 +158,8 @@ class EndingOverlay {
         this._onMenu();
       } else if (action === 'share') {
         await this._share();
-      } else if (action === 'campaign-next' && this._onCampaignEnding) {
-        this._onCampaignEnding();
+      } else if (action === 'campaign-next' && this.onCampaignEnding) {
+        this.onCampaignEnding();
       }
     });
   }
@@ -210,7 +228,7 @@ class EndingOverlay {
     this._sprites.applyEndingState(type);
 
     // Use cached scene count (avoids Object.keys allocation per ending)
-    let totalScenes = this._totalScenes;
+    let totalScenes = this.totalScenes;
     if (!totalScenes) { totalScenes = 0; for (const _ in engine.scenes) totalScenes++; }
     const visitPct = totalScenes > 0 ? Math.round((engine.state.visited.size / totalScenes) * 100) : 0;
 
@@ -266,7 +284,7 @@ class EndingOverlay {
     requestAnimationFrame(() => r.restartBtn.focus());
 
     // Notify external hook (tracker, achievements)
-    if (this._onEndingHook) this._onEndingHook(scene, engine);
+    if (this.onEndingHook) this.onEndingHook(scene, engine);
   }
 
   hide() {

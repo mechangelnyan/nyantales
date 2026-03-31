@@ -180,7 +180,7 @@
   // ── Engine Callbacks (wired once, reference playback.engine dynamically) ──
 
   // Campaign ending callback - wired once on ending overlay, invoked via delegation (data-action="campaign-next")
-  ui.ending._onCampaignEnding = () => campaignFlow.onEnding();
+  ui.ending.onCampaignEnding = () => campaignFlow.onEnding();
 
   ui.onChoice(choice => {
     if (!playback.engine) return;
@@ -189,7 +189,7 @@
     playback.playScene(nextScene);
   });
 
-  ui.ending._onEndingHook = (scene, engine) => {
+  ui.ending.onEndingHook = (scene, engine) => {
     playback.clearAutoPlay();
     playback.updateSkipIndicator(false);
 
@@ -247,7 +247,7 @@
     // Count scenes without Object.keys allocation
     let _sc = 0; for (const _ in parsed.scenes) _sc++;
     playback.totalScenes = _sc;
-    ui.ending._totalScenes = _sc; // share with ending overlay to avoid re-computing
+    ui.ending.totalScenes = _sc; // share with ending overlay to avoid re-computing
     textHistory.clear();
     ui.typewriterSpeed = settings.get('textSpeed');
   }
