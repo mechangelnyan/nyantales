@@ -3371,3 +3371,19 @@ cd /tmp/nyantales && python3 -m http.server 9876
 
 ## Log (continued)
 - 2026-03-31 (11:27 PM): Phase 177 — DRY ShareHelper.shareStory (centralizes story share text building, replaces 12-line inline callback in main.js). 5 new Playwright tests (shareStory method, storyUrl canonical, EndingOverlay._ICONS, DataManager static props). main.js 794→778 lines. SW v158, 199KB JS / 97KB CSS. All 50 JS + 204/204 unit + 255/255 Playwright pass. Committed & pushed.
+
+## Phase 178: Cached Router Paths, Dead Code Cleanup, README Freshness ✅
+- **AppRouter cached constructor paths** — `storyBasePath()` and menu URL computed once at construction
+  - `_basePath` caches pathname-derived result (pathname is immutable during SPA lifecycle)
+  - `_menuUrl` caches `pathname + hash` for `syncStoryUrl(null)` (avoids template literal per menu return)
+  - `storyBasePath()` is now a simple getter returning cached value
+- **CampaignFlow dead code removal** — simplified `startChapter()` started-flag logic
+  - `if (!c.progress.started && chapterIndex === 0) c.progress.started = false` was a no-op (setting false to false)
+  - Replaced entire 4-line block with single conditional: `if (chapterIndex > 0) c.progress.started = true`
+- **README accuracy** — Playwright test count 250→255, file tree 242→255
+- SW cache bumped to v159, production build regenerated (199KB JS, 97KB CSS)
+- All 49 JS files pass `node --check`, 204/204 unit tests, 255/255 Playwright tests
+- Committed & pushed
+
+## Log (continued)
+- 2026-04-01 (12:27 AM): Phase 178 — Cached AppRouter paths (storyBasePath + menuUrl computed once in constructor, avoids per-call pathname evaluation). Simplified CampaignFlow startChapter started-flag (dead no-op removed). README Playwright count 250→255. SW v159, 199KB bundle. All 49 JS + 204/204 unit + 255/255 Playwright pass. Committed & pushed.
