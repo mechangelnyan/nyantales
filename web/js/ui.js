@@ -139,8 +139,9 @@ class VNUI {
    * Card click/keydown events are NOT attached here — they are handled by
    * grid-level event delegation in main.js (single listener for all 30 cards).
    * @param {Array} stories - Story index entries
+   * @param {Function} [onInnerRefs] - Optional callback(story, {inner, textDiv, h3, p, spriteEl}) to receive inner DOM refs per card
    */
-  renderStoryList(stories) {
+  renderStoryList(stories, onInnerRefs) {
     this.storyListEl.textContent = '';
     // Batch-append cards via DocumentFragment (1 reflow instead of 30)
     const frag = document.createDocumentFragment();
@@ -183,8 +184,8 @@ class VNUI {
       inner.appendChild(textDiv);
       card.appendChild(inner);
 
-      // Expose inner DOM refs for main.js to avoid querySelector on lock/unlock
-      card._innerRefs = { inner, textDiv, h3, p, spriteEl };
+      // Pass inner DOM refs to caller (StoryCardManager) for lock/unlock state management
+      if (onInnerRefs) onInnerRefs(story, { inner, textDiv, h3, p, spriteEl });
 
       frag.appendChild(card);
     }

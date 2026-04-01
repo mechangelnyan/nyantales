@@ -30,6 +30,14 @@ class StoryCardManager {
      * @type {Map<number, Object>}
      */
     this._cardRefs = new Map();
+
+    /**
+     * Inner DOM refs for story cards (title h3, description p, sprite img, textDiv).
+     * Set by VNUI.renderStoryList via setInnerRefs(), used by decorate/reset for lock state.
+     * Replaces custom `card._innerRefs` DOM property — keeps app state off DOM elements.
+     * @type {Map<number, {inner: HTMLElement, textDiv: HTMLElement, h3: HTMLElement, p: HTMLElement, spriteEl: HTMLImageElement|null}>}
+     */
+    this._innerRefs = new Map();
   }
 
   /**
@@ -64,6 +72,27 @@ class StoryCardManager {
   }
 
   /**
+  /**
+   * Store inner DOM refs for a story card (set by VNUI.renderStoryList during grid build).
+   * @param {Object} story
+   * @param {Object} refs - { inner, textDiv, h3, p, spriteEl }
+   */
+  setInnerRefs(story, refs) {
+    const idx = this._storyIdxMap.get(story);
+    if (idx !== undefined) this._innerRefs.set(idx, refs);
+  }
+
+  /**
+   * Get inner DOM refs for a story card.
+   * @param {Object} story
+   * @returns {Object|undefined}
+   */
+  getInnerRefs(story) {
+    const idx = this._storyIdxMap.get(story);
+    return idx !== undefined ? this._innerRefs.get(idx) : undefined;
+  }
+
+  /**
    * Build a lowercase search blob for a story (title + description + character names/roles/appearance).
    * Used for story grid filtering.
    * @param {Object} story - Story index entry
@@ -92,7 +121,7 @@ class StoryCardManager {
       card.classList.add('story-locked');
       card.setAttribute('tabindex', '-1');
       card.setAttribute('aria-label', `${story.title}: Locked — progress through the campaign to unlock`);
-      const ir = card._innerRefs;
+      const ir = this.getInnerRefs(story);
       if (ir) {
         if (ir.h3) ir.h3.textContent = '🔒 ' + story.title;
         if (ir.p) ir.p.textContent = 'Progress through the campaign to unlock';
@@ -169,7 +198,7 @@ class StoryCardManager {
       sceneSpan.textContent = `📄 ${sceneCount} scenes`;
       metaEl.appendChild(timeSpan);
       metaEl.appendChild(sceneSpan);
-      const textContainer = card._innerRefs?.textDiv;
+      const textContainer = this.getInnerRefs(story)?.textDiv;
       if (textContainer) textContainer.appendChild(metaEl);
       refs.metaEl = metaEl;
     }
@@ -300,7 +329,7 @@ class StoryCardManager {
     card.classList.remove('completed', 'story-locked');
     card.removeAttribute('data-locked');
 
-    const ir = card._innerRefs;
+    const ir = this.getInnerRefs(story);
     if (ir) {
       if (ir.h3) ir.h3.textContent = story.title;
       if (ir.p) ir.p.textContent = story.description || '';
@@ -313,5 +342,6 @@ class StoryCardManager {
   /** Clear all cached refs (call before full grid rebuild). */
   clearRefs() {
     this._cardRefs.clear();
+    this._innerRefs.clear();
   }
 }

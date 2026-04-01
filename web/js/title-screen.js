@@ -71,7 +71,7 @@ class TitleScreen {
     if (!this._gridBuilt) {
       // First render: build full story grid
       this._cardManager.clearRefs();
-      this._ui.renderStoryList(storyIndex);
+      this._ui.renderStoryList(storyIndex, (story, refs) => this._cardManager.setInnerRefs(story, refs));
       const cards = this._titleBrowser.refreshCards();
       for (let idx = 0; idx < storyIndex.length; idx++) {
         const card = cards[idx];
