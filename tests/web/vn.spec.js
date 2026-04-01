@@ -2084,12 +2084,9 @@ test.describe('Reading Time', () => {
 
 // ── Data Manager Export Structure ──
 test.describe('Data Manager Detailed', () => {
-  test('DataManager instance has expected data keys', async ({ page }) => {
+  test('DataManager has expected data keys', async ({ page }) => {
     await waitForTitleScreen(page);
-    const keys = await page.evaluate(() => {
-      const dm = new DataManager();
-      return dm.DATA_KEYS;
-    });
+    const keys = await page.evaluate(() => DataManager.DATA_KEYS);
     expect(keys).toContain('nyantales-tracker');
     expect(keys).toContain('nyantales-achievements');
     expect(keys).toContain('nyantales-settings');

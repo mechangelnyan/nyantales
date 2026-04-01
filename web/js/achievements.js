@@ -135,7 +135,7 @@ class AchievementSystem {
   }
 
   _save() {
-    SafeStorage.setJSON(this.storageKey, [...this.unlocked]);
+    SafeStorage.setJSON(this.storageKey, Array.from(this.unlocked));
   }
 
   /**

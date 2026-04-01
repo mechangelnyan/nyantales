@@ -7,20 +7,21 @@
  */
 
 class DataManager {
-  constructor() {
-    /** Keys to include in export/import */
-    this.DATA_KEYS = [
-      'nyantales-tracker',
-      'nyantales-achievements',
-      'nyantales-settings',
-      'nyantales-hints-shown',
-      'nyantales-campaign',
-      'nyantales-title-browser',
-      'nyantales-stats-dashboard'
-    ];
-    /** Prefix for per-story save slots */
-    this.SAVE_PREFIX = 'nyantales-saves-';
-  }
+  constructor() {}
+
+  /** Keys to include in export/import (static — identical for all instances). */
+  static DATA_KEYS = [
+    'nyantales-tracker',
+    'nyantales-achievements',
+    'nyantales-settings',
+    'nyantales-hints-shown',
+    'nyantales-campaign',
+    'nyantales-title-browser',
+    'nyantales-stats-dashboard'
+  ];
+
+  /** Prefix for per-story save slots (static). */
+  static SAVE_PREFIX = 'nyantales-saves-';
 
   /**
    * Gather all NyanTales data from localStorage into a plain object.
@@ -30,7 +31,7 @@ class DataManager {
     const data = {};
 
     // Fixed keys
-    for (const key of this.DATA_KEYS) {
+    for (const key of DataManager.DATA_KEYS) {
       const val = SafeStorage.getJSON(key);
       if (val !== null) data[key] = val;
     }
@@ -38,7 +39,7 @@ class DataManager {
     // Per-story saves
     for (let i = 0; i < localStorage.length; i++) {
       const key = localStorage.key(i);
-      if (key && key.startsWith(this.SAVE_PREFIX)) {
+      if (key && key.startsWith(DataManager.SAVE_PREFIX)) {
         const val = SafeStorage.getJSON(key);
         if (val !== null) data[key] = val;
       }
@@ -89,7 +90,7 @@ class DataManager {
           for (const key in payload.data) {
             const value = payload.data[key];
             // Only import recognized keys
-            const isValid = this.DATA_KEYS.includes(key) || key.startsWith(this.SAVE_PREFIX);
+            const isValid = DataManager.DATA_KEYS.includes(key) || key.startsWith(DataManager.SAVE_PREFIX);
             if (!isValid) {
               errors.push(`Skipped unrecognized key: ${key}`);
               continue;
@@ -129,7 +130,7 @@ class DataManager {
       const val = SafeStorage.getRaw(key) || '';
       estimatedBytes += key.length + val.length;
 
-      if (key.startsWith(this.SAVE_PREFIX)) saves++;
+      if (key.startsWith(DataManager.SAVE_PREFIX)) saves++;
       if (key === 'nyantales-tracker') {
         const data = SafeStorage.getJSON(key);
         if (data && data.stories) {

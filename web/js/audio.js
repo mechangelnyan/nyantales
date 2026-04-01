@@ -62,7 +62,7 @@ class AmbientAudio {
     this._cancelFadeTimers();
 
     // Stop old nodes after fade (tracked to prevent stale cleanup on rapid theme changes)
-    const oldNodes = [...this.nodes];
+    const oldNodes = this.nodes.slice();
     this._trackFadeTimer(setTimeout(() => {
       for (const n of oldNodes) {
         try { n.stop(); } catch (e) {}

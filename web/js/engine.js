@@ -61,8 +61,8 @@ class StoryEngine {
     // Snapshot current state before transitioning (for accurate rewind)
     this.state.snapshots.push({
       scene: this.state.currentScene,
-      inventory: [...this.state.inventory],
-      flags: [...this.state.flags],
+      inventory: this.state.inventory.slice(),
+      flags: Array.from(this.state.flags),
       turns: this.state.turns
     });
     // Cap snapshot history to prevent memory bloat
@@ -138,24 +138,17 @@ class StoryEngine {
    * @returns {Object}
    */
   static _normalizeScenes(rawScenes) {
-    const out = {};
     for (const id in rawScenes) {
       const scene = rawScenes[id];
-      if (!scene.is_ending) {
-        out[id] = scene;
-        continue;
-      }
-      const type = scene.ending_type || 'neutral';
-      out[id] = {
-        ...scene,
-        ending: {
-          type,
+      if (scene.is_ending && !scene.ending) {
+        scene.ending = {
+          type: scene.ending_type || 'neutral',
           text: scene.ending_text || scene.text || '',
           title: scene.ending_title || null,
-        },
-      };
+        };
+      }
     }
-    return out;
+    return rawScenes;
   }
 
   // Pre-compiled interpolation patterns (shared across all engine instances)
@@ -231,8 +224,8 @@ class StoryEngine {
     return JSON.stringify({
       currentScene: this.state.currentScene,
       inventory: this.state.inventory,
-      flags: [...this.state.flags],
-      visited: [...this.state.visited],
+      flags: Array.from(this.state.flags),
+      visited: Array.from(this.state.visited),
       turns: this.state.turns,
       history: this.state.history,
       snapshots: this.state.snapshots
