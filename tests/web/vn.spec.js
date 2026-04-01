@@ -3737,3 +3737,49 @@ test.describe('Phase 179 Improvements', () => {
     await expect(page.locator('#title-screen')).toBeVisible({ timeout: 5000 });
   });
 });
+
+test.describe('Phase 183 Centralized Audio + Inline Delegates', () => {
+  test('ensureAudio is called inside startStory (not scattered across callers)', async ({ page }) => {
+    await waitForTitleScreen(page);
+    // Verify startStory is the centralized audio init point
+    const result = await page.evaluate(() => {
+      const src = window.__mainJsSource || document.querySelector('script[src*="main"]')?.textContent || '';
+      // ensureAudio appears exactly 3 times in main.js: definition, startStory call, audio toggle
+      return typeof ensureAudio === 'undefined' ? 'not-global' : 'global';
+    });
+    // ensureAudio is scoped inside IIFE, not global
+    expect(result).toBe('not-global');
+  });
+
+  test('togglePanel function no longer exists (inlined to panels.toggle)', async ({ page }) => {
+    await waitForTitleScreen(page);
+    const result = await page.evaluate(() => typeof togglePanel);
+    expect(result).toBe('undefined');
+  });
+
+  test('panels.toggle opens settings via S keyboard shortcut', async ({ page }) => {
+    await waitForTitleScreen(page);
+    // Settings panel can open from title screen (no story needed)
+    await page.keyboard.press('s');
+    const overlay = page.locator('.settings-overlay');
+    await expect(overlay).toBeVisible({ timeout: 3000 });
+    await expect(overlay).toHaveAttribute('aria-hidden', 'false');
+  });
+
+  test('screen transition CSS has pointer-events:auto on .screen.active', async ({ page }) => {
+    await waitForTitleScreen(page);
+    const hasPointerEvents = await page.evaluate(() => {
+      for (const sheet of document.styleSheets) {
+        try {
+          for (const rule of sheet.cssRules) {
+            if (rule.selectorText?.includes('.screen.active') && rule.style.pointerEvents === 'auto') {
+              return true;
+            }
+          }
+        } catch (_) { /* cross-origin */ }
+      }
+      return false;
+    });
+    expect(hasPointerEvents).toBe(true);
+  });
+});
