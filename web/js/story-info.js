@@ -37,6 +37,7 @@ class StoryInfoModal {
     /** @private Reusable element pools for endings/cast tags */
     this._endingTagPool = [];
     this._castChipPool = [];
+    this._castChipRefs = []; // parallel: { nameEl, roleEl } per pooled chip
   }
 
   /** Lazy-build the overlay + panel DOM tree (called once) */
@@ -273,9 +274,8 @@ class StoryInfoModal {
     roleEl.className = 'story-info-cast-role';
     chip.appendChild(nameEl);
     chip.appendChild(roleEl);
-    chip._nameEl = nameEl;
-    chip._roleEl = roleEl;
     this._castChipPool.push(chip);
+    this._castChipRefs.push({ nameEl, roleEl });
     return chip;
   }
 
@@ -370,9 +370,10 @@ class StoryInfoModal {
       const frag = document.createDocumentFragment();
       for (let i = 0; i < chars.length; i++) {
         const chip = this._getCastChip(i);
+        const chipRefs = this._castChipRefs[i];
         chip.title = chars[i].appearance || '';
-        chip._nameEl.textContent = chars[i].name;
-        chip._roleEl.textContent = chars[i].role || 'cat';
+        chipRefs.nameEl.textContent = chars[i].name;
+        chipRefs.roleEl.textContent = chars[i].role || 'cat';
         frag.appendChild(chip);
       }
       r.castContainer.appendChild(frag);

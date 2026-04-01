@@ -13,6 +13,7 @@ class ChoiceRenderer {
   constructor(choicesEl) {
     this._el = choicesEl;
     this._pool = [];          // reusable <button> elements
+    this._poolRefs = [];      // parallel array: { numSpan, textNode, visitedSpan } per button
     this._current = null;     // current choices array (for delegation lookup)
     this._onChoice = null;    // callback: (choice) => void
     this._rippleTimer = null; // tracked timer for click ripple effect
@@ -32,20 +33,22 @@ class ChoiceRenderer {
     // Grow pool as needed
     while (this._pool.length < choices.length) {
       const btn = document.createElement('button');
-      btn._numSpan = document.createElement('span');
-      btn._numSpan.className = 'choice-num';
-      btn._textNode = document.createTextNode('');
-      btn._visitedSpan = document.createElement('span');
-      btn._visitedSpan.className = 'choice-visited';
-      btn._visitedSpan.title = 'Previously visited';
-      btn._visitedSpan.textContent = '✓';
+      const numSpan = document.createElement('span');
+      numSpan.className = 'choice-num';
+      const textNode = document.createTextNode('');
+      const visitedSpan = document.createElement('span');
+      visitedSpan.className = 'choice-visited';
+      visitedSpan.title = 'Previously visited';
+      visitedSpan.textContent = '✓';
       this._pool.push(btn);
+      this._poolRefs.push({ numSpan, textNode, visitedSpan });
     }
 
     const frag = document.createDocumentFragment();
     for (let i = 0; i < choices.length; i++) {
       const choice = choices[i];
       const btn = this._pool[i];
+      const refs = this._poolRefs[i];
       btn.className = 'choice-btn fade-in';
       btn.style.setProperty('--choice-delay', `${i * 0.08}s`);
       btn.dataset.choiceIdx = i;
@@ -62,12 +65,12 @@ class ChoiceRenderer {
       // Update pre-built children
       btn.textContent = '';
       if (i < 9) {
-        btn._numSpan.textContent = i + 1;
-        btn.appendChild(btn._numSpan);
+        refs.numSpan.textContent = i + 1;
+        btn.appendChild(refs.numSpan);
       }
-      btn._textNode.textContent = label;
-      btn.appendChild(btn._textNode);
-      if (visited) btn.appendChild(btn._visitedSpan);
+      refs.textNode.textContent = label;
+      btn.appendChild(refs.textNode);
+      if (visited) btn.appendChild(refs.visitedSpan);
 
       frag.appendChild(btn);
     }

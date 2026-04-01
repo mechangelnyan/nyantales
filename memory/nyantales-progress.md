@@ -3581,3 +3581,16 @@ cd /tmp/nyantales && python3 -m http.server 9876
 - main.js named functions: 15 → 13 (ensureAudio + showKeyboardHints inlined)
 - SW cache bumped to v169, production build regenerated (200KB JS, 97KB CSS)
 - All 50 JS files pass `node --check`, 204/204 unit tests, 269/269 Playwright tests
+
+## Phase 189: Eliminate DOM Custom Properties on Pooled Elements ✅
+- **Moved pooled element child refs from DOM custom properties to parallel arrays** across 4 modules
+  - `choice-renderer.js`: `btn._numSpan/_textNode/_visitedSpan` → `_poolRefs[i].numSpan/textNode/visitedSpan`
+  - `achievement-panel.js`: `item._iconEl/_nameEl/_descEl` → `_itemRefs[i].iconEl/nameEl/descEl`
+  - `stats-dashboard.js`: `item._titleEl/_metaSpans` → `_recentRefs[i].titleEl/metaSpans`
+  - `story-info.js`: `chip._nameEl/_roleEl` → `_castChipRefs[i].nameEl/roleEl`
+  - DOM elements should store DOM data, not app state — custom properties are fragile, invisible to debugging tools, and mix concerns
+  - Same anti-pattern fixed in Phase 186 for story cards (card._innerRefs → StoryCardManager Map)
+- **Zero DOM custom properties remaining** on any element in the codebase
+  - Verified via grep: no `el._` patterns outside `this._` / static class `._` / `ConfirmDialog._` / `StoryIntro._` (which are class-level statics, not DOM properties)
+- SW cache bumped to v170, production build regenerated (200KB JS, 97KB CSS)
+- All 50 JS files pass `node --check`, 204/204 unit tests, 269/269 Playwright tests

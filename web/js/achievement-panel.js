@@ -15,6 +15,7 @@ class AchievementPanel {
     this._focusTrap = null;
     this._dom = null;
     this._itemPool = [];
+    this._itemRefs = []; // parallel: { iconEl, nameEl, descEl } per pooled item
   }
 
   /** Create the overlay and inner panel DOM (called once). */
@@ -126,30 +127,33 @@ class AchievementPanel {
    * @private
    */
   _getItem(idx, a) {
-    let item;
+    let item, refs;
     if (idx < this._itemPool.length) {
       item = this._itemPool[idx];
+      refs = this._itemRefs[idx];
     } else {
       item = document.createElement('div');
-      item._iconEl = document.createElement('div');
-      item._iconEl.className = 'achievement-item-icon';
-      item._nameEl = document.createElement('div');
-      item._nameEl.className = 'achievement-item-name';
-      item._descEl = document.createElement('div');
-      item._descEl.className = 'achievement-item-desc';
+      const iconEl = document.createElement('div');
+      iconEl.className = 'achievement-item-icon';
+      const nameEl = document.createElement('div');
+      nameEl.className = 'achievement-item-name';
+      const descEl = document.createElement('div');
+      descEl.className = 'achievement-item-desc';
       const info = document.createElement('div');
       info.className = 'achievement-item-info';
-      info.appendChild(item._nameEl);
-      info.appendChild(item._descEl);
-      item.appendChild(item._iconEl);
+      info.appendChild(nameEl);
+      info.appendChild(descEl);
+      item.appendChild(iconEl);
       item.appendChild(info);
+      refs = { iconEl, nameEl, descEl };
       this._itemPool.push(item);
+      this._itemRefs.push(refs);
     }
 
     item.className = `achievement-item ${a.unlocked ? 'unlocked' : 'locked'}`;
-    item._iconEl.textContent = a.unlocked ? a.icon : '🔒';
-    item._nameEl.textContent = a.unlocked ? a.name : '???';
-    item._descEl.textContent = a.desc;
+    refs.iconEl.textContent = a.unlocked ? a.icon : '🔒';
+    refs.nameEl.textContent = a.unlocked ? a.name : '???';
+    refs.descEl.textContent = a.desc;
     return item;
   }
 

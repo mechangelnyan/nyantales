@@ -34,6 +34,7 @@ class StatsDashboard {
     // Pre-built DOM refs (populated by _buildPanel)
     this._dom = null;
     this._recentPool = [];
+    this._recentRefs = []; // parallel: { titleEl, metaSpans } per pooled item
     this._panelBuilt = false;
   }
 
@@ -367,30 +368,31 @@ class StatsDashboard {
         item.className = 'stats-recent-item';
         item.setAttribute('tabindex', '0');
         item.setAttribute('role', 'button');
-        item._titleEl = document.createElement('div');
-        item._titleEl.className = 'stats-recent-title';
-        item._metaEl = document.createElement('div');
-        item._metaEl.className = 'stats-recent-meta';
-        // 4 meta spans
-        item._metaSpans = [];
+        const titleEl = document.createElement('div');
+        titleEl.className = 'stats-recent-title';
+        const metaEl = document.createElement('div');
+        metaEl.className = 'stats-recent-meta';
+        const metaSpans = [];
         for (let j = 0; j < 4; j++) {
           const sp = document.createElement('span');
-          item._metaEl.appendChild(sp);
-          item._metaSpans.push(sp);
+          metaEl.appendChild(sp);
+          metaSpans.push(sp);
         }
-        item.appendChild(item._titleEl);
-        item.appendChild(item._metaEl);
+        item.appendChild(titleEl);
+        item.appendChild(metaEl);
         this._recentPool.push(item);
+        this._recentRefs.push({ titleEl, metaSpans });
       }
 
       const s = items[i];
+      const refs = this._recentRefs[i];
       item.dataset.slug = s.slug;
       item.setAttribute('aria-label', `Play ${s.title}`);
-      item._titleEl.textContent = s.title;
-      item._metaSpans[0].textContent = `${s.progress}% explored`;
-      item._metaSpans[1].textContent = `${s.endings}/${s.totalEndings} endings`;
-      item._metaSpans[2].textContent = `${s.plays} play${s.plays !== 1 ? 's' : ''}`;
-      item._metaSpans[3].textContent = this._timeAgo(s.lastPlayed);
+      refs.titleEl.textContent = s.title;
+      refs.metaSpans[0].textContent = `${s.progress}% explored`;
+      refs.metaSpans[1].textContent = `${s.endings}/${s.totalEndings} endings`;
+      refs.metaSpans[2].textContent = `${s.plays} play${s.plays !== 1 ? 's' : ''}`;
+      refs.metaSpans[3].textContent = this._timeAgo(s.lastPlayed);
 
       if (item.parentNode !== list) list.appendChild(item);
     }
