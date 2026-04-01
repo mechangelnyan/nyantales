@@ -37,7 +37,7 @@ cd dist && python3 -m http.server 9877
 
 Build output: **204KB JS** (from 394KB), **97KB CSS** (from 125KB). Gzip'd: ~55KB JS, ~14KB CSS. GitHub Pages CI runs the build automatically. A **story manifest** (8KB JSON) replaces 30 individual YAML fetches on boot — title screen loads instantly without parsing 1.6MB of YAML.
 
-**Testing:** 204 unit tests (Node.js) + 255 Playwright browser tests covering UI, a11y, persistence, deep links, campaign flow, engine logic, manifest/lazy-loading, and production builds. Run `npm test` and `npx playwright test`.
+**Testing:** 204 unit tests (Node.js) + 263 Playwright browser tests covering UI, a11y, persistence, deep links, campaign flow, engine logic, manifest/lazy-loading, and production builds. Run `npm test` and `npx playwright test`.
 
 **Features:**
 - 🎮 30 interactive stories with branching narratives
@@ -578,7 +578,7 @@ nyantales/
 │   ├── mapper.test.js      Story map/graph tests
 │   ├── achievements.test.js Achievement system tests
 │   └── web/
-│       └── vn.spec.js      255 Playwright browser tests for the web VN
+│       └── vn.spec.js      263 Playwright browser tests for the web VN
 ├── package.json
 └── README.md
 ```
