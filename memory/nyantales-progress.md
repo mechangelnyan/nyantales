@@ -3492,3 +3492,21 @@ cd /tmp/nyantales && python3 -m http.server 9876
 
 ## Log (continued)
 - 2026-04-01 (6:27 AM): Phase 183 — Centralized ensureAudio to startStory (8 scattered calls → 1), removed togglePanel wrapper (9 sites inlined to panels.toggle), removed syncTouchSuspension wrapper (inlined as arrow), screen.active pointer-events:auto, _transitionScreens exiting-class cleanup, 4 new Playwright tests. main.js 778→752 lines. SW v164, 200KB bundle. All 49 JS + 204/204 unit + 263/263 Playwright pass. Committed & pushed.
+
+## Phase 184: GC-Friendly Boot, Switch Dispatch Keyboard Shortcuts ✅
+- **Block-scoped `_totalCharCount`** — computation Set now eligible for GC immediately
+  - Was IIFE `(() => { ... })()` keeping the character names Set alive for the entire session lifetime
+  - Now: block-scoped `{ const _names = new Set(); ... _totalCharCount = _names.size; }` — Set eligible for GC after block exits
+- **Loading screen DOM refs nulled after boot** — `_loadingFill` and `_loadingLabel` set to `null` in `hideLoadingScreen()`
+  - Loading screen element is removed from DOM after fade animation, but refs kept detached DOM nodes in memory
+  - Changed from `const` to `let` to allow nulling
+- **Engine-dependent keyboard shortcuts: switch dispatch** — 7 separate `if` evaluations per keypress → single guard + `switch`
+  - Previously: each shortcut (A/B/H/G/R/F/Q) independently checked `noMod && playback.engine` (14 boolean evaluations per keypress)
+  - Now: single `if (noMod && playback.engine)` guard, then switch dispatch on `key` (1 boolean check + 1 string match)
+  - Global shortcuts (M/S/?) separated for clarity
+- SW cache bumped to v165, production build regenerated (200KB JS, 97KB CSS)
+- All 49 JS files pass `node --check`, 204/204 unit tests, 263/263 Playwright tests
+- Committed & pushed
+
+## Log (continued)
+- 2026-04-01 (7:27 AM): Phase 184 — GC-friendly boot (block-scoped char count Set, nulled loading refs), switch dispatch keyboard shortcuts (7 if-chains → single guard + switch). SW v165, 200KB bundle. All 49 JS + 204/204 unit + 263/263 Playwright pass. Committed & pushed.
