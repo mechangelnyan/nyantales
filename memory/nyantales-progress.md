@@ -3276,3 +3276,21 @@ cd /tmp/nyantales && python3 -m http.server 9876
 
 ## Log (continued)
 - 2026-03-31 (6:27 PM): Phase 172 — TextHistory ring buffer (O(1) add replaces O(n) shift at capacity), history export avoids .map() array allocation, SaveManager.migrateLegacy uses SafeStorage.getJSON (last raw JSON.parse), README test count corrected. SW v153, 199KB bundle. All 50 JS + 204/204 unit + 247/247 Playwright pass. Committed & pushed.
+
+## Phase 173: Remove Unnecessary typeof Guards, Pre-Build History Empty State ✅
+- **Removed 7 `typeof Toast !== 'undefined'` guards** — Toast loads at position 3 in script chain, before all consumer modules
+  - `history.js`: 1 guard removed (export success toast)
+  - `save-manager.js`: 1 guard removed (save success toast)
+  - `share.js`: 3 guards removed (clipboard success/error/unavailable toasts)
+  - `safe-storage.js`: 1 guard removed (quota-exceeded error toast)
+  - Guards were dead branches since Toast is always loaded before these modules
+- **Removed `typeof CHARACTER_DATA` guard from main.js** — sprites.js loads before main.js in script chain
+- **Pre-built `_emptyEl` in HistoryPanel constructor** — was lazy-initialized with guard on every `show()` call
+  - Created once at build time, reused across all show() calls (consistent with other panel patterns)
+- **SafeStorage eviction log level** — `console.info` → `console.warn` (eviction is a notable event, not routine)
+- SW cache bumped to v154, production build regenerated (199KB JS, 97KB CSS)
+- All 50 JS files pass `node --check`, 204/204 unit tests, 247/247 Playwright tests
+- Committed & pushed
+
+## Log (continued)
+- 2026-03-31 (7:27 PM): Phase 173 — Removed 7 unnecessary typeof Toast guards (Toast loads before all consumers), removed typeof CHARACTER_DATA guard from main.js (sprites.js loads first), pre-built HistoryPanel _emptyEl in constructor (was lazy init per show), SafeStorage eviction log info→warn. SW v154, 199KB bundle. All 50 JS + 204/204 unit + 247/247 Playwright pass. Committed & pushed.
