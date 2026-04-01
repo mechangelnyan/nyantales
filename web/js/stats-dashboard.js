@@ -554,9 +554,11 @@ class StatsDashboard {
    */
   _getStoryRow(idx, s) {
     if (!this._rowPool) this._rowPool = [];
-    let row;
+    if (!this._rowRefs) this._rowRefs = [];
+    let row, refs;
     if (idx < this._rowPool.length) {
       row = this._rowPool[idx];
+      refs = this._rowRefs[idx];
     } else {
       row = document.createElement('div');
       row.className = 'stats-table-row';
@@ -601,15 +603,9 @@ class StatsDashboard {
       tdBest.setAttribute('data-label', 'Best');
       row.appendChild(tdBest);
 
-      // Cache child refs on the row element
-      row._tdTitle = tdTitle;
-      row._miniBarFill = miniBarFill;
-      row._pctSpan = pctSpan;
-      row._tdEndings = tdEndings;
-      row._tdPlays = tdPlays;
-      row._tdBest = tdBest;
-
+      refs = { tdTitle, miniBarFill, pctSpan, tdEndings, tdPlays, tdBest };
       this._rowPool.push(row);
+      this._rowRefs.push(refs);
     }
 
     // Update content
@@ -618,13 +614,13 @@ class StatsDashboard {
     row.setAttribute('aria-label', `Play ${s.title}`);
 
     const icon = s.completed ? '✅' : (s.plays > 0 ? '📖' : '🆕');
-    row._tdTitle.textContent = `${icon} ${s.title}`;
-    row._tdTitle.title = s.title;
-    row._miniBarFill.style.setProperty('--bar-pct', `${s.progress}%`);
-    row._pctSpan.textContent = `${s.progress}%`;
-    row._tdEndings.textContent = `${s.endings}/${s.totalEndings}`;
-    row._tdPlays.textContent = s.plays || '—';
-    row._tdBest.textContent = s.bestTurns || '—';
+    refs.tdTitle.textContent = `${icon} ${s.title}`;
+    refs.tdTitle.title = s.title;
+    refs.miniBarFill.style.setProperty('--bar-pct', `${s.progress}%`);
+    refs.pctSpan.textContent = `${s.progress}%`;
+    refs.tdEndings.textContent = `${s.endings}/${s.totalEndings}`;
+    refs.tdPlays.textContent = s.plays || '—';
+    refs.tdBest.textContent = s.bestTurns || '—';
 
     return row;
   }

@@ -3594,3 +3594,12 @@ cd /tmp/nyantales && python3 -m http.server 9876
   - Verified via grep: no `el._` patterns outside `this._` / static class `._` / `ConfirmDialog._` / `StoryIntro._` (which are class-level statics, not DOM properties)
 - SW cache bumped to v170, production build regenerated (200KB JS, 97KB CSS)
 - All 50 JS files pass `node --check`, 204/204 unit tests, 269/269 Playwright tests
+
+## Phase 190: Stats Dashboard Row Pool Refs, README Freshness ✅
+- **Stats dashboard `_rowRefs` parallel array** — `row._tdTitle/_miniBarFill/_pctSpan/_tdEndings/_tdPlays/_tdBest` moved off DOM elements
+  - `_rowRefs[idx]` stores `{ tdTitle, miniBarFill, pctSpan, tdEndings, tdPlays, tdBest }` per pooled row
+  - Last remaining DOM custom property site (missed in Phase 189 sweep)
+  - Same pattern: parallel ref array alongside pool array, zero custom properties on DOM elements
+- **README** — Playwright test count 263→269
+- SW cache bumped to v170, production build regenerated (200KB JS, 97KB CSS)
+- All 50 JS files pass `node --check`, 204/204 unit tests, 269/269 Playwright tests
