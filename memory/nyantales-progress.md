@@ -3464,3 +3464,31 @@ cd /tmp/nyantales && python3 -m http.server 9876
 
 ## Log (continued)
 - 2026-04-01 (4:27 AM): Phase 182 — Arrow handlers (FocusTrap + TouchHandler .bind→arrow, zero .bind in app code), BackgroundManager transition serial guard (prevents stale async overlay/bg-class writes after rapid scene changes or menu return), VNUI _screenTransTimer cleared on setStorySlug (prevents class removal on wrong screen). SW v163, 200KB bundle. All 49 JS + 204/204 unit + 259/259 Playwright pass. Committed & pushed.
+
+## Phase 183: Centralize ensureAudio, Inline Delegates, Screen Transition Safety ✅
+- **Centralized `ensureAudio()`** — moved from 8 scattered call sites to 1 call inside `startStory()`
+  - All play paths (card click, gallery, stats, campaign, continue, random, info modal) funnel through `startStory()`
+  - `ensureAudio()` now called once at top of `startStory()` + once for audio toggle button (2 total, was 9)
+  - Eliminates redundant audio init checks across: storyInfo.onPlay, statsDashboard.onPlay, gallery click, campaign click, continue click, random click, grid card click, campaign chapter select
+  - `storyInfo.onPlay` simplified to direct `startStory` reference (no wrapper needed)
+  - `statsDashboard.onPlay` simplified to direct `startStory` reference
+- **Removed `togglePanel()` wrapper** — all 9 call sites now use `panels.toggle()` directly
+  - Was a one-liner delegate function that added no value
+  - Keyboard shortcuts, HUD delegation, and title actions all inlined
+- **Removed `syncTouchSuspension()` named function** — inlined as arrow in `panels.onPanelChange`
+  - Was a one-liner delegate: `touch.suspend(panels.isAnyOpen())`
+- **CSS: `.screen.active` gets `pointer-events: auto`** — prevents click-through on inactive screens during transitions
+- **`_transitionScreens()` clears lingering `exiting` class** — removes `exiting` from the show-target before adding `entering`
+  - Prevents stuck exiting state on rapid screen transitions
+- **Fixed duplicate JSDoc comment** on `ensureAudio`
+- **Playwright test improvements**:
+  - `ensureFullTextVisible` waits for non-empty text before clicking to skip typewriter
+  - HUD button tests use keyboard shortcuts instead of direct clicks (more reliable with panel delegation)
+  - 4 new Phase 183 tests (ensureAudio scope, togglePanel removal, S-key settings, pointer-events CSS)
+- main.js: 778 → 752 lines (26 lines removed)
+- SW cache bumped to v164, production build regenerated (200KB JS, 97KB CSS)
+- All 49 JS files pass `node --check`, 204/204 unit tests, 263/263 Playwright tests
+- Committed & pushed
+
+## Log (continued)
+- 2026-04-01 (6:27 AM): Phase 183 — Centralized ensureAudio to startStory (8 scattered calls → 1), removed togglePanel wrapper (9 sites inlined to panels.toggle), removed syncTouchSuspension wrapper (inlined as arrow), screen.active pointer-events:auto, _transitionScreens exiting-class cleanup, 4 new Playwright tests. main.js 778→752 lines. SW v164, 200KB bundle. All 49 JS + 204/204 unit + 263/263 Playwright pass. Committed & pushed.
