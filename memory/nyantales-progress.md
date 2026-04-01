@@ -3595,6 +3595,13 @@ cd /tmp/nyantales && python3 -m http.server 9876
 - SW cache bumped to v170, production build regenerated (200KB JS, 97KB CSS)
 - All 50 JS files pass `node --check`, 204/204 unit tests, 269/269 Playwright tests
 
+## Phase 191: Minor Cleanup ✅
+- **Removed stale `updateRewindButton` argument** — `playScene()` was passing `this._rewindBtnEl` to `updateRewindButton()` which takes no parameters since Phase 188
+  - The method uses the internally cached `_rewindBtnEl` ref set via `setRewindButton()` — the parameter was silently ignored
+- **Removed unused destructure in boot** — `const [,] = await Promise.all(...)` → plain `await Promise.all(...)` (return values weren't used)
+- SW cache bumped to v171, production build regenerated (200KB JS, 97KB CSS)
+- All 49 JS files pass `node --check`, 204/204 unit tests, 269/269 Playwright tests
+
 ## Phase 190: Stats Dashboard Row Pool Refs, README Freshness ✅
 - **Stats dashboard `_rowRefs` parallel array** — `row._tdTitle/_miniBarFill/_pctSpan/_tdEndings/_tdPlays/_tdBest` moved off DOM elements
   - `_rowRefs[idx]` stores `{ tdTitle, miniBarFill, pctSpan, tdEndings, tdPlays, tdBest }` per pooled row

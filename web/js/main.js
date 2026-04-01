@@ -681,7 +681,7 @@
       updateLoadingProgress(10, 'Initializing...');
       updateLoadingProgress(30, 'Loading stories...');
       // Parallelize story index, campaign, and portrait preloads
-      const [,] = await Promise.all([
+      await Promise.all([
         stories.load(),
         campaign.load(router.storyBasePath()).then(() => {
           campaign.loadProgress();

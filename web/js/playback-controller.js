@@ -308,7 +308,7 @@ class PlaybackController {
     }
 
     // Normal scene — schedule next advance
-    if (this._rewindBtnEl) this.updateRewindButton(this._rewindBtnEl);
+    this.updateRewindButton();
     this.scheduleAutoAdvance();
   }
 
