@@ -3441,3 +3441,26 @@ cd /tmp/nyantales && python3 -m http.server 9876
 
 ## Log (continued)
 - 2026-04-01 (3:27 AM): Phase 181 — Engine loadState reuses existing flags/visited Sets (clear+repopulate instead of new Set allocation). Mobile sticky short-circuit (skips 3 removeProperty calls when already unstuck). SW v162, 199KB bundle. All 49 JS + 204/204 unit + 259/259 Playwright pass. Committed & pushed.
+
+## Phase 182: Arrow Handlers, Transition Safety, Screen Timer Cleanup ✅
+- **FocusTrap arrow handler** — `.bind(this)` replaced with arrow function in constructor
+  - `.bind()` creates a new function object per instance (11 FocusTrap instances across 11 overlay panels)
+  - Arrow function captures `this` lexically without allocation
+  - `_onKeyDown` renamed to `_handleKeyDown` (the named method), arrow wrapper stored as `_onKeyDown`
+- **TouchHandler arrow handlers** — same pattern, 2× `.bind()` removed
+  - `_onTouchStart` / `_onTouchEnd` renamed to `_handleTouchStart` / `_handleTouchEnd`
+  - Zero `.bind()` calls remaining in app code (only `js-yaml.min.js` has them)
+- **BackgroundManager transition serial guard** — prevents stale async transitions from modifying DOM
+  - `_transSerial` incremented on every `transition()` call and on `reset()`
+  - Each async step checks `serial !== this._transSerial` before proceeding
+  - Prevents: rapid scene changes leaving orphaned overlay in DOM, bg class applied to wrong scene
+  - `reset()` now also detaches overlay from DOM if still attached from cancelled transition
+- **VNUI `_screenTransTimer` cleanup** — `setStorySlug()` now clears the timer
+  - Previously: if story changed during screen transition animation, the 500ms timer could fire and remove `exiting` class from the wrong screen
+  - Now: timer cancelled on any story slug change (which precedes screen switches)
+- SW cache bumped to v163, production build regenerated (200KB JS, 97KB CSS)
+- All 49 JS files pass `node --check`, 204/204 unit tests, 259/259 Playwright tests
+- Committed & pushed
+
+## Log (continued)
+- 2026-04-01 (4:27 AM): Phase 182 — Arrow handlers (FocusTrap + TouchHandler .bind→arrow, zero .bind in app code), BackgroundManager transition serial guard (prevents stale async overlay/bg-class writes after rapid scene changes or menu return), VNUI _screenTransTimer cleared on setStorySlug (prevents class removal on wrong screen). SW v163, 200KB bundle. All 49 JS + 204/204 unit + 259/259 Playwright pass. Committed & pushed.
