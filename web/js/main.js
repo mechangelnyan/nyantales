@@ -54,13 +54,8 @@
     playback.updateSkipIndicator(false);
     const scene = playback.engine.jumpToScene(sceneId);
     if (scene) playback.playScene(scene);
-    playback.updateRewindButton(btnRewind);
+    playback.updateRewindButton();
   });
-
-  /** Ensure audio context is initialized (safe to call repeatedly). */
-  function ensureAudio() {
-    if (!audio.ctx) audio.init();
-  }
 
   // Wire story info modal callbacks
   storyInfo.onPlay = startStory;
@@ -223,7 +218,7 @@
     const navId = router.bump();
 
     // Initialize audio context on first interaction (browser autoplay policy)
-    ensureAudio();
+    if (!audio.ctx) audio.init();
 
     playback.currentSlug = story.slug;
     playback.storyStartTime = Date.now();
@@ -258,7 +253,10 @@
 
     ui.showStoryScreen();
     playback.updateAutoPlayHUD(settings.get('autoPlay'));
-    showKeyboardHints();
+    if (!SafeStorage.getRaw('nyantales-hints-shown')) {
+      SafeStorage.setRaw('nyantales-hints-shown', '1');
+      Toast.show('Press ? for keyboard shortcuts', { icon: '⌨️', duration: 4000 });
+    }
 
     const firstScene = playback.engine.getCurrentScene();
     await playback.playScene(firstScene);
@@ -478,7 +476,7 @@
     if (noMod && playback.engine) {
       switch (key) {
         case 'a': toggleAutoPlay(); break;
-        case 'b': playback.rewindOneScene(btnRewind); break;
+        case 'b': playback.rewindOneScene(); break;
         case 'h': panels.toggle(historyPanel); break;
         case 'g': panels.toggle(sceneSelect, playback.engine, playback.engine.state.currentScene); break;
         case 'r': panels.toggle(routeMap, playback.engine); break;
@@ -534,7 +532,7 @@
 
     switch (id) {
       case 'btn-back':    returnToMenu(); break;
-      case 'btn-rewind':  playback.rewindOneScene(btnRewind); break;
+      case 'btn-rewind':  playback.rewindOneScene(); break;
       case 'btn-save':    if (playback.engine && playback.currentSlug) saveManager.show(playback.currentSlug, playback.engine, 'save'); break;
       case 'btn-hud-more':
         hudToolbar.classList.toggle('hud-expanded');
@@ -549,7 +547,7 @@
       case 'btn-history': if (playback.engine) panels.toggle(historyPanel); break;
       case 'btn-scenes':  if (playback.engine) panels.toggle(sceneSelect, playback.engine, playback.engine.state.currentScene); break;
       case 'btn-settings': panels.toggle(settingsPanel); break;
-      case 'btn-audio':   ensureAudio(); toggleAudio(); break;
+      case 'btn-audio':   if (!audio.ctx) audio.init(); toggleAudio(); break;
       case 'btn-routemap': if (playback.engine) panels.toggle(routeMap, playback.engine); break;
       case 'btn-help':    panels.toggle(keyboardHelp); break;
     }
@@ -641,13 +639,6 @@
   }
 
   /** Show keyboard shortcut hints on first visit to story screen */
-  function showKeyboardHints() {
-    if (SafeStorage.getRaw('nyantales-hints-shown')) return;
-    SafeStorage.setRaw('nyantales-hints-shown', '1');
-    // Brief toast pointing to full help
-    Toast.show('Press ? for keyboard shortcuts', { icon: '⌨️', duration: 4000 });
-  }
-
   async function handleRouteChange(options = {}) {
     const {
       fromHistory = false,
@@ -706,7 +697,7 @@
       updateLoadingProgress(100, 'Ready!');
 
       // Brief pause for visual satisfaction
-      await PlaybackController._delay(300);
+      await PlaybackController.delay(300);
       hideLoadingScreen();
       ui.showTitleScreen();
       await handleRouteChange({ defaultHistoryMode: 'replace' });

@@ -3557,3 +3557,27 @@ cd /tmp/nyantales && python3 -m http.server 9876
 - SW cache bumped to v168, production build regenerated (200KB JS, 97KB CSS)
 - All 50 JS files pass `node --check`, 204/204 unit tests, 263/263 Playwright tests
 - Committed & pushed
+
+## Phase 188: Public Static API, Inlined Dead Functions, Rewind Ref Cleanup ✅
+- **PlaybackController static methods made public** — `_delay()` → `delay()`, `_raf()` → `raf()`
+  - Both were called cross-module by `BackgroundManager._wait()` and `main.js` via `PlaybackController._delay`
+  - Cross-module underscore access is an API smell — public methods should have public names
+  - Updated all call sites: `playback-controller.js` (2), `background-manager.js` (1), `main.js` (1)
+  - Updated 4 Playwright tests that referenced the old names
+- **Inlined `ensureAudio()`** — was a 1-line function (`if (!audio.ctx) audio.init()`) called from 2 sites
+  - Both call sites now use the inline check directly (no wrapper function overhead)
+- **Inlined `showKeyboardHints()`** — was a 4-line function called from exactly 1 site
+  - Body moved directly into `startStory()` (the sole caller)
+- **Rewind button ref cleanup** — `updateRewindButton()` and `rewindOneScene()` no longer accept a `btnEl` parameter
+  - Previously: `btnRewind` was passed explicitly from 3 main.js call sites AND cached via `setRewindButton()`
+  - Now: both methods use the cached `_rewindBtnEl` exclusively (set once at init via `setRewindButton()`)
+  - Eliminates the redundant parameter threading pattern
+- **6 new Playwright tests** (263 → 269):
+  - `delay`/`raf` are public + old `_delay`/`_raf` don't exist
+  - `updateRewindButton` and `rewindOneScene` have arity 0
+  - `ensureAudio` and `showKeyboardHints` no longer exist as global functions
+  - `BackgroundManager._wait` references `PlaybackController.delay` (not `_delay`)
+- main.js: 762 → 753 lines (9 lines removed)
+- main.js named functions: 15 → 13 (ensureAudio + showKeyboardHints inlined)
+- SW cache bumped to v169, production build regenerated (200KB JS, 97KB CSS)
+- All 50 JS files pass `node --check`, 204/204 unit tests, 269/269 Playwright tests

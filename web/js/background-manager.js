@@ -94,7 +94,7 @@ class BackgroundManager {
   /** @private — resolves immediately in fast mode (zero Promise allocation). */
   _wait(ms, fast) {
     if (fast) return;
-    return PlaybackController._delay(ms);
+    return PlaybackController.delay(ms);
   }
 }
 

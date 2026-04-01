@@ -3561,20 +3561,20 @@ test.describe('Public API Surface', () => {
 });
 
 test.describe('Shared Utilities', () => {
-  test('PlaybackController._delay returns undefined for 0ms', async ({ page }) => {
+  test('PlaybackController.delay returns undefined for 0ms', async ({ page }) => {
     await page.goto('/web/');
     await page.waitForSelector('#story-list .story-card');
     const result = await page.evaluate(() => {
-      return PlaybackController._delay(0) === undefined;
+      return PlaybackController.delay(0) === undefined;
     });
     expect(result).toBe(true);
   });
 
-  test('PlaybackController._delay returns a Promise for positive ms', async ({ page }) => {
+  test('PlaybackController.delay returns a Promise for positive ms', async ({ page }) => {
     await page.goto('/web/');
     await page.waitForSelector('#story-list .story-card');
     const result = await page.evaluate(async () => {
-      const p = PlaybackController._delay(10);
+      const p = PlaybackController.delay(10);
       const isPromise = p instanceof Promise;
       await p;
       return isPromise;
@@ -3601,7 +3601,7 @@ test.describe('Shared Utilities', () => {
     await page.goto('/web/');
     await page.waitForSelector('#story-list .story-card');
     const usesShared = await page.evaluate(() => {
-      return typeof PlaybackController._delay === 'function';
+      return typeof PlaybackController.delay === 'function';
     });
     expect(usesShared).toBe(true);
   });
@@ -3692,11 +3692,11 @@ test.describe('DataManager Static', () => {
 });
 
 test.describe('Phase 179 Improvements', () => {
-  test('PlaybackController._raf is a static method returning a Promise', async ({ page }) => {
+  test('PlaybackController.raf is a static method returning a Promise', async ({ page }) => {
     await waitForTitleScreen(page);
     const result = await page.evaluate(async () => {
-      if (typeof PlaybackController._raf !== 'function') return 'not a function';
-      const p = PlaybackController._raf();
+      if (typeof PlaybackController.raf !== 'function') return 'not a function';
+      const p = PlaybackController.raf();
       if (!(p instanceof Promise)) return 'not a promise';
       await p;
       return 'ok';
@@ -3795,5 +3795,53 @@ test.describe('Phase 183 Centralized Audio + Inline Delegates', () => {
       return false;
     });
     expect(hasPointerEvents).toBe(true);
+  });
+});
+
+test.describe('Phase 188 Public API + Cleanup', () => {
+  test('PlaybackController.delay and .raf are public static methods', async ({ page }) => {
+    await waitForTitleScreen(page);
+    const result = await page.evaluate(() => {
+      return typeof PlaybackController.delay === 'function'
+        && typeof PlaybackController.raf === 'function'
+        && typeof PlaybackController._delay === 'undefined'
+        && typeof PlaybackController._raf === 'undefined';
+    });
+    expect(result).toBe(true);
+  });
+
+  test('updateRewindButton requires no arguments (uses cached ref)', async ({ page }) => {
+    await waitForTitleScreen(page);
+    const arity = await page.evaluate(() => PlaybackController.prototype.updateRewindButton.length);
+    expect(arity).toBe(0);
+  });
+
+  test('rewindOneScene requires no arguments (uses cached ref)', async ({ page }) => {
+    await waitForTitleScreen(page);
+    const arity = await page.evaluate(() => PlaybackController.prototype.rewindOneScene.length);
+    expect(arity).toBe(0);
+  });
+
+  test('ensureAudio function no longer exists in main.js scope', async ({ page }) => {
+    await waitForTitleScreen(page);
+    // ensureAudio was inlined — verify it's not a global/window function
+    const exists = await page.evaluate(() => typeof window.ensureAudio);
+    expect(exists).toBe('undefined');
+  });
+
+  test('showKeyboardHints function no longer exists (inlined)', async ({ page }) => {
+    await waitForTitleScreen(page);
+    const exists = await page.evaluate(() => typeof window.showKeyboardHints);
+    expect(exists).toBe('undefined');
+  });
+
+  test('BackgroundManager uses PlaybackController.delay (not _delay)', async ({ page }) => {
+    await waitForTitleScreen(page);
+    const result = await page.evaluate(() => {
+      // BackgroundManager._wait should reference PlaybackController.delay
+      const src = BackgroundManager.prototype._wait?.toString() || '';
+      return src.includes('PlaybackController.delay') || src.includes('.delay');
+    });
+    expect(result).toBe(true);
   });
 });
