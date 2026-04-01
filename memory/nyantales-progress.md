@@ -3623,3 +3623,14 @@ cd /tmp/nyantales && python3 -m http.server 9876
 - SW cache bumped to v172, production build regenerated (200KB JS, 97KB CSS)
 - All 49 JS files pass `node --check`, 204/204 unit tests, 269/269 Playwright tests
 - Committed & pushed
+
+## Phase 193: Consistent isVisible — OverlayMixin Getter Replaces Manual Boolean ✅
+- **AchievementPanel, StatsDashboard, RouteMap** — removed manual `isVisible` boolean tracking
+  - Were setting `this.isVisible = true/false` in show()/hide() alongside OverlayMixin calls
+  - Now derive visibility from overlay DOM state via `OverlayMixin.isVisible()` getter
+  - Eliminates potential desync between boolean flag and actual DOM `.visible` class state
+  - All 11 overlay panels now consistently use OverlayMixin for visibility management
+  - Same pattern already used by: AboutPanel, Gallery, HistoryPanel, KeyboardHelp, SaveManager, SceneSelect, SettingsPanel, StoryInfoModal
+- SW cache bumped to v173, production build regenerated (200KB JS, 97KB CSS)
+- All 49 JS files pass `node --check`, 204/204 unit tests, 269/269 Playwright tests
+- Committed & pushed
