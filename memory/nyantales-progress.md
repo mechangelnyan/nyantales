@@ -3387,3 +3387,23 @@ cd /tmp/nyantales && python3 -m http.server 9876
 
 ## Log (continued)
 - 2026-04-01 (12:27 AM): Phase 178 — Cached AppRouter paths (storyBasePath + menuUrl computed once in constructor, avoids per-call pathname evaluation). Simplified CampaignFlow startChapter started-flag (dead no-op removed). README Playwright count 250→255. SW v159, 199KB bundle. All 49 JS + 204/204 unit + 255/255 Playwright pass. Committed & pushed.
+
+## Phase 179: rAF-Throttled Scroll, Skip-Read rAF, Cleanup Consolidation ✅
+- **rAF-throttled `syncMobileSticky()`** — scroll handler was doing 2× `getBoundingClientRect()` on every scroll event (~60/sec)
+  - Now: `requestAnimationFrame` throttle ensures at most 1 layout read per frame
+  - `apply()` calls `_syncMobileStickyNow()` directly (user-triggered, not deferred)
+  - `resize` and `orientationchange` listeners also marked `{ passive: true }`
+- **Skip-read uses `requestAnimationFrame`** instead of `setTimeout(50ms)` — `PlaybackController._raf()` static utility
+  - Yields to browser paint cycle instead of arbitrary 50ms timer
+  - More responsive skip-read: frame-aligned instead of timer-aligned
+  - Eliminates accumulated 50ms×N delay across long visited-scene chains
+- **`PlaybackController.cleanup()` resets `campaignMode`** — was done manually in main.js before calling cleanup
+  - Redundant `if (playback.campaignMode) playback.campaignMode = false` removed from main.js onMenu handler
+  - State cleanup centralized in one place (consistent with other state fields)
+- **4 new Playwright tests** (255 → 259): _raf utility, syncMobileSticky API, cleanup resets campaignMode, menu return flow
+- SW cache bumped to v160, production build regenerated (199KB JS, 97KB CSS)
+- All 49 JS files pass `node --check`, 204/204 unit tests, 259/259 Playwright tests
+- Committed & pushed
+
+## Log (continued)
+- 2026-04-01 (1:27 AM): Phase 179 — rAF-throttled mobile sticky scroll (caps layout reads at 1/frame), skip-read rAF instead of 50ms setTimeout (frame-aligned paint yielding), cleanup consolidation (campaignMode reset centralized in PlaybackController.cleanup), passive resize/orientationchange listeners. 4 new Playwright tests. SW v160, 199KB JS / 97KB CSS. All 49 JS + 204/204 unit + 259/259 Playwright pass. Committed & pushed.
