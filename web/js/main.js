@@ -63,16 +63,10 @@
   }
 
   // Wire story info modal callbacks
-  storyInfo.onPlay = (story) => {
-    ensureAudio();
-    startStory(story);
-  };
+  storyInfo.onPlay = startStory;
   storyInfo.onLoad = (slug, stateJson) => {
     const story = stories.get(slug);
-    if (story) {
-      ensureAudio();
-      startStory(story, stateJson);
-    }
+    if (story) startStory(story, stateJson);
   };
   storyInfo.onShare = (story) => ShareHelper.shareStory(story);
 
@@ -88,11 +82,10 @@
   // Wire gallery story click (one-time, not per-show)
   gallery.onStorySelect = (slug) => {
     const story = stories.get(slug);
-    if (story) { ensureAudio(); startStory(story); }
+    if (story) startStory(story);
   };
 
-  // Wire stats dashboard play callback (one-time, not per-show)
-  statsDashboard.onPlay = (story) => { ensureAudio(); startStory(story); };
+  statsDashboard.onPlay = startStory;
 
   // Migrate legacy save format to new slot system
   saveManager.migrateLegacy();
@@ -120,11 +113,6 @@
   panels.register(historyPanel, 9);
   panels.register(sceneSelect, 10);
 
-  /** Toggle a panel's visibility. For panels with custom show args, pass them in showArgs. */
-  function togglePanel(panel, ...showArgs) {
-    panels.toggle(panel, ...showArgs);
-  }
-
   // ── Routing & Stories ──
 
   const router = new AppRouter();
@@ -133,16 +121,8 @@
   // Wire panel-open check into playback controller
   playback.isAnyPanelOpen = () => panels.isAnyOpen();
 
-  /**
-   * Sync touch gesture suspension with panel state.
-   * Called after any panel show/hide to prevent swipe gestures
-   * from triggering behind open overlays.
-   */
-  function syncTouchSuspension() {
-    touch.suspend(panels.isAnyOpen());
-  }
-  // Wire panel change listener for touch suspension sync
-  panels.onPanelChange = syncTouchSuspension;
+  // Touch gesture suspension synced automatically on any panel show/hide
+  panels.onPanelChange = () => touch.suspend(panels.isAnyOpen());
 
   // Wire theme settings reactivity
   theme.wireReactivity({
@@ -240,6 +220,9 @@
 
     const navId = router.bump();
 
+    // Initialize audio context on first interaction (browser autoplay policy)
+    ensureAudio();
+
     playback.currentSlug = story.slug;
     playback.storyStartTime = Date.now();
     document.title = `${story.title} - NyanTales`;
@@ -334,7 +317,6 @@
     }
     const story = storyFromCard(card);
     if (!story) return;
-    ensureAudio();
     startStory(story);
   }
 
@@ -486,17 +468,17 @@
 
     if (key === 'm' && noMod) toggleAudio();
     if (key === 'b' && noMod && playback.engine) playback.rewindOneScene(btnRewind);
-    if (e.key === '?' || (key === '/' && e.shiftKey)) togglePanel(keyboardHelp);
+    if (e.key === '?' || (key === '/' && e.shiftKey)) panels.toggle(keyboardHelp);
 
     if (key === 'a' && noMod && playback.engine) toggleAutoPlay();
-    if (key === 'h' && noMod && playback.engine) togglePanel(historyPanel);
-    if (key === 'g' && noMod && playback.engine) togglePanel(sceneSelect, playback.engine, playback.engine.state.currentScene);
-    if (key === 'r' && noMod && playback.engine) togglePanel(routeMap, playback.engine);
+    if (key === 'h' && noMod && playback.engine) panels.toggle(historyPanel);
+    if (key === 'g' && noMod && playback.engine) panels.toggle(sceneSelect, playback.engine, playback.engine.state.currentScene);
+    if (key === 'r' && noMod && playback.engine) panels.toggle(routeMap, playback.engine);
     if (key === 'f' && noMod && playback.engine) settings.set('fullscreen', !settings.get('fullscreen'));
-    if (key === 's' && noMod) togglePanel(settingsPanel);
+    if (key === 's' && noMod) panels.toggle(settingsPanel);
 
     // 'Q' for save/load panel
-    if (key === 'q' && noMod && playback.engine && playback.currentSlug) togglePanel(saveManager, playback.currentSlug, playback.engine, 'save');
+    if (key === 'q' && noMod && playback.engine && playback.currentSlug) panels.toggle(saveManager, playback.currentSlug, playback.engine, 'save');
   });
 
   // ── Auto-play Toggle ──
@@ -557,12 +539,12 @@
         break;
       }
       case 'btn-auto':    if (playback.engine) toggleAutoPlay(); break;
-      case 'btn-history': if (playback.engine) togglePanel(historyPanel); break;
-      case 'btn-scenes':  if (playback.engine) togglePanel(sceneSelect, playback.engine, playback.engine.state.currentScene); break;
-      case 'btn-settings': togglePanel(settingsPanel); break;
+      case 'btn-history': if (playback.engine) panels.toggle(historyPanel); break;
+      case 'btn-scenes':  if (playback.engine) panels.toggle(sceneSelect, playback.engine, playback.engine.state.currentScene); break;
+      case 'btn-settings': panels.toggle(settingsPanel); break;
       case 'btn-audio':   ensureAudio(); toggleAudio(); break;
-      case 'btn-routemap': if (playback.engine) togglePanel(routeMap, playback.engine); break;
-      case 'btn-help':    togglePanel(keyboardHelp); break;
+      case 'btn-routemap': if (playback.engine) panels.toggle(routeMap, playback.engine); break;
+      case 'btn-help':    panels.toggle(keyboardHelp); break;
     }
   });
 
@@ -577,7 +559,6 @@
 
     switch (id) {
       case 'btn-campaign': {
-        ensureAudio();
         campaignFlow.start();
         break;
       }
@@ -587,20 +568,17 @@
         // If most recent save is a campaign transient (intro/connector), start campaign instead
         if (recent.slug === 'campaign-intro' || recent.slug?.startsWith('campaign-connector-')) {
           saveManager.deleteSlot(recent.slug, 'auto');
-          ensureAudio();
           campaignFlow.start();
           return;
         }
         const story = stories.get(recent.slug);
         if (!story) return;
-        ensureAudio();
         startStory(story, recent.state);
         break;
       }
       case 'btn-random': {
         if (stories.index.length === 0) return;
         const pick = stories.pickRandom(slug => tracker.isCompleted(slug));
-        ensureAudio();
         startStory(pick);
         break;
       }
@@ -609,7 +587,7 @@
         break;
       }
       case 'btn-gallery': gallery.show(); break;
-      case 'btn-achievements': togglePanel(achPanel); break;
+      case 'btn-achievements': panels.toggle(achPanel); break;
       case 'btn-stats': statsDashboard.setStories(stories.index); statsDashboard.show(); break;
       case 'btn-about': {
         const achStats = achievements.getStats();
@@ -752,10 +730,7 @@
   campaignFlow.returnToMenu = () => returnToMenu();
   campaignFlow.storySlugMap = () => stories.slugMap;
 
-  campaignUI.onChapterSelect = (idx) => {
-    ensureAudio();
-    campaignFlow.startChapter(idx);
-  };
+  campaignUI.onChapterSelect = (idx) => campaignFlow.startChapter(idx);
 
   // ── Online/Offline Toasts ──
 

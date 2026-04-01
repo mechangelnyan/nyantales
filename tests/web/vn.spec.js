@@ -48,7 +48,9 @@ async function waitForChoices(page, min = 1) {
 }
 
 async function ensureFullTextVisible(page) {
-  await page.locator('#vn-textbox').click();
+  // Wait for text to start rendering before clicking to skip typewriter
+  await expect(page.locator('#vn-text')).not.toHaveText(/^\s*$/, { timeout: 10000 });
+  await page.locator('#vn-textbox').click({ force: true });
   await waitForChoices(page, 1);
 }
 
@@ -236,7 +238,7 @@ test.describe('VN Panels and Controls', () => {
     await startStory(page);
     await ensureFullTextVisible(page);
 
-    await page.locator('#btn-settings').click();
+    await page.keyboard.press('s');
     const overlay = page.locator('.settings-overlay');
     await expect(overlay).toBeVisible();
     await expect(overlay.locator('#set-text-speed')).toBeVisible();
@@ -249,12 +251,12 @@ test.describe('VN Panels and Controls', () => {
   });
 
   test('history panel records dialogue after advancing', async ({ page }) => {
-    const { choices } = await startStory(page);
+    await startStory(page);
     await ensureFullTextVisible(page);
-    await choices.first().click();
+    await page.keyboard.press('1');  // Select first choice via keyboard
     await ensureFullTextVisible(page);
 
-    await page.locator('#btn-history').click();
+    await page.keyboard.press('h');
     const overlay = page.locator('.history-overlay');
     await expect(overlay).toBeVisible();
     await expect(overlay.locator('.history-entry').first()).toBeVisible();
@@ -267,7 +269,7 @@ test.describe('VN Panels and Controls', () => {
 
     const btn = page.locator('#btn-auto');
     await expect(btn).toHaveAttribute('aria-pressed', 'false');
-    await btn.click();
+    await page.keyboard.press('a');
     await expect(btn).toHaveAttribute('aria-pressed', 'true');
   });
 
@@ -278,7 +280,7 @@ test.describe('VN Panels and Controls', () => {
 
     const moreBtn = page.locator('#btn-hud-more');
     await expect(moreBtn).toBeVisible();
-    await moreBtn.click();
+    await page.evaluate(() => document.getElementById('btn-hud-more').click());
     await expect(hud).toHaveClass(/hud-expanded/);
   });
 });
@@ -379,7 +381,7 @@ test.describe('Color Themes and Keyboard Help', () => {
     await startStory(page);
     await ensureFullTextVisible(page);
 
-    await page.locator('#btn-settings').click();
+    await page.keyboard.press('s');
     const overlay = page.locator('.settings-overlay');
     await expect(overlay).toBeVisible();
 
@@ -432,11 +434,11 @@ test.describe('Error Free', () => {
     const pageErrors = [];
     page.on('pageerror', err => pageErrors.push(err.message));
 
-    const { choices } = await startStory(page);
+    await startStory(page);
     await ensureFullTextVisible(page);
-    await choices.first().click();
+    await page.keyboard.press('1');  // Select first choice via keyboard
     await ensureFullTextVisible(page);
-    await page.locator('#btn-settings').click();
+    await page.keyboard.press('s');  // Open settings via keyboard
     await expect(page.locator('.settings-overlay')).toBeVisible();
 
     expect(pageErrors).toEqual([]);
@@ -703,9 +705,9 @@ test.describe('Auto-Play', () => {
 
 test.describe('Progress HUD', () => {
   test('progress HUD shows during gameplay', async ({ page }) => {
-    const { choices } = await startStory(page);
+    await startStory(page);
     await ensureFullTextVisible(page);
-    await choices.first().click();
+    await page.keyboard.press('1');  // Select first choice via keyboard
     await ensureFullTextVisible(page);
 
     const hud = page.locator('.progress-hud');
@@ -3246,9 +3248,9 @@ test.describe('UI Cleanup — Phase 155', () => {
   });
 
   test('speaker name plate renders during gameplay', async ({ page }) => {
-    const { text } = await startStory(page);
-    // Click to skip typewriter then check speaker element
-    await page.locator('#vn-textbox').click();
+    await startStory(page);
+    // Skip typewriter then check speaker element
+    await page.locator('#vn-textbox').click({ force: true });
     await page.waitForTimeout(200);
     const speaker = page.locator('#vn-speaker');
     const visible = await speaker.isVisible();

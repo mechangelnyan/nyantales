@@ -94,6 +94,8 @@ class VNUI {
   _transitionScreens(show, hide) {
     hide.classList.remove('active');
     hide.classList.add('exiting');
+    // Clear any lingering exiting class on the screen we're showing
+    show.classList.remove('exiting');
     show.classList.add('entering');
     requestAnimationFrame(() => {
       requestAnimationFrame(() => {

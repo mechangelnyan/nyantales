@@ -95,6 +95,7 @@ body {
   opacity: 1;
   transform: scale(1);
   filter: none;
+  pointer-events: auto;
 }
 .screen.exiting {
   display: flex;
