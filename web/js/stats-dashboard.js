@@ -433,7 +433,8 @@ class StatsDashboard {
       const row = {
         slug: story.slug, title: story.title, sceneCount, visitedCount,
         progress, endings, totalEndings, completed, plays, bestTurns,
-        lastPlayed, readingMs, hasSave
+        lastPlayed, readingMs, hasSave,
+        _searchKey: `${story.title} ${story.slug}`.toLowerCase()
       };
       storyRows.push(row);
 
@@ -484,10 +485,15 @@ class StatsDashboard {
   /** Filter + sort the per-story table rows for the breakdown section. */
   _getVisibleStoryRows(storyRows) {
     const query = this._storySearch.trim().toLowerCase();
-    // .sort() mutates in-place; storyRows is a fresh .map() result from _computeStats, safe to sort
-    const arr = query
-      ? storyRows.filter(s => `${s.title} ${s.slug}`.toLowerCase().includes(query))
-      : storyRows;
+    // .sort() mutates in-place; storyRows is a fresh array from _computeStats, safe to sort
+    let arr;
+    if (query) {
+      // Use pre-computed _searchKey instead of allocating template string per row per keystroke
+      arr = [];
+      for (const s of storyRows) if (s._searchKey.includes(query)) arr.push(s);
+    } else {
+      arr = storyRows;
+    }
     return arr.sort(StatsDashboard._COMPARATORS[this._storySort] || StatsDashboard._COMPARATORS['progress-desc']);
   }
 

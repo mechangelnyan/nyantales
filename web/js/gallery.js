@@ -51,7 +51,13 @@ class CharacterGallery {
   _slugToTitle(slug) {
     let t = CharacterGallery._titleCache.get(slug);
     if (!t) {
-      t = slug.split('-').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
+      const parts = slug.split('-');
+      let result = '';
+      for (let i = 0; i < parts.length; i++) {
+        if (i > 0) result += ' ';
+        result += parts[i].charAt(0).toUpperCase() + parts[i].slice(1);
+      }
+      t = result;
       CharacterGallery._titleCache.set(slug, t);
     }
     return t;
