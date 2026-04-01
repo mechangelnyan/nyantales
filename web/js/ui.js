@@ -124,6 +124,8 @@ class VNUI {
     this._bg.reset();              // reset background transition state
     this._lastSpeakerKey = '';     // reset speaker DOM cache
     this._lastInventory = '';      // reset inventory cache
+    // Cancel lingering screen transition timer (prevents class removal on wrong screen)
+    if (this._screenTransTimer) { clearTimeout(this._screenTransTimer); this._screenTransTimer = null; }
   }
 
 

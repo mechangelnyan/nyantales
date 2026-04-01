@@ -32,8 +32,8 @@ class FocusTrap {
     this.container = container;
     this._active = false;
     this._previousFocus = null;
-    this._onKeyDown = this._onKeyDown.bind(this);
-    // Permanent listener — gated by _active flag (no add/remove per show/hide)
+    // Arrow function — avoids .bind() allocation; permanent listener gated by _active flag
+    this._onKeyDown = (e) => this._handleKeyDown(e);
     document.addEventListener('keydown', this._onKeyDown);
   }
 
@@ -52,7 +52,7 @@ class FocusTrap {
   }
 
   /** Handle Tab key to cycle focus within container */
-  _onKeyDown(e) {
+  _handleKeyDown(e) {
     if (!this._active || e.key !== 'Tab') return;
 
     const focusable = this._getFocusableElements();

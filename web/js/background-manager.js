@@ -16,6 +16,7 @@ class BackgroundManager {
     // Reusable crossfade overlay (single element, avoids create/remove per transition)
     this._overlay = document.createElement('div');
     this._overlay.className = 'scene-transition-overlay';
+    this._transSerial = 0; // guards against stale async transitions
   }
 
   /** @returns {string} The current background CSS class */
@@ -31,6 +32,7 @@ class BackgroundManager {
    */
   async transition(scene, engine, sceneLower, fastMode) {
     const newBg = this._infer(scene, engine, sceneLower);
+    const serial = ++this._transSerial;
 
     if (newBg !== this._lastBgClass && this._lastBgClass) {
       const overlay = this._overlay;
@@ -38,13 +40,16 @@ class BackgroundManager {
 
       requestAnimationFrame(() => overlay.classList.add('active'));
       await this._wait(300, fastMode);
+      if (serial !== this._transSerial) return; // stale — new transition started
 
       this._bgEl.className = 'vn-bg';
       if (newBg) this._bgEl.classList.add(newBg);
       await this._wait(100, fastMode);
+      if (serial !== this._transSerial) return;
 
       overlay.classList.remove('active');
       await this._wait(300, fastMode);
+      if (serial !== this._transSerial) return;
       if (overlay.parentElement) overlay.parentElement.removeChild(overlay);
     } else {
       this._bgEl.className = 'vn-bg';
@@ -54,9 +59,15 @@ class BackgroundManager {
     this._lastBgClass = newBg;
   }
 
-  /** Reset background state (e.g. on menu return). */
+  /** Reset background state (e.g. on menu return). Cancels any in-flight async transition. */
   reset() {
     this._lastBgClass = '';
+    this._transSerial++; // invalidate any pending async transition
+    // Detach overlay if still in DOM from a cancelled transition
+    if (this._overlay.parentElement) {
+      this._overlay.classList.remove('active');
+      this._overlay.parentElement.removeChild(this._overlay);
+    }
   }
 
   /**

@@ -24,8 +24,9 @@ class TouchHandler {
     this.enabled = true;
     this.suspended = false;
 
-    this._onTouchStart = this._onTouchStart.bind(this);
-    this._onTouchEnd = this._onTouchEnd.bind(this);
+    // Arrow functions avoid .bind() allocation
+    this._onTouchStart = (e) => this._handleTouchStart(e);
+    this._onTouchEnd = (e) => this._handleTouchEnd(e);
 
     // AbortController for clean bulk unbind on destroy()
     this._evtCtrl = new AbortController();
@@ -34,14 +35,14 @@ class TouchHandler {
     container.addEventListener('touchend', this._onTouchEnd, { passive: false, ...sig });
   }
 
-  _onTouchStart(e) {
+  _handleTouchStart(e) {
     if (!this.enabled || e.touches.length !== 1) return;
     const t = e.touches[0];
     this._touchStart = { x: t.clientX, y: t.clientY };
     this._touchStartTime = Date.now();
   }
 
-  _onTouchEnd(e) {
+  _handleTouchEnd(e) {
     if (!this.enabled || this.suspended || !this._touchStart) return;
 
     const t = e.changedTouches[0];
