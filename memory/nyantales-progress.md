@@ -3525,3 +3525,19 @@ cd /tmp/nyantales && python3 -m http.server 9876
 
 ## Log (continued)
 - 2026-04-01 (8:27 AM): Phase 185 — SpriteManager public API (renamed _trackTimer/_clearEffectTimers to trackTimer/clearEffectTimers, eliminating cross-module underscore access from ui.js). README build sizes corrected (200KB JS actual). SW v166, 200KB bundle. All 49 JS + 204/204 unit + 263/263 Playwright pass. Committed & pushed.
+
+## Phase 186: Eliminate DOM Custom Properties — _innerRefs to StoryCardManager Map ✅
+- **Moved `card._innerRefs` from DOM elements to `_innerRefs` Map** inside StoryCardManager
+  - `setInnerRefs(story, refs)` — stores inner card DOM refs (h3, p, textDiv, spriteEl) by story index
+  - `getInnerRefs(story)` — retrieves inner refs (used by decorate/reset for lock state changes)
+  - `clearRefs()` now also clears `_innerRefs` on grid rebuild
+  - Custom DOM properties are an anti-pattern: mixes app state with browser DOM, fragile across GC/serialization, invisible to debugging tools
+- **VNUI.renderStoryList accepts optional `onInnerRefs` callback** — passes refs to caller instead of polluting DOM
+  - TitleScreen passes `(story, refs) => cardManager.setInnerRefs(story, refs)` during grid build
+- **Zero custom properties on DOM elements remaining** in codebase (`card._innerRefs` was the last one)
+- SW cache bumped to v167, production build regenerated (200KB JS, 97KB CSS)
+- All 50 JS files pass `node --check`, 204/204 unit tests, 263/263 Playwright tests
+- Committed & pushed
+
+## Log (continued)
+- 2026-04-01 (9:27 AM): Phase 186 — Eliminated card._innerRefs DOM custom property: moved inner card refs (h3/p/textDiv/spriteEl) to _innerRefs Map inside StoryCardManager. VNUI.renderStoryList accepts onInnerRefs callback. TitleScreen passes callback during grid build. Zero DOM custom properties remaining. SW v167, 200KB bundle. All 50 JS + 204/204 unit + 263/263 Playwright pass. Committed & pushed.
