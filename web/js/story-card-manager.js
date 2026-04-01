@@ -72,7 +72,6 @@ class StoryCardManager {
   }
 
   /**
-  /**
    * Store inner DOM refs for a story card (set by VNUI.renderStoryList during grid build).
    * @param {Object} story
    * @param {Object} refs - { inner, textDiv, h3, p, spriteEl }
@@ -337,6 +336,26 @@ class StoryCardManager {
     }
     card.setAttribute('tabindex', '0');
     card.setAttribute('aria-label', `${story.title}: ${story.description || 'Interactive story'}`);
+  }
+
+  /**
+   * Toggle favorite on a card, updating all related DOM state.
+   * @param {HTMLElement} card
+   * @param {Object} story
+   * @returns {boolean} new favorite state
+   */
+  toggleFavorite(card, story) {
+    const nowFav = this._tracker.toggleFavorite(story.slug);
+    const idx = this._storyIdxMap.get(story);
+    const refs = idx !== undefined ? this._cardRefs.get(idx) : null;
+    if (refs?.favBtn) {
+      refs.favBtn.textContent = nowFav ? '❤️' : '🤍';
+      refs.favBtn.title = nowFav ? 'Remove from favorites' : 'Add to favorites';
+      refs.favBtn.setAttribute('aria-pressed', nowFav ? 'true' : 'false');
+      refs.favBtn.setAttribute('aria-label', nowFav ? `Remove ${story.title} from favorites` : `Add ${story.title} to favorites`);
+    }
+    card.dataset.favorite = nowFav ? '1' : '0';
+    return nowFav;
   }
 
   /** Clear all cached refs (call before full grid rebuild). */

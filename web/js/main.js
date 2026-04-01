@@ -57,12 +57,15 @@
     playback.updateRewindButton();
   });
 
-  // Wire story info modal callbacks
-  storyInfo.onPlay = startStory;
-  storyInfo.onLoad = (slug, stateJson) => {
+  // Shared callback: load a story by slug with optional saved state
+  function loadStoryBySlug(slug, stateJson) {
     const story = stories.get(slug);
     if (story) startStory(story, stateJson);
-  };
+  }
+
+  // Wire story info modal callbacks
+  storyInfo.onPlay = startStory;
+  storyInfo.onLoad = loadStoryBySlug;
   storyInfo.onShare = (story) => ShareHelper.shareStory(story);
 
   // Pre-compute total character count (used by About panel)
@@ -346,12 +349,7 @@
       const card = favBtn.closest('.story-card');
       const story = storyFromCard(card);
       if (!story) return;
-      const nowFav = tracker.toggleFavorite(story.slug);
-      favBtn.textContent = nowFav ? '❤️' : '🤍';
-      favBtn.title = nowFav ? 'Remove from favorites' : 'Add to favorites';
-      favBtn.setAttribute('aria-pressed', nowFav ? 'true' : 'false');
-      favBtn.setAttribute('aria-label', nowFav ? `Remove ${story.title} from favorites` : `Add ${story.title} to favorites`);
-      card.dataset.favorite = nowFav ? '1' : '0';
+      const nowFav = cardManager.toggleFavorite(card, story);
       Toast.show(nowFav ? 'Added to favorites' : 'Removed from favorites', { icon: nowFav ? '❤️' : '💔', duration: 1500 });
       return;
     }
@@ -516,11 +514,8 @@
   // Wire rewind button into playback controller
   playback.setRewindButton(btnRewind);
 
-  // Wire save manager's load callback
-  saveManager.onLoad = (slug, stateJson) => {
-    const story = stories.get(slug);
-    if (story) startStory(story, stateJson);
-  };
+  // Wire save manager's load callback (reuse shared handler)
+  saveManager.onLoad = loadStoryBySlug;
 
   // ── HUD Event Delegation ──
   // Single listener on the HUD toolbar handles all button clicks (replaces 12 individual listeners)
@@ -638,7 +633,7 @@
     _loadingLabel = null;
   }
 
-  /** Show keyboard shortcut hints on first visit to story screen */
+  /** Navigate to the story requested by the current URL, or return to menu. */
   async function handleRouteChange(options = {}) {
     const {
       fromHistory = false,
