@@ -3257,3 +3257,22 @@ cd /tmp/nyantales && python3 -m http.server 9876
 
 ## Log (continued)
 - 2026-03-31 (5:27 PM): Phase 171 — Shared _delay utility (PlaybackController._delay replaces 3 inline new Promise(setTimeout) across playback-controller + main.js). BackgroundManager._wait delegates to _delay. StoryLoader._clear uses index.length=0 instead of new array. 5 new Playwright tests. SW v152, 198KB bundle. All 50 JS + 204/204 unit + 247/247 Playwright pass. Committed & pushed.
+
+## Phase 172: Ring Buffer TextHistory, SafeStorage migrateLegacy, Export Allocation ✅
+- **TextHistory ring buffer** — `add()` is now O(1) when at capacity, replacing O(n) `shift()`
+  - At 500 max entries, `shift()` was moving 499 elements per scene transition (hot path during play + skip)
+  - Now overwrites at `_head` index with zero array reallocation
+  - `getAll()` returns chronological order from ring buffer (only allocates new array when buffer is full and wraps)
+  - `clear()` reuses buffer via `length = 0` (consistent with Map.clear pattern)
+- **History export** — `entries.map()` intermediate array replaced with `for...of` + string concatenation
+  - Avoids allocating a 500-element string array for the export text
+- **SaveManager.migrateLegacy()** — `JSON.parse(stateJson)` → `SafeStorage.getJSON()`
+  - Was the last raw `JSON.parse` in codebase outside SafeStorage and engine
+  - Gains try/catch protection for corrupt legacy save data (previously would crash migration)
+- **README** Playwright test count corrected: 242 → 247
+- SW cache bumped to v153, production build regenerated (199KB JS, 97KB CSS)
+- All 50 JS files pass `node --check`, 204/204 unit tests, 247/247 Playwright tests
+- Committed & pushed
+
+## Log (continued)
+- 2026-03-31 (6:27 PM): Phase 172 — TextHistory ring buffer (O(1) add replaces O(n) shift at capacity), history export avoids .map() array allocation, SaveManager.migrateLegacy uses SafeStorage.getJSON (last raw JSON.parse), README test count corrected. SW v153, 199KB bundle. All 50 JS + 204/204 unit + 247/247 Playwright pass. Committed & pushed.
