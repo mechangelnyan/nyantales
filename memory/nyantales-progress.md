@@ -3610,3 +3610,16 @@ cd /tmp/nyantales && python3 -m http.server 9876
 - **README** — Playwright test count 263→269
 - SW cache bumped to v170, production build regenerated (200KB JS, 97KB CSS)
 - All 50 JS files pass `node --check`, 204/204 unit tests, 269/269 Playwright tests
+
+## Phase 192: DRY Favorites Toggle, Shared loadStoryBySlug, JSDoc Cleanup ✅
+- **StoryCardManager.toggleFavorite(card, story)** — centralized 8-line inline favorite toggle from main.js _gridHandler
+  - Updates favBtn text/title/aria-pressed/aria-label + card.dataset.favorite via cached refs
+  - main.js favorite handler reduced from 10 lines to 3 (delegate + toast)
+- **Shared `loadStoryBySlug(slug, stateJson)`** — DRY callback replacing 2 identical closures
+  - `storyInfo.onLoad` and `saveManager.onLoad` both had `(slug, json) => { const s = stories.get(slug); if (s) startStory(s, json); }`
+  - Now both reference the same named function
+- **Fixed duplicate JSDoc comment block** in StoryCardManager (`/**  /**` pattern on line 82)
+- **Fixed stale JSDoc** on `handleRouteChange()` — was labeled "Show keyboard shortcut hints" (wrong since Phase 184)
+- SW cache bumped to v172, production build regenerated (200KB JS, 97KB CSS)
+- All 49 JS files pass `node --check`, 204/204 unit tests, 269/269 Playwright tests
+- Committed & pushed
