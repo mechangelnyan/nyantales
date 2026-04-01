@@ -39,6 +39,9 @@ class TitleBrowser {
     // Cached MediaQueryList — avoids creating a new one per scroll/resize in syncMobileSticky
     this._mobileMQ = window.matchMedia('(max-width: 768px)');
 
+    // rAF throttle for syncMobileSticky (scroll fires ~60x/sec — one layout read per frame max)
+    this._stickyRafId = 0;
+
     // Pre-create count + empty state elements (hot path: avoid createElement per keystroke)
     this._countEl = this._createCountEl();
     this._emptyEl = this._createEmptyEl();
@@ -80,7 +83,7 @@ class TitleBrowser {
   apply() {
     this._applyFilter();
     this._applySortToGrid();
-    this.syncMobileSticky();
+    this._syncMobileStickyNow(); // Immediate (not rAF-deferred) — called from user action, not scroll
   }
 
   /** Reset search, filter, and sort to defaults. */
@@ -95,8 +98,21 @@ class TitleBrowser {
     this._input?.focus();
   }
 
-  /** Sync mobile sticky filter positioning (call on scroll/resize/orientation). */
+  /**
+   * Sync mobile sticky filter positioning (call on scroll/resize/orientation).
+   * Throttled to one layout read per animation frame — scroll fires ~60x/sec but
+   * getBoundingClientRect is expensive; this caps layout reads at 1/frame.
+   */
   syncMobileSticky() {
+    if (this._stickyRafId) return;
+    this._stickyRafId = requestAnimationFrame(() => {
+      this._stickyRafId = 0;
+      this._syncMobileStickyNow();
+    });
+  }
+
+  /** Immediate sticky sync (called inside rAF callback). */
+  _syncMobileStickyNow() {
     if (!this._storyFilter || !this._titleBg) return;
 
     const mobile = this._mobileMQ.matches;
@@ -225,10 +241,10 @@ class TitleBrowser {
       this._persist();
     });
 
-    // Mobile sticky sync
+    // Mobile sticky sync (all passive — read-only layout queries via rAF throttle)
     this._titleBg?.addEventListener('scroll', () => this.syncMobileSticky(), { passive: true });
-    window.addEventListener('resize', () => this.syncMobileSticky());
-    window.addEventListener('orientationchange', () => this.syncMobileSticky());
+    window.addEventListener('resize', () => this.syncMobileSticky(), { passive: true });
+    window.addEventListener('orientationchange', () => this.syncMobileSticky(), { passive: true });
   }
 
   // ── Filter logic ──

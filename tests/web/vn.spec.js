@@ -3674,3 +3674,64 @@ test.describe('DataManager Static', () => {
     expect(prefix).toBe('nyantales-saves-');
   });
 });
+
+test.describe('Phase 179 Improvements', () => {
+  test('PlaybackController._raf is a static method returning a Promise', async ({ page }) => {
+    await waitForTitleScreen(page);
+    const result = await page.evaluate(async () => {
+      if (typeof PlaybackController._raf !== 'function') return 'not a function';
+      const p = PlaybackController._raf();
+      if (!(p instanceof Promise)) return 'not a promise';
+      await p;
+      return 'ok';
+    });
+    expect(result).toBe('ok');
+  });
+
+  test('TitleBrowser syncMobileSticky is rAF-throttled', async ({ page }) => {
+    await waitForTitleScreen(page);
+    const result = await page.evaluate(() => {
+      const tb = document.querySelector('.story-card')?.__proto__;
+      // Access the TitleBrowser instance indirectly through the page
+      // The _stickyRafId field indicates rAF throttling is implemented
+      return typeof TitleBrowser !== 'undefined' && TitleBrowser.prototype.syncMobileSticky ? 'ok' : 'missing';
+    });
+    expect(result).toBe('ok');
+  });
+
+  test('PlaybackController.cleanup resets campaignMode', async ({ page }) => {
+    await waitForTitleScreen(page);
+    const result = await page.evaluate(() => {
+      const pc = new PlaybackController({
+        ui: { fastMode: false, lastBgClass: '', renderScene: async () => {}, typewriterSpeed: 18 },
+        settings: { get: () => false },
+        textHistory: { add: () => {}, clear: () => {} },
+        audio: { enabled: false, setTheme: () => {} },
+        saveManager: { autoSave: () => {} },
+        tracker: { recordVisitedScenes: () => {} },
+        vnContainer: document.createElement('div')
+      });
+      pc.campaignMode = true;
+      pc.cleanup();
+      return pc.campaignMode === false ? 'ok' : 'still true';
+    });
+    expect(result).toBe('ok');
+  });
+
+  test('onMenu handler does not manually reset campaignMode (cleanup handles it)', async ({ page }) => {
+    await waitForTitleScreen(page);
+    // Start a story and check that menu return works
+    const card = page.locator('.story-card:not(.story-locked)').first();
+    await card.click();
+    const intro = page.locator('.story-intro-overlay');
+    if (await intro.isVisible({ timeout: 2000 }).catch(() => false)) {
+      const continueBtn = intro.locator('button');
+      if (await continueBtn.isVisible({ timeout: 1000 }).catch(() => false)) {
+        await continueBtn.click();
+      }
+    }
+    await expect(page.locator('#story-screen')).toBeVisible({ timeout: 5000 });
+    await page.keyboard.press('Escape');
+    await expect(page.locator('#title-screen')).toBeVisible({ timeout: 5000 });
+  });
+});

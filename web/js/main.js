@@ -217,10 +217,7 @@
     playback.playScene(playback.engine.getCurrentScene());
   });
 
-  ui.onMenu(() => {
-    if (playback.campaignMode) playback.campaignMode = false;
-    returnToMenu();
-  });
+  ui.onMenu(() => returnToMenu());
 
   function initEngine(parsed) {
     playback.currentParsed = parsed;

@@ -6,6 +6,9 @@ class PlaybackController {
   /** Shared delay utility — zero allocation when ms <= 0. */
   static _delay(ms) { return ms > 0 ? new Promise(r => setTimeout(r, ms)) : undefined; }
 
+  /** Yield to the next animation frame — allows UI repaint between rapid skip-read advances. */
+  static _raf() { return new Promise(r => requestAnimationFrame(r)); }
+
   /**
    * @param {Object} deps — subsystem references
    * @param {VNUI}             deps.ui
@@ -287,14 +290,14 @@ class PlaybackController {
     // Skip-read auto-advance through visited no-choice scenes (iterative)
     const choices = this.engine.getAvailableChoices();
     if (choices.length === 0 && scene.next && this.shouldSkip(sceneId)) {
-      await PlaybackController._delay(50);
+      await PlaybackController._raf();
       let nextScene = this.engine.goToScene(scene.next);
       while (nextScene && !nextScene.ending && this.engine) {
         const nId = this.engine.state.currentScene;
         await this._renderOneScene(nextScene, true);
         const nc = this.engine.getAvailableChoices();
         if (nc.length > 0 || !nextScene.next || !this.shouldSkip(nId)) break;
-        await PlaybackController._delay(50);
+        await PlaybackController._raf();
         nextScene = this.engine.goToScene(nextScene.next);
       }
       if (nextScene && this.engine) {
@@ -372,6 +375,7 @@ class PlaybackController {
     this.totalScenes = 0;
     this.storyStartTime = null;
     this.currentParsed = null;
+    this.campaignMode = false;
     this.hideIndicators();
     this.updateSkipIndicator(false);
   }
