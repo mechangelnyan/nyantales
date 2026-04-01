@@ -35,15 +35,15 @@ class ShareHelper {
     if (navigator.clipboard?.writeText) {
       try {
         await navigator.clipboard.writeText(text || url);
-        if (typeof Toast !== 'undefined') Toast.show(successMessage, { icon: successIcon, duration: 2000 });
+        Toast.show(successMessage, { icon: successIcon, duration: 2000 });
         return true;
       } catch {
-        if (typeof Toast !== 'undefined') Toast.error(errorMessage);
+        Toast.error(errorMessage);
         return false;
       }
     }
 
-    if (typeof Toast !== 'undefined') Toast.error('Clipboard not available');
+    Toast.error('Clipboard not available');
     return false;
   }
 }

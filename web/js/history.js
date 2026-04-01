@@ -128,6 +128,11 @@ class HistoryPanel {
     this._countEl = countDiv;
     this._panelEl = panel;
 
+    // Pre-built empty state element
+    this._emptyEl = document.createElement('div');
+    this._emptyEl.className = 'history-empty';
+    this._emptyEl.textContent = 'No text yet — start reading!';
+
     // Single delegated click — handles close button, backdrop, and export
     this.overlay.addEventListener('click', (e) => {
       if (e.target === this.overlay || e.target.closest('.history-close')) { this.hide(); return; }
@@ -153,11 +158,6 @@ class HistoryPanel {
     this._listEl.textContent = '';
 
     if (entries.length === 0) {
-      if (!this._emptyEl) {
-        this._emptyEl = document.createElement('div');
-        this._emptyEl.className = 'history-empty';
-        this._emptyEl.textContent = 'No text yet — start reading!';
-      }
       this._listEl.appendChild(this._emptyEl);
       this._cachedEntries = [];
     } else {
@@ -288,9 +288,7 @@ class HistoryPanel {
     a.click();
     URL.revokeObjectURL(url);
 
-    if (typeof Toast !== 'undefined') {
-      Toast.show('History exported!', { icon: '📥', duration: 2000 });
-    }
+    Toast.show('History exported!', { icon: '📥', duration: 2000 });
   }
 
 }

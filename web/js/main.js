@@ -95,10 +95,8 @@
   // Pre-compute total character count (used by About panel)
   const _totalCharCount = (() => {
     const chars = new Set();
-    if (typeof CHARACTER_DATA !== 'undefined') {
-      for (const slug in CHARACTER_DATA) {
-        for (const c of CHARACTER_DATA[slug]) chars.add(c.name);
-      }
+    for (const slug in CHARACTER_DATA) {
+      for (const c of CHARACTER_DATA[slug]) chars.add(c.name);
     }
     return chars.size;
   })();

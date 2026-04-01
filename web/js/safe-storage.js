@@ -49,9 +49,7 @@ class SafeStorage {
           return true;
         } catch (e2) {
           console.error('[SafeStorage] Still over quota after cleanup:', e2.message);
-          if (typeof Toast !== 'undefined') {
-            Toast.error('Storage full — try exporting & clearing old saves');
-          }
+          Toast.error('Storage full — try exporting & clearing old saves');
           return false;
         }
       }
@@ -118,7 +116,7 @@ class SafeStorage {
         const data = JSON.parse(localStorage.getItem(oldestKey));
         delete data.auto;
         localStorage.setItem(oldestKey, JSON.stringify(data));
-        console.info(`[SafeStorage] Evicted oldest auto-save from ${oldestKey}`);
+        console.warn(`[SafeStorage] Evicted oldest auto-save from ${oldestKey}`);
       } catch { /* best effort */ }
     }
   }

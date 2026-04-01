@@ -216,7 +216,7 @@ class SaveManager {
           this.save(this._currentSlug, slotName, this._currentEngine, scene);
           // Re-render updates slot preview; show feedback via toast (btn is replaced by re-render)
           this._renderSlots();
-          if (typeof Toast !== 'undefined') Toast.show('Saved!', { icon: '💾', duration: 1000 });
+          Toast.show('Saved!', { icon: '💾', duration: 1000 });
         }
       } else if (action === 'load') {
         const slots = this.getSlots(this._currentSlug);
