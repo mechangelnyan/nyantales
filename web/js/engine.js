@@ -198,7 +198,9 @@ class StoryEngine {
 
     this.state.currentScene = snap.scene;
     this.state.inventory = snap.inventory;
-    this.state.flags = new Set(snap.flags);
+    // Reuse existing Set (avoids allocation) — clear and repopulate from snapshot
+    this.state.flags.clear();
+    for (const f of snap.flags) this.state.flags.add(f);
     this.state.turns = snap.turns;
 
     return this.getCurrentScene();

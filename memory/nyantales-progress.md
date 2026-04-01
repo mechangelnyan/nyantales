@@ -3407,3 +3407,22 @@ cd /tmp/nyantales && python3 -m http.server 9876
 
 ## Log (continued)
 - 2026-04-01 (1:27 AM): Phase 179 — rAF-throttled mobile sticky scroll (caps layout reads at 1/frame), skip-read rAF instead of 50ms setTimeout (frame-aligned paint yielding), cleanup consolidation (campaignMode reset centralized in PlaybackController.cleanup), passive resize/orientationchange listeners. 4 new Playwright tests. SW v160, 199KB JS / 97KB CSS. All 49 JS + 204/204 unit + 259/259 Playwright pass. Committed & pushed.
+
+## Phase 180: Shared Grid Handler, Delegated Textbox, Rewind Set Reuse ✅
+- **Shared `_gridHandler` function** — storyGrid click + keydown events now share a single named function
+  - Previously: 2 separate anonymous closures (click handler + keydown handler), each capturing the same scope
+  - Now: 1 named `_gridHandler(e)` function checks `e.type` to distinguish click vs keydown
+  - Both addEventListener calls reference the same function object (zero duplicate closure allocation)
+- **Merged textbox click delegation** — textbox click + clickIndicator click merged into single listener
+  - Previously: 2 addEventListener calls on textboxEl + ui.clickIndicator
+  - Now: 1 delegated click on textboxEl checks if target is the click indicator via `e.target === ui.clickIndicator || e.target.parentElement === ui.clickIndicator`
+  - addEventListener count in main.js: 11 → 10
+- **Engine rewindScene() reuses existing Set** — `new Set(snap.flags)` replaced with `.clear()` + `for...of .add()`
+  - Previously: allocated a new Set object on every rewind (discarding the old one for GC)
+  - Now: reuses `this.state.flags` Set via clear + repopulate (zero Set allocation per rewind)
+  - Follows same reuse pattern as `_visibleNamesBuf`, `_completedBuf` across codebase
+- SW cache bumped to v161, production build regenerated (199KB JS, 97KB CSS)
+- All 49 JS files pass `node --check`, 204/204 unit tests, 259/259 Playwright tests
+
+## Log (continued)
+- 2026-04-01 (2:27 AM): Phase 180 — Shared _gridHandler function (storyGrid click+keydown use 1 named function instead of 2 anonymous closures). Merged textbox click delegation (2 listeners → 1 delegated). Engine rewindScene reuses existing flags Set instead of allocating new one. addEventListener count 11→10 in main.js. SW v161, 199KB bundle. All 49 JS + 204/204 unit + 259/259 Playwright pass.

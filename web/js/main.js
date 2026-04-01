@@ -338,8 +338,17 @@
     startStory(story);
   }
 
-  // Single delegated listener on story grid handles click + keyboard (replaces 2 listeners)
-  if (storyGrid) storyGrid.addEventListener('click', (e) => {
+  // Single delegated listener on story grid handles click + keyboard for all 30 cards
+  function _gridHandler(e) {
+    if (e.type === 'keydown') {
+      if (e.key !== 'Enter' && e.key !== ' ') return;
+      const card = e.target.closest('.story-card');
+      if (!card) return;
+      e.preventDefault();
+      selectStoryCard(card);
+      return;
+    }
+    // Click handling
     const infoBtn = e.target.closest('.story-card-info-btn');
     if (infoBtn) {
       e.stopPropagation();
@@ -348,7 +357,6 @@
       if (story) storyInfo.show(story, CHARACTER_DATA[story.slug] || [], cardManager.getMeta(story));
       return;
     }
-
     const favBtn = e.target.closest('.story-card-fav-btn');
     if (favBtn) {
       e.stopPropagation();
@@ -364,18 +372,13 @@
       Toast.show(nowFav ? 'Added to favorites' : 'Removed from favorites', { icon: nowFav ? '❤️' : '💔', duration: 1500 });
       return;
     }
-
     const card = e.target.closest('.story-card');
     if (card) selectStoryCard(card);
-  });
-
-  if (storyGrid) storyGrid.addEventListener('keydown', (e) => {
-    if (e.key !== 'Enter' && e.key !== ' ') return;
-    const card = e.target.closest('.story-card');
-    if (!card) return;
-    e.preventDefault();
-    selectStoryCard(card);
-  });
+  }
+  if (storyGrid) {
+    storyGrid.addEventListener('click', _gridHandler);
+    storyGrid.addEventListener('keydown', _gridHandler);
+  }
 
   // ── Story Card Manager ──
   const cardManager = new StoryCardManager({
@@ -411,14 +414,13 @@
 
   // ── Click/Tap to Advance ──
 
+  // Single delegated listener on textbox handles both text skip and advance indicator
   textboxEl.addEventListener('click', (e) => {
-    if (e.target === ui.clickIndicator) return;
-    if (ui.isTyping) ui.skipTypewriter();
-  });
-
-  ui.clickIndicator?.addEventListener('click', () => {
-    if (ui.isTyping || !playback.engine) return;
-    playback.advanceScene();
+    if (e.target === ui.clickIndicator || e.target.parentElement === ui.clickIndicator) {
+      if (!ui.isTyping && playback.engine) playback.advanceScene();
+    } else {
+      if (ui.isTyping) ui.skipTypewriter();
+    }
   });
 
   // ── Touch Gestures (mobile) ──
