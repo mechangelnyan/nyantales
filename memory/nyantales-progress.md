@@ -3294,3 +3294,24 @@ cd /tmp/nyantales && python3 -m http.server 9876
 
 ## Log (continued)
 - 2026-03-31 (7:27 PM): Phase 173 — Removed 7 unnecessary typeof Toast guards (Toast loads before all consumers), removed typeof CHARACTER_DATA guard from main.js (sprites.js loads first), pre-built HistoryPanel _emptyEl in constructor (was lazy init per show), SafeStorage eviction log info→warn. SW v154, 199KB bundle. All 50 JS + 204/204 unit + 247/247 Playwright pass. Committed & pushed.
+
+## Phase 174: Static DataManager, In-Place Normalization, Spread Cleanup ✅
+- **DataManager.DATA_KEYS and SAVE_PREFIX → static class properties** — was allocating identical arrays/strings per instance
+  - All 6 internal references updated to `DataManager.DATA_KEYS` / `DataManager.SAVE_PREFIX`
+  - Playwright test updated to read static property directly
+- **StoryEngine._normalizeScenes() in-place mutation** — no longer spread-copies each ending scene
+  - Was creating `{...scene, ending: {...}}` per ending (allocating new object per scene)
+  - Raw YAML data is never reused after normalization → safe to mutate in-place
+  - Adds `scene.ending` property only when `is_ending` is set and `ending` doesn't exist yet
+- **Set → Array: `[...set]` spread → `Array.from(set)`** in engine.js + achievements.js
+  - Semantically clearer for Set → Array conversion
+  - Used in: goToScene snapshots, saveState(), achievements._save()
+- **Array copy: `[...arr]` spread → `.slice()`** in engine.js + audio.js
+  - Idiomatic array copy
+  - Used in: goToScene inventory snapshots, audio old node cleanup
+- SW cache bumped to v155, production build regenerated (199KB JS, 97KB CSS)
+- All 50 JS files pass `node --check`, 204/204 unit tests, 247/247 Playwright tests
+- Committed & pushed
+
+## Log (continued)
+- 2026-03-31 (8:27 PM): Phase 174 — Static DataManager constants (DATA_KEYS/SAVE_PREFIX instance→static), in-place scene normalization (eliminates spread copy per ending scene), Array.from/slice consistency across engine+achievements+audio (clearer Set→Array and array copy idioms). SW v155, 199KB bundle. All 50 JS + 204/204 unit + 247/247 Playwright pass. Committed & pushed.
