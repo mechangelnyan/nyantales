@@ -118,10 +118,12 @@ class TitleBrowser {
     const mobile = this._mobileMQ.matches;
     const titleVisible = !this._titleBg.classList.contains('hidden');
     if (!mobile || !titleVisible) {
-      this._storyFilter.classList.remove('mobile-stuck');
-      this._storyFilter.style.removeProperty('--filter-sticky-top');
-      this._storyFilter.style.removeProperty('--filter-sticky-left');
-      this._storyFilter.style.removeProperty('--filter-sticky-width');
+      if (this._storyFilter.classList.contains('mobile-stuck')) {
+        this._storyFilter.classList.remove('mobile-stuck');
+        this._storyFilter.style.removeProperty('--filter-sticky-top');
+        this._storyFilter.style.removeProperty('--filter-sticky-left');
+        this._storyFilter.style.removeProperty('--filter-sticky-width');
+      }
       return;
     }
 

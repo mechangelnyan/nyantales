@@ -3426,3 +3426,18 @@ cd /tmp/nyantales && python3 -m http.server 9876
 
 ## Log (continued)
 - 2026-04-01 (2:27 AM): Phase 180 — Shared _gridHandler function (storyGrid click+keydown use 1 named function instead of 2 anonymous closures). Merged textbox click delegation (2 listeners → 1 delegated). Engine rewindScene reuses existing flags Set instead of allocating new one. addEventListener count 11→10 in main.js. SW v161, 199KB bundle. All 49 JS + 204/204 unit + 259/259 Playwright pass.
+
+## Phase 181: Engine loadState Set Reuse, Mobile Sticky Guard ✅
+- **Engine `loadState()` reuses existing Sets** — `flags` and `visited` now use `.clear()` + `for...of .add()` instead of `new Set(data.flags)` / `new Set(data.visited)`
+  - Previously: allocated 2 new Set objects on every `loadState()` call (save restore, auto-save load)
+  - Now: reuses existing Sets via clear + repopulate (same pattern as `rewindScene()` from Phase 180)
+  - Consistent with the codebase-wide "reuse existing collections" convention
+- **Mobile sticky short-circuit** — `_syncMobileStickyNow()` now skips 3 `style.removeProperty()` calls when filter is already unstuck
+  - Previously: always called `removeProperty` on 3 CSS custom properties when not in mobile-stuck state (even if they were already removed)
+  - Now: guards behind `classList.contains('mobile-stuck')` check — only removes properties when transitioning from stuck to unstuck
+  - Saves 3 DOM style writes per scroll event on desktop (where sticky is never active)
+- SW cache bumped to v162, production build regenerated (199KB JS, 97KB CSS)
+- All 49 JS files pass `node --check`, 204/204 unit tests, 259/259 Playwright tests
+
+## Log (continued)
+- 2026-04-01 (3:27 AM): Phase 181 — Engine loadState reuses existing flags/visited Sets (clear+repopulate instead of new Set allocation). Mobile sticky short-circuit (skips 3 removeProperty calls when already unstuck). SW v162, 199KB bundle. All 49 JS + 204/204 unit + 259/259 Playwright pass. Committed & pushed.

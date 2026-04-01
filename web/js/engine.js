@@ -238,8 +238,11 @@ class StoryEngine {
     const data = JSON.parse(json);
     this.state.currentScene = data.currentScene;
     this.state.inventory = data.inventory || [];
-    this.state.flags = new Set(data.flags);
-    this.state.visited = new Set(data.visited);
+    // Reuse existing Sets (avoids allocation) — clear and repopulate from save data
+    this.state.flags.clear();
+    if (data.flags) { for (const f of data.flags) this.state.flags.add(f); }
+    this.state.visited.clear();
+    if (data.visited) { for (const v of data.visited) this.state.visited.add(v); }
     this.state.turns = data.turns || 0;
     // Cap history/snapshots on load to prevent memory bloat from corrupt or very old saves
     const hist = data.history || [];
