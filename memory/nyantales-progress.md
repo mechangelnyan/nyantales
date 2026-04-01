@@ -3335,3 +3335,20 @@ cd /tmp/nyantales && python3 -m http.server 9876
 
 ## Log (continued)
 - 2026-03-31 (9:27 PM): Phase 175 — Pre-computed _searchKey in stats dashboard (zero string alloc per search keystroke), allocation-free stats filter (for...of instead of .filter()), gallery _slugToTitle avoids .map() intermediate array. 3 new Playwright tests. SW v156, 199KB bundle. All 50 JS + 204/204 unit + 250/250 Playwright pass. Committed & pushed.
+
+## Phase 176: .map() Elimination, Reusable Achievement Set, README Freshness ✅
+- **StoryLoader YAML fallback: `.map()` → `for...of` push loop** — eliminates intermediate callback array allocation
+  - `StoryLoader.SLUGS.map(async slug => ...)` created 30 async function objects
+  - Now: `for...of` loop pushes chained `fetch().then()` promises directly (same parallelism, zero `.map()` allocation)
+  - `.map()` count in app code: 1 → 0 (only js-yaml.min.js has `.map()`)
+- **AchievementSystem reusable `_completedBuf` Set** — `_buildContext()` reuses a single Set via `.clear()` instead of `new Set()` per `checkAll()` call
+  - `checkAll()` is called on: story start, ending, and boot — each was allocating a fresh Set
+  - Now: `_completedBuf` allocated once in constructor, cleared and repopulated per call
+  - Same pattern as `_visibleNamesBuf` in SpriteManager (proven safe)
+- **README build stats freshened** — 199KB JS (was 198KB), 250 Playwright tests (was 247)
+- SW cache bumped to v157, production build regenerated (199KB JS, 97KB CSS)
+- All 50 JS files pass `node --check`, 204/204 unit tests, 250/250 Playwright tests
+- Committed & pushed
+
+## Log (continued)
+- 2026-03-31 (10:27 PM): Phase 176 — StoryLoader YAML fallback .map()→for...of (zero .map() in app code), reusable _completedBuf Set in AchievementSystem (avoids new Set per checkAll), README freshened (199KB, 250 Playwright). SW v157, 199KB bundle. All 50 JS + 204/204 unit + 250/250 Playwright pass. Committed & pushed.

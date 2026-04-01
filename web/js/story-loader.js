@@ -67,24 +67,24 @@ class StoryLoader {
     } catch (_) { /* manifest not available, fall through to YAML loading */ }
 
     // Fallback: fetch and parse all YAML files (dev mode)
-    const results = await Promise.allSettled(
-      StoryLoader.SLUGS.map(async slug => {
-        try {
-          const resp = await fetch(`${base}/${slug}/story.yaml`);
-          if (!resp.ok) return null;
-          const text = await resp.text();
-          const parsed = YAMLParser.parse(text);
-          if (!parsed || !parsed.scenes) {
-            console.warn(`[NyanTales] Invalid story data: ${slug}`);
-            return null;
-          }
-          return { slug, title: parsed.title || slug, description: parsed.description || '', _parsed: parsed, _meta: null };
-        } catch (err) {
-          console.warn(`[NyanTales] Failed to load story: ${slug}`, err);
-          return null;
-        }
-      })
-    );
+    const promises = [];
+    for (const slug of StoryLoader.SLUGS) {
+      promises.push(
+        fetch(`${base}/${slug}/story.yaml`)
+          .then(resp => resp.ok ? resp.text() : null)
+          .then(text => {
+            if (!text) return null;
+            const parsed = YAMLParser.parse(text);
+            if (!parsed || !parsed.scenes) {
+              console.warn(`[NyanTales] Invalid story data: ${slug}`);
+              return null;
+            }
+            return { slug, title: parsed.title || slug, description: parsed.description || '', _parsed: parsed, _meta: null };
+          })
+          .catch(err => { console.warn(`[NyanTales] Failed to load story: ${slug}`, err); return null; })
+      );
+    }
+    const results = await Promise.allSettled(promises);
     this._clear();
     for (const r of results) {
       if (r.status === 'fulfilled' && r.value) {

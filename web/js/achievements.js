@@ -11,6 +11,8 @@ class AchievementSystem {
     this._toast = null;
     /** Tracked staggered toast timers — cancellable on story exit */
     this._toastTimers = [];
+    /** Reusable Set for _buildContext() — avoids allocation per checkAll() call */
+    this._completedBuf = new Set();
 
     // Achievement definitions
     this.achievements = [
@@ -145,7 +147,8 @@ class AchievementSystem {
    * Single-pass iteration avoids Object.entries() allocation and separate getStats() call.
    */
   _buildContext() {
-    const completedSlugs = new Set();
+    const completedSlugs = this._completedBuf;
+    completedSlugs.clear();
     let storiesCompleted = 0, totalEndings = 0, totalPlays = 0;
     let bestTurns = null, maxTurns = null;
 
