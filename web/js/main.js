@@ -71,13 +71,15 @@
   storyInfo.onShare = (story) => ShareHelper.shareStory(story);
 
   // Pre-compute total character count (used by About panel)
-  const _totalCharCount = (() => {
-    const chars = new Set();
+  let _totalCharCount = 0;
+  {
+    const _names = new Set();
     for (const slug in CHARACTER_DATA) {
-      for (const c of CHARACTER_DATA[slug]) chars.add(c.name);
+      for (const c of CHARACTER_DATA[slug]) _names.add(c.name);
     }
-    return chars.size;
-  })();
+    _totalCharCount = _names.size;
+    // _names eligible for GC immediately (block-scoped)
+  }
 
   // Wire gallery story click (one-time, not per-show)
   gallery.onStorySelect = (slug) => {
@@ -466,19 +468,23 @@
     const noMod = !e.ctrlKey && !e.metaKey;
     const key = e.key.toLowerCase();
 
+    // Global shortcuts (work with or without active engine)
     if (key === 'm' && noMod) toggleAudio();
-    if (key === 'b' && noMod && playback.engine) playback.rewindOneScene(btnRewind);
     if (e.key === '?' || (key === '/' && e.shiftKey)) panels.toggle(keyboardHelp);
-
-    if (key === 'a' && noMod && playback.engine) toggleAutoPlay();
-    if (key === 'h' && noMod && playback.engine) panels.toggle(historyPanel);
-    if (key === 'g' && noMod && playback.engine) panels.toggle(sceneSelect, playback.engine, playback.engine.state.currentScene);
-    if (key === 'r' && noMod && playback.engine) panels.toggle(routeMap, playback.engine);
-    if (key === 'f' && noMod && playback.engine) settings.set('fullscreen', !settings.get('fullscreen'));
     if (key === 's' && noMod) panels.toggle(settingsPanel);
 
-    // 'Q' for save/load panel
-    if (key === 'q' && noMod && playback.engine && playback.currentSlug) panels.toggle(saveManager, playback.currentSlug, playback.engine, 'save');
+    // Engine-dependent shortcuts (only during story playback)
+    if (noMod && playback.engine) {
+      switch (key) {
+        case 'a': toggleAutoPlay(); break;
+        case 'b': playback.rewindOneScene(btnRewind); break;
+        case 'h': panels.toggle(historyPanel); break;
+        case 'g': panels.toggle(sceneSelect, playback.engine, playback.engine.state.currentScene); break;
+        case 'r': panels.toggle(routeMap, playback.engine); break;
+        case 'f': settings.set('fullscreen', !settings.get('fullscreen')); break;
+        case 'q': if (playback.currentSlug) panels.toggle(saveManager, playback.currentSlug, playback.engine, 'save'); break;
+      }
+    }
   });
 
   // ── Auto-play Toggle ──
@@ -613,8 +619,8 @@
   });
 
   /** Show or hide the loading screen with progress */
-  const _loadingFill  = document.querySelector('.loading-bar-fill');
-  const _loadingLabel = document.querySelector('.loading-text');
+  let _loadingFill  = document.querySelector('.loading-bar-fill');
+  let _loadingLabel = document.querySelector('.loading-text');
   function updateLoadingProgress(pct, text) {
     if (_loadingFill) _loadingFill.style.setProperty('--bar-pct', `${pct}%`);
     if (_loadingLabel && text) _loadingLabel.textContent = text;
@@ -628,6 +634,9 @@
       playback.trackTimeout(() => loading.remove(), 600);
     }
     if (app) app.removeAttribute('aria-hidden');
+    // Release loading screen DOM refs (element removed from DOM after fade)
+    _loadingFill = null;
+    _loadingLabel = null;
   }
 
   /** Show keyboard shortcut hints on first visit to story screen */
