@@ -3352,3 +3352,22 @@ cd /tmp/nyantales && python3 -m http.server 9876
 
 ## Log (continued)
 - 2026-03-31 (10:27 PM): Phase 176 — StoryLoader YAML fallback .map()→for...of (zero .map() in app code), reusable _completedBuf Set in AchievementSystem (avoids new Set per checkAll), README freshened (199KB, 250 Playwright). SW v157, 199KB bundle. All 50 JS + 204/204 unit + 250/250 Playwright pass. Committed & pushed.
+
+## Phase 177: DRY ShareHelper.shareStory, Test Expansion ✅
+- **`ShareHelper.shareStory(story)` static method** — centralized story share text builder
+  - Builds canonical share text: title + description + deep link URL
+  - Delegates to `ShareHelper.share()` for Web Share API → clipboard fallback
+  - Replaces 12-line inline callback in main.js `storyInfo.onShare`
+- **5 new Playwright tests** (250 → 255):
+  - `ShareHelper.shareStory` static method existence
+  - `ShareHelper.storyUrl` generates canonical URLs without `/web/` prefix
+  - `EndingOverlay._ICONS` has all 4 ending types (good/bad/neutral/secret)
+  - `DataManager.DATA_KEYS` static array contains expected keys
+  - `DataManager.SAVE_PREFIX` static string value
+- main.js: 794 → 778 lines (16 lines removed)
+- SW cache bumped to v158, production build regenerated (199KB JS, 97KB CSS)
+- All 50 JS files pass `node --check`, 204/204 unit tests, 255/255 Playwright tests
+- Committed & pushed
+
+## Log (continued)
+- 2026-03-31 (11:27 PM): Phase 177 — DRY ShareHelper.shareStory (centralizes story share text building, replaces 12-line inline callback in main.js). 5 new Playwright tests (shareStory method, storyUrl canonical, EndingOverlay._ICONS, DataManager static props). main.js 794→778 lines. SW v158, 199KB JS / 97KB CSS. All 50 JS + 204/204 unit + 255/255 Playwright pass. Committed & pushed.
