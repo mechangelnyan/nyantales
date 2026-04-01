@@ -3326,7 +3326,7 @@ test.describe('SpriteManager — Extended', () => {
       const pm = new PortraitManager(new CatSpriteGenerator());
       const sm = new SpriteManager(el, pm);
       // Track a fake timer
-      const id = sm._trackTimer(setTimeout(() => {}, 10000));
+      const id = sm.trackTimer(setTimeout(() => {}, 10000));
       const before = sm._effectTimers.length;
       sm.clear();
       const after = sm._effectTimers.length;

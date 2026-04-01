@@ -217,7 +217,7 @@ class VNUI {
     this.clickIndicator.classList.add('hidden');
 
     // Cancel any lingering effect timers from the previous scene
-    this._sprites._clearEffectTimers();
+    this._sprites.clearEffectTimers();
     this.textEl.classList.remove('glitch-text');
     this.containerEl.classList.remove('shake');
 
@@ -302,11 +302,11 @@ class VNUI {
     // Effects (tracked so they can be cancelled on scene change)
     if (scene.effect === 'glitch') {
       this.textEl.classList.add('glitch-text');
-      this._sprites._trackTimer(setTimeout(() => this.textEl.classList.remove('glitch-text'), 1000));
+      this._sprites.trackTimer(setTimeout(() => this.textEl.classList.remove('glitch-text'), 1000));
     }
     if (scene.effect === 'shake') {
       this.containerEl.classList.add('shake');
-      this._sprites._trackTimer(setTimeout(() => this.containerEl.classList.remove('shake'), 500));
+      this._sprites.trackTimer(setTimeout(() => this.containerEl.classList.remove('shake'), 500));
     }
 
     // Check for ending — show a "Continue" prompt first, then the ending overlay

@@ -42,7 +42,7 @@ class SpriteManager {
 
   /** Remove all sprites and cancel pending effect timers. */
   clear() {
-    this._clearEffectTimers();
+    this.clearEffectTimers();
     this.spritesEl.textContent = '';
     this._activeSprites.clear();
   }
@@ -129,7 +129,7 @@ class SpriteManager {
       if (!visibleNames.has(name)) {
         el.classList.remove('visible');
         el.classList.add('sprite-exit');
-        this._trackTimer(setTimeout(() => el.remove(), 500));
+        this.trackTimer(setTimeout(() => el.remove(), 500));
         this._activeSprites.delete(name);
       }
     }
@@ -187,10 +187,10 @@ class SpriteManager {
   }
 
   /** Track a setTimeout so it can be cancelled on scene teardown. */
-  _trackTimer(id) { this._effectTimers.push(id); return id; }
+  trackTimer(id) { this._effectTimers.push(id); return id; }
 
   /** Cancel all pending effect timers. */
-  _clearEffectTimers() {
+  clearEffectTimers() {
     for (const id of this._effectTimers) clearTimeout(id);
     this._effectTimers.length = 0;
   }

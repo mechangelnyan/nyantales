@@ -3510,3 +3510,18 @@ cd /tmp/nyantales && python3 -m http.server 9876
 
 ## Log (continued)
 - 2026-04-01 (7:27 AM): Phase 184 — GC-friendly boot (block-scoped char count Set, nulled loading refs), switch dispatch keyboard shortcuts (7 if-chains → single guard + switch). SW v165, 200KB bundle. All 49 JS + 204/204 unit + 263/263 Playwright pass. Committed & pushed.
+
+## Phase 185: Public SpriteManager API, README Freshness ✅
+- **SpriteManager public API** — `_trackTimer()` and `_clearEffectTimers()` renamed to `trackTimer()` and `clearEffectTimers()`
+  - These methods were called cross-module by `ui.js` (3 call sites) via `this._sprites._trackTimer()` — accessing private methods
+  - Now: `trackTimer()` / `clearEffectTimers()` are proper public API
+  - Internal references in SpriteManager updated (clear on `setStorySlug`, sprite fade-out tracking)
+  - Playwright test updated to use public method name
+  - Zero underscore cross-module method access remaining in ui.js → SpriteManager
+- **README build sizes corrected** — JS was stated as 204KB, actual dist is 200KB; source sizes updated (385KB → 200KB)
+- SW cache bumped to v166, production build regenerated (200KB JS, 97KB CSS)
+- All 49 JS files pass `node --check`, 204/204 unit tests, 263/263 Playwright tests
+- Committed & pushed
+
+## Log (continued)
+- 2026-04-01 (8:27 AM): Phase 185 — SpriteManager public API (renamed _trackTimer/_clearEffectTimers to trackTimer/clearEffectTimers, eliminating cross-module underscore access from ui.js). README build sizes corrected (200KB JS actual). SW v166, 200KB bundle. All 49 JS + 204/204 unit + 263/263 Playwright pass. Committed & pushed.
