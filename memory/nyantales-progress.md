@@ -3315,3 +3315,23 @@ cd /tmp/nyantales && python3 -m http.server 9876
 
 ## Log (continued)
 - 2026-03-31 (8:27 PM): Phase 174 — Static DataManager constants (DATA_KEYS/SAVE_PREFIX instance→static), in-place scene normalization (eliminates spread copy per ending scene), Array.from/slice consistency across engine+achievements+audio (clearer Set→Array and array copy idioms). SW v155, 199KB bundle. All 50 JS + 204/204 unit + 247/247 Playwright pass. Committed & pushed.
+
+## Phase 175: Pre-Computed Search Keys, Allocation-Free Stats Filter, Gallery Title Optimization ✅
+- **Stats dashboard `_searchKey` pre-computed** — `_computeStats()` now builds `_searchKey: '${title} ${slug}'.toLowerCase()` per row at computation time
+  - `_getVisibleStoryRows()` filter was allocating a template literal string per row per search keystroke
+  - Now uses the pre-computed key (zero string allocation during search hot path)
+- **Stats filter uses `for...of` push loop** — replaces `.filter()` which allocated intermediate array
+  - When no query, returns storyRows directly (no copy)
+- **Gallery `_slugToTitle()` avoids `.map()` intermediate array** — `split('-').map(capitalize).join(' ')` → for-loop concatenation
+  - Same cached result, fewer intermediate allocations
+  - Gallery title cache is a static Map, shared across all gallery instances
+- **3 new Playwright tests** (247 → 250):
+  - StatsDashboard class availability for pre-computed search
+  - CharacterGallery._titleCache Map verification
+  - PanelManager class registration check
+- SW cache bumped to v156, production build regenerated (199KB JS, 97KB CSS)
+- All 50 JS files pass `node --check`, 204/204 unit tests, 250/250 Playwright tests
+- Committed & pushed
+
+## Log (continued)
+- 2026-03-31 (9:27 PM): Phase 175 — Pre-computed _searchKey in stats dashboard (zero string alloc per search keystroke), allocation-free stats filter (for...of instead of .filter()), gallery _slugToTitle avoids .map() intermediate array. 3 new Playwright tests. SW v156, 199KB bundle. All 50 JS + 204/204 unit + 250/250 Playwright pass. Committed & pushed.
