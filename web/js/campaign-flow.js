@@ -144,11 +144,8 @@ class CampaignFlow {
     }
     c.progress.chapterIndex = chapterIndex;
     c.progress.phase = 'chapter';
-    if (!c.progress.started && chapterIndex === 0) {
-      c.progress.started = false;
-    } else if (chapterIndex > 0) {
-      c.progress.started = true;
-    }
+    // Mark campaign as started when replaying chapters > 0
+    if (chapterIndex > 0) c.progress.started = true;
     c.saveProgress();
     this._playback.campaignMode = true;
     await this.startStory(story);

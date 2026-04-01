@@ -10,15 +10,20 @@ class AppRouter {
     /** Monotonically increasing serial to detect stale route changes. */
     this.serial = 0;
     this.APP_TITLE = 'NyanTales — Visual Novel';
+
+    // Cache immutable path-derived values (pathname doesn't change during SPA lifecycle)
+    const path = window.location.pathname;
+    /** @type {string} Cached story base path (immutable for app lifetime). */
+    this._basePath = path.includes('/web/dist') ? '../../stories'
+      : (path.includes('/web/') || path.endsWith('/web')) ? '../stories'
+      : 'stories';
+
+    /** @type {string} Cached menu URL (pathname + hash, no query). */
+    this._menuUrl = `${path}${window.location.hash || ''}`;
   }
 
   /** Detect the relative base path for story YAML files. */
-  storyBasePath() {
-    const path = window.location.pathname;
-    if (path.includes('/web/dist')) return '../../stories';
-    if (path.includes('/web/') || path.endsWith('/web')) return '../stories';
-    return 'stories';
-  }
+  storyBasePath() { return this._basePath; }
 
   /** Build a shareable URL on the current app path. */
   buildStoryUrl(slug) {
@@ -31,9 +36,7 @@ class AppRouter {
 
   /** Keep the browser URL synced to the currently open story without navigating. */
   syncStoryUrl(slug, mode = 'replace') {
-    const nextUrl = slug
-      ? this.buildStoryUrl(slug)
-      : `${window.location.pathname}${window.location.hash || ''}`;
+    const nextUrl = slug ? this.buildStoryUrl(slug) : this._menuUrl;
     const state = slug ? { view: 'story', slug } : { view: 'menu' };
     const method = mode === 'push' ? 'pushState' : 'replaceState';
     window.history[method](state, '', nextUrl);
