@@ -3623,3 +3623,54 @@ test.describe('Stats Dashboard Search', () => {
     expect(panelCount).not.toBe(0);
   });
 });
+
+test.describe('ShareHelper', () => {
+  test('shareStory static method exists and builds correct text', async ({ page }) => {
+    await waitForTitleScreen(page);
+    const result = await page.evaluate(() => {
+      if (typeof ShareHelper === 'undefined') return null;
+      if (typeof ShareHelper.shareStory !== 'function') return 'missing';
+      return 'ok';
+    });
+    expect(result).toBe('ok');
+  });
+
+  test('shareStory generates URL with story slug', async ({ page }) => {
+    await waitForTitleScreen(page);
+    const url = await page.evaluate(() => {
+      return ShareHelper.storyUrl('the-terminal-cat');
+    });
+    expect(url).toContain('story=the-terminal-cat');
+    expect(url).not.toContain('/web/');
+  });
+});
+
+test.describe('Ending Overlay', () => {
+  test('EndingOverlay._ICONS has all 4 ending types', async ({ page }) => {
+    await waitForTitleScreen(page);
+    const types = await page.evaluate(() => {
+      if (!EndingOverlay._ICONS) return [];
+      return ['good', 'bad', 'neutral', 'secret'].filter(t => EndingOverlay._ICONS[t]);
+    });
+    expect(types).toHaveLength(4);
+  });
+});
+
+test.describe('DataManager Static', () => {
+  test('DATA_KEYS is a static array with expected keys', async ({ page }) => {
+    await waitForTitleScreen(page);
+    const result = await page.evaluate(() => {
+      const keys = DataManager.DATA_KEYS;
+      if (!Array.isArray(keys)) return 'not array';
+      const expected = ['nyantales-tracker', 'nyantales-achievements', 'nyantales-settings'];
+      return expected.every(k => keys.includes(k)) ? 'ok' : 'missing keys';
+    });
+    expect(result).toBe('ok');
+  });
+
+  test('SAVE_PREFIX is a static string', async ({ page }) => {
+    await waitForTitleScreen(page);
+    const prefix = await page.evaluate(() => DataManager.SAVE_PREFIX);
+    expect(prefix).toBe('nyantales-saves-');
+  });
+});

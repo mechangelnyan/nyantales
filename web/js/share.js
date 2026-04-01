@@ -19,6 +19,25 @@ class ShareHelper {
   }
 
   /**
+   * Share a story by title/description + deep link URL.
+   * Builds canonical share text and delegates to ShareHelper.share().
+   */
+  static shareStory(story) {
+    const url = ShareHelper.storyUrl(story.slug);
+    const lines = [`🐱 NyanTales - ${story.title}`];
+    if (story.description) lines.push(story.description);
+    lines.push('', `🎮 Play this story: ${url}`);
+    return ShareHelper.share({
+      title: `NyanTales - ${story.title}`,
+      text: lines.join('\n'),
+      url,
+      successMessage: 'Story link copied!',
+      successIcon: '🔗',
+      errorMessage: 'Failed to share story'
+    });
+  }
+
+  /**
    * Share via native share sheet when available, else copy text to clipboard.
    * Falls back to clipboard even if the share sheet is cancelled.
    */
