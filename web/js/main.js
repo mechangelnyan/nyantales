@@ -290,7 +290,8 @@
     if (syncRoute) router.syncStoryUrl(null, historyMode);
     audio.stop();
     textHistory.clear();
-    if (sceneSelect.isVisible) sceneSelect.hide();
+    // Close all open panels (prevents state leakage on menu return)
+    while (panels.closeTopmost()) { /* close all */ }
     playback.cleanup(); // clears engine, slug, timers, HUD indicators
     ui.showTitleScreen();
     titleScreen.render();

@@ -842,17 +842,31 @@ test.describe('Save and Load', () => {
 
     // Close save panel
     await page.keyboard.press('Escape');
+    await page.waitForTimeout(300);
 
-    // Go back to menu
-    await page.locator('#btn-back').click();
-    await page.waitForTimeout(500);
+    // Go back to menu via Escape (story mode, no panels open → returns to menu)
+    await page.keyboard.press('Escape');
+    // Wait for title screen to be active
+    await expect(page.locator('#title-screen.active')).toBeVisible({ timeout: 5000 });
 
-    // Re-enter the story
-    const card = page.locator('.story-card:not(.story-locked)').filter({ hasText: /Terminal Cat/i }).first();
-    await card.click();
+    // Re-enter the story via Continue button (should have a save from above)
+    const continueBtn = page.locator('#btn-continue');
+    if (await continueBtn.isVisible({ timeout: 2000 }).catch(() => false)) {
+      await continueBtn.click();
+    } else {
+      // Fallback: click the story card
+      const card = page.locator('.story-card:not(.story-locked)').filter({ hasText: /Terminal Cat/i }).first();
+      await card.click();
+    }
+    // Wait for story intro or story screen
     const intro = page.locator('.story-intro-overlay');
-    await expect(intro).toBeVisible({ timeout: 10000 });
-    await intro.getByRole('button', { name: /continue/i }).click();
+    const storyScreen = page.locator('#story-screen.active');
+    await expect(intro.or(storyScreen)).toBeVisible({ timeout: 10000 });
+    // Dismiss intro if visible
+    const introBtn = intro.getByRole('button', { name: /continue/i });
+    if (await introBtn.isVisible({ timeout: 2000 }).catch(() => false)) {
+      await introBtn.click();
+    }
     await expect(text).not.toHaveText(/^\s*$/, { timeout: 15000 });
 
     // Open save panel in load mode

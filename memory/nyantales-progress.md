@@ -3541,3 +3541,19 @@ cd /tmp/nyantales && python3 -m http.server 9876
 
 ## Log (continued)
 - 2026-04-01 (9:27 AM): Phase 186 — Eliminated card._innerRefs DOM custom property: moved inner card refs (h3/p/textDiv/spriteEl) to _innerRefs Map inside StoryCardManager. VNUI.renderStoryList accepts onInnerRefs callback. TitleScreen passes callback during grid build. Zero DOM custom properties remaining. SW v167, 200KB bundle. All 50 JS + 204/204 unit + 263/263 Playwright pass. Committed & pushed.
+
+## Phase 187: Close All Panels on Menu Return, Save/Load Test Fix ✅
+- **`returnToMenu()` now closes all open panels** — `while (panels.closeTopmost()) {}` loop
+  - Previously: only `sceneSelect` was explicitly closed (legacy check from before PanelManager existed)
+  - All other panels (settings, history, save, route map, etc.) remained open behind the title screen
+  - This caused state leakage: save panel open → menu return → re-enter story → stale save panel in DOM
+  - Now: all panels are cleanly closed in priority order before cleanup
+  - Removed standalone `if (sceneSelect.isVisible) sceneSelect.hide()` (now handled by the loop)
+- **Save/Load Playwright test fix** — test was flaky due to intro overlay timing on re-entry
+  - Uses Escape key for menu return (more reliable than clicking btn-back with panels open)
+  - Waits for title screen active state before re-entering
+  - Uses Continue button for re-entry (has a save from the test) with card click fallback
+  - Intro dismiss uses `.catch(() => false)` for safe visibility check
+- SW cache bumped to v168, production build regenerated (200KB JS, 97KB CSS)
+- All 50 JS files pass `node --check`, 204/204 unit tests, 263/263 Playwright tests
+- Committed & pushed
