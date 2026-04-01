@@ -14,7 +14,6 @@ class RouteMap {
     this.overlay = null;
     this.canvas = null;
     this.ctx = null;
-    this.isVisible = false;
     this._focusTrap = null;
     this._panelEl = null;
     this._nodes = [];      // { id, x, y, type, visited, current, label }
@@ -232,7 +231,6 @@ class RouteMap {
 
     this._buildGraph(engine);
     this._ensureOverlay();
-    this.isVisible = true;
 
     // Size canvas now that overlay is visible
     this._resizeCanvas();
@@ -247,12 +245,15 @@ class RouteMap {
   /** Hide the route map overlay */
   hide() {
     if (!this.isVisible) return;
-    this.isVisible = false;
     this._unbindEvents();
     if (this._animFrame) cancelAnimationFrame(this._animFrame);
     OverlayMixin.hide(this);
     if (this._tooltip) this._tooltip.classList.add('hidden');
     this._hoveredNode = null;
+  }
+
+  get isVisible() {
+    return OverlayMixin.isVisible(this);
   }
 
   /**

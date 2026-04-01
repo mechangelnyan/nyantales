@@ -10,7 +10,6 @@
 class AchievementPanel {
   constructor(achievements) {
     this.achievements = achievements;
-    this.isVisible = false;
     this._overlay = null;
     this._focusTrap = null;
     this._dom = null;
@@ -87,7 +86,6 @@ class AchievementPanel {
     this._ensureOverlay();
     this._update();
 
-    this.isVisible = true;
     OverlayMixin.show(this);
   }
 
@@ -160,6 +158,9 @@ class AchievementPanel {
   /** Hide the achievement panel */
   hide() {
     OverlayMixin.hide(this);
-    this.isVisible = false;
+  }
+
+  get isVisible() {
+    return OverlayMixin.isVisible(this);
   }
 }

@@ -19,7 +19,6 @@ class StatsDashboard {
     this.saveManager = saveManager;
     this.portraits = portraits;
     this.campaign = campaign || null;
-    this.isVisible = false;
     this._overlay = null;
     this._focusTrap = null;
     this._storyIndex = [];
@@ -72,7 +71,6 @@ class StatsDashboard {
   /** Show the stats dashboard */
   show() {
     if (this.isVisible) return;
-    this.isVisible = true;
 
     if (!this._overlay) {
       this._overlay = document.createElement('div');
@@ -95,8 +93,11 @@ class StatsDashboard {
   /** Hide the stats dashboard */
   hide() {
     if (!this.isVisible) return;
-    this.isVisible = false;
     OverlayMixin.hide(this);
+  }
+
+  get isVisible() {
+    return OverlayMixin.isVisible(this);
   }
 
   // ─── DOM Construction (called once) ────────────────────────────
